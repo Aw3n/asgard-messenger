@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/asgard-icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0A0A0F" />
+    <!-- CSP moved to main.ts webPreferences -->
+    <title>Asgard</title>
+    <script>
+      // Apply theme immediately to prevent flash
+      (function() {
+        try {
+          const stored = localStorage.getItem('asgard-ui');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            const theme = parsed?.state?.theme;
+            if (theme === 'light') {
+              document.documentElement.classList.remove('dark');
+              document.documentElement.classList.add('light');
+            } else if (theme === 'system') {
+              const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              document.documentElement.classList.remove('dark', 'light');
+              document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="overflow-hidden select-none">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

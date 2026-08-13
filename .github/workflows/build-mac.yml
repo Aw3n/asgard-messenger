@@ -1,0 +1,48 @@
+name: Build macOS
+
+# Lancement manuel depuis l'onglet Actions du dépôt.
+on:
+  workflow_dispatch:
+
+jobs:
+  mac:
+    strategy:
+      # On veut voir les deux architectures aboutir ou échouer indépendamment.
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-13   # Intel
+            arch: x64
+          - runner: macos-14   # Apple Silicon
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # npm ci recompile les modules natifs Holepunch (sodium-native, utp-native)
+      # pour darwin, ce qui n'est possible que sur un runner macOS.
+      - run: npm ci
+
+      # assets/icon.icns est gitignoré : il doit être régénéré ici.
+      - run: npm run build:icons
+
+      - run: npm run build
+
+      # Pas de certificat Apple : on désactive la recherche d'identité de
+      # signature, sinon electron-builder échoue au lieu de produire un binaire.
+      - run: npx electron-builder --mac dmg zip --${{ matrix.arch }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asgard-mac-${{ matrix.arch }}
+          path: |
+            release/*.dmg
+            release/*.zip
+          if-no-files-found: error

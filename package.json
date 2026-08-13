@@ -1,0 +1,216 @@
+{
+  "name": "asgard",
+  "version": "1.0.0",
+  "description": "Asgard - Decentralized P2P Messenger powered by Pear Runtime",
+  "main": "dist/electron/main.js",
+  "homepage": "https://github.com/asgard-team/asgard",
+  "author": {
+    "name": "Asgard Team",
+    "email": "team@asgard.local"
+  },
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && electron . --dev",
+    "build": "npm run build:vite && npm run build:electron",
+    "build:vite": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && node -e \"require('fs').writeFileSync('dist/preload/package.json', '{\\\"type\\\":\\\"commonjs\\\"}')\"",
+    "build:icons": "node scripts/build-icons.js",
+    "package": "npm run build && electron-builder",
+    "package:win": "npm run build && electron-builder --win",
+    "package:linux": "npm run build && electron-builder --linux",
+    "package:mac": "npm run build && electron-builder --mac",
+    "package:all": "npm run build && electron-builder --win --linux --mac",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^3.1.0",
+    "@noble/hashes": "^2.2.0",
+    "@zxing/browser": "^0.2.0",
+    "@zxing/library": "^0.22.0",
+    "autobase": "^7.28.1",
+    "b4a": "^1.6.7",
+    "compact-encoding": "^2.15.0",
+    "corestore": "^7.11.0",
+    "date-fns": "^4.4.0",
+    "eventemitter3": "^5.0.4",
+    "framer-motion": "^11.3.0",
+    "hyperbee": "^2.27.3",
+    "hyperblobs": "^2.12.1",
+    "hypercore": "^11.33.5",
+    "hypercore-crypto": "^3.7.0",
+    "hyperdht": "^6.32.0",
+    "hyperdrive": "^13.3.2",
+    "hyperswarm": "^4.17.0",
+    "i18next": "^26.3.4",
+    "immer": "^11.1.8",
+    "protomux": "^3.11.0",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^15.0.0",
+    "react-i18next": "^17.0.8",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^6.24.1",
+    "react-virtuoso": "^4.7.11",
+    "remark-gfm": "^4.0.1",
+    "slugify": "^1.6.6",
+    "z32": "^1.1.0",
+    "zustand": "^4.5.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.13",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/ui": "^2.0.3",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "electron": "^31.2.1",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.8",
+    "jsdom": "^24.1.1",
+    "postcss": "^8.4.39",
+    "sharp": "^0.35.2",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "vitest": "^2.0.3",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.asgard.messenger",
+    "productName": "Asgard",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/hyperswarm/**/*",
+      "node_modules/hyperdht/**/*",
+      "node_modules/hypercore/**/*",
+      "node_modules/hyperbee/**/*",
+      "node_modules/hyperblobs/**/*",
+      "node_modules/corestore/**/*",
+      "node_modules/protomux/**/*",
+      "node_modules/sodium-native/**/*",
+      "node_modules/utp-native/**/*",
+      "node_modules/bare-buffer/**/*",
+      "node_modules/bare-stream/**/*",
+      "node_modules/bare-events/**/*"
+    ],
+    "npmRebuild": true,
+    "buildDependenciesFromSource": false,
+    "files": [
+      "dist/**/*",
+      "assets/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "license": "LICENSE.txt"
+    },
+    "linux": {
+      "icon": "assets/icons",
+      "category": "Network",
+      "maintainer": "Asgard Team",
+      "vendor": "Asgard Team",
+      "synopsis": "Decentralized P2P Messenger powered by Pear Runtime",
+      "description": "Asgard is a decentralized peer-to-peer messenger built on Holepunch/Pear technologies with end-to-end encrypted group chats, calls, and file transfers.",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "pacman",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "desktop": {
+        "Name": "Asgard",
+        "Comment": "Decentralized P2P Messenger",
+        "Categories": "Network;InstantMessaging;",
+        "StartupWMClass": "Asgard"
+      }
+    },
+    "mac": {
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.social-networking",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    }
+  }
+}

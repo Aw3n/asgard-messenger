@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asgard — Decentralized P2P Messenger</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg-base: #0a0e14;
+  --bg-card: rgba(255,255,255,0.03);
+  --bg-glass: rgba(255,255,255,0.06);
+  --border: rgba(255,255,255,0.08);
+  --border-hover: rgba(78,194,234,0.3);
+  --text-primary: #e8eaed;
+  --text-secondary: #a0a8b4;
+  --text-muted: #6b7280;
+  --glacier: #4ec2ea;
+  --glacier-dim: rgba(78,194,234,0.6);
+  --aurora: #7c5cfc;
+  --aurora-dim: rgba(124,92,252,0.6);
+  --success: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior:smooth; }
+
+body {
+  font-family:'Inter',sans-serif;
+  background:var(--bg-base);
+  color:var(--text-primary);
+  overflow-x:hidden;
+  line-height:1.6;
+}
+
+/* Animated background */
+.bg-aurora {
+  position:fixed; inset:0; z-index:-1; overflow:hidden;
+}
+.bg-aurora::before, .bg-aurora::after {
+  content:''; position:absolute; border-radius:50%; filter:blur(120px); opacity:0.15;
+  animation:float 20s ease-in-out infinite;
+}
+.bg-aurora::before { width:600px; height:600px; background:var(--glacier); top:-200px; left:-100px; }
+.bg-aurora::after { width:500px; height:500px; background:var(--aurora); bottom:-150px; right:-100px; animation-delay:-10s; }
+
+@keyframes float {
+  0%,100% { transform:translate(0,0) scale(1); }
+  33% { transform:translate(50px,-30px) scale(1.1); }
+  66% { transform:translate(-30px,40px) scale(0.95); }
+}
+
+/* Grid overlay */
+.bg-grid {
+  position:fixed; inset:0; z-index:-1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size:40px 40px;
+  mask-image:radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
+
+/* Container */
+.container { max-width:1200px; margin:0 auto; padding:0 24px; }
+
+/* Nav */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  backdrop-filter:blur(20px); background:rgba(10,14,20,0.7);
+  border-bottom:1px solid var(--border);
+}
+.nav-inner { display:flex; align-items:center; justify-content:space-between; height:64px; max-width:1200px; margin:0 auto; padding:0 24px; }
+.nav-logo { display:flex; align-items:center; gap:10px; font-weight:700; font-size:20px; letter-spacing:-0.5px; }
+.nav-logo img { width:32px; height:32px; border-radius:8px; }
+.nav-links { display:flex; gap:32px; }
+.nav-links a { color:var(--text-secondary); text-decoration:none; font-size:14px; font-weight:500; transition:color 0.2s; }
+.nav-links a:hover { color:var(--glacier); }
+.nav-cta {
+  padding:8px 20px; border-radius:10px; background:linear-gradient(135deg,var(--glacier),var(--aurora));
+  color:#fff; font-weight:600; font-size:14px; text-decoration:none; transition:transform 0.2s, box-shadow 0.2s;
+}
+.nav-cta:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(78,194,234,0.3); }
+
+/* Hero */
+.hero { padding:140px 0 80px; text-align:center; position:relative; }
+.hero-badge {
+  display:inline-flex; align-items:center; gap:8px; padding:6px 16px;
+  border-radius:100px; background:var(--bg-glass); border:1px solid var(--border);
+  font-size:13px; color:var(--text-secondary); margin-bottom:24px;
+}
+.hero-badge .dot { width:8px; height:8px; border-radius:50%; background:var(--success); box-shadow:0 0 8px var(--success); animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+.hero h1 {
+  font-size:clamp(48px, 8vw, 96px); font-weight:800; letter-spacing:-3px; line-height:1;
+  background:linear-gradient(135deg, #fff 30%, var(--glacier) 60%, var(--aurora) 90%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:24px;
+}
+.hero p {
+  font-size:clamp(16px,2.5vw,20px); color:var(--text-secondary); max-width:640px; margin:0 auto 40px;
+}
+.hero-actions { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+.btn-primary {
+  padding:14px 32px; border-radius:12px; background:linear-gradient(135deg,var(--glacier),var(--aurora));
+  color:#fff; font-weight:600; font-size:16px; text-decoration:none; border:none; cursor:pointer;
+  transition:transform 0.2s, box-shadow 0.2s;
+  box-shadow:0 4px 24px rgba(78,194,234,0.25);
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(78,194,234,0.4); }
+.btn-ghost {
+  padding:14px 32px; border-radius:12px; background:var(--bg-glass); border:1px solid var(--border);
+  color:var(--text-primary); font-weight:600; font-size:16px; text-decoration:none; cursor:pointer;
+  transition:border-color 0.2s, background 0.2s;
+}
+.btn-ghost:hover { border-color:var(--border-hover); background:var(--bg-card); }
+
+/* Stats bar */
+.stats-bar {
+  display:flex; justify-content:center; gap:64px; margin-top:64px; flex-wrap:wrap;
+}
+.stat { text-align:center; }
+.stat-num { font-size:36px; font-weight:800; color:var(--glacier); }
+.stat-label { font-size:13px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; }
+
+/* Section */
+.section { padding:100px 0; }
+.section-tag {
+  display:inline-block; padding:4px 14px; border-radius:100px;
+  background:rgba(78,194,234,0.1); border:1px solid rgba(78,194,234,0.2);
+  color:var(--glacier); font-size:13px; font-weight:600; margin-bottom:16px;
+}
+.section-title { font-size:clamp(32px,5vw,48px); font-weight:700; letter-spacing:-1.5px; margin-bottom:16px; }
+.section-desc { font-size:17px; color:var(--text-secondary); max-width:600px; margin-bottom:48px; }
+
+/* Feature grid */
+.feature-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:20px; }
+.feature-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:16px; padding:28px;
+  transition:border-color 0.3s, transform 0.3s, background 0.3s; position:relative; overflow:hidden;
+}
+.feature-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--glacier-dim), transparent);
+  opacity:0; transition:opacity 0.3s;
+}
+.feature-card:hover { border-color:var(--border-hover); transform:translateY(-4px); background:var(--bg-glass); }
+.feature-card:hover::before { opacity:1; }
+.feature-icon {
+  width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  margin-bottom:16px; font-size:24px;
+  background:linear-gradient(135deg, rgba(78,194,234,0.15), rgba(124,92,252,0.15));
+  border:1px solid var(--border);
+}
+.feature-title { font-size:18px; font-weight:600; margin-bottom:8px; }
+.feature-desc { font-size:14px; color:var(--text-secondary); line-height:1.7; }
+.feature-tag {
+  display:inline-block; margin-top:12px; padding:3px 10px; border-radius:6px;
+  font-size:11px; font-weight:600; background:rgba(78,194,234,0.08); color:var(--glacier);
+}
+
+/* Privacy section */
+.privacy-grid { display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
+@media(max-width:768px){ .privacy-grid { grid-template-columns:1fr; } }
+.privacy-visual {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:20px; padding:32px;
+  position:relative; overflow:hidden;
+}
+.privacy-visual .shield {
+  font-size:80px; text-align:center; margin-bottom:16px;
+  background:linear-gradient(135deg,var(--glacier),var(--aurora));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.privacy-line { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+.privacy-line:last-child { border:none; }
+.privacy-line .check { color:var(--success); font-size:18px; }
+.privacy-line span { font-size:14px; color:var(--text-secondary); }
+
+/* Tech stack */
+.tech-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:16px; }
+.tech-item {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:20px;
+  text-align:center; transition:border-color 0.2s, transform 0.2s;
+}
+.tech-item:hover { border-color:var(--border-hover); transform:translateY(-2px); }
+.tech-item .tech-name { font-size:16px; font-weight:600; margin-bottom:4px; }
+.tech-item .tech-desc { font-size:12px; color:var(--text-muted); }
+
+/* CTA */
+.cta-section { padding:100px 0; text-align:center; }
+.cta-box {
+  background:linear-gradient(135deg, rgba(78,194,234,0.08), rgba(124,92,252,0.08));
+  border:1px solid var(--border); border-radius:24px; padding:64px 48px;
+  position:relative; overflow:hidden;
+}
+.cta-box::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 50% 0%, rgba(78,194,234,0.1), transparent 60%);
+}
+.cta-box h2 { font-size:clamp(32px,5vw,44px); font-weight:700; margin-bottom:16px; position:relative; }
+.cta-box p { font-size:17px; color:var(--text-secondary); margin-bottom:32px; position:relative; }
+
+/* Footer */
+footer { border-top:1px solid var(--border); padding:48px 0 32px; }
+.footer-inner { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; }
+.footer-brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; }
+.footer-brand img { width:28px; height:28px; border-radius:6px; }
+.footer-links { display:flex; gap:24px; }
+.footer-links a { color:var(--text-muted); text-decoration:none; font-size:14px; transition:color 0.2s; }
+.footer-links a:hover { color:var(--glacier); }
+.footer-copy { width:100%; text-align:center; padding-top:24px; margin-top:24px; border-top:1px solid var(--border); font-size:13px; color:var(--text-muted); }
+
+/* Donate + external link */
+.footer-donate {
+  display:flex; flex-direction:column; gap:12px; align-items:center;
+  padding:24px; border:1px solid var(--border); border-radius:16px; margin-bottom:24px;
+  background:var(--bg-card);
+}
+.footer-donate p { font-size:14px; color:var(--text-secondary); }
+.donate-link {
+  color:var(--glacier); text-decoration:none; font-weight:600; font-size:14px;
+  transition:opacity 0.2s;
+}
+.donate-link:hover { opacity:0.8; }
+
+/* Animations on scroll */
+.fade-in { opacity:0; transform:translateY(30px); transition:opacity 0.6s, transform 0.6s; }
+.fade-in.visible { opacity:1; transform:translateY(0); }
+
+@media(max-width:768px) {
+  .nav-links { display:none; }
+  .stats-bar { gap:32px; }
+  .stat-num { font-size:28px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-aurora"></div>
+<div class="bg-grid"></div>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <img src="asgard-icon.svg" alt="Asgard">
+      <span>Asgard</span>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#technology">Technology</a>
+      <a href="#download">Download</a>
+    </div>
+    <a href="#download" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Powered by Hypercore Protocol &amp; Pear Runtime
+    </div>
+    <h1>Asgard</h1>
+    <p>
+      Decentralized P2P messenger — No servers. No surveillance. No compromise.
+      Chat, call, and share files with true end-to-end encryption powered by the Holepunch ecosystem.
+    </p>
+    <div class="hero-actions">
+      <a href="#download" class="btn-primary">Download for Windows</a>
+      <a href="#features" class="btn-ghost">Explore Features</a>
+    </div>
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Servers</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">P2P</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">E2E</div>
+        <div class="stat-label">Encrypted</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">MIT</div>
+        <div class="stat-label">Open Source</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="section" id="features">
+  <div class="container">
+    <span class="section-tag fade-in">Features</span>
+    <h2 class="section-title fade-in">Everything you need, nothing you don't</h2>
+    <p class="section-desc fade-in">
+      Asgard delivers a complete messaging experience without relying on any central server.
+      Every feature runs directly between peers using the Hyperswarm DHT and Hypercore protocol.
+    </p>
+
+    <div class="feature-grid">
+      <!-- Secure Messaging -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">💬</div>
+        <h3 class="feature-title">Secure Messaging</h3>
+        <p class="feature-desc">
+          Send text messages with Ed25519 digital signatures. Messages are cryptographically signed
+          and verified, ensuring authenticity. Full markdown support with code blocks, links, and formatting.
+        </p>
+        <span class="feature-tag">Ed25519 Signed</span>
+      </div>
+
+      <!-- Read Receipts -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">✓✓</div>
+        <h3 class="feature-title">Delivery &amp; Read Receipts</h3>
+        <p class="feature-desc">
+          Know exactly when your message is delivered and read. Per-recipient tracking in group chats
+          with automatic retry for offline peers. Unified receipt protocol with hierarchical status.
+        </p>
+        <span class="feature-tag">Per-recipient tracking</span>
+      </div>
+
+      <!-- Voice Messages -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🎙️</div>
+        <h3 class="feature-title">Voice Messages</h3>
+        <p class="feature-desc">
+          Record and send voice messages with real-time audio compression via Web Audio API.
+          Adaptive silence detection saves bandwidth. Playback with waveform visualization.
+        </p>
+        <span class="feature-tag">Web Audio API</span>
+      </div>
+
+      <!-- Audio & Video Calls -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">📞</div>
+        <h3 class="feature-title">Audio &amp; Video Calls</h3>
+        <p class="feature-desc">
+          Crystal-clear audio and video calls over P2P. Adaptive jitter buffer, silence detection,
+          and dynamic frame rate adjustment based on network quality. No WebRTC, no STUN/TURN servers.
+        </p>
+        <span class="feature-tag">WebCodecs + Protomux</span>
+      </div>
+
+      <!-- Group Calls -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">👥</div>
+        <h3 class="feature-title">Group Calls (Mesh)</h3>
+        <p class="feature-desc">
+          Full mesh topology for group calls — each participant connects directly to all others.
+          Adaptive video quality based on participant count. Graceful join/leave without dropping the call.
+        </p>
+        <span class="feature-tag">Mesh Topology</span>
+      </div>
+
+      <!-- File Transfer -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">📁</div>
+        <h3 class="feature-title">File Transfer</h3>
+        <p class="feature-desc">
+          Send files of any size with a dedicated Protomux channel. Sliding window pipeline for
+          parallel chunk delivery. Multicast to group members with per-peer progress tracking.
+        </p>
+        <span class="feature-tag">Dedicated Channel</span>
+      </div>
+
+      <!-- Group Management -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🏠</div>
+        <h3 class="feature-title">Groups &amp; Channels</h3>
+        <p class="feature-desc">
+          Create groups with multiple channels, roles, and permissions. Owner, admin, and member roles.
+          Hyperbee CAS (Compare-And-Swap) prevents concurrent modification race conditions.
+        </p>
+        <span class="feature-tag">Hyperbee CAS</span>
+      </div>
+
+      <!-- Presence & Status -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🟢</div>
+        <h3 class="feature-title">Presence &amp; Status</h3>
+        <p class="feature-desc">
+          Real-time presence with online, away, DND, and invisible modes. Custom status messages.
+          30-second heartbeat with 60-second timeout. Group presence with per-member visibility.
+        </p>
+        <span class="feature-tag">Heartbeat 30s</span>
+      </div>
+
+      <!-- Contact Discovery -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🔍</div>
+        <h3 class="feature-title">Contact Discovery</h3>
+        <p class="feature-desc">
+          Find peers via Hyperswarm DHT topics derived from SHA-256 hashes. Direct peer connection
+          via Noise public key with holepunching through NAT. QR code sharing for easy invites.
+        </p>
+        <span class="feature-tag">Hyperswarm DHT</span>
+      </div>
+
+      <!-- DHT Profile -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🪪</div>
+        <h3 class="feature-title">DHT Profile</h3>
+        <p class="feature-desc">
+          Publish your profile (display name, avatar, status) to the HyperDHT using mutable records.
+          Peers can fetch your profile even when you're offline. Immutable records for permanent data.
+        </p>
+        <span class="feature-tag">Mutable Records</span>
+      </div>
+
+      <!-- File Management -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">📂</div>
+        <h3 class="feature-title">File Management</h3>
+        <p class="feature-desc">
+          Download history, favorites, share links, and trash management. Blob storage with
+          Hyperblobs-compatible block sizing. Export and import functionality for data portability.
+        </p>
+        <span class="feature-tag">Hyperblobs</span>
+      </div>
+
+      <!-- Search -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🔎</div>
+        <h3 class="feature-title">Universal Search</h3>
+        <p class="feature-desc">
+          Search messages across all conversations with Hyperbee range scans. Fast pagination with
+          reverse streaming. Search contacts, groups, and file attachments in real-time.
+        </p>
+        <span class="feature-tag">Hyperbee Range Scan</span>
+      </div>
+
+      <!-- Blocked Peers -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🛡️</div>
+        <h3 class="feature-title">Blocked Peers</h3>
+        <p class="feature-desc">
+          Block unwanted contacts with HyperDHT firewall integration. Blocked peers cannot connect
+          or send messages. Full ban/unban control with persistent storage.
+        </p>
+        <span class="feature-tag">DHT Firewall</span>
+      </div>
+
+      <!-- Message Editing -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">✏️</div>
+        <h3 class="feature-title">Message Editing</h3>
+        <p class="feature-desc">
+          Edit sent messages with full edit history. Forward messages to other conversations.
+          Delete messages with hard delete option. React with emojis — multiple reactions per message.
+        </p>
+        <span class="feature-tag">Edit History</span>
+      </div>
+
+      <!-- Network Diagnostics -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">📊</div>
+        <h3 class="feature-title">Network Diagnostics</h3>
+        <p class="feature-desc">
+          Real-time bandwidth monitoring with sliding window averaging. Peer latency measurement
+          via ping/pong RTT. Peer quality scoring. Protomux channel diagnostics with cork/uncork.
+        </p>
+        <span class="feature-tag">RTT + Bandwidth</span>
+      </div>
+
+      <!-- Theming -->
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🎨</div>
+        <h3 class="feature-title">Dynamic Theming</h3>
+        <p class="feature-desc">
+          Multiple color themes with smooth transitions. No flash of unstyled content on load.
+          Glassmorphism UI with backdrop blur. Fully responsive layout for any screen size.
+        </p>
+        <span class="feature-tag">Glassmorphism</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Privacy Section -->
+<section class="section" id="privacy">
+  <div class="container">
+    <div class="privacy-grid">
+      <div>
+        <span class="section-tag fade-in">Privacy First</span>
+        <h2 class="section-title fade-in">Zero servers. Zero surveillance.</h2>
+        <p class="section-desc fade-in">
+          Asgard doesn't just promise privacy — it's built into the architecture.
+          There are no servers to compromise, no databases to breach, no metadata to collect.
+          Your messages travel directly between devices.
+        </p>
+        <div class="privacy-line fade-in">
+          <span class="check">✓</span>
+          <span>No central servers — pure peer-to-peer via Hyperswarm</span>
+        </div>
+        <div class="privacy-line fade-in">
+          <span class="check">✓</span>
+          <span>No metadata stored — data lives only on your device via Hyperbee</span>
+        </div>
+        <div class="privacy-line fade-in">
+          <span class="check">✓</span>
+          <span>No phone number or email required — Ed25519 identity only</span>
+        </div>
+        <div class="privacy-line fade-in">
+          <span class="check">✓</span>
+          <span>No tracking, no analytics, no telemetry</span>
+        </div>
+        <div class="privacy-line fade-in">
+          <span class="check">✓</span>
+          <span>24-word seed phrase backup — own your identity forever</span>
+        </div>
+      </div>
+      <div class="privacy-visual fade-in">
+        <div class="shield">🛡️</div>
+        <div style="text-align:center; margin-bottom:24px;">
+          <p style="font-size:14px; color:var(--text-muted);">
+            Your identity is a cryptographic key pair generated locally.
+            No registration, no verification, no phone number.
+          </p>
+        </div>
+        <div class="privacy-line">
+          <span class="check">🔐</span>
+          <span><strong>Ed25519</strong> — Digital signatures for message authenticity</span>
+        </div>
+        <div class="privacy-line">
+          <span class="check">🔑</span>
+          <span><strong>Noise Protocol</strong> — Encrypted transport via Hyperswarm</span>
+        </div>
+        <div class="privacy-line">
+          <span class="check">🌐</span>
+          <span><strong>Hyperswarm DHT</strong> — Distributed peer discovery</span>
+        </div>
+        <div class="privacy-line">
+          <span class="check">📦</span>
+          <span><strong>Hypercore</strong> — Append-only replicated feeds</span>
+        </div>
+        <div class="privacy-line">
+          <span class="check">🐝</span>
+          <span><strong>Hyperbee</strong> — Encrypted local key-value storage</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Technology Section -->
+<section class="section" id="technology">
+  <div class="container">
+    <span class="section-tag fade-in">Technology</span>
+    <h2 class="section-title fade-in">Built on the Holepunch ecosystem</h2>
+    <p class="section-desc fade-in">
+      Asgard is 100% compliant with the Holepunch specifications. Every component uses the official
+      Holepunch APIs exactly as documented — no shortcuts, no workarounds.
+    </p>
+
+    <div class="tech-grid">
+      <div class="tech-item fade-in">
+        <div class="tech-name">Hyperswarm</div>
+        <div class="tech-desc">DHT peer discovery &amp; holepunching</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">Protomux</div>
+        <div class="tech-desc">3 dedicated channels (data/media/files)</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">Corestore</div>
+        <div class="tech-desc">Named Hypercore factory &amp; replication</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">Hyperbee</div>
+        <div class="tech-desc">B-tree KV store with CAS &amp; batching</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">Hyperblobs</div>
+        <div class="tech-desc">Binary blob storage for files</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">HyperDHT</div>
+        <div class="tech-desc">Mutable/immutable records, firewall</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">Ed25519</div>
+        <div class="tech-desc">Cryptographic identity &amp; signatures</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">Noise Protocol</div>
+        <div class="tech-desc">Encrypted transport via SecretStream</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">Electron</div>
+        <div class="tech-desc">Cross-platform desktop runtime</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">React + TypeScript</div>
+        <div class="tech-desc">Type-safe UI with Zustand state</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">Web Audio API</div>
+        <div class="tech-desc">Real-time audio processing &amp; codec</div>
+      </div>
+      <div class="tech-item fade-in">
+        <div class="tech-name">WebCodecs</div>
+        <div class="tech-desc">Hardware-accelerated video encoding</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="download">
+  <div class="container">
+    <div class="cta-box fade-in">
+      <h2>Take back your privacy</h2>
+      <p>Download Asgard today. No account needed — just generate your identity and start chatting.</p>
+      <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; position:relative;">
+        <a href="#" class="btn-primary">Download for Windows</a>
+        <a href="https://github.com/holepunchto" target="_blank" rel="noopener" class="btn-ghost">Learn about Holepunch</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <!-- Donate + External Links -->
+    <div class="footer-donate">
+      <p>Do you like the Asgard app? Make a donation to us in <a href="https://xelis.io/" target="_blank" rel="noopener" class="donate-link">XELIS</a></p>
+      <a href="https://trocador.app/?ref=BLbjXxTsoK" target="_blank" rel="noopener" class="donate-link">Trade Cryptocurrency Privately →</a>
+    </div>
+
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="asgard-icon.svg" alt="Asgard">
+        <span>Asgard</span>
+      </div>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#technology">Technology</a>
+        <a href="https://xelis.io/" target="_blank" rel="noopener">XELIS</a>
+        <a href="https://trocador.app/?ref=BLbjXxTsoK" target="_blank" rel="noopener">Trocador</a>
+      </div>
+    </div>
+    <div class="footer-copy">
+      Built with: Electron, React, TypeScript, Hyperswarm<br>
+      © 2026 Asgard. Open source, MIT License.
+    </div>
+  </div>
+</footer>
+
+<script>
+// Scroll-triggered fade-in animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.fade-in').forEach((el) => observer.observe(el));
+</script>
+
+</body>
+</html>

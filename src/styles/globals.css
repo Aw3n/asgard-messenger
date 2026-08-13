@@ -1,0 +1,727 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Root Variables ─────────────────────────────────────────────────────── */
+:root {
+  --titlebar-height: 40px;
+  --sidebar-width: 72px;
+  --sidebar-expanded-width: 240px;
+  --conversation-list-width: 320px;
+  --right-panel-width: 300px;
+  --font-size-base: 15px;
+  color-scheme: dark;
+
+  /* Asgard Color Palette — Dark (default) */
+  --asgard-black: 10 10 15;
+  --asgard-deep-black: 5 5 8;
+  --asgard-surface: 15 15 26;
+  --asgard-surface-alt: 20 20 32;
+  --asgard-border: 30 30 48;
+  --asgard-border-alt: 37 37 56;
+  --asgard-glacier: 79 195 247;
+  --asgard-glacier-dim: 41 182 246;
+  --asgard-nordic: 21 101 192;
+  --asgard-nordic-light: 25 118 210;
+  --asgard-nordic-deep: 13 71 161;
+  --asgard-cyan: 0 229 255;
+  --asgard-cyan-dim: 0 188 212;
+  --asgard-cyan-glow: 128 222 234;
+  --asgard-accent: 91 156 246;
+  --asgard-accent-hover: 123 180 255;
+  --asgard-accent-dim: 59 125 216;
+  --asgard-online: 0 230 118;
+  --asgard-away: 255 215 64;
+  --asgard-busy: 255 82 82;
+  --asgard-offline: 97 97 97;
+  --asgard-text-primary: 232 234 246;
+  --asgard-text-secondary: 159 168 218;
+  --asgard-text-muted: 92 107 192;
+  --asgard-text-dim: 57 73 171;
+}
+
+/* ─── Dark Theme Variables (explicit) ─────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+
+  --asgard-black: 10 10 15;
+  --asgard-deep-black: 5 5 8;
+  --asgard-surface: 15 15 26;
+  --asgard-surface-alt: 20 20 32;
+  --asgard-border: 30 30 48;
+  --asgard-border-alt: 37 37 56;
+  --asgard-glacier: 79 195 247;
+  --asgard-glacier-dim: 41 182 246;
+  --asgard-nordic: 21 101 192;
+  --asgard-nordic-light: 25 118 210;
+  --asgard-nordic-deep: 13 71 161;
+  --asgard-cyan: 0 229 255;
+  --asgard-cyan-dim: 0 188 212;
+  --asgard-cyan-glow: 128 222 234;
+  --asgard-accent: 91 156 246;
+  --asgard-accent-hover: 123 180 255;
+  --asgard-accent-dim: 59 125 216;
+  --asgard-online: 0 230 118;
+  --asgard-away: 255 215 64;
+  --asgard-busy: 255 82 82;
+  --asgard-offline: 97 97 97;
+  --asgard-text-primary: 232 234 246;
+  --asgard-text-secondary: 159 168 218;
+  --asgard-text-muted: 92 107 192;
+  --asgard-text-dim: 57 73 171;
+}
+
+/* ─── Light Theme Variables ──────────────────────────────────────────────── */
+.light {
+  color-scheme: light;
+
+  --asgard-black: 245 245 250;
+  --asgard-deep-black: 235 235 245;
+  --asgard-surface: 255 255 255;
+  --asgard-surface-alt: 248 248 252;
+  --asgard-border: 220 220 235;
+  --asgard-border-alt: 200 200 220;
+  --asgard-glacier: 21 101 192;
+  --asgard-glacier-dim: 25 118 210;
+  --asgard-nordic: 21 101 192;
+  --asgard-nordic-light: 25 118 210;
+  --asgard-nordic-deep: 13 71 161;
+  --asgard-cyan: 0 150 180;
+  --asgard-cyan-dim: 0 130 160;
+  --asgard-cyan-glow: 0 170 200;
+  --asgard-accent: 21 101 192;
+  --asgard-accent-hover: 30 120 210;
+  --asgard-accent-dim: 13 71 161;
+  --asgard-online: 0 180 80;
+  --asgard-away: 200 160 0;
+  --asgard-busy: 210 50 50;
+  --asgard-offline: 150 150 160;
+  --asgard-text-primary: 26 26 46;
+  --asgard-text-secondary: 60 60 100;
+  --asgard-text-muted: 100 100 150;
+  --asgard-text-dim: 140 140 180;
+}
+
+.light body,
+body.light {
+  background-color: rgb(var(--asgard-black));
+  color: rgb(var(--asgard-text-primary));
+}
+
+.light ::selection {
+  background: rgba(var(--asgard-nordic) / 0.2);
+  color: rgb(var(--asgard-text-primary));
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Light theme overrides */
+.light .mica-bg {
+  background: rgba(var(--asgard-black) / 0.9);
+  backdrop-filter: blur(60px) saturate(1.4);
+  -webkit-backdrop-filter: blur(60px) saturate(1.4);
+}
+
+.light .mica-surface {
+  background: rgba(var(--asgard-surface) / 0.95);
+  backdrop-filter: blur(40px) saturate(1.2);
+  -webkit-backdrop-filter: blur(40px) saturate(1.2);
+}
+
+.light .mica-card {
+  background: rgba(var(--asgard-surface) / 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.light .glass {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.02) 0%,
+    rgba(0, 0, 0, 0.01) 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.light .glass-hover:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.02) 100%
+  );
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.light .message-bubble-own {
+  background: linear-gradient(135deg, #1565C0, #1976D2);
+  color: white;
+}
+
+.light .message-bubble-other {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: rgb(var(--asgard-text-primary));
+}
+
+.light .asgard-input {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: rgb(var(--asgard-text-primary));
+}
+
+.light .asgard-input:focus {
+  border-color: rgba(var(--asgard-nordic) / 0.5);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.light .asgard-input::placeholder {
+  color: rgba(var(--asgard-text-primary) / 0.35);
+}
+
+.light .btn-ghost {
+  background: transparent;
+  color: rgba(var(--asgard-text-primary) / 0.65);
+}
+
+.light .btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgb(var(--asgard-text-primary));
+}
+
+.light .message-content code {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.light .message-content pre {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.light .message-content blockquote {
+  border-left-color: rgba(var(--asgard-nordic) / 0.5);
+  color: rgba(var(--asgard-text-primary) / 0.65);
+}
+
+.light .message-content a {
+  color: #1565C0;
+}
+
+.light .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.light .tooltip::after {
+  background: rgba(var(--asgard-surface) / 0.95);
+  color: rgb(var(--asgard-text-primary));
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* ─── Base Styles ────────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  font-size: var(--font-size-base);
+  background-color: rgb(var(--asgard-black));
+  color: rgb(var(--asgard-text-primary));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Custom Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--asgard-text-primary) / 0.1);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--asgard-text-primary) / 0.2);
+}
+
+/* ─── Text Selection ─────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(var(--asgard-glacier) / 0.3);
+  color: rgb(var(--asgard-text-primary));
+}
+
+/* ─── Focus Ring ─────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(var(--asgard-glacier) / 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Mica Background Effect ─────────────────────────────────────────────── */
+.mica-bg {
+  background: rgba(var(--asgard-black) / 0.85);
+  backdrop-filter: blur(60px) saturate(1.4);
+  -webkit-backdrop-filter: blur(60px) saturate(1.4);
+}
+
+.mica-surface {
+  background: rgba(var(--asgard-surface) / 0.9);
+  backdrop-filter: blur(40px) saturate(1.2);
+  -webkit-backdrop-filter: blur(40px) saturate(1.2);
+}
+
+.mica-card {
+  background: rgba(var(--asgard-surface-alt) / 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ─── Glass Effect ───────────────────────────────────────────────────────── */
+.glass {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--asgard-text-primary) / 0.04) 0%,
+    rgba(var(--asgard-text-primary) / 0.02) 100%
+  );
+  border: 1px solid rgba(var(--asgard-text-primary) / 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-hover:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--asgard-text-primary) / 0.07) 0%,
+    rgba(var(--asgard-text-primary) / 0.04) 100%
+  );
+  border-color: rgba(var(--asgard-text-primary) / 0.1);
+}
+
+/* ─── Nordic Glow ────────────────────────────────────────────────────────── */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(var(--asgard-glacier) / 0.3), 0 0 40px rgba(var(--asgard-glacier) / 0.1);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(var(--asgard-cyan) / 0.3), 0 0 40px rgba(var(--asgard-cyan) / 0.1);
+}
+
+.text-glow-blue {
+  text-shadow: 0 0 10px rgba(var(--asgard-glacier) / 0.6);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(var(--asgard-cyan) / 0.6);
+}
+
+/* ─── Aurora Border ──────────────────────────────────────────────────────── */
+.aurora-border {
+  position: relative;
+}
+
+.aurora-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgb(var(--asgard-glacier)), rgb(var(--asgard-cyan)), rgb(var(--asgard-accent)));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Status Indicator ───────────────────────────────────────────────────── */
+.status-online {
+  background: #00E676;
+  box-shadow: 0 0 6px rgba(0, 230, 118, 0.6);
+}
+
+.status-away {
+  background: #FFD740;
+  box-shadow: 0 0 6px rgba(255, 215, 64, 0.6);
+}
+
+.status-busy {
+  background: #FF5252;
+  box-shadow: 0 0 6px rgba(255, 82, 82, 0.6);
+}
+
+.status-offline {
+  background: #616161;
+}
+
+/* ─── Message Bubbles ────────────────────────────────────────────────────── */
+.message-bubble-own {
+  background: linear-gradient(135deg, rgb(var(--asgard-nordic)), rgb(var(--asgard-nordic-light)));
+  border-radius: 18px 18px 4px 18px;
+}
+
+.message-bubble-other {
+  background: rgba(var(--asgard-text-primary) / 0.05);
+  border: 1px solid rgba(var(--asgard-text-primary) / 0.06);
+  border-radius: 18px 18px 18px 4px;
+}
+
+/* ─── Input ──────────────────────────────────────────────────────────────── */
+.asgard-input {
+  background: rgba(var(--asgard-text-primary) / 0.04);
+  border: 1px solid rgba(var(--asgard-text-primary) / 0.08);
+  border-radius: 8px;
+  color: rgb(var(--asgard-text-primary));
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.asgard-input:focus {
+  border-color: rgba(var(--asgard-glacier) / 0.5);
+  background: rgba(var(--asgard-text-primary) / 0.06);
+  outline: none;
+}
+
+.asgard-input::placeholder {
+  color: rgba(var(--asgard-text-primary) / 0.3);
+}
+
+/* ─── Button ─────────────────────────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, rgb(var(--asgard-nordic)), rgb(var(--asgard-nordic-light)));
+  color: white;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, rgb(var(--asgard-nordic-light)), rgb(var(--asgard-accent-hover)));
+  box-shadow: 0 4px 16px rgba(var(--asgard-nordic) / 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: rgba(var(--asgard-text-primary) / 0.7);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(var(--asgard-text-primary) / 0.06);
+  color: rgb(var(--asgard-text-primary));
+}
+
+/* ─── Tooltip ────────────────────────────────────────────────────────────── */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(var(--asgard-surface-alt) / 0.95);
+  color: rgb(var(--asgard-text-primary));
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  border: 1px solid rgba(var(--asgard-text-primary) / 0.08);
+  z-index: 100;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+}
+
+/* ─── Titlebar drag region ───────────────────────────────────────────────── */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Ensure drag region works on the html element in frameless mode */
+html, body {
+  -webkit-user-select: none;
+}
+
+input, textarea, button, a, [contenteditable] {
+  -webkit-user-select: text;
+}
+
+/* ─── Virtualized List ───────────────────────────────────────────────────── */
+.virtual-list {
+  will-change: transform;
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(var(--asgard-text-primary) / 0.04) 0%,
+    rgba(var(--asgard-text-primary) / 0.08) 50%,
+    rgba(var(--asgard-text-primary) / 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes messageIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.message-enter {
+  animation: messageIn 0.2s ease-out forwards;
+}
+
+/* Smooth page transitions */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-down {
+  animation: slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-left {
+  animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Stagger animation for lists */
+.stagger-children > * {
+  opacity: 0;
+  animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 400ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Glow pulse for active elements */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(var(--asgard-glacier) / 0.3), 0 0 40px rgba(var(--asgard-glacier) / 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(var(--asgard-glacier) / 0.5), 0 0 60px rgba(var(--asgard-glacier) / 0.2);
+  }
+}
+
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* ─── Markdown Styles ────────────────────────────────────────────────────── */
+.message-content {
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.message-content code {
+  background: rgba(var(--asgard-text-primary) / 0.1);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 0.85em;
+}
+
+.message-content pre {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(var(--asgard-text-primary) / 0.08);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.message-content blockquote {
+  border-left: 3px solid rgba(var(--asgard-glacier) / 0.5);
+  padding-left: 12px;
+  color: rgba(var(--asgard-text-primary) / 0.7);
+  margin: 4px 0;
+}
+
+.message-content a {
+  color: rgb(var(--asgard-glacier));
+  text-decoration: none;
+}
+
+.message-content a:hover {
+  text-decoration: underline;
+}
