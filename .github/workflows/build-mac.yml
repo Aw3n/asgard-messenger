@@ -35,7 +35,9 @@ jobs:
 
       # Pas de certificat Apple : on désactive la recherche d'identité de
       # signature, sinon electron-builder échoue au lieu de produire un binaire.
-      - run: npx electron-builder --mac dmg zip --${{ matrix.arch }}
+      # --publish never : sans cela, electron-builder tente de créer une release
+      # GitHub après le build et échoue faute de GH_TOKEN.
+      - run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
