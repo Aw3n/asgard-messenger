@@ -3,7 +3,7 @@
 > No servers. No accounts. No surveillance. Pure peer-to-peer messaging secured by cryptography.
 
 ![Asgard](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
-![Platform](https://img.shields.io/badge/platform-Windows%2011-0078d4?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-0078d4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-3178c6?style=flat-square)
 
@@ -150,8 +150,8 @@ Both parties arrive at the same topic independently — no coordination server n
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/asgard.git
-cd asgard
+git clone https://github.com/Aw3n/asgard-messenger.git
+cd asgard-messenger
 
 # Install dependencies
 npm install
@@ -239,23 +239,51 @@ npm run test:ui
 
 ## Roadmap
 
-- [x] Identity creation (Ed25519)
+### Shipped
+
+**Core messaging**
+- [x] Identity creation (Ed25519) + 24-word seed phrase backup
 - [x] P2P messaging (Hyperswarm)
 - [x] Message signing + verification
 - [x] Replay attack protection
-- [x] Contact management
-- [x] Conversation persistence (Zustand)
+- [x] Contact management + QR code identity sharing
+- [x] Conversation persistence (Hypercore + Hyperbee)
+- [x] Presence (online / away / offline)
 - [x] Typing indicators
 - [x] Reactions
-- [x] Message editing/deletion
+- [x] Message editing / deletion / forwarding
+- [x] Delivery & read receipts
+- [x] Pinned messages & favorites
+- [x] Message search (in-memory + Hyperbee deep search)
+- [x] Voice messages
+
+**Files**
+- [x] File / image transfer (Hyperblobs, multicast)
+- [x] Downloads with save dialog and live progress
+- [x] Download history, trash & share links
+
+**Groups**
+- [x] Group channels (Discord-style)
+- [x] Members, roles & group settings
+- [x] Group file collaboration
+
+**Calls**
+- [x] 1:1 audio / video calls (WebRTC over Hyperswarm)
+- [x] Group calls with per-peer audio mixing & video
+- [x] Screen sharing
+- [x] Ringtones & incoming call overlay
+
+**Platform & UX**
 - [x] Windows 11 Mica effect
-- [ ] File/image transfer (Hyperblobs)
-- [ ] Group channels (Discord-style)
-- [ ] Voice/video calls (WebRTC over Hyperswarm)
-- [ ] Screen sharing
-- [ ] QR code identity sharing
-- [ ] Message search (Hyperbee index)
-- [ ] Auto-updates
+- [x] Themes (multiple, dark / light adaptive)
+- [x] i18n — multilingual UI
+- [x] Packaging: Windows (NSIS + portable), Linux (AppImage, deb, pacman, tar.gz), macOS (dmg, zip) — x64 + arm64
+- [x] macOS builds in CI (GitHub Actions)
+- [x] Hardened release builds (DevTools disabled)
+
+### Planned
+- [ ] Auto-updates (electron-updater)
+- [ ] macOS code signing & notarization (requires an Apple Developer certificate)
 
 ---
 
