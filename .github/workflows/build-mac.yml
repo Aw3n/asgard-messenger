@@ -23,12 +23,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
-      # npm ci recompile les modules natifs Holepunch (sodium-native, utp-native)
+      # npm install recompile les modules natifs Holepunch (sodium-native, utp-native)
       # pour darwin, ce qui n'est possible que sur un runner macOS.
-      - run: npm ci
+      # npm install (pas ci) car le lockfile est régénéré après mise à jour des deps.
+      - run: npm install
 
       # assets/icon.icns est gitignoré : il doit être régénéré ici.
       - run: npm run build:icons

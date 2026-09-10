@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install Linux packaging deps
@@ -29,7 +29,8 @@ jobs:
 
       # Native Holepunch addons (sodium-native, udx-native, …) must be
       # compiled on Linux; a Windows-built tree will not run.
-      - run: npm ci
+      # npm install (pas ci) car le lockfile est régénéré après mise à jour des deps.
+      - run: npm install
 
       - run: npm run build:icons
       - run: npm run build
