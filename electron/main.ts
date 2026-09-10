@@ -6,6 +6,20 @@ import { AsgardTray } from './tray'
 
 const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev')
 
+// Linux: Chromium's SUID sandbox (chrome-sandbox) is almost never
+// correctly configured in AppImage / user-installed .deb / tar.gz.
+// Without these switches the process exits immediately with:
+// "The SUID sandbox helper binary was found, but is not configured correctly."
+// Ozone auto-selects Wayland or X11 so the window actually appears.
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox')
+  app.commandLine.appendSwitch('disable-setuid-sandbox')
+  app.commandLine.appendSwitch('disable-gpu-sandbox')
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
+  app.commandLine.appendSwitch('gtk-version', '3')
+}
+
+
 // ── File-based logging for diagnostics ──
 // Redirects console.log to a log file so we can diagnose issues in production.
 const logDir = path.join(app.getPath('userData'), 'logs')
@@ -92,15 +106,16 @@ function getWindowOptions(): Partial<Electron.BrowserWindowConstructorOptions> {
     }
   }
 
-  // Linux and other Unix-likes
+  // Linux: titleBarStyle:'hidden' is ignored by most GTK/WMs.
+  // frame:false + custom TitleBar controls.
   return {
     ...base,
-    // Frameless with custom React controls (no native overlay on Linux)
-    titleBarStyle: 'hidden',
+    frame: false,
     titleBarOverlay: false,
     icon: path.join(projectRoot, 'assets', 'asgard-icon.png'),
-    // Some Linux compositors don't support rounded corners reliably
-    roundedCorners: true,
+    roundedCorners: false,
+    transparent: false,
+    autoHideMenuBar: true,
   }
 }
 

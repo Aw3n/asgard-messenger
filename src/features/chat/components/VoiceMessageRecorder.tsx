@@ -89,7 +89,7 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
   useEffect(() => {
     startRecording()
     return cleanup
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // Format duration as mm:ss
   const formatDuration = (seconds: number) => {

@@ -217,6 +217,9 @@ const App: React.FC = () => {
         }
       }
 
+      // Replay identities and presence events that arrived before contacts were hydrated.
+      chatService.flushPendingPresence()
+
       // ── PHASE 3: Fast peer discovery + connection ──
       // OPTIMIZATION: Per Hyperswarm docs, joinPeer() establishes direct
       // connections bypassing DHT topic lookup — the fastest way to connect.

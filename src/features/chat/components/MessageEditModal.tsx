@@ -21,7 +21,7 @@ export const MessageEditModal: React.FC<MessageEditModalProps> = ({ message, onS
   useEffect(() => {
     textareaRef.current?.focus()
     textareaRef.current?.setSelectionRange(content.length, content.length)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -32,7 +32,7 @@ export const MessageEditModal: React.FC<MessageEditModalProps> = ({ message, onS
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [content]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [content])
 
   const handleSave = () => {
     if (content.trim() && content !== message.content) {

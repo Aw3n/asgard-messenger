@@ -12,7 +12,6 @@ import { sha512 } from '@noble/hashes/sha2.js'
 // CRITICAL: @noble/ed25519 v3.x requires SHA-512 hash function to be configured.
 // Cast to any to bypass strict Uint8Array<ArrayBuffer> vs Uint8Array<ArrayBufferLike> mismatch
 // that appears in strict TypeScript but is functionally equivalent at runtime.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sha512Noble = (...messages: Uint8Array[]): any => {
   let totalLen = 0
   for (const m of messages) totalLen += m.length
@@ -24,9 +23,7 @@ const sha512Noble = (...messages: Uint8Array[]): any => {
   }
   return sha512(combined)
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ed.hashes.sha512 = sha512Noble as any
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ed.hashes.sha512Async = (async (...messages: Uint8Array[]) => sha512Noble(...messages)) as any
 
 export class CryptoService {

@@ -35,23 +35,23 @@
     "@noble/hashes": "^2.2.0",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
-    "autobase": "^7.28.1",
+    "autobase": "^7.28.2",
     "b4a": "^1.6.7",
     "compact-encoding": "^2.15.0",
-    "corestore": "^7.11.0",
+    "corestore": "^7.12.4",
     "date-fns": "^4.4.0",
     "eventemitter3": "^5.0.4",
     "framer-motion": "^11.3.0",
     "hyperbee": "^2.27.3",
     "hyperblobs": "^2.12.1",
-    "hypercore": "^11.33.5",
+    "hypercore": "^11.35.5",
     "hypercore-crypto": "^3.7.0",
-    "hyperdht": "^6.32.0",
-    "hyperdrive": "^13.3.2",
-    "hyperswarm": "^4.17.0",
+    "hyperdht": "^6.34.0",
+    "hyperdrive": "^13.3.3",
+    "hyperswarm": "^4.17.1",
     "i18next": "^26.3.4",
     "immer": "^11.1.8",
-    "protomux": "^3.11.0",
+    "protomux": "^3.12.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -108,7 +108,14 @@
       "node_modules/utp-native/**/*",
       "node_modules/bare-buffer/**/*",
       "node_modules/bare-stream/**/*",
-      "node_modules/bare-events/**/*"
+      "node_modules/bare-events/**/*",
+      "**/*.node",
+      "node_modules/udx-native/**/*",
+      "node_modules/rocksdb-native/**/*",
+      "node_modules/simdle-native/**/*",
+      "node_modules/quickbit-native/**/*",
+      "node_modules/fs-native-extensions/**/*",
+      "node_modules/rabin-native/**/*"
     ],
     "npmRebuild": true,
     "buildDependenciesFromSource": false,
@@ -184,9 +191,18 @@
       "desktop": {
         "Name": "Asgard",
         "Comment": "Decentralized P2P Messenger",
-        "Categories": "Network;InstantMessaging;",
-        "StartupWMClass": "Asgard"
-      }
+        "GenericName": "Messenger",
+        "Categories": "Network;InstantMessaging;Chat;",
+        "StartupWMClass": "Asgard",
+        "Terminal": "false",
+        "Type": "Application",
+        "StartupNotify": "true"
+      },
+      "executableName": "asgard",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+      "mimeTypes": [
+        "x-scheme-handler/asgard"
+      ]
     },
     "mac": {
       "icon": "assets/icon.icns",
@@ -211,6 +227,24 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "afterPack": "scripts/after-pack.js",
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxtst6",
+        "libx11-xcb1",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libdrm2",
+        "libgbm1",
+        "libasound2"
+      ]
+    },
+    "appImage": {
+      "license": "LICENSE.txt"
     }
   }
 }

@@ -4,11 +4,12 @@ import { join } from 'path'
 import os from 'os'
 
 // DIAGNOSTICS: File-based logging for main process
-// Cross-platform log directory: Windows APPDATA, Linux/macOS HOME
-const LOG_FILE = join(
-  process.env.APPDATA || (process.platform === 'darwin' ? join(os.homedir(), 'Library', 'Logs') : os.homedir()),
-  'asgard-network.log'
-)
+function networkLogDir(): string {
+  if (process.env.APPDATA) return process.env.APPDATA
+  if (process.platform === 'darwin') return join(os.homedir(), 'Library', 'Logs')
+  return process.env.XDG_STATE_HOME || join(os.homedir(), '.local', 'state')
+}
+const LOG_FILE = join(networkLogDir(), 'asgard-network.log')
 function logMain(msg: string) {
   const line = `[${new Date().toISOString()}] ${msg}\n`
   try { appendFileSync(LOG_FILE, line) } catch {}

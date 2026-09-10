@@ -22,9 +22,14 @@ export class AsgardTray {
         : app.getAppPath()
       const iconPath = path.join(projectRoot, 'assets', 'asgard-icon.png')
       const icon = nativeImage.createFromPath(iconPath)
-      // Resize to 16x16 for the system tray
-      const trayIcon = icon.resize({ width: 16, height: 16 })
-      
+      if (icon.isEmpty()) {
+        console.warn('[AsgardTray] Icon missing at', iconPath)
+        return
+      }
+      // Linux status notifiers typically want 22-24px; 16px looks blank.
+      const size = process.platform === 'linux' ? 24 : 16
+      const trayIcon = icon.resize({ width: size, height: size })
+
       this.tray = new Tray(trayIcon)
       this.tray.setToolTip('Asgard — Decentralized Messenger')
 

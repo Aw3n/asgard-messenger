@@ -506,7 +506,7 @@ class FileService {
    * PERFORMANCE: Update transfer speed tracking.
    * Called internally when chunks are sent/received.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
+  
   // @ts-ignore
   private _updateSpeed(bytes: number): void {
     const now = Date.now()
@@ -1444,7 +1444,7 @@ class FileService {
    * Notify streaming callback of new chunk.
    * @reserved Used by progressive streaming — keep for future activation
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
+  
   // @ts-ignore
   private _notifyStreamChunk(transferId: string, data: Uint8Array, progress: number): void {
     const callback = this.streamingCallbacks.get(transferId)
@@ -1457,7 +1457,7 @@ class FileService {
    * Notify streaming callback of completion.
    * @reserved Used by progressive streaming — keep for future activation
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
+  
   // @ts-ignore
   private _notifyStreamComplete(transferId: string): void {
     const callback = this.streamingCallbacks.get(transferId)
@@ -1658,7 +1658,7 @@ class FileService {
   // ─── Parallel Downloads ─────────────────────────────────────────────────
 
   // activeDownloads tracks concurrent downloads — used by downloadWithParallelLimit
-  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
+  
   // @ts-ignore
   private _activeDownloads: Map<string, Promise<void>> = new Map()
   private readonly MAX_PARALLEL_DOWNLOADS = 3
@@ -3259,7 +3259,7 @@ class FileService {
 
   // ─── Audio Equalizer ────────────────────────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
+  
   // @ts-ignore
   private _eqNodes: Map<string, BiquadFilterNode[]> = new Map()
 
@@ -3931,7 +3931,6 @@ class FileService {
 
   // ─── Audio Transcription (Web Speech API) ──────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private recognition: any | null = null
   private isTranscribing: boolean = false
 
@@ -3952,8 +3951,7 @@ class FileService {
         return
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       this.recognition = new SpeechRecognition()
       this.recognition.continuous = true
       this.recognition.interimResults = true
@@ -3961,15 +3959,14 @@ class FileService {
 
       let finalTranscript = ''
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.recognition.onresult = (event: any) => {
-        let interimTranscript = ''
+        let _interimTranscript = ''
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' '
           } else {
-            interimTranscript += transcript
+            _interimTranscript += transcript
           }
         }
       }
@@ -3979,7 +3976,6 @@ class FileService {
         resolve(finalTranscript.trim())
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.recognition.onerror = (event: any) => {
         this.isTranscribing = false
         reject(new Error(`Speech recognition error: ${event.error}`))
@@ -4018,8 +4014,7 @@ class FileService {
         return
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       const recognition = new SpeechRecognition()
       recognition.continuous = true
       recognition.interimResults = false
@@ -4027,8 +4022,7 @@ class FileService {
 
       let transcript = ''
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
+            recognition.onresult = (event: any) => {
         for (let i = 0; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
             transcript += event.results[i][0].transcript + ' '
@@ -4041,8 +4035,7 @@ class FileService {
         resolve(transcript.trim())
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onerror = (event: any) => {
+            recognition.onerror = (event: any) => {
         URL.revokeObjectURL(audio.src)
         reject(new Error(`Transcription error: ${event.error}`))
       }
@@ -4345,8 +4338,7 @@ class FileService {
    * Detect current network type.
    */
   detectNetworkType(): 'wifi' | '4g' | '3g' | '2g' | 'offline' {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nav = navigator as any
+        const nav = navigator as any
     if (typeof navigator === 'undefined' || !nav.connection) {
       return 'wifi' // Default assumption
     }

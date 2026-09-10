@@ -93,10 +93,11 @@ Asgard/
 | State | Zustand 4 + Immer |
 | Routing | React Router 6 |
 | Lists | React Virtuoso (virtualized) |
-| P2P Network | Hyperswarm 4 |
-| Storage | Hypercore 11 + Hyperbee |
-| Blobs | Hyperblobs |
-| Multiplexing | Protomux |
+| P2P Network | Hyperswarm 4 · HyperDHT 6 |
+| Storage | Hypercore 11 · Hyperbee 2 · Corestore 7 |
+| Blobs | Hyperblobs 2 |
+| Multiplexing | Protomux 3 (3 dedicated channels) |
+| Collaboration | Autobase 7 |
 | Cryptography | Web Crypto API (Ed25519, AES-GCM) |
 | Testing | Vitest + Testing Library |
 
@@ -144,7 +145,7 @@ Both parties arrive at the same topic independently — no coordination server n
 ### Prerequisites
 - Node.js 20+
 - npm 10+
-- Windows 11 (for Mica effect)
+- Windows 11 (for Mica effect), or Linux / macOS for those platforms
 
 ### Development
 
@@ -166,11 +167,60 @@ npm run dev
 # Build renderer + electron
 npm run build
 
-# Package as Windows installer (.exe)
-npm run package
+# Windows installer (.exe)
+npm run package:win
+
+# Linux (AppImage, .deb, pacman, tar.gz) — must be run *on Linux*
+# so native modules (sodium-native, udx-native) are compiled for Linux.
+npm run package:linux
+
+# macOS
+npm run package:mac
 ```
 
-The installer will be output to `release/`.
+Installers land in `release/`.
+
+### Linux — install and run
+
+Packaging **must** happen on a Linux machine (or GitHub Actions `build-linux`).
+A Windows-built AppImage will crash because Holepunch native addons are the wrong ABI.
+
+**AppImage (recommended, no root):**
+
+```bash
+chmod +x Asgard-*-linux-x64.AppImage
+./Asgard-*-linux-x64.AppImage
+```
+
+If FUSE is missing (`fuse: failed to exec fusermount`):
+
+```bash
+sudo apt install libfuse2   # Debian/Ubuntu
+# or extract without FUSE:
+APPIMAGE_EXTRACT_AND_RUN=1 ./Asgard-*-linux-x64.AppImage
+```
+
+**Debian / Ubuntu (.deb):**
+
+```bash
+sudo apt install ./Asgard-*-linux-amd64.deb
+asgard
+```
+
+**Arch (.pacman):**
+
+```bash
+sudo pacman -U Asgard-*-linux-x64.pacman
+```
+
+**tarball:**
+
+```bash
+tar -xzf Asgard-*-linux-x64.tar.gz
+./Asgard-*/asgard
+```
+
+Logs: `~/.config/Asgard/logs/asgard.log`
 
 ---
 
@@ -273,6 +323,18 @@ npm run test:ui
 - [x] Screen sharing
 - [x] Ringtones & incoming call overlay
 
+**Networking & connectivity**
+- [x] DHT profile & status publishing (mutable records)
+- [x] Direct peer connections (`joinPeer` for fast reconnect)
+- [x] Swarm suspend / resume (battery saving)
+- [x] Peer firewall & blocking (spam protection)
+- [x] Rate limiting per peer (DDoS protection)
+- [x] Protomux cork/uncork batching (real-time streaming)
+- [x] Dedicated Protomux channels: messages, media, files
+- [x] Peer scoring & smart routing (latency tracking)
+- [x] Corestore auto-replication on connect (`findingPeers`)
+- [x] Deterministic Noise keypair from Ed25519 identity
+
 **Platform & UX**
 - [x] Windows 11 Mica effect
 - [x] Themes (multiple, dark / light adaptive)
@@ -282,8 +344,10 @@ npm run test:ui
 - [x] Hardened release builds (DevTools disabled)
 
 ### Planned
+- [ ] Holepunch dependency updates (HyperDHT 6.34, Hypercore 11.35, Protomux 3.12, Corestore 7.12)
 - [ ] Auto-updates (electron-updater)
 - [ ] macOS code signing & notarization (requires an Apple Developer certificate)
+- [ ] Corestore 7 → Corestore 11 migration (RocksDB backend)
 
 ---
 

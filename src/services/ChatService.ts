@@ -1,4 +1,4 @@
-import type { Message, OutgoingMessage, ProtocolMessage, Contact } from '@/types'
+import type { Message, OutgoingMessage, ProtocolMessage, Contact, UserStatus } from '@/types'
 import { p2pService } from './P2PService'
 import { cryptoService } from './CryptoService'
 import { storageService } from './StorageService'
@@ -89,6 +89,12 @@ class ChatService {
   private pendingMessages: Map<string, PendingMessage[]> = new Map() // peerId → queue
   // Peers connected before we learned their Ed25519 key; flushed on peer:identified
   private pendingConnectedPeers: Set<string> = new Set()
+  // Presence received before Hyperbee contacts were restored
+  private pendingPresenceUpdates: Map<string, PresencePayload> = new Map()
+  // Peer identities received before their contacts were restored
+  private pendingIdentifiedPeers: Map<string, string> = new Map()
+  // Keep the latest presence authoritative when identity arrives later.
+  private lastPresenceStatus: Map<string, UserStatus> = new Map()
   private static readonly MAX_PENDING_PER_PEER = 500
   private static readonly MAX_PENDING_AGE = 7 * 24 * 60 * 60 * 1000 // 7 days
 
@@ -380,26 +386,21 @@ class ChatService {
 
     // Handle presence updates
     p2pService.on('message:presence:update', (msg: ProtocolMessage) => {
-      const { status, displayName, avatar, customStatus } = msg.payload as PresencePayload
-      const recvMsg = `[ChatService] === PRESENCE RECEIVED from: ${msg.from?.slice(0, 32)} | status: ${status}`
+      const payload = msg.payload as PresencePayload
+      const recvMsg = `[ChatService] === PRESENCE RECEIVED from: ${msg.from?.slice(0, 32)} | status: ${payload.status}`
       console.log(recvMsg)
       try { window.asgard.debugLog(recvMsg) } catch {}
-      // CRITICAL: Update activity timestamp when we receive a presence update.
-      this.peerLastActivity.set(msg.from, Date.now())
-      // Map network 'dnd' back to internal 'busy' for display consistency.
-      const mappedStatus: import('@/types').UserStatus =
-        status === 'dnd' ? 'busy' : (status as import('@/types').UserStatus)
       const contact = useContactStore.getState().getContact(msg.from)
+      const mappedStatus: UserStatus =
+        payload.status === 'dnd' ? 'busy' : (payload.status as UserStatus)
       const updateMsg = `[ChatService] Presence update: contact found=${!!contact} | mapped=${mappedStatus}`
       console.log(updateMsg)
       try { window.asgard.debugLog(updateMsg) } catch {}
-      useContactStore.getState().updateContact(msg.from, {
-        status: mappedStatus,
-        displayName: displayName ?? undefined,
-        avatar: avatar ?? undefined,
-        customStatus: customStatus ?? undefined,
-        lastSeen: Date.now(),
-      })
+      if (!contact) {
+        this.pendingPresenceUpdates.set(msg.from, payload)
+        return
+      }
+      this.applyPresenceUpdate(msg.from, payload)
     })
 
     // PERFORMANCE: Handle ping/pong for latency measurement
@@ -445,100 +446,9 @@ class ChatService {
       console.log(msg)
       try { window.asgard.debugLog(msg) } catch {}
       if (contact) {
-        // Remember the Noise peer id for this contact so we can reconnect later.
-        this.ed25519ToNoiseMap.set(data.publicKey, data.peerId)
-
-        // OFFLINE QUEUE: If this peer connected before being identified, flush now.
-        if (this.pendingConnectedPeers.has(data.peerId)) {
-          this.pendingConnectedPeers.delete(data.peerId)
-          this.flushPendingMessages(data.publicKey).catch(() => {})
-        }
-
-        // RECEIPT RETRY: Flush any pending read/delivery receipts that were queued
-        // while the peer was disconnected. This ensures the sender eventually sees
-        // ✓✓ (read) status even if the peer was temporarily offline.
-        this.flushPendingReceipts(data.publicKey).catch(() => {})
-
-        // PERSISTENCE: Use Hyperswarm joinPeer() to keep the connection alive
-        // and re-establish it automatically after failures.
-        window.asgard.network.joinPeer(data.peerId).catch((err) => {
-          console.warn('[ChatService] joinPeer failed:', data.peerId.slice(0, 16), err)
-        })
-
-        // PERFORMANCE: Mark peer as prioritized for fast reconnection (Hyperswarm feature)
-        window.asgard.network.prioritize(data.peerId, true).catch(() => {})
-
-        // CRITICAL: Mark contact as online now that we've identified them.
-        // Reset their activity timestamp so the heartbeat knows they're alive.
-        this.peerLastActivity.set(data.publicKey, Date.now())
-        // Cancel any pending offline timer from a transient disconnect
-        const offlineTimer = this.pendingOfflineTimers.get(data.publicKey)
-        if (offlineTimer) {
-          clearTimeout(offlineTimer)
-          this.pendingOfflineTimers.delete(data.publicKey)
-          console.log('[ChatService] Offline timer cancelled — peer re-identified:', data.publicKey.slice(0, 16))
-        }
-        useContactStore.getState().updateContact(data.publicKey, {
-          status: 'online',
-          lastSeen: Date.now(),
-        })
-
-        // Send presence update directly to this peer so they know we're online
-        const identity = useIdentityStore.getState().identity
-        if (identity) {
-          const privacy = useUIStore.getState().settings.privacy
-          const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
-          // Map internal UserStatus to network-compatible status for P2P
-          const status: 'online' | 'away' | 'offline' | 'dnd' =
-            internalStatus === 'busy' ? 'dnd' :
-            internalStatus === 'invisible' ? 'offline' :
-            internalStatus === 'dnd' ? 'dnd' :
-            internalStatus === 'away' ? 'away' :
-            internalStatus === 'offline' ? 'offline' :
-            'online'
-          const presMsg = `[ChatService] Sending presence to peer: ${data.peerId.slice(0, 32)} | status: ${status} | hasAvatar: ${!!identity.profile.avatar}`
-          console.log(presMsg)
-          try { window.asgard.debugLog(presMsg) } catch {}
-          p2pService.sendMessage(data.peerId, 'presence:update', {
-            status,
-            displayName: identity.profile.displayName,
-            // PERFORMANCE: Never include avatar in signed messages (3.8MB → 0)
-            // Avatar is sent separately via binary media channel after handshake
-          }).catch((err) => {
-            console.warn('[ChatService] Failed to send presence to peer:', err)
-          })
-        }
-
-        // OFFLINE QUEUE: Messages sent before the peer was connected are held
-        // in memory. Now that we know this peer's Ed25519 key, flush them.
-        this.flushPendingMessages(data.publicKey).catch(() => {})
-
-        // Send contact request if not already sent
-        if (!this.contactRequestsSent.has(data.publicKey)) {
-          this.contactRequestsSent.add(data.publicKey)
-          if (identity) {
-            p2pService.sendMessage(data.peerId, 'contact:request', {
-              displayName: identity.profile.displayName,
-              // PERFORMANCE: Never include avatar in signed messages (3.8MB → 0)
-              // Avatar is sent via binary media channel after contact:accept
-            }).catch(err => {
-              console.warn('[ChatService] Failed to send contact request to:', data.peerId.slice(0, 16), err)
-              this.contactRequestsSent.delete(data.publicKey)
-            })
-          }
-        }
-
-        // PERFORMANCE: Send our avatar via binary media channel on (re)connection.
-        // This covers both first-time contact and reconnection scenarios.
-        // The avatar may have changed while the peer was disconnected.
-        if (identity?.profile.avatar) {
-          this.sendAvatarViaMedia(data.publicKey, identity.profile.avatar, 'contact').catch(() => {})
-        }
-
-        // CRITICAL: Broadcast presence to all peers after first identification.
-        // This ensures that even peers who connected before this handler was set up
-        // receive our presence status.
-        this.broadcastPresence().catch(() => {})
+        this.handleIdentifiedPeer(data)
+      } else {
+        this.pendingIdentifiedPeers.set(data.publicKey, data.peerId)
       }
     })
 
@@ -663,6 +573,126 @@ class ChatService {
         this.pushAvatarToAllContacts(newAvatar).catch(() => {})
       }
     })
+  }
+
+  private handleIdentifiedPeer(data: { peerId: string; publicKey: string }): void {
+    this.ed25519ToNoiseMap.set(data.publicKey, data.peerId)
+
+    const contact = useContactStore.getState().getContact(data.publicKey)
+    if (!contact) return
+
+    if (this.pendingConnectedPeers.has(data.peerId)) {
+      this.pendingConnectedPeers.delete(data.peerId)
+      this.flushPendingMessages(data.publicKey).catch(() => {})
+    }
+
+    this.flushPendingReceipts(data.publicKey).catch(() => {})
+
+    window.asgard.network.joinPeer(data.peerId).catch((err) => {
+      console.warn('[ChatService] joinPeer failed:', data.peerId.slice(0, 16), err)
+    })
+    window.asgard.network.prioritize(data.peerId, true).catch(() => {})
+
+    const now = Date.now()
+    this.peerLastActivity.set(data.publicKey, now)
+
+    const offlineTimer = this.pendingOfflineTimers.get(data.publicKey)
+    if (offlineTimer) {
+      clearTimeout(offlineTimer)
+      this.pendingOfflineTimers.delete(data.publicKey)
+      console.log('[ChatService] Offline timer cancelled — peer re-identified:', data.publicKey.slice(0, 16))
+    }
+
+    if (!this.lastPresenceStatus.has(data.publicKey)) {
+      useContactStore.getState().updateContact(data.publicKey, {
+        status: 'online',
+        lastSeen: now,
+      })
+    }
+
+    const identity = useIdentityStore.getState().identity
+    if (identity) {
+      const privacy = useUIStore.getState().settings.privacy
+      const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
+      const status: 'online' | 'away' | 'offline' | 'dnd' =
+        internalStatus === 'busy' ? 'dnd' :
+        internalStatus === 'invisible' ? 'offline' :
+        internalStatus === 'dnd' ? 'dnd' :
+        internalStatus === 'away' ? 'away' :
+        internalStatus === 'offline' ? 'offline' :
+        'online'
+      const presMsg = `[ChatService] Sending presence to peer: ${data.peerId.slice(0, 32)} | status: ${status} | hasAvatar: ${!!identity.profile.avatar}`
+      console.log(presMsg)
+      try { window.asgard.debugLog(presMsg) } catch {}
+      p2pService.sendMessage(data.peerId, 'presence:update', {
+        status,
+        displayName: identity.profile.displayName,
+      }).catch((err) => {
+        console.warn('[ChatService] Failed to send presence to peer:', err)
+      })
+    }
+
+    this.flushPendingMessages(data.publicKey).catch(() => {})
+
+    if (!this.contactRequestsSent.has(data.publicKey)) {
+      this.contactRequestsSent.add(data.publicKey)
+      if (identity) {
+        p2pService.sendMessage(data.peerId, 'contact:request', {
+          displayName: identity.profile.displayName,
+        }).catch(err => {
+          console.warn('[ChatService] Failed to send contact request to:', data.peerId.slice(0, 16), err)
+          this.contactRequestsSent.delete(data.publicKey)
+        })
+      }
+    }
+
+    if (identity?.profile.avatar) {
+      this.sendAvatarViaMedia(data.publicKey, identity.profile.avatar, 'contact').catch(() => {})
+    }
+
+    this.broadcastPresence().catch(() => {})
+    groupService.flushPendingGroupMessages(data.publicKey).catch(() => {})
+  }
+
+  private applyPresenceUpdate(publicKey: string, payload: PresencePayload): void {
+    const mappedStatus: UserStatus =
+      payload.status === 'dnd' ? 'busy' : (payload.status as UserStatus)
+    const now = Date.now()
+
+    this.lastPresenceStatus.set(publicKey, mappedStatus)
+    this.peerLastActivity.set(publicKey, now)
+
+    const offlineTimer = this.pendingOfflineTimers.get(publicKey)
+    if (offlineTimer) {
+      clearTimeout(offlineTimer)
+      this.pendingOfflineTimers.delete(publicKey)
+    }
+
+    const updates: Partial<Contact> = {
+      status: mappedStatus,
+      lastSeen: now,
+    }
+    if (payload.displayName !== undefined) updates.displayName = payload.displayName
+    if (payload.avatar !== undefined) updates.avatar = payload.avatar
+    if (payload.customStatus !== undefined) updates.customStatus = payload.customStatus
+
+    useContactStore.getState().updateContact(publicKey, updates)
+  }
+
+  flushPendingPresence(): void {
+    const pendingIdentities = Array.from(this.pendingIdentifiedPeers.entries())
+    for (const [publicKey, peerId] of pendingIdentities) {
+      if (!useContactStore.getState().getContact(publicKey)) continue
+      this.pendingIdentifiedPeers.delete(publicKey)
+      this.handleIdentifiedPeer({ publicKey, peerId })
+    }
+
+    const pendingPresences = Array.from(this.pendingPresenceUpdates.entries())
+    for (const [publicKey, payload] of pendingPresences) {
+      if (!useContactStore.getState().getContact(publicKey)) continue
+      this.pendingPresenceUpdates.delete(publicKey)
+      this.applyPresenceUpdate(publicKey, payload)
+    }
   }
 
   /**
@@ -1292,7 +1322,7 @@ class ChatService {
    */
   async generateLinkPreviews(messageId: string, conversationId: string, content: string): Promise<void> {
     // Extract URLs from content
-    const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g
+    const urlRegex = /https?:\/\/[^\s<>"{}|\\^`[]]+/g
     const urls = content.match(urlRegex) || []
 
     if (urls.length === 0) return
@@ -1872,13 +1902,17 @@ class ChatService {
     }
   }
 
-  /**
+    /**
    * Stop the heartbeat timer
    */
   private stopHeartbeat(): void {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
       this.heartbeatInterval = null
+    }
+    if (this.idleCheckInterval) {
+      clearInterval(this.idleCheckInterval)
+      this.idleCheckInterval = null
     }
   }
 
@@ -1957,7 +1991,7 @@ class ChatService {
   /**
    * Stop idle detection — reserved for cleanup on destroy
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
+  
   // @ts-ignore
   private _stopIdleDetection(): void {
     if (this.idleCheckInterval) {
@@ -2484,6 +2518,8 @@ class ChatService {
       // PERFORMANCE: Send avatar via binary media channel (doesn't block signing)
       this.sendAvatarViaMedia(msg.from, identity.profile.avatar).catch(() => {})
     }
+
+    this.flushPendingPresence()
   }
 
   /**
@@ -2515,6 +2551,8 @@ class ChatService {
     if (identity?.profile.avatar) {
       this.sendAvatarViaMedia(msg.from, identity.profile.avatar).catch(() => {})
     }
+
+    this.flushPendingPresence()
   }
 
   /**
@@ -2526,6 +2564,9 @@ class ChatService {
     if (existing) {
       useContactStore.getState().removeContact(msg.from)
       this.peerLastActivity.delete(msg.from)
+      this.pendingPresenceUpdates.delete(msg.from)
+      this.pendingIdentifiedPeers.delete(msg.from)
+      this.lastPresenceStatus.delete(msg.from)
       console.log('[ChatService] Contact removed by peer:', msg.from.slice(0, 16))
     }
   }
@@ -2556,9 +2597,16 @@ class ChatService {
     this.contactRequestsSent.clear()
     this.typingTimers.forEach((timer) => clearTimeout(timer))
     this.typingTimers.clear()
-    // Clear any pending offline grace-period timers
     this.pendingOfflineTimers.forEach((timer) => clearTimeout(timer))
     this.pendingOfflineTimers.clear()
+    this.pendingPresenceUpdates.clear()
+    this.pendingIdentifiedPeers.clear()
+    this.lastPresenceStatus.clear()
+    this.pendingConnectedPeers.clear()
+    this.pendingMessages.clear()
+    this.pendingReceipts.clear()
+    this.avatarBuffers.clear()
+    this.ed25519ToNoiseMap.clear()
   }
 
   // ─── Ephemeral Messages (Hypercore-inspired) ───────────────────────────
@@ -2882,7 +2930,7 @@ class ChatService {
 
     // Find matching message IDs
     const matchingIds = new Set<string>()
-    for (const [_key, entry] of this.searchIndex.entries()) {
+    for (const [_entry, entry] of this.searchIndex.entries()) {
       const matchesQuery = queryWords.some(w => entry.word.includes(w))
       if (!matchesQuery) continue
       if (conversationId && entry.conversationId !== conversationId) continue
