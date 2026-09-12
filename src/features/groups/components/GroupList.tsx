@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AnimatePresence } from 'framer-motion'
 import { useGroupStore } from '@/stores/groupStore'
 import { GroupItem } from './GroupItem'
@@ -13,6 +14,7 @@ interface GroupListProps {
  * GroupList — left panel listing all groups with search and create button.
  */
 export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
+  const { t } = useTranslation()
   const {
     activeGroupId,
     setActiveGroup,
@@ -33,25 +35,25 @@ export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
     <div className="flex flex-col h-full bg-asgard-surface border-r border-asgard-border">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-asgard-border flex-shrink-0">
-        <h2 className="text-base font-semibold text-asgard-text-primary">Groups</h2>
+        <h2 className="text-base font-semibold text-asgard-text-primary">{t('groups.groups')}</h2>
         <Button
           variant="ghost"
           size="sm"
           onClick={onCreateGroup}
           icon={
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
             </svg>
           }
         >
-          Create
+          {t('groups.create')}
         </Button>
       </div>
 
       {/* Search */}
       <div className="px-3 py-2 flex-shrink-0">
-        <Input
-          placeholder="Search groups..."
+          <Input
+            placeholder={t('groups.searchGroups')}
           value={localSearch}
           onChange={handleSearch}
           onClear={localSearch ? () => {
@@ -77,16 +79,16 @@ export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
                 </svg>
               </div>
               {localSearch ? (
-                <p className="text-sm text-asgard-text-muted">No groups found</p>
+                <p className="text-sm text-asgard-text-muted">{t('groups.noGroupsFound')}</p>
               ) : (
                 <>
-                  <p className="text-sm font-medium text-asgard-text-secondary mb-1">No groups yet</p>
-                  <p className="text-xs text-asgard-text-muted mb-3">Create a group to start collaborating</p>
+                  <p className="text-sm font-medium text-asgard-text-secondary mb-1">{t('groups.noGroupsYet')}</p>
+                  <p className="text-xs text-asgard-text-muted mb-3">{t('groups.createGroupHint')}</p>
                   <button
                     onClick={onCreateGroup}
                     className="text-xs text-asgard-glacier hover:underline"
                   >
-                    Create your first group
+                    {t('groups.createFirstGroup')}
                   </button>
                 </>
               )}

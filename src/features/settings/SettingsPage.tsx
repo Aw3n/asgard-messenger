@@ -377,99 +377,99 @@ const AppearanceSection: React.FC = () => {
 
 const NotificationsSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
+  const { t } = useTranslation()
   const notif = settings.notifications
 
-  return (
-    <div>
-      <SectionHeader title="Notifications" subtitle="Configure how you get notified" />
-      <div className="space-y-4">
-        <ToggleRow
-          label="Enable Notifications"
-          description="Show Windows notifications for new messages"
-          checked={notif.enabled}
-          onChange={(v) => updateSettings({ notifications: { ...notif, enabled: v } })}
-        />
-        <ToggleRow
-          label="Sound"
-          description="Play a sound for new messages"
-          checked={notif.sound}
-          onChange={(v) => updateSettings({ notifications: { ...notif, sound: v } })}
-          disabled={!notif.enabled}
-        />
-        <ToggleRow
-          label="Message Preview"
-          description="Show message content in notifications"
-          checked={notif.showPreview}
-          onChange={(v) => updateSettings({ notifications: { ...notif, showPreview: v } })}
-          disabled={!notif.enabled}
-        />
-        <ToggleRow
-          label="Mentions Only"
-          description="Only notify for mentions and direct messages"
-          checked={notif.mentionsOnly}
-          onChange={(v) => updateSettings({ notifications: { ...notif, mentionsOnly: v } })}
-          disabled={!notif.enabled}
-        />
-        <ToggleRow
-          label="Do Not Disturb"
-          description="Suppress all notifications"
-          checked={notif.dndMode}
-          onChange={(v) => updateSettings({ notifications: { ...notif, dndMode: v } })}
-        />
+return (
+      <div>
+        <SectionHeader title={t('settings.notifications')} subtitle={t('settings.notificationsSubtitle')} />
+        <div className="space-y-4">
+          <ToggleRow
+            label={t('settings.enableNotifications')}
+            description={t('settings.enableNotificationsDesc')}
+            checked={notif.enabled}
+            onChange={(v) => updateSettings({ notifications: { ...notif, enabled: v } })}
+          />
+          <ToggleRow
+            label={t('settings.notificationSound')}
+            description={t('settings.notificationSoundDesc')}
+            checked={notif.sound}
+            onChange={(v) => updateSettings({ notifications: { ...notif, sound: v } })}
+            disabled={!notif.enabled}
+          />
+          <ToggleRow
+            label={t('settings.messagePreview')}
+            description={t('settings.messagePreviewDesc')}
+            checked={notif.showPreview}
+            onChange={(v) => updateSettings({ notifications: { ...notif, showPreview: v } })}
+            disabled={!notif.enabled}
+          />
+          <ToggleRow
+            label={t('settings.mentionsOnly')}
+            description={t('settings.mentionsOnlyDesc')}
+            checked={notif.mentionsOnly}
+            onChange={(v) => updateSettings({ notifications: { ...notif, mentionsOnly: v } })}
+          />
+          <ToggleRow
+            label={t('settings.doNotDisturb')}
+            description={t('settings.doNotDisturbDesc')}
+            checked={notif.dndMode}
+            onChange={(v) => updateSettings({ notifications: { ...notif, dndMode: v } })}
+          />
+        </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── Privacy Section ──────────────────────────────────────────────────────────
 
 const PrivacySection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
+  const { t } = useTranslation()
   const priv = settings.privacy
 
-  return (
-    <div>
-      <SectionHeader title="Privacy" subtitle="Control what others can see" />
-      <div className="space-y-4">
-        <ToggleRow
-          label="Read Receipts"
-          description="Let others know when you've read their messages"
-          checked={priv.readReceipts}
-          onChange={(v) => updateSettings({ privacy: { ...priv, readReceipts: v } })}
-        />
-        <ToggleRow
-          label="Typing Indicators"
-          description="Let others see when you're typing"
-          checked={priv.typingIndicators}
-          onChange={(v) => updateSettings({ privacy: { ...priv, typingIndicators: v } })}
-        />
-        <ToggleRow
-          label="Online Status"
-          description="Let your contacts see your online status"
-          checked={priv.onlineStatus}
-          onChange={(v) => updateSettings({ privacy: { ...priv, onlineStatus: v } })}
-        />
-        {/* OPTIMIZATION: Link preview toggle prevents automatic URL fetching */}
-        <ToggleRow
-          label="Link Previews"
-          description="Automatically fetch and display link previews (may leak browsing activity)"
-          checked={priv.linkPreviews ?? true}
-          onChange={(v) => updateSettings({ privacy: { ...priv, linkPreviews: v } })}
-        />
+return (
+      <div>
+        <SectionHeader title={t('settings.privacy')} subtitle={t('settings.privacySubtitle')} />
+        <div className="space-y-4">
+          <ToggleRow
+            label={t('settings.readReceipts')}
+            description={t('settings.readReceiptsDesc')}
+            checked={priv.readReceipts}
+            onChange={(v) => updateSettings({ privacy: { ...priv, readReceipts: v } })}
+          />
+          <ToggleRow
+            label={t('settings.typingIndicators')}
+            description={t('settings.typingIndicatorsDesc')}
+            checked={priv.typingIndicators}
+            onChange={(v) => updateSettings({ privacy: { ...priv, typingIndicators: v } })}
+          />
+          <ToggleRow
+            label={t('settings.onlineStatus')}
+            description={t('settings.onlineStatusDesc')}
+            checked={priv.onlineStatus}
+            onChange={(v) => updateSettings({ privacy: { ...priv, onlineStatus: v } })}
+          />
+          <ToggleRow
+            label={t('settings.linkPreviews')}
+            description={t('settings.linkPreviewsDesc')}
+            checked={priv.linkPreviews ?? true}
+            onChange={(v) => updateSettings({ privacy: { ...priv, linkPreviews: v } })}
+          />
 
-        {/* Blocked Peers Manager */}
-        <div className="pt-4 border-t border-asgard-border">
-          <BlockedPeersManager />
+          <div className="pt-4 border-t border-asgard-border">
+            <BlockedPeersManager />
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── Security Section ─────────────────────────────────────────────────────────
 
 const SecuritySection: React.FC = () => {
   const identity = useIdentityStore((s) => s.identity)
+  const { t } = useTranslation()
   const [showSeed, setShowSeed] = useState(false)
   const [copied, setCopied] = useState(false)
   const [seedPhrase, setSeedPhrase] = useState<string>('')
@@ -491,337 +491,331 @@ const SecuritySection: React.FC = () => {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  return (
-    <div>
-      <SectionHeader title="Security" subtitle="Manage your identity and recovery phrase" />
-      <div className="space-y-4">
-        {/* Recovery Phrase Card */}
-        <div className="glass rounded-2xl p-5 border border-asgard-border">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-asgard-nordic/20 border border-asgard-glacier/20 flex items-center justify-center flex-shrink-0">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-asgard-glacier" strokeWidth="1.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-asgard-text-primary mb-1">Recovery Phrase</h3>
-              <p className="text-sm text-asgard-text-secondary leading-relaxed">
-                Your 24-word recovery phrase can be used to restore your identity on another device.
-                Keep it safe and never share it with anyone.
-              </p>
-            </div>
-          </div>
-
-          {!showSeed ? (
-            <button
-              onClick={handleShowSeed}
-              className="w-full py-3 px-4 rounded-xl border border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt transition-colors text-sm flex items-center justify-center gap-2"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-              </svg>
-              Show Recovery Phrase
-            </button>
-          ) : (
-            <div className="space-y-3">
-              {/* Warning */}
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-                <p className="text-xs text-red-400 text-center">
-                  <strong>Never share your recovery phrase!</strong>
-                  <br />Anyone with these words can access your account.
+return (
+      <div>
+        <SectionHeader title={t('settings.security')} subtitle={t('settings.securitySubtitle')} />
+        <div className="space-y-4">
+          <div className="glass rounded-2xl p-5 border border-asgard-border">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-asgard-nordic/20 border border-asgard-glacier/20 flex items-center justify-center flex-shrink-0">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-asgard-glacier" strokeWidth="1.5">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-asgard-text-primary mb-1">{t('settings.recoveryPhrase')}</h3>
+                <p className="text-sm text-asgard-text-secondary leading-relaxed">
+                  {t('settings.recoveryPhraseDesc')}
                 </p>
               </div>
-
-              {/* Seed phrase grid */}
-              <div className="grid grid-cols-3 gap-2 p-4 bg-asgard-surface-alt rounded-xl border border-asgard-border">
-                {seedPhrase.split(' ').map((word, index) => (
-                  <div key={index} className="flex items-center gap-1.5">
-                    <span className="text-xs text-asgard-text-muted w-5 text-right">{index + 1}.</span>
-                    <span className="text-sm font-mono text-asgard-text-primary">{word}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Copy button */}
-              <button
-                onClick={handleCopy}
-                className="w-full py-2 px-4 rounded-xl border border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt transition-colors text-sm flex items-center justify-center gap-2"
-              >
-                {copied ? (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-online">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                    </svg>
-                    Copy to Clipboard
-                  </>
-                )}
-              </button>
-
-              {/* Hide button */}
-              <button
-                onClick={() => { setShowSeed(false); setSeedPhrase('') }}
-                className="w-full py-2 px-4 rounded-xl text-asgard-text-muted hover:text-asgard-text-secondary transition-colors text-xs"
-              >
-                Hide Recovery Phrase
-              </button>
             </div>
-          )}
-        </div>
 
-        {/* Identity Info */}
-        <div className="glass rounded-2xl p-5 border border-asgard-border">
-          <h3 className="text-sm font-semibold text-asgard-text-primary mb-3">Your Identity</h3>
-          <div className="space-y-2">
-            <div>
-              <p className="text-xs text-asgard-text-muted mb-1">Public Key</p>
-              <p className="font-mono text-xs text-asgard-glacier break-all bg-asgard-surface-alt rounded-lg p-2">
-                {identity?.keyPair.publicKey || 'Not available'}
-              </p>
+            {!showSeed ? (
+              <button
+                onClick={handleShowSeed}
+                className="w-full py-3 px-4 rounded-xl border border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt transition-colors text-sm flex items-center justify-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                </svg>
+                {t('settings.showRecoveryPhrase')}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+                  <p className="text-xs text-red-400 text-center">
+                    <strong>{t('settings.neverShareRecoveryPhrase')}</strong>
+                    <br />{t('settings.recoveryPhraseWarning')}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 p-4 bg-asgard-surface-alt rounded-xl border border-asgard-border">
+                  {seedPhrase.split(' ').map((word, index) => (
+                    <div key={index} className="flex items-center gap-1.5">
+                      <span className="text-xs text-asgard-text-muted w-5 text-right">{index + 1}.</span>
+                      <span className="text-sm font-mono text-asgard-text-primary">{word}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleCopy}
+                  className="w-full py-2 px-4 rounded-xl border border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-online">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      {t('settings.copied')}
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                      </svg>
+                      {t('settings.copyToClipboard')}
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => { setShowSeed(false); setSeedPhrase('') }}
+                  className="w-full py-2 px-4 rounded-xl text-asgard-text-muted hover:text-asgard-text-secondary transition-colors text-xs"
+                >
+                  {t('settings.hideRecoveryPhrase')}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="glass rounded-2xl p-5 border border-asgard-border">
+            <h3 className="text-sm font-semibold text-asgard-text-primary mb-3">{t('settings.yourIdentity')}</h3>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs text-asgard-text-muted mb-1">{t('settings.publicKey')}</p>
+                <p className="font-mono text-xs text-asgard-glacier break-all bg-asgard-surface-alt rounded-lg p-2">
+                  {identity?.keyPair.publicKey || t('settings.notAvailable')}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── Chat Section ─────────────────────────────────────────────────────────────
 
 const ChatSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
+  const { t } = useTranslation()
   const chat = settings.chat
 
-  return (
-    <div>
-      <SectionHeader title="Chat" subtitle="Configure your messaging experience" />
-      <div className="space-y-4">
-        <ToggleRow
-          label="Send on Enter"
-          description="Press Enter to send, Shift+Enter for new line"
-          checked={chat.sendOnEnter}
-          onChange={(v) => updateSettings({ chat: { ...chat, sendOnEnter: v } })}
-        />
-        <ToggleRow
-          label="Show Timestamps"
-          description="Display time next to each message"
-          checked={chat.showTimestamps}
-          onChange={(v) => updateSettings({ chat: { ...chat, showTimestamps: v } })}
-        />
-        <ToggleRow
-          label="Show Seconds"
-          description="Include seconds in timestamps"
-          checked={chat.showSeconds}
-          onChange={(v) => updateSettings({ chat: { ...chat, showSeconds: v } })}
-          disabled={!chat.showTimestamps}
-        />
-        <ToggleRow
-          label="Auto Emoji"
-          description="Convert text shortcuts like :) to emojis"
-          checked={chat.autoEmoji}
-          onChange={(v) => updateSettings({ chat: { ...chat, autoEmoji: v } })}
-        />
-        <ToggleRow
-          label="Inline Previews"
-          description="Show image previews directly in the chat"
-          checked={chat.inlinePreviews}
-          onChange={(v) => updateSettings({ chat: { ...chat, inlinePreviews: v } })}
-        />
-        <ToggleRow
-          label="Collapse Messages"
-          description="Group consecutive messages from the same sender"
-          checked={chat.collapseMessages}
-          onChange={(v) => updateSettings({ chat: { ...chat, collapseMessages: v } })}
-        />
-        <ToggleRow
-          label="Show Read Status"
-          description="Display read receipts on sent messages"
-          checked={chat.showReadStatus}
-          onChange={(v) => updateSettings({ chat: { ...chat, showReadStatus: v } })}
-        />
+return (
+      <div>
+        <SectionHeader title={t('settings.chat')} subtitle={t('settings.chatSubtitle')} />
+        <div className="space-y-4">
+          <ToggleRow
+            label={t('settings.sendOnEnter')}
+            description={t('settings.sendOnEnterDesc')}
+            checked={chat.sendOnEnter}
+            onChange={(v) => updateSettings({ chat: { ...chat, sendOnEnter: v } })}
+          />
+          <ToggleRow
+            label={t('settings.showTimestamps')}
+            description={t('settings.showTimestampsDesc')}
+            checked={chat.showTimestamps}
+            onChange={(v) => updateSettings({ chat: { ...chat, showTimestamps: v } })}
+          />
+          <ToggleRow
+            label={t('settings.showSeconds')}
+            description={t('settings.showSecondsDesc')}
+            checked={chat.showSeconds}
+            onChange={(v) => updateSettings({ chat: { ...chat, showSeconds: v } })}
+            disabled={!chat.showTimestamps}
+          />
+          <ToggleRow
+            label={t('settings.autoEmoji')}
+            description={t('settings.autoEmojiDesc')}
+            checked={chat.autoEmoji}
+            onChange={(v) => updateSettings({ chat: { ...chat, autoEmoji: v } })}
+          />
+          <ToggleRow
+            label={t('settings.inlinePreviews')}
+            description={t('settings.inlinePreviewsDesc')}
+            checked={chat.inlinePreviews}
+            onChange={(v) => updateSettings({ chat: { ...chat, inlinePreviews: v } })}
+          />
+          <ToggleRow
+            label={t('settings.collapseMessages')}
+            description={t('settings.collapseMessagesDesc')}
+            checked={chat.collapseMessages}
+            onChange={(v) => updateSettings({ chat: { ...chat, collapseMessages: v } })}
+          />
+          <ToggleRow
+            label={t('settings.showReadStatus')}
+            description={t('settings.showReadStatusDesc')}
+            checked={chat.showReadStatus}
+            onChange={(v) => updateSettings({ chat: { ...chat, showReadStatus: v } })}
+          />
 
-        {/* Message density */}
-        <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
-            Message Density
-          </label>
-          <div className="flex gap-3">
-            {(['comfortable', 'compact', 'cozy'] as const).map((d) => (
-              <button
-                key={d}
-                onClick={() => updateSettings({ chat: { ...chat, density: d } })}
-                className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
-                  chat.density === d
-                    ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
-                    : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
-                }`}
-              >
-                {d}
-              </button>
-            ))}
+          <div>
+            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+              {t('settings.messageDensity')}
+            </label>
+            <div className="flex gap-3">
+              {(['comfortable', 'compact', 'cozy'] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => updateSettings({ chat: { ...chat, density: d } })}
+                  className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
+                    chat.density === d
+                      ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
+                      : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
+                  }`}
+                >
+                  {t(`settings.chatDensity_${d}`)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── Media Section ────────────────────────────────────────────────────────────
 
 const MediaSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
+  const { t } = useTranslation()
   const media = settings.media
 
-  return (
-    <div>
-      <SectionHeader title="Media" subtitle="Configure media playback and compression" />
-      <div className="space-y-4">
-        <ToggleRow
-          label="Auto-play Videos"
-          description="Automatically play videos when visible"
-          checked={media.autoPlayVideos}
-          onChange={(v) => updateSettings({ media: { ...media, autoPlayVideos: v } })}
-        />
-        <ToggleRow
-          label="Auto-play GIFs"
-          description="Automatically animate GIF images"
-          checked={media.autoPlayGifs}
-          onChange={(v) => updateSettings({ media: { ...media, autoPlayGifs: v } })}
-        />
-        <ToggleRow
-          label="Mute by Default"
-          description="Start videos muted"
-          checked={media.muteByDefault}
-          onChange={(v) => updateSettings({ media: { ...media, muteByDefault: v } })}
-        />
-        <ToggleRow
-          label="Show Video Controls"
-          description="Display playback controls on videos"
-          checked={media.showVideoControls}
-          onChange={(v) => updateSettings({ media: { ...media, showVideoControls: v } })}
-        />
-        <ToggleRow
-          label="Compress Videos"
-          description="Compress videos before sending to reduce data usage"
-          checked={media.compressVideos}
-          onChange={(v) => updateSettings({ media: { ...media, compressVideos: v } })}
-        />
-        <ToggleRow
-          label="Compress Images"
-          description="Compress images before sending"
-          checked={media.compressImages}
-          onChange={(v) => updateSettings({ media: { ...media, compressImages: v } })}
-        />
+return (
+      <div>
+        <SectionHeader title={t('settings.media')} subtitle={t('settings.mediaSubtitle')} />
+        <div className="space-y-4">
+          <ToggleRow
+            label={t('settings.autoPlayVideos')}
+            description={t('settings.autoPlayVideosDesc')}
+            checked={media.autoPlayVideos}
+            onChange={(v) => updateSettings({ media: { ...media, autoPlayVideos: v } })}
+          />
+          <ToggleRow
+            label={t('settings.autoPlayGifs')}
+            description={t('settings.autoPlayGifsDesc')}
+            checked={media.autoPlayGifs}
+            onChange={(v) => updateSettings({ media: { ...media, autoPlayGifs: v } })}
+          />
+          <ToggleRow
+            label={t('settings.muteByDefault')}
+            description={t('settings.muteByDefaultDesc')}
+            checked={media.muteByDefault}
+            onChange={(v) => updateSettings({ media: { ...media, muteByDefault: v } })}
+          />
+          <ToggleRow
+            label={t('settings.showVideoControls')}
+            description={t('settings.showVideoControlsDesc')}
+            checked={media.showVideoControls}
+            onChange={(v) => updateSettings({ media: { ...media, showVideoControls: v } })}
+          />
+          <ToggleRow
+            label={t('settings.compressVideos')}
+            description={t('settings.compressVideosDesc')}
+            checked={media.compressVideos}
+            onChange={(v) => updateSettings({ media: { ...media, compressVideos: v } })}
+          />
+          <ToggleRow
+            label={t('settings.compressImages')}
+            description={t('settings.compressImagesDesc')}
+            checked={media.compressImages}
+            onChange={(v) => updateSettings({ media: { ...media, compressImages: v } })}
+          />
 
-        {/* Video quality */}
-        <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
-            Default Video Quality
-          </label>
-          <div className="flex gap-3">
-            {(['auto', 'low', 'medium', 'high'] as const).map((q) => (
-              <button
-                key={q}
-                onClick={() => updateSettings({ media: { ...media, videoQuality: q } })}
-                className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
-                  media.videoQuality === q
-                    ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
-                    : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
-                }`}
-              >
-                {q}
-              </button>
-            ))}
+          <div>
+            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+              {t('settings.defaultVideoQuality')}
+            </label>
+            <div className="flex gap-3">
+              {(['auto', 'low', 'medium', 'high'] as const).map((q) => (
+                <button
+                  key={q}
+                  onClick={() => updateSettings({ media: { ...media, videoQuality: q } })}
+                  className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
+                    media.videoQuality === q
+                      ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
+                      : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
+                  }`}
+                >
+                  {t(`settings.videoQuality_${q}`)}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Audio quality */}
-        <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
-            Default Audio Quality
-          </label>
-          <div className="flex gap-3">
-            {(['low', 'medium', 'high'] as const).map((q) => (
-              <button
-                key={q}
-                onClick={() => updateSettings({ media: { ...media, audioQuality: q } })}
-                className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
-                  media.audioQuality === q
-                    ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
-                    : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
-                }`}
-              >
-                {q}
-              </button>
-            ))}
+          <div>
+            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+              {t('settings.defaultAudioQuality')}
+            </label>
+            <div className="flex gap-3">
+              {(['low', 'medium', 'high'] as const).map((q) => (
+                <button
+                  key={q}
+                  onClick={() => updateSettings({ media: { ...media, audioQuality: q } })}
+                  className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
+                    media.audioQuality === q
+                      ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
+                      : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
+                  }`}
+                >
+                  {t(`settings.audioQuality_${q}`)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── Accessibility Section ────────────────────────────────────────────────────
 
 const AccessibilitySection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
+  const { t } = useTranslation()
   const a11y = settings.accessibility
 
-  return (
-    <div>
-      <SectionHeader title="Accessibility" subtitle="Make Asgard work better for you" />
-      <div className="space-y-4">
-        <ToggleRow
-          label="Reduced Motion"
-          description="Minimize animations and transitions"
-          checked={a11y.reducedMotion}
-          onChange={(v) => updateSettings({ accessibility: { ...a11y, reducedMotion: v } })}
-        />
-        <ToggleRow
-          label="High Contrast"
-          description="Increase contrast for better visibility"
-          checked={a11y.highContrast}
-          onChange={(v) => updateSettings({ accessibility: { ...a11y, highContrast: v } })}
-        />
-        <ToggleRow
-          label="Screen Reader Optimizations"
-          description="Enhanced support for screen readers"
-          checked={a11y.screenReader}
-          onChange={(v) => updateSettings({ accessibility: { ...a11y, screenReader: v } })}
-        />
-        <ToggleRow
-          label="Keyboard Navigation"
-          description="Show keyboard shortcuts and focus indicators"
-          checked={a11y.keyboardNav}
-          onChange={(v) => updateSettings({ accessibility: { ...a11y, keyboardNav: v } })}
-        />
-        <ToggleRow
-          label="Text-to-Speech"
-          description="Read messages aloud"
-          checked={a11y.ttsEnabled}
-          onChange={(v) => updateSettings({ accessibility: { ...a11y, ttsEnabled: v } })}
-        />
-        <ToggleRow
-          label="Larger Touch Targets"
-          description="Make buttons and interactive elements easier to tap"
-          checked={a11y.largerTouchTargets}
-          onChange={(v) => updateSettings({ accessibility: { ...a11y, largerTouchTargets: v } })}
-        />
+return (
+      <div>
+        <SectionHeader title={t('settings.accessibility')} subtitle={t('settings.accessibilitySubtitle')} />
+        <div className="space-y-4">
+          <ToggleRow
+            label={t('settings.reducedMotion')}
+            description={t('settings.reducedMotionDesc')}
+            checked={a11y.reducedMotion}
+            onChange={(v) => updateSettings({ accessibility: { ...a11y, reducedMotion: v } })}
+          />
+          <ToggleRow
+            label={t('settings.highContrast')}
+            description={t('settings.highContrastDesc')}
+            checked={a11y.highContrast}
+            onChange={(v) => updateSettings({ accessibility: { ...a11y, highContrast: v } })}
+          />
+          <ToggleRow
+            label={t('settings.screenReaderOptimizations')}
+            description={t('settings.screenReaderOptimizationsDesc')}
+            checked={a11y.screenReader}
+            onChange={(v) => updateSettings({ accessibility: { ...a11y, screenReader: v } })}
+          />
+          <ToggleRow
+            label={t('settings.keyboardNavigation')}
+            description={t('settings.keyboardNavigationDesc')}
+            checked={a11y.keyboardNav}
+            onChange={(v) => updateSettings({ accessibility: { ...a11y, keyboardNav: v } })}
+          />
+          <ToggleRow
+            label={t('settings.textToSpeech')}
+            description={t('settings.textToSpeechDesc')}
+            checked={a11y.ttsEnabled}
+            onChange={(v) => updateSettings({ accessibility: { ...a11y, ttsEnabled: v } })}
+          />
+          <ToggleRow
+            label={t('settings.largerTouchTargets')}
+            description={t('settings.largerTouchTargetsDesc')}
+            checked={a11y.largerTouchTargets}
+            onChange={(v) => updateSettings({ accessibility: { ...a11y, largerTouchTargets: v } })}
+          />
+        </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── Network Section ──────────────────────────────────────────────────────────
 
 const NetworkSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
+  const { t } = useTranslation()
   const net = settings.network
   const [isSuspending, setIsSuspending] = useState(false)
   const swarmSuspended = useNetworkStore((s) => s.swarmSuspended)
@@ -875,138 +869,134 @@ const NetworkSection: React.FC = () => {
     }
   }
 
-  return (
-    <div>
-      <SectionHeader title="Network" subtitle="P2P connection settings" />
-      <div className="space-y-4">
-        {/* Connection Status */}
-        <div className="glass rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-asgard-text-primary">Connection Status</p>
-            <span className={`text-xs px-2 py-1 rounded-full ${
-              status.state === 'connected'
-                ? 'bg-green-500/20 text-green-400'
-                : swarmSuspended
-                ? 'bg-yellow-500/20 text-yellow-400'
-                : 'bg-red-500/20 text-red-400'
-            }`}>
-              {status.state === 'connected' ? 'Connected' : swarmSuspended ? 'Suspended' : 'Disconnected'}
-            </span>
-          </div>
-          <div className="grid grid-cols-4 gap-3 text-center">
-            <div className="bg-asgard-surface-alt rounded-lg p-2">
-              <p className="text-lg font-bold text-asgard-glacier">{status.peers}</p>
-              <p className="text-xs text-asgard-text-muted">Peers</p>
+return (
+      <div>
+        <SectionHeader title={t('settings.network')} subtitle={t('settings.networkSubtitle')} />
+        <div className="space-y-4">
+          <div className="glass rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-asgard-text-primary">{t('settings.connectionStatus')}</p>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                status.state === 'connected'
+                  ? 'bg-green-500/20 text-green-400'
+                  : swarmSuspended
+                  ? 'bg-yellow-500/20 text-yellow-400'
+                  : 'bg-red-500/20 text-red-400'
+              }`}>
+                {status.state === 'connected' ? t('settings.connected') : swarmSuspended ? t('settings.suspended') : t('settings.disconnected')}
+              </span>
             </div>
-            <div className="bg-asgard-surface-alt rounded-lg p-2">
-              <p className="text-lg font-bold text-asgard-glacier">{status.topics.length}</p>
-              <p className="text-xs text-asgard-text-muted">Topics</p>
-            </div>
-            <div className="bg-asgard-surface-alt rounded-lg p-2">
-              <p className="text-lg font-bold text-asgard-glacier">
-                {((status.bandwidth.up + status.bandwidth.down) / 1024).toFixed(1)}KB
-              </p>
-              <p className="text-xs text-asgard-text-muted">Bandwidth</p>
-            </div>
-            <div className="bg-asgard-surface-alt rounded-lg p-2">
-              <p className="text-lg font-bold text-asgard-glacier">{status.connecting ?? 0}</p>
-              <p className="text-xs text-asgard-text-muted">Connecting</p>
-            </div>
-          </div>
-          {/* Bandwidth details */}
-          <div className="flex gap-4 mt-3 text-xs text-asgard-text-muted">
-            <span>↑ {(status.bandwidth.up / 1024).toFixed(1)} KB/s</span>
-            <span>↓ {(status.bandwidth.down / 1024).toFixed(1)} KB/s</span>
-          </div>
-          {/* Peer latency */}
-          {status.peerLatency && Object.keys(status.peerLatency).length > 0 && (
-            <div className="mt-3">
-              <p className="text-xs text-asgard-text-muted mb-1">Peer Latency</p>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(status.peerLatency).map(([peerId, latency]) => (
-                  <span key={peerId} className="text-xs bg-asgard-surface-alt rounded px-2 py-0.5 text-asgard-text-secondary">
-                    {peerId.slice(0, 8)}… {latency === 0 ? 'new' : `${latency}ms`}
-                  </span>
-                ))}
+            <div className="grid grid-cols-4 gap-3 text-center">
+              <div className="bg-asgard-surface-alt rounded-lg p-2">
+                <p className="text-lg font-bold text-asgard-glacier">{status.peers}</p>
+                <p className="text-xs text-asgard-text-muted">{t('settings.peers')}</p>
+              </div>
+              <div className="bg-asgard-surface-alt rounded-lg p-2">
+                <p className="text-lg font-bold text-asgard-glacier">{status.topics.length}</p>
+                <p className="text-xs text-asgard-text-muted">{t('settings.topics')}</p>
+              </div>
+              <div className="bg-asgard-surface-alt rounded-lg p-2">
+                <p className="text-lg font-bold text-asgard-glacier">
+                  {((status.bandwidth.up + status.bandwidth.down) / 1024).toFixed(1)}KB
+                </p>
+                <p className="text-xs text-asgard-text-muted">{t('settings.bandwidth')}</p>
+              </div>
+              <div className="bg-asgard-surface-alt rounded-lg p-2">
+                <p className="text-lg font-bold text-asgard-glacier">{status.connecting ?? 0}</p>
+                <p className="text-xs text-asgard-text-muted">{t('settings.connecting')}</p>
               </div>
             </div>
-          )}
-          {/* Peer scores / quality */}
-          {Object.keys(peerScores).length > 0 && (
-            <div className="mt-3">
-              <p className="text-xs text-asgard-text-muted mb-1">Peer Quality</p>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(peerScores).map(([peerId, { latency, score }]) => {
-                  const color = score >= 80 ? 'text-green-400 bg-green-500/15' : score >= 50 ? 'text-yellow-400 bg-yellow-500/15' : 'text-red-400 bg-red-500/15'
-                  return (
-                    <span key={peerId} className={`text-xs rounded px-2 py-0.5 ${color}`}>
-                      {peerId.slice(0, 8)}… {score}% · {latency}ms
+            <div className="flex gap-4 mt-3 text-xs text-asgard-text-muted">
+              <span>↑ {(status.bandwidth.up / 1024).toFixed(1)} {t('settings.kbPerSecond')}</span>
+              <span>↓ {(status.bandwidth.down / 1024).toFixed(1)} {t('settings.kbPerSecond')}</span>
+            </div>
+            {status.peerLatency && Object.keys(status.peerLatency).length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-asgard-text-muted mb-1">{t('settings.peerLatency')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(status.peerLatency).map(([peerId, latency]) => (
+                    <span key={peerId} className="text-xs bg-asgard-surface-alt rounded px-2 py-0.5 text-asgard-text-secondary">
+                      {peerId.slice(0, 8)}… {latency === 0 ? t('settings.new') : `${latency}ms`}
                     </span>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
+            )}
+            {Object.keys(peerScores).length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-asgard-text-muted mb-1">{t('settings.peerQuality')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(peerScores).map(([peerId, { latency, score }]) => {
+                    const color = score >= 80 ? 'text-green-400 bg-green-500/15' : score >= 50 ? 'text-yellow-400 bg-yellow-500/15' : 'text-red-400 bg-red-500/15'
+                    return (
+                      <span key={peerId} className={`text-xs rounded px-2 py-0.5 ${color}`}>
+                        {peerId.slice(0, 8)}… {score}% · {latency}ms
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            <div className="flex gap-2 mt-2">
+              <Button variant="secondary" size="sm" onClick={handleFlush}>
+                {t('settings.flushDht')}
+              </Button>
             </div>
-          )}
-          <div className="flex gap-2 mt-2">
-            <Button variant="secondary" size="sm" onClick={handleFlush}>
-              Flush DHT
-            </Button>
           </div>
-        </div>
 
-        {/* Battery Saver */}
-        <div className="glass rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="text-sm font-medium text-asgard-text-primary">Battery Saver</p>
-              <p className="text-xs text-asgard-text-muted">Suspend P2P when in background</p>
+          <div className="glass rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-sm font-medium text-asgard-text-primary">{t('settings.batterySaver')}</p>
+                <p className="text-xs text-asgard-text-muted">{t('settings.batterySaverDesc')}</p>
+              </div>
+              <button
+                onClick={handleSuspendToggle}
+                disabled={isSuspending}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  swarmSuspended
+                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                    : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+                }`}
+              >
+                {isSuspending ? '...' : swarmSuspended ? t('settings.resume') : t('settings.suspend')}
+              </button>
             </div>
-            <button
-              onClick={handleSuspendToggle}
-              disabled={isSuspending}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                swarmSuspended
-                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                  : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
-              }`}
-            >
-              {isSuspending ? '...' : swarmSuspended ? 'Resume' : 'Suspend'}
-            </button>
           </div>
-        </div>
 
-        <ToggleRow
-          label="Enable Relay"
-          description="Use blind relays when direct connections are unavailable"
-          checked={net.relayEnabled}
-          onChange={handleRelayToggle}
-        />
-        <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-2">Max Peers</label>
-          <input
-            type="range"
-            min={4}
-            max={128}
-            step={4}
-            value={net.maxPeers}
-            onChange={(e) => handleMaxPeersChange(parseInt(e.target.value))}
-            className="w-full accent-asgard-glacier"
+          <ToggleRow
+            label={t('settings.enableRelay')}
+            description={t('settings.enableRelayDesc')}
+            checked={net.relayEnabled}
+            onChange={handleRelayToggle}
           />
-          <div className="flex justify-between text-xs text-asgard-text-muted mt-1">
-            <span>4</span>
-            <span className="text-asgard-glacier font-medium">{net.maxPeers} peers</span>
-            <span>128</span>
+          <div>
+            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.maxPeers')}</label>
+            <input
+              type="range"
+              min={4}
+              max={128}
+              step={4}
+              value={net.maxPeers}
+              onChange={(e) => handleMaxPeersChange(parseInt(e.target.value))}
+              className="w-full accent-asgard-glacier"
+            />
+            <div className="flex justify-between text-xs text-asgard-text-muted mt-1">
+              <span>4</span>
+              <span className="text-asgard-glacier font-medium">{net.maxPeers} {t('settings.peers')}</span>
+              <span>128</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── Storage Section ──────────────────────────────────────────────────────────
 
 const StorageSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
+  const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -1044,9 +1034,9 @@ const StorageSection: React.FC = () => {
       a.download = `asgard-backup-${new Date().toISOString().slice(0, 10)}.json`
       a.click()
       URL.revokeObjectURL(url)
-      addToast({ type: 'success', title: 'Data exported successfully' })
+      addToast({ type: 'success', title: t('settings.dataExported') })
     } catch {
-      addToast({ type: 'error', title: 'Export failed', message: 'Could not export data' })
+      addToast({ type: 'error', title: t('settings.exportFailed'), message: t('settings.exportFailedMessage') })
     }
     setIsExporting(false)
   }
@@ -1063,9 +1053,9 @@ const StorageSection: React.FC = () => {
         const text = await file.text()
         const data = JSON.parse(text)
         await window.asgard.storage.importData(data)
-        addToast({ type: 'success', title: 'Data imported successfully' })
+        addToast({ type: 'success', title: t('toast.dataImported') })
       } catch {
-        addToast({ type: 'error', title: 'Import failed', message: 'Invalid backup file' })
+        addToast({ type: 'error', title: t('toast.importFailed'), message: t('toast.invalidBackupFile') })
       }
       setIsImporting(false)
     }
@@ -1075,199 +1065,193 @@ const StorageSection: React.FC = () => {
   const handleClearCache = async () => {
     try {
       await window.asgard.storage.clearAll()
-      addToast({ type: 'success', title: 'Cache cleared' })
+      addToast({ type: 'success', title: t('toast.cacheCleared') })
     } catch {
-      addToast({ type: 'error', title: 'Failed to clear cache' })
+      addToast({ type: 'error', title: t('toast.failedToClearCache') })
     }
   }
 
-  return (
-    <div>
-      <SectionHeader title="Storage" subtitle="Manage local data and downloads" />
-      <div className="space-y-6">
-        {/* Cache info */}
-        <div className="glass rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-asgard-text-primary">Local Cache</p>
-            <span className="text-xs text-asgard-text-muted bg-asgard-surface-alt px-2 py-1 rounded-full">
-              {settings.storage.cacheSize} MB limit
-            </span>
+return (
+      <div>
+        <SectionHeader title={t('settings.storage')} subtitle={t('settings.storageSubtitle')} />
+        <div className="space-y-6">
+          <div className="glass rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-asgard-text-primary">{t('settings.localCache')}</p>
+              <span className="text-xs text-asgard-text-muted bg-asgard-surface-alt px-2 py-1 rounded-full">
+                {settings.storage.cacheSize} {t('settings.mbLimit')}
+              </span>
+            </div>
+            <div className="w-full bg-asgard-surface-alt rounded-full h-2 mb-2">
+              <div
+                className={`h-2 rounded-full transition-all ${usedPercent > 80 ? 'bg-red-500' : 'bg-asgard-glacier'}`}
+                style={{ width: `${usedPercent}%` }}
+              />
+            </div>
+            <p className="text-xs text-asgard-text-muted">
+              {realStorageSize !== null ? formatBytes(usedBytes) : '...'} {t('settings.usedOf')} {settings.storage.cacheSize} MB ({usedPercent}%)
+            </p>
           </div>
-          <div className="w-full bg-asgard-surface-alt rounded-full h-2 mb-2">
-            <div
-              className={`h-2 rounded-full transition-all ${usedPercent > 80 ? 'bg-red-500' : 'bg-asgard-glacier'}`}
-              style={{ width: `${usedPercent}%` }}
-            />
+
+          <div>
+            <p className="text-sm font-medium text-asgard-text-primary mb-3">{t('settings.autoDownload')}</p>
+            <div className="space-y-2">
+              <ToggleRow
+                label={t('settings.images')}
+                description={t('settings.autoDownloadImagesDesc')}
+                checked={settings.storage.autoDownload.images}
+                onChange={(v) =>
+                  updateSettings({
+                    storage: {
+                      ...settings.storage,
+                      autoDownload: { ...settings.storage.autoDownload, images: v },
+                    },
+                  })
+                }
+              />
+              <ToggleRow
+                label={t('settings.audio')}
+                description={t('settings.autoDownloadAudioDesc')}
+                checked={settings.storage.autoDownload.audio}
+                onChange={(v) =>
+                  updateSettings({
+                    storage: {
+                      ...settings.storage,
+                      autoDownload: { ...settings.storage.autoDownload, audio: v },
+                    },
+                  })
+                }
+              />
+              <ToggleRow
+                label={t('settings.videos')}
+                description={t('settings.autoDownloadVideosDesc')}
+                checked={settings.storage.autoDownload.videos}
+                onChange={(v) =>
+                  updateSettings({
+                    storage: {
+                      ...settings.storage,
+                      autoDownload: { ...settings.storage.autoDownload, videos: v },
+                    },
+                  })
+                }
+              />
+            </div>
           </div>
-          <p className="text-xs text-asgard-text-muted">
-            {realStorageSize !== null ? formatBytes(usedBytes) : '...'} used of {settings.storage.cacheSize} MB ({usedPercent}%)
-          </p>
+
+          <div className="flex flex-col gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowTrash(true)}
+              className="w-full"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+              {t('settings.manageTrash')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowShareLinks(true)}
+              className="w-full"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
+                <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+              </svg>
+              {t('settings.shareLinks')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowDownloads(true)}
+              className="w-full"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+              {t('settings.downloadHistory')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowFavorites(true)}
+              className="w-full"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+              </svg>
+              {t('settings.favoriteFiles')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExport}
+              loading={isExporting}
+              className="w-full"
+            >
+              {t('settings.exportData')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleImport}
+              loading={isImporting}
+              className="w-full"
+            >
+              {t('settings.importData')}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleClearCache}
+              className="w-full"
+            >
+              {t('settings.clearCache')}
+            </Button>
+          </div>
         </div>
 
-        {/* Auto-download settings */}
-        <div>
-          <p className="text-sm font-medium text-asgard-text-primary mb-3">Auto-Download</p>
-          <div className="space-y-2">
-            <ToggleRow
-              label="Images"
-              description="Automatically download images"
-              checked={settings.storage.autoDownload.images}
-              onChange={(v) =>
-                updateSettings({
-                  storage: {
-                    ...settings.storage,
-                    autoDownload: { ...settings.storage.autoDownload, images: v },
-                  },
-                })
-              }
-            />
-            <ToggleRow
-              label="Audio"
-              description="Automatically download audio messages"
-              checked={settings.storage.autoDownload.audio}
-              onChange={(v) =>
-                updateSettings({
-                  storage: {
-                    ...settings.storage,
-                    autoDownload: { ...settings.storage.autoDownload, audio: v },
-                  },
-                })
-              }
-            />
-            <ToggleRow
-              label="Videos"
-              description="Automatically download videos"
-              checked={settings.storage.autoDownload.videos}
-              onChange={(v) =>
-                updateSettings({
-                  storage: {
-                    ...settings.storage,
-                    autoDownload: { ...settings.storage.autoDownload, videos: v },
-                  },
-                })
-              }
-            />
+        {showTrash && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-2xl h-[80vh] bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden shadow-modal">
+              <TrashManager onClose={() => setShowTrash(false)} />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Actions */}
-        <div className="flex flex-col gap-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowTrash(true)}
-            className="w-full"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
-              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-            </svg>
-            Manage Trash
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowShareLinks(true)}
-            className="w-full"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
-              <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
-            </svg>
-            Share Links
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowDownloads(true)}
-            className="w-full"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
-              <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-            </svg>
-            Download History
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowFavorites(true)}
-            className="w-full"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-            </svg>
-            Favorite Files
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleExport}
-            loading={isExporting}
-            className="w-full"
-          >
-            Export Data
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleImport}
-            loading={isImporting}
-            className="w-full"
-          >
-            Import Data
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={handleClearCache}
-            className="w-full"
-          >
-            Clear Cache
-          </Button>
-        </div>
+        {showShareLinks && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-2xl h-[80vh] bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden shadow-modal">
+              <ShareLinksManager onClose={() => setShowShareLinks(false)} />
+            </div>
+          </div>
+        )}
+
+        {showDownloads && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-2xl h-[80vh] bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden shadow-modal">
+              <DownloadHistory onClose={() => setShowDownloads(false)} />
+            </div>
+          </div>
+        )}
+
+        {showFavorites && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-2xl h-[80vh] bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden shadow-modal">
+              <FavoritesManager onClose={() => setShowFavorites(false)} />
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Trash Manager Modal */}
-      {showTrash && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-2xl h-[80vh] bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden shadow-modal">
-            <TrashManager onClose={() => setShowTrash(false)} />
-          </div>
-        </div>
-      )}
-
-      {/* Share Links Modal */}
-      {showShareLinks && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-2xl h-[80vh] bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden shadow-modal">
-            <ShareLinksManager onClose={() => setShowShareLinks(false)} />
-          </div>
-        </div>
-      )}
-
-      {/* Download History Modal */}
-      {showDownloads && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-2xl h-[80vh] bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden shadow-modal">
-            <DownloadHistory onClose={() => setShowDownloads(false)} />
-          </div>
-        </div>
-      )}
-
-      {/* Favorites Modal */}
-      {showFavorites && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-2xl h-[80vh] bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden shadow-modal">
-            <FavoritesManager onClose={() => setShowFavorites(false)} />
-          </div>
-        </div>
-      )}
-    </div>
-  )
+    )
 }
 
 // ─── Devices Section ─────────────────────────────────────────────────────────
 
 const DevicesSection: React.FC = () => {
   const addToast = useUIStore((s) => s.addToast)
+  const { t } = useTranslation()
   const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([])
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
   const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([])
@@ -1306,17 +1290,17 @@ const DevicesSection: React.FC = () => {
   const handleRequestPermission = async () => {
     const granted = await mediaDeviceService.requestPermission('both')
     if (granted) {
-      addToast({ type: 'success', title: 'Permission granted' })
+      addToast({ type: 'success', title: t('toast.permissionGranted') })
       await refreshDeviceList()
     } else {
-      addToast({ type: 'error', title: 'Permission denied' })
+      addToast({ type: 'error', title: t('toast.permissionDenied') })
     }
   }
 
   const handleMicChange = async (deviceId: string) => {
     setSelectedMic(deviceId)
     mediaDeviceService.setPreferredDevice('audioinput', deviceId)
-    addToast({ type: 'success', title: 'Microphone updated' })
+    addToast({ type: 'success', title: t('toast.microphoneUpdated') })
     // Restart mic test with new device
     micTestRef.current?.()
     const stop = await mediaDeviceService.testMicrophone(deviceId, setMicLevel).catch(() => null)
@@ -1326,13 +1310,13 @@ const DevicesSection: React.FC = () => {
   const handleCamChange = async (deviceId: string) => {
     setSelectedCam(deviceId)
     mediaDeviceService.setPreferredDevice('videoinput', deviceId)
-    addToast({ type: 'success', title: 'Camera updated' })
+    addToast({ type: 'success', title: t('toast.cameraUpdated') })
   }
 
   const handleSpeakerChange = (deviceId: string) => {
     setSelectedSpeaker(deviceId)
     mediaDeviceService.setPreferredDevice('audiooutput', deviceId)
-    addToast({ type: 'success', title: 'Speaker updated' })
+    addToast({ type: 'success', title: t('toast.speakerUpdated') })
   }
 
   const handleTestMic = async () => {
@@ -1360,160 +1344,153 @@ const DevicesSection: React.FC = () => {
       if (videoRef.current) videoRef.current.srcObject = stream
       cameraTestRef.current = stop
     } catch {
-      addToast({ type: 'error', title: 'Camera test failed' })
+      addToast({ type: 'error', title: t('toast.cameraTestFailed') })
     }
   }
 
-  return (
-    <div>
-      <SectionHeader title="Devices" subtitle="Configure your audio and video hardware" />
-      <div className="space-y-6">
-        {/* Permission prompt */}
-        {!hasPermission && (
-          <div className="glass rounded-xl p-4 border border-asgard-glacier/20">
-            <p className="text-sm text-asgard-text-primary mb-2">Microphone & Camera Access</p>
-            <p className="text-xs text-asgard-text-muted mb-3">
-              Grant permission to see device names and configure your hardware.
-            </p>
-            <Button variant="secondary" size="sm" onClick={handleRequestPermission}>
-              Grant Permission
-            </Button>
+return (
+      <div>
+        <SectionHeader title={t('settings.devices')} subtitle={t('settings.devicesSubtitle')} />
+        <div className="space-y-6">
+          {!hasPermission && (
+            <div className="glass rounded-xl p-4 border border-asgard-glacier/20">
+              <p className="text-sm text-asgard-text-primary mb-2">{t('settings.microphoneCameraAccess')}</p>
+              <p className="text-xs text-asgard-text-muted mb-3">
+                {t('settings.grantPermissionDesc')}
+              </p>
+              <Button variant="secondary" size="sm" onClick={handleRequestPermission}>
+                {t('settings.grantPermission')}
+              </Button>
+            </div>
+          )}
+
+          <div>
+            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+              <span className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
+                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                </svg>
+                {t('settings.microphone')}
+              </span>
+            </label>
+            <select
+              value={selectedMic}
+              onChange={(e) => handleMicChange(e.target.value)}
+              className="asgard-input w-full text-sm"
+            >
+              {microphones.length === 0 && <option value="">{t('settings.noMicrophoneDetected')}</option>}
+              {microphones.map((mic) => (
+                <option key={mic.deviceId} value={mic.deviceId}>{mic.label}</option>
+              ))}
+            </select>
+
+            {selectedMic && (
+              <div className="mt-2 flex items-center gap-3">
+                <button
+                  onClick={handleTestMic}
+                  className="text-xs text-asgard-glacier hover:underline"
+                >
+                  {micTestRef.current ? t('settings.stopTest') : t('settings.testMic')}
+                </button>
+                <div className="flex-1 h-2 bg-asgard-surface-alt rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-asgard-glacier rounded-full transition-all duration-75"
+                    style={{ width: `${micLevel * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs text-asgard-text-muted w-8 text-right">
+                  {Math.round(micLevel * 100)}%
+                </span>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Microphone selection */}
-        <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
-            <span className="flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
-                <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
-              </svg>
-              Microphone
-            </span>
-          </label>
-          <select
-            value={selectedMic}
-            onChange={(e) => handleMicChange(e.target.value)}
-            className="asgard-input w-full text-sm"
-          >
-            {microphones.length === 0 && <option value="">No microphone detected</option>}
-            {microphones.map((mic) => (
-              <option key={mic.deviceId} value={mic.deviceId}>{mic.label}</option>
-            ))}
-          </select>
+          <div>
+            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+              <span className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
+                  <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                </svg>
+                {t('settings.camera')}
+              </span>
+            </label>
+            <select
+              value={selectedCam}
+              onChange={(e) => handleCamChange(e.target.value)}
+              className="asgard-input w-full text-sm"
+            >
+              {cameras.length === 0 && <option value="">{t('settings.noCameraDetected')}</option>}
+              {cameras.map((cam) => (
+                <option key={cam.deviceId} value={cam.deviceId}>{cam.label}</option>
+              ))}
+            </select>
 
-          {/* Mic level indicator */}
-          {selectedMic && (
-            <div className="mt-2 flex items-center gap-3">
-              <button
-                onClick={handleTestMic}
-                className="text-xs text-asgard-glacier hover:underline"
-              >
-                {micTestRef.current ? 'Stop test' : 'Test mic'}
-              </button>
-              <div className="flex-1 h-2 bg-asgard-surface-alt rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-asgard-glacier rounded-full transition-all duration-75"
-                  style={{ width: `${micLevel * 100}%` }}
+            {selectedCam && (
+              <div className="mt-2">
+                <button
+                  onClick={handleTestCamera}
+                  className="text-xs text-asgard-glacier hover:underline mb-2"
+                >
+                  {cameraTestRef.current ? t('settings.stopPreview') : t('settings.testCamera')}
+                </button>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full max-w-xs rounded-xl border border-asgard-border bg-black"
+                  style={{ display: cameraTestRef.current ? 'block' : 'none' }}
                 />
               </div>
-              <span className="text-xs text-asgard-text-muted w-8 text-right">
-                {Math.round(micLevel * 100)}%
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Camera selection */}
-        <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
-            <span className="flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
-                <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
-              </svg>
-              Camera
-            </span>
-          </label>
-          <select
-            value={selectedCam}
-            onChange={(e) => handleCamChange(e.target.value)}
-            className="asgard-input w-full text-sm"
-          >
-            {cameras.length === 0 && <option value="">No camera detected</option>}
-            {cameras.map((cam) => (
-              <option key={cam.deviceId} value={cam.deviceId}>{cam.label}</option>
-            ))}
-          </select>
-
-          {/* Camera preview */}
-          {selectedCam && (
-            <div className="mt-2">
-              <button
-                onClick={handleTestCamera}
-                className="text-xs text-asgard-glacier hover:underline mb-2"
-              >
-                {cameraTestRef.current ? 'Stop preview' : 'Test camera'}
-              </button>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full max-w-xs rounded-xl border border-asgard-border bg-black"
-                style={{ display: cameraTestRef.current ? 'block' : 'none' }}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Speaker selection */}
-        <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
-            <span className="flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
-                <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v8H7V4zm0 14v-4h10v4H7z"/>
-              </svg>
-              Speaker
-            </span>
-          </label>
-          <select
-            value={selectedSpeaker}
-            onChange={(e) => handleSpeakerChange(e.target.value)}
-            className="asgard-input w-full text-sm"
-          >
-            {speakers.length === 0 && <option value="">Default speaker</option>}
-            {speakers.map((spk) => (
-              <option key={spk.deviceId} value={spk.deviceId}>{spk.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Device count info */}
-        <div className="glass rounded-xl p-4">
-          <p className="text-xs font-semibold text-asgard-text-muted uppercase tracking-wider mb-2">
-            Detected Hardware
-          </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-lg font-semibold text-asgard-glacier">{microphones.length}</p>
-              <p className="text-xs text-asgard-text-muted">Microphones</p>
-            </div>
-            <div>
-              <p className="text-lg font-semibold text-asgard-glacier">{cameras.length}</p>
-              <p className="text-xs text-asgard-text-muted">Cameras</p>
-            </div>
-            <div>
-              <p className="text-lg font-semibold text-asgard-glacier">{speakers.length}</p>
-              <p className="text-xs text-asgard-text-muted">Speakers</p>
-            </div>
+            )}
           </div>
-          <p className="text-xs text-asgard-text-muted mt-3 text-center">
-            Devices are auto-detected. Changes are applied in real-time.
-          </p>
+
+          <div>
+            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+              <span className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
+                  <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v8H7V4zm0 14v-4h10v4H7z"/>
+                </svg>
+                {t('settings.speaker')}
+              </span>
+            </label>
+            <select
+              value={selectedSpeaker}
+              onChange={(e) => handleSpeakerChange(e.target.value)}
+              className="asgard-input w-full text-sm"
+            >
+              {speakers.length === 0 && <option value="">{t('settings.defaultSpeaker')}</option>}
+              {speakers.map((spk) => (
+                <option key={spk.deviceId} value={spk.deviceId}>{spk.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="glass rounded-xl p-4">
+            <p className="text-xs font-semibold text-asgard-text-muted uppercase tracking-wider mb-2">
+              {t('settings.detectedHardware')}
+            </p>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-lg font-semibold text-asgard-glacier">{microphones.length}</p>
+                <p className="text-xs text-asgard-text-muted">{t('settings.microphones')}</p>
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-asgard-glacier">{cameras.length}</p>
+                <p className="text-xs text-asgard-text-muted">{t('settings.cameras')}</p>
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-asgard-glacier">{speakers.length}</p>
+                <p className="text-xs text-asgard-text-muted">{t('settings.speakers')}</p>
+              </div>
+            </div>
+            <p className="text-xs text-asgard-text-muted mt-3 text-center">
+              {t('settings.devicesAreAutoDetected')}
+            </p>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── About Section ────────────────────────────────────────────────────────────
@@ -1521,14 +1498,22 @@ const DevicesSection: React.FC = () => {
 const XELIS_ADDRESS = 'xel:fzete660pp676sez3cvfpjmma00xe3q5lz4f8wcm9z5kf2p6guvsqdevkpq'
 
 const AboutSection: React.FC = () => {
+  const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
+  const [appVersion, setAppVersion] = useState('1.0.0')
+
+  useEffect(() => {
+    window.asgard?.app?.getVersion?.().then((v: string) => {
+      if (v) setAppVersion(v)
+    }).catch(() => {})
+  }, [])
 
   const handleCopyAddress = async () => {
     try {
       await navigator.clipboard.writeText(XELIS_ADDRESS)
-      addToast({ type: 'success', title: 'Address copied to clipboard', duration: 3000 })
+      addToast({ type: 'success', title: t('toast.addressCopied'), duration: 3000 })
     } catch {
-      addToast({ type: 'error', title: 'Failed to copy address', duration: 3000 })
+      addToast({ type: 'error', title: t('toast.failedToCopyAddress'), duration: 3000 })
     }
   }
 
@@ -1540,70 +1525,69 @@ const AboutSection: React.FC = () => {
     window.asgard.app.openExternal('https://trocador.app/?ref=BLbjXxTsoK')
   }
 
-  return (
-    <div>
-      <SectionHeader title="About Asgard" subtitle="Version and legal information" />
-      <div className="space-y-4">
-        <div className="glass rounded-xl p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center">
-              <img src="./asgard-icon.svg" alt="Asgard" className="w-full h-full" />
+return (
+      <div>
+        <SectionHeader title={t('settings.aboutApp')} subtitle={t('settings.aboutAppSubtitle')} />
+        <div className="space-y-4">
+          <div className="glass rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center">
+                <img src="./asgard-icon.svg" alt={t('settings.altAsgardIcon')} className="w-full h-full" />
+              </div>
+              <div>
+                <p className="font-semibold text-asgard-text-primary">{t('settings.appName')}</p>
+                <p className="text-sm text-asgard-text-muted">{t('settings.appVersion', { version: appVersion })}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-asgard-text-primary">Asgard</p>
-              <p className="text-sm text-asgard-text-muted">Asgard 2026</p>
-            </div>
-          </div>
-          <p className="text-xs text-asgard-text-muted leading-relaxed mb-4">
-            Decentralized P2P messenger powered by Pear Runtime and Hypercore Protocol.
-            No servers. No surveillance. No compromise.
-          </p>
-
-          {/* Donation section */}
-          <div className="border-t border-asgard-border pt-4 mt-2">
-            <p className="text-sm text-asgard-text-primary font-medium mb-1">
-              Do you like the Asgard app?
+            <p className="text-xs text-asgard-text-muted leading-relaxed mb-4">
+              {t('settings.aboutDescription')}
             </p>
-            <p className="text-xs text-asgard-text-secondary leading-relaxed mb-3">
-              Make a donation to us in{' '}
+
+            {/* Donation section */}
+            <div className="border-t border-asgard-border pt-4 mt-2">
+              <p className="text-sm text-asgard-text-primary font-medium mb-1">
+                {t('settings.doYouLikeAsgard')}
+              </p>
+              <p className="text-xs text-asgard-text-secondary leading-relaxed mb-3">
+                {t('settings.makeDonationIn', { currency: 'XEL' })} {' '}
+                <button
+                  onClick={handleOpenXelis}
+                  className="text-asgard-glacier hover:underline font-medium cursor-pointer"
+                >
+                  XELIS
+                </button>{' '}
+                {t('settings.atTheFollowingAddress')}
+              </p>
               <button
-                onClick={handleOpenXelis}
-                className="text-asgard-glacier hover:underline font-medium cursor-pointer"
+                onClick={handleCopyAddress}
+                className="w-full glass rounded-lg px-3 py-2.5 text-left group hover:border-asgard-glacier/40 transition-colors cursor-pointer"
               >
-                XELIS
-              </button>{' '}
-              at the following address:
-            </p>
-            <button
-              onClick={handleCopyAddress}
-              className="w-full glass rounded-lg px-3 py-2.5 text-left group hover:border-asgard-glacier/40 transition-colors cursor-pointer"
-            >
-              <p className="font-mono text-[11px] text-asgard-glacier break-all leading-relaxed select-all">
-                {XELIS_ADDRESS}
-              </p>
-              <p className="text-[10px] text-asgard-text-muted mt-1.5 group-hover:text-asgard-glacier transition-colors">
-                Click to copy
-              </p>
-            </button>
-          </div>
+                <p className="font-mono text-[11px] text-asgard-glacier break-all leading-relaxed select-all">
+                  {XELIS_ADDRESS}
+                </p>
+                <p className="text-[10px] text-asgard-text-muted mt-1.5 group-hover:text-asgard-glacier transition-colors">
+                  {t('settings.clickToCopy')}
+                </p>
+              </button>
+            </div>
 
-          {/* Trocador link */}
-          <div className="border-t border-asgard-border pt-4 mt-2">
-            <button
-              onClick={handleOpenTrocador}
-              className="text-sm text-asgard-glacier hover:underline font-medium cursor-pointer"
-            >
-              Trade Cryptocurrency Privately
-            </button>
+            {/* Trocador link */}
+            <div className="border-t border-asgard-border pt-4 mt-2">
+              <button
+                onClick={handleOpenTrocador}
+                className="text-sm text-asgard-glacier hover:underline font-medium cursor-pointer"
+              >
+                {t('settings.tradeCryptocurrencyPrivately')}
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="space-y-2 text-xs text-asgard-text-muted">
-          <p>Built with: Electron, React, TypeScript, Hyperswarm</p>
-          <p>© 2026 Asgard. Open source, MIT License.</p>
+          <div className="space-y-2 text-xs text-asgard-text-muted">
+            <p>{t('settings.builtWith')}</p>
+            <p>© 2026 Asgard. {t('settings.openSourceLicense')} MIT License.</p>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
 }
 
 // ─── Reusable components ──────────────────────────────────────────────────────

@@ -2,6 +2,15 @@ import { EventEmitter } from 'events'
 import { appendFileSync } from 'fs'
 import { join } from 'path'
 import os from 'os'
+// CRITICAL: Protomux and compact-encoding MUST be loaded synchronously at module level.
+// Per Protomux source (_requestSession): if the remote's OPEN frame arrives before
+// createChannel() is called AND no pair() handler is registered, the session is
+// immediately REJECTED. Dynamic import() yields to the event loop, allowing the
+// remote OPEN to arrive during the import delay, causing channel rejection.
+// With static imports, Protomux.from() + createChannel() execute synchronously
+// in handleConnection, eliminating the race condition.
+import Protomux from 'protomux'
+import * as c from 'compact-encoding'
 
 // DIAGNOSTICS: File-based logging for main process
 function networkLogDir(): string {
@@ -50,7 +59,7 @@ export class NetworkService extends EventEmitter {
   private blockedPeers: Set<string> = new Set()
   // PERFORMANCE: Periodic re-announce timer for DHT freshness
   private reannounceInterval: ReturnType<typeof setInterval> | null = null
-  private static readonly REANNOUNCE_INTERVAL_MS = 120_000 // 2 minutes
+  private static readonly REANNOUNCE_INTERVAL_MS = 60_000 // 1 minute
   // PERFORMANCE: Peer score update timer
   private scoreUpdateInterval: ReturnType<typeof setInterval> | null = null
   private static readonly SCORE_UPDATE_INTERVAL_MS = 15_000 // 15s
@@ -119,11 +128,11 @@ export class NetworkService extends EventEmitter {
     return this.peerPublicKeyMap
   }
 
-  /**
+/**
    * Helper to access the underlying HyperDHT instance with proper typing.
    */
-  private getDHT(): DHTLike | undefined {
-    return (this.swarm as unknown as { dht?: DHTLike }).dht
+  private getDHT(): HyperDHTInstance | undefined {
+    return (this.swarm as unknown as { dht?: HyperDHTInstance }).dht;
   }
 
   /**
@@ -141,21 +150,71 @@ export class NetworkService extends EventEmitter {
     try {
       // Dynamic import for ESM-only packages
       const { default: Hyperswarm } = await import('hyperswarm') as unknown as { default: HyperswarmConstructor }
+      const { default: HyperDHT } = await import('hyperdht') as unknown as { default: HyperDHTConstructor }
+
+      // CRITICAL FIX: Create HyperDHT separately with proper constructor options.
+      // Hyperswarm does NOT accept `ephemeral` as a constructor option.
+      // To have a non-ephemeral DHT (persistent on DHT), create DHT with ephemeral: false
+      // and pass it to Hyperswarm via the `dht` option.
+      // Per HyperDHT source (index.js):
+      //   DEFAULTS = { ...DHT.DEFAULTS, connectionKeepAlive: 5000, randomPunchInterval: 20000 }
+      //   DHT inherits from dht-rpc, which accepts bootstrap, nodes, port, deferRandomPunch
+      // The _randomPunchInterval/_randomPunchLimit are internal properties.
+      // We use the public randomPunchInterval constructor option instead.
+      const dhtOpts: {
+        bootstrap?: string[]
+        nodes?: Array<{ host: string; port: number }>
+        port?: number
+        deferRandomPunch?: boolean
+        randomPunchInterval?: number
+        connectionKeepAlive?: number
+        ephemeral?: boolean
+        seed?: Buffer
+      } = {}
+
+      // Use default Pear bootstrap nodes (public DHT)
+      dhtOpts.bootstrap = [
+        '88.99.3.86@node1.hyperdht.org:49737',
+        '142.93.90.113@node2.hyperdht.org:49737',
+        '138.68.147.8@node3.hyperdht.org:49737',
+      ]
+
+      // CRITICAL: Set connectionKeepAlive on the DHT (defaults to 5000ms).
+      // Hyperswarm does NOT forward connectionKeepAlive to the DHT.
+      // Must set on DHT constructor so NoiseSecretStream uses it.
+      dhtOpts.connectionKeepAlive = 15000
+
+      // CRITICAL: Use public randomPunchInterval (not internal _randomPunchInterval).
+      // Default is 20000ms. Lower value = faster hole-punch retries for cross-border.
+      dhtOpts.randomPunchInterval = 5000
+
+      // NON-EPHEMERAL: Announce ourselves to the DHT as reachable servers.
+      // Without this, contacts cannot discover or reconnect to us.
+      dhtOpts.ephemeral = false
+
+      // CRITICAL: Pass seed to DHT (not Hyperswarm) for deterministic Noise key.
+      // HyperDHT uses seed to generate deterministic keyPair via createKeyPair(opts.seed).
+      // If seed is passed to Hyperswarm but opts.dht is provided, Hyperswarm ignores seed.
+      // Without deterministic seed, Noise peer ID changes on every restart — breaking
+      // ed25519ToNoiseMap and peer reconnection.
+      if (this.seed) {
+        dhtOpts.seed = this.seed
+        console.log('[NetworkService] Using deterministic identity seed for DHT')
+      } else {
+        console.warn('[NetworkService] No identity seed — Noise peer ID will be random')
+      }
+
+      const dht = new HyperDHT(dhtOpts)
 
       const swarmOpts: {
         maxPeers: number
         firewall: (key: Buffer) => boolean
-        seed?: Buffer
-        connectionKeepAlive?: number
-        maxConnections?: number
-        ephemeral?: boolean
+        dht: HyperDHTInstance
       } = {
-        maxPeers: 64,
-        // CONNECTIVITY: Allow more simultaneous connection attempts
-        maxConnections: 128,
+        maxPeers: 100,
         // CRITICAL: Non-ephemeral nodes announce themselves to the DHT as reachable servers.
         // Without this, contacts cannot discover or reconnect to us when we are online.
-        ephemeral: false,
+        // Note: `ephemeral` is NOT a Hyperswarm option — handled via DHT constructor above.
         // PERFORMANCE: Firewall blocks known-banned peers
         firewall: (remotePublicKey: Buffer) => {
           const hex = remotePublicKey.toString('hex')
@@ -165,27 +224,21 @@ export class NetworkService extends EventEmitter {
           }
           return false // Allow
         },
-        // CONNECTIVITY: Keep-alive at 15s to avoid premature disconnections on idle links.
-        // Default is 5000ms; 15s balances NAT timeout tolerance with fast dead-peer detection.
-        connectionKeepAlive: 15000,
-      }
-
-      // Use deterministic seed if available — ensures stable peer ID across restarts
-      if (this.seed) {
-        swarmOpts.seed = this.seed
-        console.log('[NetworkService] Using deterministic identity seed')
-      } else {
-        console.warn('[NetworkService] No identity seed — peer ID will be random')
+        dht,
       }
 
       this.swarm = new Hyperswarm(swarmOpts)
 
-      // CONNECTIVITY: Configure underlying DHT for faster hole punching
-      // randomPunchInterval: reduce from default 20s to 5s for faster peer discovery/reconnection
-      const dht = this.getDHT()
-      if (dht) {
-        dht.randomPunchInterval = 5000
-        console.log('[NetworkService] DHT randomPunchInterval set to 5s (was 20s default)')
+      // CRITICAL: Configure underlying DHT for faster hole punching
+      // Per HyperDHT source:
+      //   connectionKeepAlive: kept-alive interval for NoiseSecretStream (set via constructor)
+      //   randomPunchInterval: min delay between random punch retries (constructor option)
+      //   randomPunchLimit: max concurrent random punches (constructor option)
+      // These are critical for cross-border connections where both NATs are randomized.
+      const configuredDht = this.getDHT()
+      if (configuredDht) {
+        // Note: connectionKeepAlive, randomPunchInterval already set via DHT constructor above
+        console.log('[NetworkService] DHT configured: connectionKeepAlive=15s, randomPunchInterval=5s')
 
         // HOLEPUNCH BEST PRACTICE: Republish profile/status when the node becomes
         // persistent (non-ephemeral) and after wake-up from sleep.
@@ -199,14 +252,24 @@ export class NetworkService extends EventEmitter {
           if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
           this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
         }
-        dht.on('persistent', handlePersistent)
-        dht.on('wake-up', handleWakeUp)
+        configuredDht.on('persistent', handlePersistent)
+        configuredDht.on('wake-up', handleWakeUp)
+      }
+
+      // CRITICAL: Start the DHT server before any topic joins.
+      // Hyperswarm auto-calls listen() when the first topic is joined as
+      // server, but explicit ensures inbound connections are ready early.
+      try {
+        await (this.swarm as unknown as { listen: () => Promise<void> }).listen()
+        console.log('[NetworkService] DHT server listening')
+      } catch (err) {
+        console.warn('[NetworkService] swarm.listen() failed:', err)
       }
 
       // Handle new peer connections
       this.swarm.on('connection', (conn: PeerSocket, info: PeerInfo) => {
         const peerId = info.publicKey.toString('hex')
-        console.log('[NetworkService] === PEER CONNECTED ===', peerId.slice(0, 32), '| localPublicKey set:', !!this.localPublicKey)
+        logMain(`[NetworkService] === PEER CONNECTED === ${peerId.slice(0, 32)} | localPublicKey set: ${!!this.localPublicKey}`)
         this.handleConnection(conn, info)
       })
 
@@ -223,7 +286,7 @@ export class NetworkService extends EventEmitter {
       })
 
       this.initialized = true
-      console.log('[NetworkService] Initialized Hyperswarm (keepAlive=3s)')
+      console.log('[NetworkService] Initialized Hyperswarm (keepAlive=15s)')
 
       // PERFORMANCE: Periodic re-announce to keep DHT entries fresh
       this.reannounceInterval = setInterval(() => {
@@ -270,7 +333,7 @@ export class NetworkService extends EventEmitter {
       if (value.length > 1000) {
         console.warn('[NetworkService] Profile too large for DHT:', value.length, 'bytes — truncating')
         // Truncate displayName to fit
-        const trimmed = { displayName: displayName.slice(0, 50), timestamp: Date.now(), version: 1 }
+        const trimmed = { displayName: displayName.slice(0, 50), timestamp: Date.now(), version: 2, status: this.currentStatus, statusMessage: this.currentStatusMessage }
         const trimmedValue = Buffer.from(JSON.stringify(trimmed))
         const keyPair = (this.swarm as unknown as { keyPair?: { publicKey: Buffer; secretKey: Buffer } }).keyPair
         if (!keyPair) return false
@@ -330,7 +393,10 @@ export class NetworkService extends EventEmitter {
       } catch {}
 
       const profile: DHTProfile = {
-        displayName: existingProfile.displayName || 'Unknown',
+        // CRITICAL FIX: Use lastDisplayName (set by publishProfile) instead of
+        // defaulting to 'Unknown'. This prevents the displayName from being
+        // overwritten to 'Unknown' when publishStatus is called before publishProfile.
+        displayName: existingProfile.displayName || this.lastDisplayName || 'Unknown',
         timestamp: Date.now(),
         version: 2,
         status,
@@ -583,6 +649,14 @@ export class NetworkService extends EventEmitter {
     if (!this.swarm) return
     const keyBuffer = Buffer.from(noisePublicKeyHex, 'hex')
     this.swarm.joinPeer(keyBuffer)
+    // CRITICAL: Reset Hyperswarm's internal attempts counter.
+    // Per Hyperswarm source: peers with attempts >= 5 are skipped in _attemptClientConnections.
+    // Without this, after 5 failed attempts, Hyperswarm silently stops trying.
+    const peers = (this.swarm as unknown as { peers?: Map<string, { attempts?: number }> }).peers
+    const peerInfo = peers?.get(noisePublicKeyHex)
+    if (peerInfo) {
+      peerInfo.attempts = 0
+    }
     console.log('[NetworkService] joinPeer:', noisePublicKeyHex.slice(0, 16) + '...')
   }
 
@@ -598,15 +672,29 @@ export class NetworkService extends EventEmitter {
     // Reset reconnect attempts for this peer
     this.reconnectAttempts.delete(noisePublicKeyHex)
 
-    // Join peer for discovery + direct connection
+    // CONNECTIVITY: joinPeer() only takes publicKey (no opts).
+    // Per Hyperswarm source: joinPeer(publicKey) — sets peerInfo.explicit = true
+    // and enqueues for connection. The prioritized flag must be set separately
+    // on the PeerInfo object AFTER joinPeer creates it.
     this.swarm.joinPeer(keyBuffer)
 
-    // If prioritized, mark the peer for rapid reconnection
-    if (prioritized) {
-      const peers = (this.swarm as unknown as { peers?: Map<string, { prioritized?: boolean }> }).peers
-      const peerInfo = peers?.get(noisePublicKeyHex)
-      if (peerInfo) {
-        peerInfo.prioritized = true
+    // Configure PeerInfo for optimal reconnection behavior.
+    // Per Hyperswarm source (peer-info.js):
+    // - peers with attempts > 3 are deprioritized and skipped by _updatePriority()
+    // - `prioritized` is a GETTER (return this.priority >= NORMAL_PRIORITY), NOT a setter
+    // - To prioritize, set `priority` to HIGH_PRIORITY (3) or VERY_HIGH_PRIORITY (4)
+    // - Prioritized peers skip _reset() in _handlePeer, maintaining proven/tried state
+    const peers = (this.swarm as unknown as { peers?: Map<string, { priority?: number; attempts?: number }> }).peers
+    const peerInfo = peers?.get(noisePublicKeyHex)
+    if (peerInfo) {
+      // CRITICAL: Reset attempts counter so Hyperswarm will retry connection.
+      // Without this, after 5 failed attempts, the peer is silently skipped.
+      peerInfo.attempts = 0
+      if (prioritized) {
+        // VERY_HIGH_PRIORITY = 4 (Hyperswarm constants)
+        // This ensures `prioritized` getter returns true (priority >= 2)
+        // AND skips _reset() in _handlePeer, preserving proven/tried state
+        peerInfo.priority = 4
       }
     }
 
@@ -694,14 +782,47 @@ export class NetworkService extends EventEmitter {
     if (!peer) {
       throw new Error(`Peer ${peerId.slice(0, 16)} not found`)
     }
+
+    // CRITICAL FIX: Wait for Protomux channel to be ready instead of throwing.
+    // The peer may be marked 'connected' in the network store before the Protomux
+    // channel handshake completes. Without this wait, presence:update and other
+    // messages sent during this window are silently lost — causing the "both online
+    // but can't see each other" bug.
     if (!peer.sendMessage) {
-      throw new Error(`Protomux channel not ready for peer ${peerId.slice(0, 16)}`)
+      const MAX_WAIT = 5000 // 5s max wait for channel (typical: 1-2s)
+      const POLL_INTERVAL = 200
+      let waited = 0
+      while (!peer.sendMessage && waited < MAX_WAIT) {
+        // Check if peer was disconnected while waiting
+        if (!this.peers.has(peerId) && !this.peers.has(peer.id)) {
+          throw new Error(`Peer ${peerId.slice(0, 16)} disconnected while waiting for channel`)
+        }
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL))
+        waited += POLL_INTERVAL
+        // Re-fetch peer in case it was updated
+        peer = this.peers.get(peerId) ?? this.peers.get(peer.id) ?? peer
+      }
+      if (!peer.sendMessage) {
+        throw new Error(`Protomux channel not ready for peer ${peerId.slice(0, 16)} after ${MAX_WAIT}ms`)
+      }
+      logMain(`[NetworkService] ⏳ Channel ready after ${waited}ms wait for peer ${peerId.slice(0, 16)}`)
     }
 
     // PERFORMANCE: Avoid unnecessary Buffer copy if data is already a Buffer
     const buf = Buffer.isBuffer(data) ? data : Buffer.from(data)
     peer.sendMessage.send(buf)
     this.trackBandwidth(buf.length, 0)
+
+    // DIAGNOSTIC: Log message sends to help debug presence issues
+    let sentMsgType = 'unknown'
+    try {
+      const preview = buf.toString('utf-8', 0, Math.min(buf.length, 100))
+      if (preview.startsWith('{')) {
+        const parsed = JSON.parse(preview)
+        sentMsgType = parsed?.type ?? 'json-no-type'
+      }
+    } catch {}
+    logMain(`[NetworkService] 📤 SEND to ${peerId.slice(0, 16)} | type=${sentMsgType} | size=${buf.length}`)
   }
 
   /**
@@ -923,52 +1044,53 @@ export class NetworkService extends EventEmitter {
   }
 
   /**
-   * PERFORMANCE: Cork the Protomux channel for a peer.
-   * Buffers all messages and sends them in a single batch on uncork().
+   * PERFORMANCE: Cork the Protomux mux for a peer.
+   * Buffers all messages across ALL channels and sends them in a single batch on uncork().
    * Ideal for file transfers and bulk operations.
+   *
+   * CRITICAL: Per Protomux source, cork()/uncork() are reference-counted on the shared mux.
+   * All channels (asgard, asgard-media, asgard-files) share the SAME mux instance.
+   * We must cork the mux exactly ONCE — not once per channel — to avoid unbalanced
+   * reference counting when some channels are null (causing the batch to never flush).
    */
   corkChannel(peerId: string): void {
     const channels = this.peerChannels.get(peerId)
-    if (channels?.main?.cork) {
-      channels.main.cork()
-    }
-    if (channels?.media?.cork) {
-      channels.media.cork()
-    }
-    if (channels?.file?.cork) {
-      channels.file.cork()
+    // Cork the shared mux exactly once via any available channel
+    const anyChannel = channels?.main ?? channels?.media ?? channels?.file
+    if (anyChannel?.cork) {
+      anyChannel.cork()
     }
   }
 
   /**
-   * PERFORMANCE: Uncork the Protomux channel, flushing all buffered messages.
+   * PERFORMANCE: Uncork the Protomux mux, flushing all buffered messages.
+   * Must be called exactly once per corkChannel() call.
    */
   uncorkChannel(peerId: string): void {
     const channels = this.peerChannels.get(peerId)
-    if (channels?.main?.uncork) {
-      channels.main.uncork()
-    }
-    if (channels?.media?.uncork) {
-      channels.media.uncork()
-    }
-    if (channels?.file?.uncork) {
-      channels.file.uncork()
+    // Uncork the shared mux exactly once via any available channel
+    const anyChannel = channels?.main ?? channels?.media ?? channels?.file
+    if (anyChannel?.uncork) {
+      anyChannel.uncork()
     }
   }
 
   /**
    * PERFORMANCE: Mark a peer as prioritized for fast reconnection.
-   * Note: Hyperswarm PeerInfo.prioritized is read-only in some versions — silently ignored.
+   * Per Hyperswarm source (peer-info.js): `prioritized` is a getter
+   * (return this.priority >= NORMAL_PRIORITY). To set priority,
+   * we must write to `priority` directly.
+   * VERY_HIGH_PRIORITY = 4, HIGH_PRIORITY = 3, NORMAL_PRIORITY = 2
    */
   prioritizePeer(peerId: string, prioritized: boolean): void {
     const info = this.peerInfos.get(peerId)
     if (info) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (info as any).prioritized = prioritized
-        console.log('[NetworkService] Peer', peerId.slice(0, 16), 'prioritized:', prioritized)
+        ;(info as any).priority = prioritized ? 4 : 2 // VERY_HIGH_PRIORITY or NORMAL_PRIORITY
+        console.log('[NetworkService] Peer', peerId.slice(0, 16), 'priority set to:', prioritized ? 'VERY_HIGH (4)' : 'NORMAL (2)')
       } catch {
-        // PeerInfo.prioritized is read-only in this Hyperswarm version — skip silently
+        // PeerInfo.priority is read-only in this Hyperswarm version — skip silently
       }
     }
   }
@@ -1115,6 +1237,22 @@ export class NetworkService extends EventEmitter {
       try {
         await resumeFn.call(this.swarm)
         console.log('[NetworkService] Swarm resumed')
+
+        // CONNECTIVITY: After resume, re-announce all topics to refresh DHT entries.
+        // During suspend, DHT records may have expired or been garbage-collected.
+        // Without re-announce, peers cannot discover us after waking from sleep.
+        this.reannounceTopics()
+
+        // CONNECTIVITY: Re-publish profile and status to DHT.
+        // The previous DHT records may be stale after suspend.
+        if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
+        this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
+
+        // CONNECTIVITY: Flush to ensure DHT entries are fully propagated.
+        // Critical for cross-border connections where peers need to discover
+        // us through the DHT before they can connect.
+        this.flush().catch(() => {})
+
         return true
       } catch (err) {
         console.error('[NetworkService] Failed to resume swarm:', err)
@@ -1405,6 +1543,10 @@ export class NetworkService extends EventEmitter {
       }
     }
     console.log('[NetworkService] Re-announced', this.topics.size, 'topics')
+
+    // CONNECTIVITY: Flush after re-announce to ensure DHT entries propagate.
+    // Essential for cross-border discovery where DHT records take longer to spread.
+    this.flush().catch(() => {})
   }
 
   /**
@@ -1429,12 +1571,46 @@ export class NetworkService extends EventEmitter {
       clearInterval(this.scoreUpdateInterval)
       this.scoreUpdateInterval = null
     }
+    if (this.profileRepublishInterval) {
+      clearInterval(this.profileRepublishInterval)
+      this.profileRepublishInterval = null
+    }
     if (this.swarm) {
       await this.swarm.destroy()
       this.swarm = null
     }
     this.peers.clear()
     this.topics.clear()
+    this.profileCache.clear()
+    this.reconnectAttempts.clear()
+    this.peerPublicKeyMap.clear()
+    this.peerLatency.clear()
+    this.peerScores.clear()
+    this.blockedPeers.clear()
+    this.peerChannels.clear()
+    this.peerInfos.clear()
+    this.topicMetadata.clear()
+    this.discoveryCallbacks.clear()
+    this.peerMetadata.clear()
+    this.peerTags.clear()
+  }
+
+  /**
+   * Send identity frame to peer over Protomux main channel.
+   * Safe to call before mainSendMsg is assigned — silently returns.
+   */
+  private sendIdentityFrame(peerId: string, sendMsg?: { send: (data: Buffer) => void }): void {
+    if (!this.localPublicKey || !sendMsg) return
+    try {
+      const idBuf = Buffer.from(this.localPublicKey, 'utf-8')
+      const payload = Buffer.alloc(1 + idBuf.length)
+      payload[0] = 0x01
+      idBuf.copy(payload, 1)
+      sendMsg.send(payload)
+      console.log('[NetworkService] === IDENTITY SENT to peer:', peerId.slice(0, 32))
+    } catch (err) {
+      console.warn('[NetworkService] Identity send failed:', err)
+    }
   }
 
   // ─── Private ───────────────────────────────────────────────────────────────
@@ -1442,20 +1618,18 @@ export class NetworkService extends EventEmitter {
   private async handleConnection(socket: PeerSocket, info: PeerInfo): Promise<void> {
     const peerId = info.publicKey.toString('hex')
 
-    // ── Load Protomux + compact-encoding FIRST ──
+    // ── Load Protomux + compact-encoding ──
+    // CRITICAL: These are now static imports (loaded at module level).
     // Protomux.from(socket) must be called BEFORE corestore.replicate(socket)
     // so that the mux instance is cached on the stream. When corestore.replicate()
     // is called afterward, it reuses the same mux (via Protomux.from internally),
     // ensuring a single multiplexer handles both replication and app messages.
-    let Protomux: typeof import('protomux').default
-    let c: typeof import('compact-encoding')
-    try {
-      Protomux = (await import('protomux')).default
-      c = await import('compact-encoding')
-    } catch (err) {
-      console.error('[NetworkService] Failed to load protomux/compact-encoding:', err)
-      return
-    }
+    //
+    // HOLEPUNCH CONFORMANCE: Per Protomux source _requestSession(), if the remote's
+    // OPEN frame arrives before createChannel() AND no pair() handler exists, the
+    // session is immediately rejected via _rejectSession(). Static imports ensure
+    // the entire channel setup (Protomux.from → createChannel → open) executes
+    // synchronously without yielding to the event loop.
 
     const mux = Protomux.from(socket)
 
@@ -1469,206 +1643,223 @@ export class NetworkService extends EventEmitter {
       }
     }
 
-    // ── Application protocol channel ──
+    // ── HOLEPUNCH CONFORMANCE: Register pair() handlers BEFORE creating channels.
+    // Per Protomux source _requestSession(): if the remote's OPEN arrives and no
+    // pair() handler is registered, the session is IMMEDIATELY REJECTED via
+    // _rejectSession(). By registering pair() handlers that create channels on
+    // demand, we ensure that:
+    //   1. If remote opens first → pair() fires → we create the channel → matched
+    //   2. If we open first → createChannel() → info.outgoing → remote OPEN matches
+    //   3. If simultaneous → both sides create channels → OPEN frames match
+    // This is the ROBUST pattern that handles ALL timing scenarios.
     let mainSendMsg: ProtomuxMessage | undefined
+    let sendMedia: ProtomuxMessage | undefined
+    let sendFile: ProtomuxMessage | undefined
+    let channel: ReturnType<typeof mux.createChannel> = null
+    let mediaChannel: ReturnType<typeof mux.createChannel> = null
+    let fileChannel: ReturnType<typeof mux.createChannel> = null
 
-    const channel = mux.createChannel({
-      protocol: 'asgard',
-      id: Buffer.alloc(0),
-      onopen: () => {
-        console.log('[NetworkService] === CHANNEL OPENED with peer:', peerId.slice(0, 32))
-        // Send identity immediately
-        if (this.localPublicKey && mainSendMsg) {
-          const idBuf = Buffer.from(this.localPublicKey, 'utf-8')
-          const payload = Buffer.alloc(1 + idBuf.length)
-          payload[0] = 0x01
-          idBuf.copy(payload, 1)
-          mainSendMsg.send(payload)
-          console.log('[NetworkService] === IDENTITY SENT to peer:', peerId.slice(0, 32))
+    const onMainMessage = (buf: unknown) => {
+      const data = buf as Buffer
+      this.trackBandwidth(0, data.length)
+      if (data.length > 0) {
+        if (data[0] === 0x01) {
+          const remotePk = data.slice(1).toString('utf-8')
+          this.peerPublicKeyMap.set(peerId, remotePk)
+          logMain(`[NetworkService] === IDENTITY RECEIVED from peer: ${peerId.slice(0, 32)} → ${remotePk.slice(0, 32)}`)
+          this.emit('peer:identified', { peerId, publicKey: remotePk })
+          return
         }
-      },
-      onclose: () => {
-        console.log('[NetworkService] Protomux channel closed with peer:', peerId.slice(0, 16))
-      },
-      // HOLEPUNCH PATTERN: ondestroy called after onclose when all pending promises resolve.
-      // Ensures complete cleanup of channel resources.
-      // Cast needed: @types/protomux doesn't include ondestroy yet.
-      ...(({
-        ondestroy: () => {
-          console.log('[NetworkService] Protomux channel destroyed with peer:', peerId.slice(0, 16))
-          this.peerChannels.delete(peerId)
-          // If all channels are destroyed, the muxer is idle — cleanup the socket
-          const muxAny = mux as unknown as { isIdle?: () => boolean }
-          if (typeof muxAny.isIdle === 'function' && muxAny.isIdle()) {
-            logMain(`[NetworkService] Muxer idle for peer: ${peerId.slice(0, 16)} — destroying socket`)
-            try { socket.destroy?.() } catch {}
+        if (data[0] === 0x02) {
+          logMain(`[recvMedia] ⚠️ Main channel fallback recv from ${peerId.slice(0, 16)}, size: ${data.length}`)
+          this.emit('media', { from: peerId, data: new Uint8Array(data), timestamp: Date.now() })
+          return
+        }
+      }
+      // CRITICAL DIAGNOSTIC: Log ALL non-identity messages arriving on the main channel.
+      // This helps diagnose why presence:update messages are not reaching the renderer.
+      const firstByte = data.length > 0 ? data[0].toString(16) : 'empty'
+      let msgType = 'unknown'
+      try {
+        const preview = data.toString('utf-8', 0, Math.min(data.length, 100))
+        if (preview.startsWith('{')) {
+          const parsed = JSON.parse(preview)
+          msgType = parsed?.type ?? 'json-no-type'
+        }
+      } catch {}
+      logMain(`[NetworkService] 📨 MAIN CHANNEL MSG from ${peerId.slice(0, 16)} | firstByte=0x${firstByte} | type=${msgType} | size=${data.length}`)
+
+      // CRITICAL FIX: Auto-identify from JSON payload BEFORE resolving fromKey.
+      // This ensures the Ed25519 key is available for the 'from' field even if
+      // the identity exchange (0x01 prefix) hasn't happened yet.
+      try {
+        const text = data.toString('utf-8')
+        if (text.startsWith('{')) {
+          const parsed = JSON.parse(text)
+          const ed25519 = parsed?.from
+          if (typeof ed25519 === 'string' && ed25519.length > 32) {
+            const existing = this.peerPublicKeyMap.get(peerId)
+            if (existing !== ed25519) {
+              this.peerPublicKeyMap.set(peerId, ed25519)
+              logMain(`[NetworkService] Auto-identified peer from JSON: ${peerId.slice(0, 16)} → ${ed25519.slice(0, 16)}`)
+              this.emit('peer:identified', { peerId, publicKey: ed25519 })
+            }
           }
+        }
+      } catch {}
+
+      // CRITICAL FIX: Resolve Ed25519 key for the 'from' field AFTER auto-identification.
+      // The renderer looks up contacts by Ed25519 key, not Noise peer ID.
+      // Without this, presence:update messages are silently dropped because
+      // contactStore.getContact(noisePeerId) returns undefined.
+      const ed25519Key = this.peerPublicKeyMap.get(peerId)
+      const fromKey = ed25519Key ?? peerId
+
+      this.emit('message', { from: fromKey, data: new Uint8Array(data), timestamp: Date.now() })
+    }
+
+    const createMainChannel = () => {
+      if (channel) return channel
+      logMain(`[NetworkService] Creating main channel for peer: ${peerId.slice(0, 16)} | localPublicKey: ${!!this.localPublicKey}`)
+      channel = mux.createChannel({
+        protocol: 'asgard',
+        id: null,
+        onopen: () => {
+          logMain(`[NetworkService] === MAIN CHANNEL OPENED with peer: ${peerId.slice(0, 32)} | localPublicKey: ${!!this.localPublicKey} | mainSendMsg: ${!!mainSendMsg}`)
+          this.sendIdentityFrame(peerId, mainSendMsg)
         },
-      }) as unknown as Record<string, unknown>),
-    })
+        onclose: () => {
+          logMain(`[NetworkService] ⚠️ Main channel CLOSED with peer: ${peerId.slice(0, 16)}`)
+        },
+        ...(({
+          ondestroy: () => {
+            logMain(`[NetworkService] ⚠️ Main channel DESTROYED with peer: ${peerId.slice(0, 16)}`)
+            this.peerChannels.delete(peerId)
+          },
+        }) as unknown as Record<string, unknown>),
+      })
+      if (channel) {
+        mainSendMsg = channel.addMessage({ encoding: c.binary, onmessage: onMainMessage })
+        channel.open()
+        // onopen can fire before addMessage assigns mainSendMsg — send again now.
+        this.sendIdentityFrame(peerId, mainSendMsg)
+        logMain(`[NetworkService] Main channel created & opened for peer: ${peerId.slice(0, 16)}`)
+      } else {
+        logMain(`[NetworkService] ⚠️ Main channel REJECTED (null) for peer: ${peerId.slice(0, 16)} | stream.destroyed: ${socket.destroyed}`)
+      }
+      return channel
+    }
+
+    const createMediaChannel = () => {
+      if (mediaChannel) return mediaChannel
+      mediaChannel = mux.createChannel({
+        protocol: 'asgard-media',
+        id: null,
+        onopen: () => { logMain(`[NetworkService] ✅ Media channel OPENED with peer: ${peerId.slice(0, 16)}`) },
+        onclose: () => { logMain(`[NetworkService] ❌ Media channel CLOSED with peer: ${peerId.slice(0, 16)}`) },
+        ...(({ ondestroy: () => { logMain(`[NetworkService] Media channel destroyed with peer: ${peerId.slice(0, 16)}`) } }) as unknown as Record<string, unknown>),
+      })
+      if (mediaChannel) {
+        sendMedia = mediaChannel.addMessage({
+          encoding: c.binary,
+          onmessage: (buf: unknown) => {
+            const data = buf as Buffer
+            this.trackBandwidth(0, data.length)
+            if (!this._mediaRecvCount) this._mediaRecvCount = new Map()
+            const count = (this._mediaRecvCount.get(peerId) ?? 0) + 1
+            this._mediaRecvCount.set(peerId, count)
+            if (count <= 3) logMain(`[recvMedia] ✅ Media channel recv #${count} from ${peerId.slice(0, 16)}, size: ${data.length}`)
+            this.emit('media', { from: peerId, data: new Uint8Array(data), timestamp: Date.now() })
+          },
+        })
+        mediaChannel.open()
+        logMain(`[NetworkService] Media channel registered for peer: ${peerId.slice(0, 16)}`)
+      }
+      return mediaChannel
+    }
+
+    const createFileChannel = () => {
+      if (fileChannel) return fileChannel
+      fileChannel = mux.createChannel({
+        protocol: 'asgard-files',
+        id: null,
+        onopen: () => { logMain(`[NetworkService] ✅ File channel OPENED with peer: ${peerId.slice(0, 16)}`) },
+        onclose: () => { logMain(`[NetworkService] ❌ File channel CLOSED with peer: ${peerId.slice(0, 16)}`) },
+        ...(({ ondestroy: () => { logMain(`[NetworkService] File channel destroyed with peer: ${peerId.slice(0, 16)}`) } }) as unknown as Record<string, unknown>),
+      })
+      if (fileChannel) {
+        sendFile = fileChannel.addMessage({
+          encoding: c.binary,
+          onmessage: (buf: unknown) => {
+            const data = buf as Buffer
+            this.trackBandwidth(data.length, 0)
+            if (!this._fileRecvCount) this._fileRecvCount = new Map()
+            const count = (this._fileRecvCount.get(peerId) ?? 0) + 1
+            this._fileRecvCount.set(peerId, count)
+            if (count <= 3) logMain(`[recvFile] ✅ File channel recv #${count} from ${peerId.slice(0, 16)}, size: ${data.length}`)
+            this.emit('file', { from: peerId, data: new Uint8Array(data), timestamp: Date.now() })
+          },
+        })
+        fileChannel.open()
+        logMain(`[NetworkService] File channel registered for peer: ${peerId.slice(0, 16)}`)
+      }
+      return fileChannel
+    }
+
+    // Register pair() handlers — these fire when the remote opens a channel
+    // BEFORE our createChannel() is called. Without pair(), Protomux would
+    // immediately reject the remote's session via _rejectSession().
+    mux.pair({ protocol: 'asgard', id: null }, async () => { createMainChannel() })
+    mux.pair({ protocol: 'asgard-media', id: null }, async () => { createMediaChannel() })
+    mux.pair({ protocol: 'asgard-files', id: null }, async () => { createFileChannel() })
+
+    // Eagerly create channels — covers the case where we connect first.
+    // If pair() already created the channel, createChannel returns null (no-op).
+    createMainChannel()
+    createMediaChannel()
+    createFileChannel()
 
     if (!channel) {
-      console.warn('[NetworkService] Protomux channel rejected (duplicate?) for peer:', peerId.slice(0, 16))
+      console.warn('[NetworkService] Protomux main channel rejected for peer:', peerId.slice(0, 16), '— peer will be registered on pair() callback')
+      // With pair() handlers registered, the channel will be created when the
+      // remote opens their side. We register the peer immediately so the renderer
+      // knows about the connection even before the main channel is ready.
+      const existingPeer = this.peers.get(peerId)
+      if (!existingPeer) {
+        const peer: PeerConnection = {
+          id: peerId, socket, info, connectedAt: Date.now(),
+          sendMessage: undefined, sendMedia: undefined, sendFile: undefined,
+        }
+        this.peers.set(peerId, peer)
+        this.peerInfos.set(peerId, info)
+        const knownEd25519 = this.peerPublicKeyMap.get(peerId)
+        this.emit('peer', {
+          id: peerId, publicKey: peerId, remotePublicKey: peerId,
+          ed25519PublicKey: knownEd25519 ?? null, connected: true,
+        })
+      }
+      // Update peer entry when channels are created via pair()
+      const waitForChannels = () => {
+        if (channel) {
+          const peer = this.peers.get(peerId)
+          if (peer) {
+            peer.sendMessage = mainSendMsg
+            peer.sendMedia = sendMedia
+            peer.sendFile = sendFile
+          }
+          this.peerChannels.set(peerId, { main: channel, media: mediaChannel, file: fileChannel })
+          this.reconnectAttempts.delete(peerId)
+          console.log('[NetworkService] Pair() channels ready for peer:', peerId.slice(0, 16))
+          return
+        }
+        if (!socket.destroyed) setTimeout(waitForChannels, 200)
+      }
+      setTimeout(waitForChannels, 100)
       return
     }
 
-    mainSendMsg = channel.addMessage({
-      encoding: c.binary,
-      onmessage: (buf: unknown) => {
-        const data = buf as Buffer
-        this.trackBandwidth(0, data.length)
-
-        // Check first byte for message type framing
-        if (data.length > 0) {
-          // Identity message (first byte = 0x01)
-          if (data[0] === 0x01) {
-            const remotePk = data.slice(1).toString('utf-8')
-            this.peerPublicKeyMap.set(peerId, remotePk)
-            console.log('[NetworkService] === IDENTITY RECEIVED from peer:', peerId.slice(0, 32))
-            this.emit('peer:identified', { peerId, publicKey: remotePk })
-            return
-          }
-
-          // Media data (first byte = 0x02)
-          if (data[0] === 0x02) {
-            logMain(`[recvMedia] ⚠️ Main channel fallback recv from ${peerId.slice(0, 16)}, size: ${data.length}`)
-            // Keep the 0x02 marker in the emitted payload so that the renderer-side
-            // handleIncomingMedia can strip it exactly once, just like on the dedicated
-            // media channel. Otherwise the marker is stripped twice and the payload is
-            // corrupted.
-            this.emit('media', {
-              from: peerId,
-              data: new Uint8Array(data),
-              timestamp: Date.now(),
-            })
-            return
-          }
-        }
-
-        // Regular application message (JSON protocol)
-        // PERSISTENCE: Extract the sender's Ed25519 public key from the JSON
-        // payload to auto-populate peerPublicKeyMap. This ensures we can send
-        // back to this peer even if the explicit identity handshake (0x01) was
-        // never received (e.g. older client build or race condition).
-        try {
-          const text = data.toString('utf-8')
-          if (text.startsWith('{')) {
-            const parsed = JSON.parse(text)
-            const ed25519 = parsed?.from
-            if (typeof ed25519 === 'string' && ed25519.length > 32) {
-              const existing = this.peerPublicKeyMap.get(peerId)
-              if (existing !== ed25519) {
-                this.peerPublicKeyMap.set(peerId, ed25519)
-                console.log('[NetworkService] Auto-identified peer from JSON:', peerId.slice(0, 16), '→', ed25519.slice(0, 16))
-                this.emit('peer:identified', { peerId, publicKey: ed25519 })
-              }
-            }
-          }
-        } catch {
-          // Not JSON or malformed — ignore (binary data, etc.)
-        }
-
-        this.emit('message', {
-          from: peerId,
-          data: new Uint8Array(data),
-          timestamp: Date.now(),
-        })
-      },
-    })
-
-    channel.open()
-
-    // ── Media protocol channel (audio/video streaming) ──
-    const mediaChannel = mux.createChannel({
-      protocol: 'asgard-media',
-      id: Buffer.alloc(0),
-      onopen: () => {
-        logMain(`[NetworkService] ✅ Media channel OPENED with peer: ${peerId.slice(0, 16)}`)
-      },
-      onclose: () => {
-        logMain(`[NetworkService] ❌ Media channel CLOSED with peer: ${peerId.slice(0, 16)}`)
-      },
-      // HOLEPUNCH PATTERN: ondestroy for complete resource cleanup
-      ...(({
-        ondestroy: () => {
-          logMain(`[NetworkService] Media channel destroyed with peer: ${peerId.slice(0, 16)}`)
-        },
-      }) as unknown as Record<string, unknown>),
-    })
-
-    let sendMedia: ProtomuxMessage | undefined
-    if (mediaChannel) {
-      sendMedia = mediaChannel.addMessage({
-        encoding: c.binary,
-        onmessage: (buf: unknown) => {
-          const data = buf as Buffer
-          this.trackBandwidth(0, data.length)
-          // DIAGNOSTICS: Log first few receives
-          if (!this._mediaRecvCount) this._mediaRecvCount = new Map()
-          const count = (this._mediaRecvCount.get(peerId) ?? 0) + 1
-          this._mediaRecvCount.set(peerId, count)
-          if (count <= 3) {
-            logMain(`[recvMedia] ✅ Media channel recv #${count} from ${peerId.slice(0, 16)}, size: ${data.length}`)
-          }
-          this.emit('media', {
-            from: peerId,
-            data: new Uint8Array(data),
-            timestamp: Date.now(),
-          })
-        },
-      })
-      mediaChannel.open()
-      logMain(`[NetworkService] Media channel registered for peer: ${peerId.slice(0, 16)}`)
-    } else {
-      logMain(`[NetworkService] ⚠️ Media channel REJECTED by peer: ${peerId.slice(0, 16)}`)
-    }
-
-    // ── File transfer protocol channel (Holepunch pattern: dedicated channel per protocol) ──
-    const fileChannel = mux.createChannel({
-      protocol: 'asgard-files',
-      id: Buffer.alloc(0),
-      onopen: () => {
-        logMain(`[NetworkService] ✅ File channel OPENED with peer: ${peerId.slice(0, 16)}`)
-      },
-      onclose: () => {
-        logMain(`[NetworkService] ❌ File channel CLOSED with peer: ${peerId.slice(0, 16)}`)
-      },
-      // HOLEPUNCH PATTERN: ondestroy for complete resource cleanup
-      ...(({
-        ondestroy: () => {
-          logMain(`[NetworkService] File channel destroyed with peer: ${peerId.slice(0, 16)}`)
-        },
-      }) as unknown as Record<string, unknown>),
-    })
-
-    let sendFile: ProtomuxMessage | undefined
-    if (fileChannel) {
-      sendFile = fileChannel.addMessage({
-        encoding: c.binary,
-        onmessage: (buf: unknown) => {
-          const data = buf as Buffer
-          this.trackBandwidth(data.length, 0)
-          if (!this._fileRecvCount) this._fileRecvCount = new Map()
-          const count = (this._fileRecvCount.get(peerId) ?? 0) + 1
-          this._fileRecvCount.set(peerId, count)
-          if (count <= 3) {
-            logMain(`[recvFile] ✅ File channel recv #${count} from ${peerId.slice(0, 16)}, size: ${data.length}`)
-          }
-          this.emit('file', {
-            from: peerId,
-            data: new Uint8Array(data),
-            timestamp: Date.now(),
-          })
-        },
-      })
-      fileChannel.open()
-      logMain(`[NetworkService] File channel registered for peer: ${peerId.slice(0, 16)}`)
-    } else {
-      logMain(`[NetworkService] ⚠️ File channel REJECTED by peer: ${peerId.slice(0, 16)}`)
-    }
-
     // Store channels for cork/uncork support
-    this.peerChannels.set(peerId, { main: channel, media: mediaChannel, file: fileChannel })
+    this.peerChannels.set(peerId, { main: channel!, media: mediaChannel, file: fileChannel })
     this.peerInfos.set(peerId, info)
 
     // ── Track peer with connection latency ──
@@ -1705,7 +1896,13 @@ export class NetworkService extends EventEmitter {
     })
 
     // Handle disconnect
+    // CONNECTIVITY: Guard flag to prevent double-emit when error triggers destroy → close
+    let disconnectHandled = false
+
     socket.on('close', () => {
+      if (disconnectHandled) return
+      disconnectHandled = true
+
       this.peers.delete(peerId)
       this.peerChannels.delete(peerId)
       this.peerInfos.delete(peerId)
@@ -1738,6 +1935,14 @@ export class NetworkService extends EventEmitter {
             } catch (err) {
               console.warn(`[NetworkService] joinPeer failed for ${peerId.slice(0, 16)}:`, err)
             }
+            // CRITICAL: Reset Hyperswarm's internal attempts counter.
+            // Per Hyperswarm source: peers with attempts >= 5 are skipped in _attemptClientConnections.
+            // Without this, after 5 failed reconnects, Hyperswarm silently stops trying.
+            const peers = (this.swarm as unknown as { peers?: Map<string, { attempts?: number }> }).peers
+            const peerInfo = peers?.get(peerId)
+            if (peerInfo) {
+              peerInfo.attempts = 0
+            }
             // Also refresh topics this peer was on to trigger re-discovery
             const peerTopics = info.topics ?? []
             for (const topic of peerTopics) {
@@ -1760,9 +1965,43 @@ export class NetworkService extends EventEmitter {
     // Protomux docs: "Errors here are caught and forwarded to stream.destroy"
     socket.on('error', (err: Error) => {
       console.error('[NetworkService] Peer error:', err.message)
-      this.peers.delete(peerId)
-      this.peerChannels.delete(peerId)
-      this.peerInfos.delete(peerId)
+
+      // CONNECTIVITY: If close handler hasn't fired yet, handle disconnect here.
+      // This ensures reconnection is scheduled even when the error doesn't
+      // trigger a close event (e.g. ECONNRESET on cross-border connections).
+      if (!disconnectHandled) {
+        disconnectHandled = true
+        this.peers.delete(peerId)
+        this.peerChannels.delete(peerId)
+        this.peerInfos.delete(peerId)
+
+        const ed25519Key = this.peerPublicKeyMap.get(peerId) ?? null
+        this.emit('peer', {
+          id: peerId,
+          publicKey: peerId,
+          remotePublicKey: peerId,
+          ed25519PublicKey: ed25519Key,
+          connected: false,
+        })
+
+        // Schedule reconnect immediately (same logic as close handler)
+        if (this.isOnline && !this.blockedPeers.has(peerId)) {
+          const attempts = this.reconnectAttempts.get(peerId) ?? 0
+          const backoff = NetworkService.RECONNECT_BACKOFF_MS * Math.pow(1.5, attempts)
+          const jitter = Math.random() * 1000
+          const delay = Math.min(backoff + jitter, 30000)
+
+          setTimeout(() => {
+            if (!this.peers.has(peerId) && this.isOnline && !this.blockedPeers.has(peerId) && this.swarm) {
+              try {
+                this.swarm.joinPeer(Buffer.from(peerId, 'hex'))
+              } catch {}
+              this.reconnectAttempts.set(peerId, attempts + 1)
+            }
+          }, delay)
+        }
+      }
+
       // Ensure the socket is properly destroyed on error
       try { socket.destroy?.() } catch {}
     })
@@ -1836,20 +2075,22 @@ export class NetworkService extends EventEmitter {
 
   /**
    * Set a peer as prioritized for rapid reconnection.
-   * OPTIMIZATION: Uses PeerInfo prioritized for call quality.
+   * Per Hyperswarm source (peer-info.js): `prioritized` is a getter
+   * (return this.priority >= NORMAL_PRIORITY). We write to `priority` directly.
+   * VERY_HIGH_PRIORITY = 4, NORMAL_PRIORITY = 2
    * Returns true if successful.
    */
   setPeerPriorized(peerPublicKey: string, prioritized: boolean): boolean {
     if (!this.swarm) return false
 
     try {
-      const peers = (this.swarm as unknown as { peers?: Map<string, { prioritized?: boolean }> }).peers
+      const peers = (this.swarm as unknown as { peers?: Map<string, { priority?: number }> }).peers
       if (!peers) return false
 
       const peerInfo = peers.get(peerPublicKey)
       if (!peerInfo) return false
 
-      peerInfo.prioritized = prioritized
+      peerInfo.priority = prioritized ? 4 : 2 // VERY_HIGH_PRIORITY or NORMAL_PRIORITY
       return true
     } catch (err) {
       console.error('[NetworkService] Failed to set peer prioritized:', err)
@@ -2303,6 +2544,8 @@ interface PeerSocket {
   setTimeout?: (ms: number) => void
   // HOLEPUNCH PATTERN: stream.destroy() for clean teardown on errors
   destroy?: () => void
+  // CONNECTIVITY: Check if stream is destroyed (from streamx)
+  destroyed?: boolean
 }
 
 interface PeerInfo {
@@ -2337,16 +2580,36 @@ interface NetworkStatus {
   activeChannels: number
 }
 
-interface DHTLike {
+interface HyperDHTInstance {
   mutablePut: (keyPair: { publicKey: Buffer; secretKey: Buffer }, value: Buffer, opts?: { seq?: number }) => Promise<unknown>
   mutableGet: (publicKey: Buffer, opts?: { seq?: number; latest?: boolean }) => Promise<{ value: Buffer; seq: number } | null>
   immutablePut: (value: Buffer) => Promise<{ hash: Buffer }>
   immutableGet: (hash: Buffer) => Promise<{ value: Buffer } | null>
   fullyBootstrapped: () => Promise<void>
-  on: (event: 'persistent' | 'wake-up', handler: () => void) => void
+  on: (event: 'persistent' | 'wake-up' | 'network-change' | 'network-update', handler: () => void) => void
   off: (event: 'persistent' | 'wake-up', handler: () => void) => void
   ephemeral?: boolean
+  // HyperDHT internal properties (with underscore prefix)
+  // See: github.com/holepunchto/hyperdht/blob/master/index.js
+  connectionKeepAlive?: number
+  _randomPunchInterval?: number
+  _randomPunchLimit?: number
+  _randomPunches?: number
   randomPunchInterval?: number
+}
+
+interface HyperDHTConstructor {
+  new (opts?: {
+    bootstrap?: string[]
+    nodes?: Array<{ host: string; port: number }>
+    port?: number
+    deferRandomPunch?: boolean
+    randomPunchInterval?: number
+    connectionKeepAlive?: number
+    ephemeral?: boolean
+    seed?: Buffer
+  }): HyperDHTInstance
+  keyPair: (seed?: Buffer) => { publicKey: Buffer; secretKey: Buffer }
 }
 
 interface DHTProfile {

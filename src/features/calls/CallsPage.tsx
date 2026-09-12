@@ -151,7 +151,7 @@ export const CallsPage: React.FC = () => {
               <button
                 onClick={handleRefreshServer}
                 className="text-xs text-asgard-text-muted hover:text-asgard-glacier transition-colors"
-                title="Refresh server connection"
+                title={t('calls.refreshServer')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
@@ -162,7 +162,7 @@ export const CallsPage: React.FC = () => {
               <button
                 onClick={clearHistory}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-red-400/80 hover:text-red-400 hover:bg-red-400/10 border border-red-400/20 hover:border-red-400/40 transition-all"
-                title="Clear call history"
+                title={t('calls.clearHistory')}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -216,7 +216,7 @@ export const CallsPage: React.FC = () => {
         <div className="flex-1 overflow-y-auto">
           {filteredContacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-6">
-              <p className="text-sm text-asgard-text-muted">No contacts found</p>
+              <p className="text-sm text-asgard-text-muted">{t('calls.noContactsFound')}</p>
             </div>
           ) : (
             filteredContacts.map((contact) => (
@@ -277,7 +277,7 @@ export const CallsPage: React.FC = () => {
                 </svg>
               </div>
               <p className="text-sm text-asgard-text-muted">{t('calls.noRecentCalls')}</p>
-              <p className="text-xs text-asgard-text-muted mt-1">Start a call from the contacts list</p>
+              <p className="text-xs text-asgard-text-muted mt-1">{t('calls.startCallHint')}</p>
             </div>
           ) : (
             <div className="divide-y divide-asgard-border">

@@ -32,6 +32,7 @@ const STATUS_CONFIG: Record<UserStatus, { label: string; color: string; icon: st
  * ContactsPage — full contacts management interface.
  */
 export const ContactsPage: React.FC = () => {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('all')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showQRModal, setShowQRModal] = useState(false)
@@ -40,7 +41,6 @@ export const ContactsPage: React.FC = () => {
   const [userStatus, setUserStatus] = useState<UserStatus>('online')
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
-  const { t } = useTranslation()
 
   // Load current status on mount
   useEffect(() => {
@@ -156,11 +156,11 @@ export const ContactsPage: React.FC = () => {
                     console.log('[ContactsPage] Restored', restored, 'contacts from Hyperbee')
                     alert(`Found ${storedContacts.length} contacts in Hyperbee, restored ${restored} new ones`)
                   } else {
-                    alert('No contacts found in Hyperbee storage')
+                    alert(t('contacts.error.noContactsFound'))
                   }
                 } catch (err) {
                   console.error('[ContactsPage] Failed to reload contacts:', err)
-                  alert('Failed to reload contacts: ' + err)
+                  alert(t('contacts.error.failedToReload') + ': ' + err)
                 }
               }}
               icon={
@@ -168,7 +168,7 @@ export const ContactsPage: React.FC = () => {
                   <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                 </svg>
               }
-              title="Reload contacts from Hyperbee storage"
+              title={t('contacts.reloadContacts')}
             />
             <Button
               variant="ghost"
@@ -190,18 +190,18 @@ export const ContactsPage: React.FC = () => {
                 </svg>
               }
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAddModal(true)}
-              icon={
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                </svg>
-              }
-            >
-              Add
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAddModal(true)}
+                icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                  </svg>
+                }
+              >
+                {t('contacts.add')}
+              </Button>
           </div>
         </div>
 
@@ -242,7 +242,7 @@ export const ContactsPage: React.FC = () => {
           {contacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-6">
               <p className="text-sm text-asgard-text-muted">
-                {tab === 'blocked' ? 'No blocked contacts' : t('contacts.noContacts')}
+                {tab === 'blocked' ? t('contacts.noBlockedContacts') : t('contacts.noContacts')}
               </p>
             </div>
           ) : (
@@ -268,7 +268,7 @@ export const ContactsPage: React.FC = () => {
           <ContactDetailView contact={selectedContact} onClose={() => setSelectedContact(null)} />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-asgard-text-muted">Select a contact to view details</p>
+            <p className="text-sm text-asgard-text-muted">{t('contacts.selectContact')}</p>
           </div>
         )}
       </div>
@@ -343,15 +343,15 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handleAdd = async () => {
     const trimmedKey = publicKey.trim()
     if (!trimmedKey) {
-      setError('Please enter a public key')
+      setError(t('contacts.error.publicKeyRequired'))
       return
     }
     if (trimmedKey.length < 32) {
-      setError('Invalid public key format')
+      setError(t('contacts.error.invalidPublicKey'))
       return
     }
     if (!identity) {
-      setError('No identity available')
+      setError(t('contacts.error.noIdentity'))
       return
     }
 
@@ -377,11 +377,11 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       )
       await p2pService.joinTopic(topic)
 
-      addToast({ type: 'success', title: 'Contact added — discovery started', duration: 3000 })
+      addToast({ type: 'success', title: t('toast.contactAdded'), duration: 3000 })
       onClose()
     } catch (err) {
       console.error('[AddContact] Failed to add contact:', err)
-      addToast({ type: 'error', title: 'Failed to add contact', duration: 4000 })
+      addToast({ type: 'error', title: t('toast.failedToAddContact'), duration: 4000 })
     } finally {
       setIsAdding(false)
     }
@@ -408,22 +408,22 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         <div className="space-y-4">
           <Input
-            label="Public Key"
+            label={t('contacts.publicKey')}
             placeholder={t('contacts.publicKeyPlaceholder')}
             value={publicKey}
             onChange={(e) => { setPublicKey(e.target.value); setError('') }}
             error={error}
           />
           <Input
-            label="Display Name (optional)"
-            placeholder="How should they appear?"
+            label={t('contacts.displayNameOptional')}
+            placeholder={t('contacts.displayNamePlaceholder')}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
 
         <div className="flex gap-3 mt-6">
-          <Button variant="ghost" fullWidth onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" fullWidth onClick={onClose}>{t('common.cancel')}</Button>
           <Button fullWidth onClick={handleAdd} loading={isAdding}>{t('contacts.addContact')}</Button>
         </div>
       </motion.div>

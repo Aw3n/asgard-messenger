@@ -1,4 +1,4 @@
-import type { Message, OutgoingMessage, ProtocolMessage, Contact, UserStatus } from '@/types'
+import type { Message, OutgoingMessage, ProtocolMessage, Contact, UserStatus, NetworkPeer } from '@/types'
 import { p2pService } from './P2PService'
 import { cryptoService } from './CryptoService'
 import { storageService } from './StorageService'
@@ -62,16 +62,24 @@ class ChatService {
   // CRITICAL: Buffer for reassembling multi-chunk avatar transfers.
   // Supports context: target ('contact' | 'group_member' | 'group_icon') and groupId for group avatars.
   private avatarBuffers: Map<string, { totalChunks: number; receivedChunks: number; chunks: Uint8Array[]; target?: string; groupId?: string }> = new Map()
+  // DEDUPLICATION: Track which avatar hash has been sent to each peer.
+  // Avoids resending the same avatar on every reconnection (saves bandwidth).
+  // Key: peerEd25519Key, Value: hash of the last sent avatar
+  private sentAvatarHashes: Map<string, string> = new Map()
   // Map Ed25519 public key → Noise peer id for proactive reconnections.
   private ed25519ToNoiseMap: Map<string, string> = new Map()
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null
   // Peers considered offline until heard from (ms)
-  private static readonly PRESENCE_TIMEOUT = 120_000  // 2 min — tolerate transient silence before marking offline
+  // CRITICAL FIX: Reduced from 120s to 45s. A Hyperswarm/Noise connection does NOT
+  // mean the remote app is running. Only actual presence messages prove liveness.
+  private static readonly PRESENCE_TIMEOUT = 45_000  // 45s — no presence received → offline
   private static readonly HEARTBEAT_INTERVAL = 5_000 // 5s — very frequent keep-alive for strong persistence
   // GRACE PERIOD: When a peer disconnects, Hyperswarm (joinPeer) will actively try
   // to re-establish the connection. We defer marking the contact offline by this
   // delay to avoid flickering and false "offline" states during transient drops.
-  private static readonly OFFLINE_GRACE_PERIOD = 30_000 // 30s grace period before marking offline
+  // CRITICAL FIX: Reduced from 30s to 15s. If the peer doesn't reconnect in 15s,
+  // they are very likely offline.
+  private static readonly OFFLINE_GRACE_PERIOD = 15_000 // 15s grace period before marking offline
   private pendingOfflineTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
   // CRITICAL: Queue of pending read/delivery receipts that failed to send.
   // Keyed by Ed25519 public key. Flushed when the peer reconnects.
@@ -109,6 +117,15 @@ class ChatService {
    * Initialize message listeners
    */
   initialize(): void {
+    // CRITICAL FIX: Global message listener — ANY message from a peer proves they are online.
+    // Without this, only presence:update/ping/pong and chat messages trigger markPeerActive.
+    // Other message types (contact:request, contact:accept, chat:receipt, file:metadata, etc.)
+    // were ignored for presence tracking, causing cross-border peers to appear offline
+    // even though they were actively communicating.
+    p2pService.on('message', (msg: ProtocolMessage) => {
+      this.markPeerActive(msg.from)
+    })
+
     // CRITICAL: Handle incoming avatar data via binary media channel.
     // Per Holepunch pattern: avatars are sent via binary media channel, NOT in signed messages.
     // Supports multiple avatar contexts via header 'target' field:
@@ -458,7 +475,14 @@ class ChatService {
     // so that transient socket closes (common during NAT rebinding) don't cause
     // flickering between online/offline states.
     p2pService.on('peer:disconnected', (peer: { id: string; publicKey?: string; ed25519PublicKey?: string }) => {
-      const ed25519Key = peer.ed25519PublicKey
+      // CRITICAL FIX: Resolve Ed25519 key from Noise peer ID if not provided.
+      // When a peer disconnects before the identity exchange completed, the
+      // ed25519PublicKey field is null. Without resolving the key, the contact
+      // stays "online" forever because no grace-period timer is started.
+      let ed25519Key = peer.ed25519PublicKey ?? null
+      if (!ed25519Key) {
+        ed25519Key = p2pService.getPeerPublicKey(peer.id) ?? null
+      }
       const contact = ed25519Key
         ? useContactStore.getState().getContact(ed25519Key)
         : undefined
@@ -469,10 +493,18 @@ class ChatService {
 
         const timer = setTimeout(() => {
           this.pendingOfflineTimers.delete(contact.publicKey)
-          // Double-check we still haven't heard from the peer before marking offline
-          const lastActivity = this.peerLastActivity.get(contact.publicKey)
-          if (lastActivity && Date.now() - lastActivity < ChatService.OFFLINE_GRACE_PERIOD) {
-            // Peer came back during the grace period — keep them online
+          // CRITICAL FIX: Check if the peer has reconnected via Hyperswarm.
+          // The old check used peerLastActivity which could be set by messages received
+          // just before disconnect, preventing the timer from ever marking offline.
+          // Now we check the actual Hyperswarm connection state: if the Noise peer
+          // is back in the network store, the peer reconnected during the grace period.
+          const noisePeerId = this.ed25519ToNoiseMap.get(contact.publicKey)
+          const isConnected = noisePeerId
+            ? Object.values(useNetworkStore.getState().peers).some((p: NetworkPeer) => p.id === noisePeerId && p.connected)
+            : false
+          if (isConnected) {
+            // Peer reconnected during the grace period — keep them online
+            console.log('[ChatService] Peer reconnected during grace period, keeping online:', contact.publicKey.slice(0, 16))
             return
           }
           useContactStore.getState().updateContact(contact.publicKey, {
@@ -520,6 +552,14 @@ class ChatService {
           this.pendingOfflineTimers.delete(ed25519Key)
           console.log('[ChatService] Offline timer cancelled — peer reconnected:', ed25519Key.slice(0, 16))
         }
+        // Live socket = online (Holepunch/Keet presence model)
+        this.peerLastActivity.set(ed25519Key, Date.now())
+        if (useContactStore.getState().getContact(ed25519Key)) {
+          useContactStore.getState().updateContact(ed25519Key, {
+            status: 'online',
+            lastSeen: Date.now(),
+          })
+        }
         this.flushPendingMessages(ed25519Key).catch(() => {})
         // RECEIPT RETRY: Flush any pending read/delivery receipts for this peer.
         this.flushPendingReceipts(ed25519Key).catch(() => {})
@@ -539,6 +579,34 @@ class ChatService {
       // to be skipped even though the message went to nobody).
       this.lastBroadcastStatus = null  // Invalidate to force re-broadcast
       this.broadcastPresence().catch(() => {})
+
+      // CRITICAL FIX: Send presence DIRECTLY to this specific peer.
+      // broadcast() sends to all peers in the network store, but this peer
+      // may have connected during the initialization gap (between setIdentity
+      // and chatService.initialize) — in that case the peer:connected event
+      // was missed, and broadcast() may have been skipped by the heartbeat.
+      // Sending directly via Noise peer ID guarantees the peer receives our
+      // presence, fixing the "I see them online but they don't see me" bug.
+      const identity = useIdentityStore.getState().identity
+      if (identity) {
+        const privacy = useUIStore.getState().settings.privacy
+        const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
+        const status: 'online' | 'away' | 'offline' | 'dnd' =
+          internalStatus === 'busy' ? 'dnd' :
+          internalStatus === 'invisible' ? 'offline' :
+          internalStatus === 'dnd' ? 'dnd' :
+          internalStatus === 'away' ? 'away' :
+          internalStatus === 'offline' ? 'offline' :
+          'online'
+        p2pService.sendMessage(peer.id, 'presence:update', {
+          status,
+          displayName: identity.profile.displayName,
+          customStatus: identity.profile.customStatus,
+        }).catch(() => {
+          // Peer may not be ready yet — presence will be sent on next heartbeat or peer:identified
+        })
+        console.log('[ChatService] Direct presence sent to newly connected peer:', peer.id.slice(0, 16), '| status:', status)
+      }
 
       // PERFORMANCE: Send our avatar via binary media channel on reconnection.
       // This ensures the peer always has our latest avatar, even if it changed
@@ -583,7 +651,6 @@ class ChatService {
 
     if (this.pendingConnectedPeers.has(data.peerId)) {
       this.pendingConnectedPeers.delete(data.peerId)
-      this.flushPendingMessages(data.publicKey).catch(() => {})
     }
 
     this.flushPendingReceipts(data.publicKey).catch(() => {})
@@ -593,8 +660,12 @@ class ChatService {
     })
     window.asgard.network.prioritize(data.peerId, true).catch(() => {})
 
-    const now = Date.now()
-    this.peerLastActivity.set(data.publicKey, now)
+    // CRITICAL FIX: Do NOT set peerLastActivity here. A Noise connection does NOT
+    // prove the remote app is running — Hyperswarm can establish connections to
+    // peers whose DHT entries exist but whose app is closed. Only actual presence
+    // messages (presence:update, ping, pong) prove liveness via markPeerActive().
+    // Setting peerLastActivity here caused the heartbeat to keep "ghost" peers as
+    // online for up to PRESENCE_TIMEOUT after they were already gone.
 
     const offlineTimer = this.pendingOfflineTimers.get(data.publicKey)
     if (offlineTimer) {
@@ -603,12 +674,13 @@ class ChatService {
       console.log('[ChatService] Offline timer cancelled — peer re-identified:', data.publicKey.slice(0, 16))
     }
 
-    if (!this.lastPresenceStatus.has(data.publicKey)) {
-      useContactStore.getState().updateContact(data.publicKey, {
-        status: 'online',
-        lastSeen: now,
-      })
-    }
+    // CRITICAL FIX: Do NOT set status to 'online' here. The identity exchange
+    // proves the peer was once online, but not that they are STILL online.
+    // Status is set to 'online' only by:
+    //   1. applyPresenceUpdate() — when we receive a presence:update message
+    //   2. markPeerActive() — when we receive any message (ping, pong, etc.)
+    // This prevents "ghost online" where contacts show online but the remote app
+    // is actually closed.
 
     const identity = useIdentityStore.getState().identity
     if (identity) {
@@ -627,12 +699,26 @@ class ChatService {
       p2pService.sendMessage(data.peerId, 'presence:update', {
         status,
         displayName: identity.profile.displayName,
+        customStatus: identity.profile.customStatus,
       }).catch((err) => {
         console.warn('[ChatService] Failed to send presence to peer:', err)
       })
     }
 
     this.flushPendingMessages(data.publicKey).catch(() => {})
+
+    // CRITICAL FIX: Flush any pending presence updates for this peer.
+    // If the peer sent presence:update before we identified them (e.g. during
+    // the initialization gap), the update was stored in pendingPresenceUpdates.
+    // Now that we know the peer's Ed25519 key and the contact exists, apply it.
+    // Without this, presence is only applied when contact:request/accept arrives,
+    // which can be delayed or lost on cross-border connections.
+    const pendingPayload = this.pendingPresenceUpdates.get(data.publicKey)
+    if (pendingPayload) {
+      this.pendingPresenceUpdates.delete(data.publicKey)
+      this.applyPresenceUpdate(data.publicKey, pendingPayload)
+      console.log('[ChatService] Applied pending presence for peer:', data.publicKey.slice(0, 16), '| status:', pendingPayload.status)
+    }
 
     if (!this.contactRequestsSent.has(data.publicKey)) {
       this.contactRequestsSent.add(data.publicKey)
@@ -650,7 +736,42 @@ class ChatService {
       this.sendAvatarViaMedia(data.publicKey, identity.profile.avatar, 'contact').catch(() => {})
     }
 
+    // CRITICAL: Invalidate lastBroadcastStatus to force broadcastPresence()
+    // to actually send. Without this, the broadcast is skipped when the status
+    // hasn't changed since the last broadcast — but this newly identified peer
+    // may have connected during the initialization gap and never received our
+    // presence. Forcing the broadcast ensures all connected peers (including
+    // this one) get our current status.
+    this.lastBroadcastStatus = null
     this.broadcastPresence().catch(() => {})
+
+    // CONNECTIVITY: Delayed presence re-send to guarantee delivery.
+    // The immediate send above may fail silently if the Protomux channel
+    // isn't fully ready yet (common on cross-border connections with latency).
+    // Re-sending after 2s ensures the peer receives our presence even if
+    // the first attempt was lost.
+    setTimeout(() => {
+      if (p2pService.getConnectedPeers().includes(data.peerId)) {
+        const freshIdentity = useIdentityStore.getState().identity
+        if (freshIdentity) {
+          const freshPrivacy = useUIStore.getState().settings.privacy
+          const freshInternal = freshPrivacy.onlineStatus ? freshIdentity.profile.status : 'offline'
+          const freshStatus: 'online' | 'away' | 'offline' | 'dnd' =
+            freshInternal === 'busy' ? 'dnd' :
+            freshInternal === 'invisible' ? 'offline' :
+            freshInternal === 'dnd' ? 'dnd' :
+            freshInternal === 'away' ? 'away' :
+            freshInternal === 'offline' ? 'offline' :
+            'online'
+          p2pService.sendMessage(data.peerId, 'presence:update', {
+            status: freshStatus,
+            displayName: freshIdentity.profile.displayName,
+            customStatus: freshIdentity.profile.customStatus,
+          }).catch(() => {})
+        }
+      }
+    }, 2000)
+
     groupService.flushPendingGroupMessages(data.publicKey).catch(() => {})
   }
 
@@ -710,22 +831,27 @@ class ChatService {
     try {
       // Derive deterministic conversationId from both peers' public keys
       const resolvedId = cryptoService.deriveConversationId(identity.keyPair.publicKey, peerId)
+      console.log('[ChatService] Step 1: conversationId derived:', resolvedId.slice(0, 16))
 
       // PERFORMANCE: Store message and sign in parallel (independent operations)
+      console.log('[ChatService] Step 2: Calling messageStore.sendMessage...')
       const [message] = await Promise.all([
         useMessageStore.getState().sendMessage(
           { ...outgoing, conversationId: resolvedId },
           identity.keyPair.publicKey
         ),
       ])
+      console.log('[ChatService] Step 3: messageStore.sendMessage completed, message.id:', message.id)
 
       // Sign the message (Ed25519 — ~5-20ms)
+      console.log('[ChatService] Step 4: Calling cryptoService.sign...')
       const signature = await cryptoService.sign({
         id: message.id,
         content: message.content,
         timestamp: message.timestamp,
         senderId: message.senderId,
       })
+      console.log('[ChatService] Step 5: cryptoService.sign completed, signature length:', signature.length)
 
       const signedMessage: Message = { ...message, signature }
 
@@ -735,6 +861,7 @@ class ChatService {
       // PERFORMANCE: Use sendRawMessage() to skip redundant Ed25519 signing in P2P layer.
       // The message payload is already signed above — no need to sign again.
       // This saves ~5-20ms per message.
+      console.log('[ChatService] Step 6: Calling p2pService.sendRawMessage...')
       const sendPromise = p2pService.sendRawMessage(peerId, 'chat:message', signedMessage)
 
       // Fire-and-forget: persist to Hyperbee storage + ensure conversation (don't await)
@@ -2007,33 +2134,30 @@ class ChatService {
     const now = Date.now()
     const timeout = ChatService.PRESENCE_TIMEOUT
 
-    // 1. Detect stale peers — mark contacts offline if no recent activity,
-    // but try to rejoin their conversation topic to reconnect.
+    // 1. Detect stale peers. Holepunch/Keet presence = live Hyperswarm socket.
+    // Never mark offline while the Noise connection is still open.
+    const liveNoise = new Set(p2pService.getConnectedPeers())
     for (const [ed25519Key, lastActivity] of this.peerLastActivity.entries()) {
+      const noiseId = this.ed25519ToNoiseMap.get(ed25519Key)
+      if (noiseId && liveNoise.has(noiseId)) {
+        this.peerLastActivity.set(ed25519Key, now)
+        const liveContact = useContactStore.getState().getContact(ed25519Key)
+        if (liveContact && liveContact.status === 'offline') {
+          useContactStore.getState().updateContact(ed25519Key, {
+            status: 'online',
+            lastSeen: now,
+          })
+        }
+        continue
+      }
       if (now - lastActivity > timeout) {
         const contact = useContactStore.getState().getContact(ed25519Key)
         if (contact && contact.status === 'online') {
           useContactStore.getState().updateContact(ed25519Key, {
             status: 'offline',
           })
-          console.log('[ChatService] Peer marked offline (heartbeat timeout):', ed25519Key.slice(0, 16))
         }
         this.peerLastActivity.delete(ed25519Key)
-
-        // RECONNECT: If we know the Noise peer id, use connectToContact (joinPeer +
-        // prioritize) for fastest possible reconnection. Otherwise fall back to
-        // rejoining the conversation topic.
-        const noisePeerId = this.ed25519ToNoiseMap.get(ed25519Key)
-        if (noisePeerId) {
-          window.asgard.network.connectToContact(noisePeerId, true).catch(() => {})
-        } else {
-          const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-          if (myPk) {
-            cryptoService.deriveConversationTopic(myPk, ed25519Key)
-              .then((topic) => p2pService.joinTopic(topic))
-              .catch(() => {})
-          }
-        }
       }
     }
 
@@ -2041,25 +2165,38 @@ class ChatService {
     this.broadcastPresence().catch(() => {})
 
     // 3. PERFORMANCE: Send ping to connected peers for latency measurement
-    const connectedPeers = p2pService.getConnectedPeers()
-    for (const peerId of connectedPeers) {
+    for (const peerId of liveNoise) {
       p2pService.sendMessage(peerId, 'presence:ping', { timestamp: Date.now() }).catch(() => {})
     }
 
-    // 4. RECEIPT RETRY: Re-attempt flushing any pending receipts for connected peers.
+    // 4. CONNECTIVITY: Periodically refresh joinPeer for all known contacts
+    // that are NOT currently connected. Hyperswarm's joinPeer() maintains
+    // connection attempts, but these can go stale after network changes
+    // (WiFi → mobile, NAT rebinding). Re-calling joinPeer every heartbeat
+    // ensures Hyperswarm keeps actively trying to reach offline peers.
+    // This is cheap — Hyperswarm deduplicates internally.
+    const contacts = useContactStore.getState().contacts
+    for (const contact of Object.values(contacts)) {
+      const noisePeerId = this.ed25519ToNoiseMap.get(contact.publicKey)
+      if (noisePeerId && !liveNoise.has(noisePeerId)) {
+        window.asgard.network.connectToContact(noisePeerId, true).catch(() => {})
+      }
+    }
+
+    // 5. RECEIPT RETRY: Re-attempt flushing any pending receipts for connected peers.
     // This catches receipts queued between heartbeat ticks whose peer is now reachable.
     // The pendingReceipts Map is keyed by Ed25519; we need the Noise peer ID to check
     // connectivity via ed25519ToNoiseMap.
     if (this.pendingReceipts.size > 0) {
       for (const [ed25519Key] of this.pendingReceipts.entries()) {
         const noisePeerId = this.ed25519ToNoiseMap.get(ed25519Key)
-        if (noisePeerId && connectedPeers.includes(noisePeerId)) {
+        if (noisePeerId && liveNoise.has(noisePeerId)) {
           this.flushPendingReceipts(ed25519Key).catch(() => {})
         }
       }
     }
 
-    // 5. GROUP PRESENCE: Announce our presence to all groups we're a member of.
+    // 6. GROUP PRESENCE: Announce our presence to all groups we're a member of.
     // Per Hyperswarm/Keet pattern, group presence should be broadcast periodically
     // so members see accurate status (online/away/busy). Previously, group presence
     // was only sent once when entering a group view — no periodic updates.
@@ -2092,25 +2229,26 @@ class ChatService {
       internalStatus === 'offline' ? 'offline' :
       'online'
 
-    // PERFORMANCE: Skip broadcast if network status unchanged (saves 50%+ bandwidth)
-    // BUT ONLY if we have connected peers — if no peers were connected during the
-    // last broadcast, the message went to 0 recipients and we must retry even if
-    // the status is the same. This fixes the "both online but can't see each other"
-    // bug where the first broadcast is sent before any peer connects.
+    // CRITICAL: Always broadcast when peers are connected. Skip only when
+    // status is unchanged AND no peers are connected (nothing to send to).
+    // This fixes the "both online but can't see each other" bug.
     const connectedPeerCount = Object.values(useNetworkStore.getState().peers).filter((p) => p.connected).length
-    const willSkip = status === this.lastBroadcastStatus && connectedPeerCount > 0
+    const willSkip = status === this.lastBroadcastStatus && connectedPeerCount === 0
     console.log(`[ChatService] broadcastPresence: status=${status} | lastBroadcast=${this.lastBroadcastStatus} | peers=${connectedPeerCount} | skip=${willSkip}`)
     try { window.asgard.debugLog(`[ChatService] broadcastPresence: status=${status} | lastBroadcast=${this.lastBroadcastStatus} | peers=${connectedPeerCount} | skip=${willSkip}`) } catch {}
     if (willSkip) return
-    this.lastBroadcastStatus = status
 
-    // Send network-compatible status + custom status message
+    // CRITICAL FIX: Send presence FIRST, then mark as sent.
+    // Previously, lastBroadcastStatus was set BEFORE the broadcast — if all sends
+    // failed (e.g. channels not ready), the next broadcast was incorrectly skipped.
+    // Now we only mark as sent after the broadcast completes.
     await p2pService.broadcast('presence:update', {
       status,
       displayName: identity.profile.displayName,
       avatar: undefined,
       customStatus: identity.profile.customStatus,
     }).catch(console.error)
+    this.lastBroadcastStatus = status
   }
 
   /**
@@ -2207,6 +2345,11 @@ class ChatService {
    *   Chunk 0: JSON header { t: 'avatar', target, total: N } + null byte + chunk data
    *   Chunks 1..N-1: chunk data (raw bytes)
    * 
+   * IMPROVEMENTS (verified against Holepunch/Keet patterns):
+   *   - Deduplication: Skips sending if same avatar already sent to this peer
+   *   - Polling: Waits for peer connection instead of fixed 1500ms delay
+   *   - Retry: Up to 2 retries with exponential backoff on failure
+   * 
    * @param peerId - Ed25519 public key of the recipient
    * @param avatar - Avatar data (base64 data URL or blob key)
    * @param target - Avatar context: 'contact' (1:1), 'group_member' (profile in group), 'group_icon' (group avatar)
@@ -2215,43 +2358,94 @@ class ChatService {
   private async sendAvatarViaMedia(peerId: string, avatar?: string, target: string = 'contact', groupId?: string): Promise<void> {
     if (!avatar) return
 
-    // CRITICAL: Wait for media channel to be ready (may not be open yet).
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
+    // DEDUPLICATION: Compute a quick hash of the avatar to avoid resending identical data.
+    // This saves significant bandwidth on reconnections (avatar can be 50-500KB base64).
+    let avatarHash = ''
     try {
-      const CHUNK_SIZE = 16 * 1024 // 16KB chunks to stay well under Protomux limits
-      const dataBytes = new TextEncoder().encode(avatar)
-      const totalChunks = Math.ceil(dataBytes.length / CHUNK_SIZE)
-
-      const logMsg = `[ChatService] Sending avatar via media: ${avatar.length} chars, ${dataBytes.length} bytes, ${totalChunks} chunks, target=${target}`
-      console.log(logMsg)
-      try { window.asgard.debugLog(logMsg) } catch {}
-
-      // Send first chunk with header (includes target + groupId for context-aware reception)
-      const header = JSON.stringify({ t: 'avatar', target, ...(groupId ? { groupId } : {}), total: totalChunks })
-      const headerBytes = new TextEncoder().encode(header)
-      const firstChunkSize = Math.min(CHUNK_SIZE, dataBytes.length)
-      const firstChunk = new Uint8Array(headerBytes.length + 1 + firstChunkSize)
-      firstChunk.set(headerBytes, 0)
-      firstChunk[headerBytes.length] = 0 // null separator
-      firstChunk.set(dataBytes.slice(0, firstChunkSize), headerBytes.length + 1)
-      await p2pService.sendMediaData(peerId, firstChunk)
-
-      // Send remaining chunks
-      for (let i = 1; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE
-        const end = Math.min(start + CHUNK_SIZE, dataBytes.length)
-        const chunk = dataBytes.slice(start, end)
-        await p2pService.sendMediaData(peerId, chunk)
+      // Simple FNV-1a hash of first/last 1KB for fast comparison
+      const sample = avatar.slice(0, 1024) + avatar.slice(-1024)
+      let h = 0x811c9dc5
+      for (let i = 0; i < sample.length; i++) {
+        h ^= sample.charCodeAt(i)
+        h = (h * 0x01000193) >>> 0
       }
+      avatarHash = h.toString(36) + ':' + avatar.length
+    } catch {
+      avatarHash = ':' + avatar.length
+    }
 
-      const successMsg = `[ChatService] Avatar sent: ${totalChunks} chunks successfully, target=${target}`
-      console.log(successMsg)
-      try { window.asgard.debugLog(successMsg) } catch {}
-    } catch (err) {
-      const errMsg = `[ChatService] Failed to send avatar via media: ${err}`
-      console.warn(errMsg)
-      try { window.asgard.debugLog(errMsg) } catch {}
+    const existingHash = this.sentAvatarHashes.get(peerId)
+    if (existingHash === avatarHash) {
+      // Same avatar already sent — skip
+      return
+    }
+
+    // POLLING: Wait for peer to be connected (max 10s) instead of fixed 1500ms.
+    // Cross-border connections can take longer to establish channels.
+    const maxWait = 10000
+    const pollInterval = 500
+    let waited = 0
+    while (waited < maxWait) {
+      const connected = p2pService.getConnectedPeers().includes(
+        this.ed25519ToNoiseMap.get(peerId) ?? peerId
+      )
+      if (connected) break
+      await new Promise((resolve) => setTimeout(resolve, pollInterval))
+      waited += pollInterval
+    }
+
+    // Send with retry (up to 2 retries)
+    const maxAttempts = 3
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const CHUNK_SIZE = 16 * 1024 // 16KB chunks to stay well under Protomux limits
+        const dataBytes = new TextEncoder().encode(avatar)
+        const totalChunks = Math.ceil(dataBytes.length / CHUNK_SIZE)
+
+        if (attempt === 1) {
+          const logMsg = `[ChatService] Sending avatar via media: ${avatar.length} chars, ${dataBytes.length} bytes, ${totalChunks} chunks, target=${target}`
+          console.log(logMsg)
+          try { window.asgard.debugLog(logMsg) } catch {}
+        } else {
+          console.log(`[ChatService] Avatar send retry attempt ${attempt}/${maxAttempts} for peer: ${peerId.slice(0, 16)}`)
+        }
+
+        // Send first chunk with header (includes target + groupId for context-aware reception)
+        const header = JSON.stringify({ t: 'avatar', target, ...(groupId ? { groupId } : {}), total: totalChunks })
+        const headerBytes = new TextEncoder().encode(header)
+        const firstChunkSize = Math.min(CHUNK_SIZE, dataBytes.length)
+        const firstChunk = new Uint8Array(headerBytes.length + 1 + firstChunkSize)
+        firstChunk.set(headerBytes, 0)
+        firstChunk[headerBytes.length] = 0 // null separator
+        firstChunk.set(dataBytes.slice(0, firstChunkSize), headerBytes.length + 1)
+        await p2pService.sendMediaData(peerId, firstChunk)
+
+        // Send remaining chunks
+        for (let i = 1; i < totalChunks; i++) {
+          const start = i * CHUNK_SIZE
+          const end = Math.min(start + CHUNK_SIZE, dataBytes.length)
+          const chunk = dataBytes.slice(start, end)
+          await p2pService.sendMediaData(peerId, chunk)
+        }
+
+        // Success — record the hash to avoid resending
+        this.sentAvatarHashes.set(peerId, avatarHash)
+        const successMsg = `[ChatService] Avatar sent: ${totalChunks} chunks successfully, target=${target}`
+        console.log(successMsg)
+        try { window.asgard.debugLog(successMsg) } catch {}
+        return // Done
+      } catch (err) {
+        if (attempt < maxAttempts) {
+          // Exponential backoff: 1s, 3s
+          const backoff = attempt * 2000 - 1000
+          console.warn(`[ChatService] Avatar send failed (attempt ${attempt}): ${err} — retrying in ${backoff}ms`)
+          await new Promise((resolve) => setTimeout(resolve, backoff))
+        } else {
+          const errMsg = `[ChatService] Failed to send avatar after ${maxAttempts} attempts: ${err}`
+          console.warn(errMsg)
+          try { window.asgard.debugLog(errMsg) } catch {}
+        }
+      }
     }
   }
 
@@ -2546,8 +2740,29 @@ class ChatService {
       this.ensureConversation(convId, msg.from)
     }
 
-    // PERFORMANCE: Send avatar via binary media channel (doesn't block signing)
+    // CRITICAL FIX: Send our presence back so the peer knows we're online.
+    // Without this, the peer sees us as "online" only because of the contact:request
+    // flow, but if that presence was lost (init gap, race condition), the peer
+    // never learns our status. Sending presence on contact:accept closes this gap.
     const identity = useIdentityStore.getState().identity
+    if (identity) {
+      const privacy = useUIStore.getState().settings.privacy
+      const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
+      const status: 'online' | 'away' | 'offline' | 'dnd' =
+        internalStatus === 'busy' ? 'dnd' :
+        internalStatus === 'invisible' ? 'offline' :
+        internalStatus === 'dnd' ? 'dnd' :
+        internalStatus === 'away' ? 'away' :
+        internalStatus === 'offline' ? 'offline' :
+        'online'
+      p2pService.sendMessage(msg.from, 'presence:update', {
+        status,
+        displayName: identity.profile.displayName,
+        customStatus: identity.profile.customStatus,
+      }).catch(() => {})
+    }
+
+    // PERFORMANCE: Send avatar via binary media channel (doesn't block signing)
     if (identity?.profile.avatar) {
       this.sendAvatarViaMedia(msg.from, identity.profile.avatar).catch(() => {})
     }
@@ -2593,6 +2808,10 @@ class ChatService {
    */
   destroy(): void {
     this.stopHeartbeat()
+    this.stopEphemeralCleanup()
+    this.ephemeralTimers.forEach((timer) => clearTimeout(timer))
+    this.ephemeralTimers.clear()
+    this.ephemeralMessages.clear()
     this.peerLastActivity.clear()
     this.contactRequestsSent.clear()
     this.typingTimers.forEach((timer) => clearTimeout(timer))
@@ -2607,6 +2826,7 @@ class ChatService {
     this.pendingReceipts.clear()
     this.avatarBuffers.clear()
     this.ed25519ToNoiseMap.clear()
+    this.lastTypingSent.clear()
   }
 
   // ─── Ephemeral Messages (Hypercore-inspired) ───────────────────────────

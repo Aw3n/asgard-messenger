@@ -202,6 +202,7 @@ interface SearchResultItemProps {
 }
 
 const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, onClick }) => {
+  const { t } = useTranslation()
   if (result.type === 'contact' && result.contact) {
     return (
       <button
@@ -241,11 +242,11 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, onClick }) 
             {result.group.name}
           </p>
           <p className="text-xs text-asgard-text-muted truncate">
-            {result.group.description || 'Group'}
+            {result.group.description || t('search.groupFallback')}
           </p>
         </div>
         <span className="text-xxs text-asgard-text-muted bg-asgard-surface-alt px-2 py-0.5 rounded-full">
-          Group
+          {t('search.groupFallback')}
         </span>
       </button>
     )

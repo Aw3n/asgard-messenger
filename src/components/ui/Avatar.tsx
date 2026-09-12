@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 import { Button } from './Button'
 import type { UserStatus } from '@/types'
@@ -153,6 +154,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   badge,
   ringViewed = false,
 }) => {
+  const { t } = useTranslation()
   const sizeConfig = sizes[size]
   const seed = publicKey ?? name ?? 'default'
   const gradient = getAvatarGradient(seed)
@@ -268,7 +270,7 @@ export const Avatar: React.FC<AvatarProps> = ({
         <button
           onClick={handleUploadClick}
           className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-full"
-          aria-label="Upload photo"
+          aria-label={t('avatar.uploadPhoto')}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
             <path d="M19 7v2.99s-1.99.01-2 0V7h-3s.01-1.99 0-2h3V2h2v3h3v2h-3zm-3 4V8h-3V5H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8h-3zM5 19l3-4 2 3 3-4 4 5H5z"/>
@@ -351,6 +353,7 @@ export const AvatarCropDialog: React.FC<AvatarCropDialogProps> = ({
   onCrop,
   onClose,
 }) => {
+  const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0, size: 200 })
   const [isDragging, setIsDragging] = useState(false)
@@ -444,7 +447,7 @@ export const AvatarCropDialog: React.FC<AvatarCropDialogProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
       <div className="bg-asgard-surface rounded-2xl p-6 max-w-md w-full mx-4">
         <h3 className="text-lg font-semibold text-asgard-text-primary mb-4">
-          Crop Avatar
+          {t('avatar.cropAvatar')}
         </h3>
 
         <div className="relative mb-4 overflow-hidden rounded-lg">
@@ -471,7 +474,7 @@ export const AvatarCropDialog: React.FC<AvatarCropDialogProps> = ({
         {/* Size slider */}
         <div className="mb-4">
           <label className="text-sm text-asgard-text-secondary block mb-2">
-            Size
+            {t('avatar.size')}
           </label>
           <input
             type="range"
@@ -485,10 +488,10 @@ export const AvatarCropDialog: React.FC<AvatarCropDialogProps> = ({
 
         <div className="flex gap-3">
           <Button variant="secondary" onClick={onClose} className="flex-1">
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleCrop} className="flex-1">
-            Crop & Save
+            {t('avatar.cropSave')}
           </Button>
         </div>
       </div>

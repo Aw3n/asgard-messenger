@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * TitleBar — React component occupying the title bar region (38px).
@@ -8,6 +9,7 @@ import React, { useEffect, useState } from 'react'
  * - Linux: frameless window, so we render custom controls (−□×) on the right.
  */
 export const TitleBar: React.FC = () => {
+  const { t } = useTranslation()
   const [platform, setPlatform] = useState<string>('win32')
   const [isMaximized, setIsMaximized] = useState(false)
 
@@ -64,7 +66,7 @@ export const TitleBar: React.FC = () => {
       {/* Left: Logo + App name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          <img src="./asgard-icon.svg" alt="Asgard" width={20} height={20} />
+          <img src="./asgard-icon.svg" alt={t('titlebar.appName')} width={20} height={20} />
         </div>
         <span
           style={{
@@ -75,7 +77,7 @@ export const TitleBar: React.FC = () => {
             WebkitAppRegion: 'no-drag',
           } as React.CSSProperties}
         >
-          Asgard
+          {t('titlebar.appName')}
         </span>
       </div>
 
@@ -84,7 +86,7 @@ export const TitleBar: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <button
             type="button"
-            aria-label="Minimize"
+            aria-label={t('titlebar.minimize')}
             style={controlButtonStyle}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -94,7 +96,7 @@ export const TitleBar: React.FC = () => {
           </button>
           <button
             type="button"
-            aria-label="Maximize"
+            aria-label={t('titlebar.maximize')}
             style={controlButtonStyle}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -104,7 +106,7 @@ export const TitleBar: React.FC = () => {
           </button>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t('titlebar.close')}
             style={{ ...controlButtonStyle, color: '#E57474' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(229,116,116,0.2)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}

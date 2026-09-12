@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useUIStore } from '@/stores/uiStore'
 import { cn } from '@/utils/cn'
@@ -39,6 +40,7 @@ const borderColors: Record<ToastType['type'], string> = {
  */
 const ToastItem: React.FC<{ toast: ToastType }> = ({ toast }) => {
   const removeToast = useUIStore((s) => s.removeToast)
+  const { t } = useTranslation()
 
   return (
     <motion.div
@@ -72,7 +74,7 @@ const ToastItem: React.FC<{ toast: ToastType }> = ({ toast }) => {
       <button
         onClick={() => removeToast(toast.id)}
         className="flex-shrink-0 text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
-        aria-label="Dismiss"
+        aria-label={t('toast.dismiss')}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>

@@ -75,12 +75,14 @@ declare module 'protomux' {
     static from(stream: unknown): Protomux
     createChannel(opts: {
       protocol: string
-      id?: Buffer
+      id?: Buffer | null
       handshake?: unknown
       onopen?: () => void
       onclose?: () => void
     }): ProtomuxChannel | null
-    opened(opts: { protocol: string; id?: Buffer }): boolean
+    opened(opts: { protocol: string; id?: Buffer | null }): boolean
+    pair(opts: { protocol: string; id?: Buffer | null }, notify: (id: Buffer | null) => Promise<void>): void
+    unpair(opts: { protocol: string; id?: Buffer | null }): void
   }
   interface ProtomuxChannel {
     addMessage(opts: { encoding: unknown; onmessage?: (msg: unknown) => void }): ProtomuxMessage

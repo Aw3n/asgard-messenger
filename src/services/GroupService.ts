@@ -33,6 +33,9 @@ class GroupService {
   private pendingGroupMessages: Map<string, Array<{ groupId: string; channelId: string; message: Record<string, unknown>; createdAt: number }>> = new Map()
   // Track last broadcast status to avoid redundant re-broadcasts
   private lastBroadcastStatus: string | null = null
+  // DEDUPLICATION: Track sent group avatars to avoid resending identical data.
+  // Key: peerId+groupId, Value: hash of the last sent avatar
+  private sentGroupAvatarHashes: Map<string, string> = new Map()
 
   static getInstance(): GroupService {
     if (!GroupService.instance) {
@@ -383,43 +386,50 @@ class GroupService {
   private async sendGroupAvatarViaMedia(peerId: string, groupId: string, avatar: string): Promise<void> {
     if (!avatar) return
 
-    // CRITICAL: Wait for media channel to be ready (may not be open yet).
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // DEDUPLICATION: Skip if same avatar already sent to this peer for this group
+    const dedupeKey = peerId + ':' + groupId + ':icon'
+    let avatarHash = ''
+    try {
+      const sample = avatar.slice(0, 1024) + avatar.slice(-1024)
+      let h = 0x811c9dc5
+      for (let i = 0; i < sample.length; i++) { h ^= sample.charCodeAt(i); h = (h * 0x01000193) >>> 0 }
+      avatarHash = h.toString(36) + ':' + avatar.length
+    } catch { avatarHash = ':' + avatar.length }
+    if (this.sentGroupAvatarHashes.get(dedupeKey) === avatarHash) return
+
+    // POLLING: Wait for peer connection (max 10s) instead of fixed 1500ms
+    const maxWait = 10000, pollInterval = 500
+    let waited = 0
+    while (waited < maxWait) {
+      if (p2pService.getConnectedPeers().length > 0) break
+      await new Promise((r) => setTimeout(r, pollInterval))
+      waited += pollInterval
+    }
 
     try {
       const CHUNK_SIZE = 16 * 1024
       const dataBytes = new TextEncoder().encode(avatar)
       const totalChunks = Math.ceil(dataBytes.length / CHUNK_SIZE)
 
-      const logMsg = `[GroupService] Sending group avatar via media: ${avatar.length} chars, ${dataBytes.length} bytes, ${totalChunks} chunks, groupId=${groupId.slice(0, 16)}`
-      console.log(logMsg)
-      try { window.asgard.debugLog(logMsg) } catch {}
-
-      // Send first chunk with header
       const header = JSON.stringify({ t: 'avatar', target: 'group_icon', groupId, total: totalChunks })
       const headerBytes = new TextEncoder().encode(header)
       const firstChunkSize = Math.min(CHUNK_SIZE, dataBytes.length)
       const firstChunk = new Uint8Array(headerBytes.length + 1 + firstChunkSize)
       firstChunk.set(headerBytes, 0)
-      firstChunk[headerBytes.length] = 0 // null separator
+      firstChunk[headerBytes.length] = 0
       firstChunk.set(dataBytes.slice(0, firstChunkSize), headerBytes.length + 1)
       await p2pService.sendMediaData(peerId, firstChunk)
 
-      // Send remaining chunks
       for (let i = 1; i < totalChunks; i++) {
         const start = i * CHUNK_SIZE
         const end = Math.min(start + CHUNK_SIZE, dataBytes.length)
-        const chunk = dataBytes.slice(start, end)
-        await p2pService.sendMediaData(peerId, chunk)
+        await p2pService.sendMediaData(peerId, dataBytes.slice(start, end))
       }
 
-      const successMsg = `[GroupService] Group avatar sent: ${totalChunks} chunks for group ${groupId.slice(0, 16)}`
-      console.log(successMsg)
-      try { window.asgard.debugLog(successMsg) } catch {}
+      this.sentGroupAvatarHashes.set(dedupeKey, avatarHash)
+      console.log(`[GroupService] Group avatar sent: ${totalChunks} chunks for group ${groupId.slice(0, 16)}`)
     } catch (err) {
-      const errMsg = `[GroupService] Failed to send group avatar via media: ${err}`
-      console.warn(errMsg)
-      try { window.asgard.debugLog(errMsg) } catch {}
+      console.warn(`[GroupService] Failed to send group avatar: ${err}`)
     }
   }
 
@@ -431,17 +441,30 @@ class GroupService {
   private async sendMemberAvatarViaMedia(peerId: string, groupId: string, avatar: string): Promise<void> {
     if (!avatar) return
 
-    // CRITICAL: Wait for media channel to be ready.
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // DEDUPLICATION: Skip if same avatar already sent to this peer for this group
+    const dedupeKey = peerId + ':' + groupId + ':member'
+    let avatarHash = ''
+    try {
+      const sample = avatar.slice(0, 1024) + avatar.slice(-1024)
+      let h = 0x811c9dc5
+      for (let i = 0; i < sample.length; i++) { h ^= sample.charCodeAt(i); h = (h * 0x01000193) >>> 0 }
+      avatarHash = h.toString(36) + ':' + avatar.length
+    } catch { avatarHash = ':' + avatar.length }
+    if (this.sentGroupAvatarHashes.get(dedupeKey) === avatarHash) return
+
+    // POLLING: Wait for peer connection (max 10s) instead of fixed 1500ms
+    const maxWait = 10000, pollInterval = 500
+    let waited = 0
+    while (waited < maxWait) {
+      if (p2pService.getConnectedPeers().length > 0) break
+      await new Promise((r) => setTimeout(r, pollInterval))
+      waited += pollInterval
+    }
 
     try {
       const CHUNK_SIZE = 16 * 1024
       const dataBytes = new TextEncoder().encode(avatar)
       const totalChunks = Math.ceil(dataBytes.length / CHUNK_SIZE)
-
-      const logMsg = `[GroupService] Sending member avatar via media: ${avatar.length} chars, ${totalChunks} chunks, groupId=${groupId.slice(0, 16)}`
-      console.log(logMsg)
-      try { window.asgard.debugLog(logMsg) } catch {}
 
       const header = JSON.stringify({ t: 'avatar', target: 'group_member', groupId, total: totalChunks })
       const headerBytes = new TextEncoder().encode(header)
@@ -455,13 +478,13 @@ class GroupService {
       for (let i = 1; i < totalChunks; i++) {
         const start = i * CHUNK_SIZE
         const end = Math.min(start + CHUNK_SIZE, dataBytes.length)
-        const chunk = dataBytes.slice(start, end)
-        await p2pService.sendMediaData(peerId, chunk)
+        await p2pService.sendMediaData(peerId, dataBytes.slice(start, end))
       }
 
+      this.sentGroupAvatarHashes.set(dedupeKey, avatarHash)
       console.log(`[GroupService] Member avatar sent: ${totalChunks} chunks`)
     } catch (err) {
-      console.warn(`[GroupService] Failed to send member avatar via media: ${err}`)
+      console.warn(`[GroupService] Failed to send member avatar: ${err}`)
     }
   }
 

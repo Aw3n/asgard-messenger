@@ -195,16 +195,16 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             <div className="flex items-center gap-3 px-4 py-2 border-l-2 border-asgard-glacier mx-3 mt-2 bg-asgard-border/30 rounded-lg">
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-asgard-glacier mb-0.5">
-                  Replying to {replyTo.senderId.slice(0, 8)}…
+                  {t('messageInput.replyingTo')} {replyTo.senderId.slice(0, 8)}…
                 </p>
                 <p className="text-xs text-asgard-text-muted truncate">
-                  {replyTo.deleted ? 'Message deleted' : replyTo.content}
+                  {replyTo.deleted ? t('messageInput.messageDeleted') : replyTo.content}
                 </p>
               </div>
               <button
                 onClick={onCancelReply}
                 className="flex-shrink-0 text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
-                aria-label="Cancel reply"
+                aria-label={t('messageInput.cancelReply')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -293,7 +293,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier mx-auto mb-2">
                 <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/>
               </svg>
-              <p className="text-sm text-asgard-glacier">Drop files here</p>
+              <p className="text-sm text-asgard-glacier">{t('messageInput.dropFiles')}</p>
             </div>
           </motion.div>
         )}
@@ -303,7 +303,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       {!broadcastReadOnly && (
         <div className="flex items-end gap-2 px-3 py-3">
           {/* Attachment button */}
-          <ActionButton aria-label="Attach file" onClick={handleFileSelect}>
+          <ActionButton aria-label={t('messageInput.attachFile')} onClick={handleFileSelect}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
             </svg>
@@ -334,7 +334,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
           {/* Emoji button */}
           <ActionButton
-            aria-label="Emoji"
+            aria-label={t('messageInput.emoji')}
             active={showEmoji}
             onClick={() => setShowEmoji((s) => !s)}
           >
@@ -348,7 +348,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             whileTap={{ scale: 0.9 }}
             onClick={handleSend}
             disabled={(!content.trim() && pendingFiles.length === 0) || disabled}
-            aria-label="Send message"
+            aria-label={t('messageInput.send')}
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
               (content.trim() || pendingFiles.length > 0) && !disabled

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/stores/uiStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
@@ -58,6 +59,7 @@ const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }>
 // ─── Add Contact Modal ────────────────────────────────────────────────────────
 
 const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { t } = useTranslation()
   const [publicKey, setPublicKey] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
@@ -71,17 +73,17 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handleSubmit = async () => {
     const key = publicKey.trim()
     if (!key) {
-      setError('Public key is required')
+      setError(t('modal.error.publicKeyRequired'))
       return
     }
     if (key.length < 16) {
-      setError('Public key is too short')
+      setError(t('modal.error.publicKeyTooShort'))
       return
     }
 
     // Check if contact already exists
     if (getContact(key)) {
-      setError('Contact already exists')
+      setError(t('modal.error.contactExists'))
       return
     }
 
@@ -150,7 +152,7 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <div className="bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-asgard-border">
-        <h3 className="text-base font-semibold text-asgard-text-primary">Add Contact</h3>
+        <h3 className="text-base font-semibold text-asgard-text-primary">{t('modal.addContact')}</h3>
         <button
           onClick={onClose}
           className="w-8 h-8 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
@@ -165,11 +167,11 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <div className="p-5 space-y-4">
         <div>
           <label className="text-sm font-medium text-asgard-text-secondary block mb-1.5">
-            Public Key
+            {t('modal.publicKey')}
           </label>
           <input
             className="asgard-input w-full px-3 py-2.5 text-sm rounded-lg"
-            placeholder="Enter the contact's public key…"
+            placeholder={t('modal.publicKeyPlaceholder')}
             value={publicKey}
             onChange={(e) => {
               setPublicKey(e.target.value)
@@ -182,11 +184,11 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         <div>
           <label className="text-sm font-medium text-asgard-text-secondary block mb-1.5">
-            Display Name <span className="text-asgard-text-muted">(optional)</span>
+            {t('modal.displayName')}
           </label>
           <input
             className="asgard-input w-full px-3 py-2.5 text-sm rounded-lg"
-            placeholder="Give this contact a name…"
+            placeholder={t('modal.displayNamePlaceholder')}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
@@ -209,13 +211,13 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           onClick={onClose}
           className="btn-ghost px-4 py-2 text-sm rounded-lg"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           onClick={handleSubmit}
           className="btn-primary px-4 py-2 text-sm rounded-lg"
         >
-          Add Contact
+          {t('modal.add')}
         </button>
       </div>
     </div>

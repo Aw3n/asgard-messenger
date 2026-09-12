@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useCallStore } from '@/stores/callStore'
 import { callService } from '@/services/CallService'
@@ -8,6 +9,7 @@ import { callService } from '@/services/CallService'
  * Prominent red end-call button, clear labels, proper spacing.
  */
 export const CallControls: React.FC = () => {
+  const { t } = useTranslation()
   const { isMuted, isCameraOff, isScreenSharing } = useCallStore()
   const endCall = useCallStore((s) => s.endCall)
 
@@ -31,7 +33,7 @@ export const CallControls: React.FC = () => {
         activeColor="rgba(239,68,68,0.2)"
         activeBorder="rgba(239,68,68,0.5)"
         activeTextColor="#f87171"
-        label={isMuted ? 'Micro coupé' : 'Micro'}
+        label={isMuted ? t('calls.microphoneOffLabel') : t('calls.microphoneLabel')}
         icon={isMuted ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l6 6zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.76-.48 2.51-.98L19.73 21 21 19.73 4.27 3z"/>
@@ -50,7 +52,7 @@ export const CallControls: React.FC = () => {
         activeColor="rgba(239,68,68,0.2)"
         activeBorder="rgba(239,68,68,0.5)"
         activeTextColor="#f87171"
-        label={isCameraOff ? 'Caméra off' : 'Caméra'}
+        label={isCameraOff ? t('calls.cameraOffLabel') : t('calls.cameraLabel')}
         icon={isCameraOff ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
             <path d="M21 6.5l-4-4-15 15 1.41 1.41 1.62-1.62C5.38 17.73 6.14 18 7 18h10c1.1 0 2-.9 2-2V8.83l2 2V6.5zm-2 9.5H9.83l7.07-7.07L19 10.5V16zM3.27 3.27L2 4.54v9.96C2 15.65 2.94 17 4 17h.83L7 14.83V14H4V8h3.17l2-2H3.27z"/>
@@ -69,7 +71,7 @@ export const CallControls: React.FC = () => {
         activeColor="rgba(79,195,247,0.15)"
         activeBorder="rgba(79,195,247,0.4)"
         activeTextColor="#4FC3F7"
-        label="Écran"
+        label={t('calls.screenShareLabel')}
         icon={
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
@@ -90,7 +92,7 @@ export const CallControls: React.FC = () => {
           background: 'none',
           border: 'none',
         }}
-        aria-label="Raccrocher"
+        aria-label={t('calls.mute')}
       >
         <div style={{
           width: '64px', height: '64px',

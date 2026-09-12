@@ -121,7 +121,7 @@ const WelcomeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
       className="flex justify-center mb-8"
     >
-      <AsgardLogo size={80} />
+      <AsgardLogo size={80} alt={t('onboarding.appName')} />
     </motion.div>
 
     <motion.h1
@@ -161,9 +161,9 @@ const WelcomeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       className="grid grid-cols-3 gap-4 mb-10"
     >
       {[
-        { icon: '🔐', label: 'End-to-End Encrypted' },
-        { icon: '🌐', label: 'No Central Server' },
-        { icon: '🛡️', label: 'Zero Data Collection' },
+        { icon: '🔐', label: t('onboarding.feature.e2e') },
+        { icon: '🌐', label: t('onboarding.feature.noServer') },
+        { icon: '🛡️', label: t('onboarding.feature.zeroData') },
       ].map((f) => (
         <div key={f.label} className="glass rounded-2xl p-4 text-center">
           <div className="text-2xl mb-2">{f.icon}</div>
@@ -178,7 +178,7 @@ const WelcomeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       transition={{ delay: 0.6 }}
     >
       <Button size="lg" fullWidth onClick={onNext}>
-        Enter the Realm
+        {t('onboarding.enterRealm')}
       </Button>
     </motion.div>
   </motion.div>
@@ -217,10 +217,10 @@ const CreateStep: React.FC<{ onCreate: () => void; isCreating: boolean }> = ({
 
       <div className="space-y-3 mb-6">
         {[
-          'Ed25519 key pair generated locally',
-          'Private key stored on your device only',
-          'Public key is your unique identifier',
-          'No registration, no email, no password',
+          t('onboarding.feature.ed25519'),
+          t('onboarding.feature.privateKey'),
+          t('onboarding.feature.publicKeyId'),
+          t('onboarding.feature.noRegistration'),
         ].map((item) => (
           <div key={item} className="flex items-center gap-3 text-sm text-asgard-text-secondary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-online">
@@ -468,10 +468,10 @@ const DoneStep: React.FC<{
 }
 
 // Logo component — uses the new asgard-icon.svg from public/
-const AsgardLogo: React.FC<{ size?: number }> = ({ size = 60 }) => (
+const AsgardLogo: React.FC<{ size?: number; alt?: string }> = ({ size = 60, alt = 'Asgard' }) => (
   <img
     src="./asgard-icon.svg"
-    alt="Asgard"
+    alt={alt}
     className="rounded-3xl shadow-glow"
     style={{ width: size, height: size }}
   />

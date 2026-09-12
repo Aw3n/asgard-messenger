@@ -31,7 +31,7 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
   const [showKey, setShowKey] = useState(false)
   const [showActions, setShowActions] = useState(false)
   // DHT Profile state
-  const [dhtProfile, setDhtProfile] = useState<{ displayName: string; avatar?: string; timestamp: number } | null>(null)
+  const [dhtProfile, setDhtProfile] = useState<{ displayName: string; avatar?: string; timestamp: number; status?: string; statusMessage?: string } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileFetched, setProfileFetched] = useState(false)
 
@@ -276,11 +276,34 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
             {profileLoading ? t('contacts.fetching') : t('common.refresh')}
           </button>
         </div>
-        {dhtProfile ? (
+        {dhtProfile ? (() => {
+          // CRITICAL FIX: Show actual DHT status, not always green.
+          // DHT profiles can be stale (app closed without updating DHT).
+          // Use both the status field AND the timestamp to determine real state.
+          const STALE_THRESHOLD = 5 * 60 * 1000 // 5 minutes — older than this = stale
+          const age = Date.now() - dhtProfile.timestamp
+          const isStale = age > STALE_THRESHOLD
+          const dhtStatus = isStale ? 'offline' : (dhtProfile.status || 'online')
+          const statusColor =
+            dhtStatus === 'online' ? 'bg-green-400' :
+            dhtStatus === 'away' ? 'bg-yellow-400' :
+            dhtStatus === 'dnd' ? 'bg-red-400' :
+            'bg-asgard-border'
+          const statusLabel =
+            dhtStatus === 'online' ? t('common.available') :
+            dhtStatus === 'away' ? t('common.away') :
+            dhtStatus === 'dnd' ? t('common.dnd') :
+            t('common.offline')
+          return (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-400" />
-              <span className="text-xs text-asgard-text-muted">{t('common.available')}</span>
+              <span className={`w-2 h-2 rounded-full ${statusColor}`} />
+              <span className="text-xs text-asgard-text-muted">{statusLabel}</span>
+              {isStale && (
+                <span className="text-xs text-asgard-text-muted/60" title={t('contacts.updatedAt', { time: formatLastSeen(dhtProfile.timestamp) })}>
+                  ⏱ {formatLastSeen(dhtProfile.timestamp)}
+                </span>
+              )}
               <span className="text-xs text-asgard-text-muted ml-auto">
                 {t('contacts.updatedAt', { time: formatLastSeen(dhtProfile.timestamp) })}
               </span>
@@ -292,7 +315,8 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
               </div>
             )}
           </div>
-        ) : (
+          )
+        })() : (
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${profileFetched ? 'bg-asgard-border' : 'bg-yellow-400 animate-pulse'}`} />
             <span className="text-xs text-asgard-text-muted">

@@ -521,6 +521,15 @@ class P2PService extends EventEmitter {
     this.cleanup = []
     this.initialized = false
     this.removeAllListeners()
+    // CRITICAL: Clear internal Maps to prevent memory leaks and stale state
+    // if the service is re-initialized (e.g. hot reload, identity switch).
+    this.ed25519ToNoiseMap.clear()
+    this.seenMessages.clear()
+    this.messageRateMap.clear()
+    this.customChannels.clear()
+    this.channelStats.clear()
+    this.priorityRules.clear()
+    this.routingTable.clear()
   }
 
   // ─── Private ───────────────────────────────────────────────────────────────
