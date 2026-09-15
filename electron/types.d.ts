@@ -4,7 +4,9 @@ declare module 'hyperswarm' {
   export default class Hyperswarm {
     constructor(opts?: {
       maxPeers?: number
-      firewall?: (remotePublicKey: Buffer) => boolean
+      // CONFORMITÉ HOLEPUNCH (hyperswarm 4.17.1, index.js:315) : le firewall
+      // reçoit (remotePublicKey, remoteHandshakePayload) — deux arguments.
+      firewall?: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => boolean
       keyPair?: { publicKey: Buffer; secretKey: Buffer }
       seed?: Buffer
     })
@@ -62,11 +64,34 @@ declare module 'hyperbee' {
 }
 
 declare module 'hyperblobs' {
+  // CONFORMITÉ HOLEPUNCH (hyperblobs 2.12.1, index.js + lib/streams.js) :
+  // put(blob, opts) résout avec un id OBJET (BlobWriteStream.id =
+  // { blockOffset, byteOffset, blockLength, byteLength } enrichi de
+  // { block, offset, length } au close) et get()/clear()/createReadStream()
+  // prennent ce même objet id — PAS un number. Les lectures partielles
+  // utilisent get(id, { start, length }).
+  export interface BlobId {
+    block: number
+    blockOffset: number
+    blockLength: number
+    offset: number
+    length: number
+    byteOffset: number
+    byteLength: number
+    blockMap?: unknown
+  }
   export default class Hyperblobs {
-    constructor(core: unknown)
-    put(data: Buffer): Promise<number>
-    get(id: number): Promise<Buffer | null>
+    constructor(core: unknown, opts?: { blockSize?: number })
+    put(blob: Buffer, opts?: { blockSize?: number }): Promise<BlobId>
+    get(id: BlobId, opts?: { start?: number; length?: number; wait?: boolean; timeout?: number }): Promise<Buffer | null>
+    clear(id: BlobId, opts?: { diff?: boolean }): Promise<void>
+    createReadStream(id: BlobId, opts?: { start?: number; end?: number }): NodeJS.ReadableStream
+    createWriteStream(opts?: { blockSize?: number }): NodeJS.WritableStream & { id: BlobId }
+    batch(): Hyperblobs
+    snapshot(): Hyperblobs
+    ready(): Promise<void>
     close(): Promise<void>
+    replicate(isInitiator: unknown, opts?: unknown): unknown
   }
 }
 

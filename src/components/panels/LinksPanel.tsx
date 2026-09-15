@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
+import { getCurrentLanguage } from '@/i18n/config'
 
 /**
  * LinksPanel — shows all links shared in the active conversation.
@@ -86,7 +87,7 @@ export const LinksPanel: React.FC = () => {
                   <p className="text-xs text-asgard-text-muted truncate">{link.url}</p>
                 </div>
                 <span className="text-xxs text-asgard-text-muted flex-shrink-0">
-                  {new Date(link.timestamp).toLocaleDateString()}
+                  {new Date(link.timestamp).toLocaleDateString(getCurrentLanguage())}
                 </span>
               </a>
             )

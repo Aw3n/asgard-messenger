@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { getCurrentLanguage } from '@/i18n/config'
 
 // Icons
 const XIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -114,7 +115,7 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
     if (diffDays === 0) return t('time.today')
     if (diffDays === 1) return t('time.yesterday')
     if (diffDays < 7) return t('time.daysAgo', { count: diffDays })
-    return date.toLocaleDateString()
+    return date.toLocaleDateString(getCurrentLanguage())
   }
 
   return (

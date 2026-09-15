@@ -4,6 +4,7 @@ import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useTranslation } from 'react-i18next'
 import { FileAttachment } from '@/features/chat/components/FileAttachment'
+import { getCurrentLanguage } from '@/i18n/config'
 import type { MessageAttachment } from '@/types'
 
 /**
@@ -29,9 +30,10 @@ export const FilesPanel: React.FC = () => {
   allAttachments.sort((a, b) => b.timestamp - a.timestamp)
 
   // Group by date
+  const locale = getCurrentLanguage()
   const grouped: Record<string, typeof allAttachments> = {}
   for (const item of allAttachments) {
-    const date = new Date(item.timestamp).toLocaleDateString()
+    const date = new Date(item.timestamp).toLocaleDateString(locale)
     if (!grouped[date]) grouped[date] = []
     grouped[date].push(item)
   }

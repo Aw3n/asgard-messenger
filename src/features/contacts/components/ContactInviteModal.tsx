@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
+import { asgardToZ32Id } from '@/utils/invite'
 import { useTranslation } from 'react-i18next'
 
 interface ContactInviteModalProps {
@@ -16,11 +17,17 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
   const identity = useIdentityStore((s) => s.identity)
   const addToast = useUIStore((s) => s.addToast)
   const [copied, setCopied] = useState(false)
+  const [copiedKeet, setCopiedKeet] = useState(false)
 
   // Generate invite link from public key
   const inviteKey = identity?.keyPair.publicKey
     ? `asgard://invite/${identity.keyPair.publicKey}?name=${encodeURIComponent(identity.profile?.displayName || '')}`
     : ''
+
+  // COMPATIBILITÉ KEET/Pear : identifiant z-base-32 (52 caractères) — le format
+  // d'écosystème Holepunch (hypercore-id-encoding). Le partager permet d'être
+  // ajouté depuis Keet/Pear ; le champ d'ajout Asgard l'accepte aussi.
+  const keetId = identity?.keyPair.publicKey ? asgardToZ32Id(identity.keyPair.publicKey) : null
 
   const handleCopy = () => {
     if (!inviteKey) return
@@ -34,6 +41,14 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
     if (!identity?.keyPair.publicKey) return
     navigator.clipboard.writeText(identity.keyPair.publicKey)
     addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
+  }
+
+  const handleShareKeetId = () => {
+    if (!keetId) return
+    navigator.clipboard.writeText(keetId)
+    setCopiedKeet(true)
+    addToast({ type: 'success', title: t('contacts.keetIdCopied'), duration: 2000 })
+    setTimeout(() => setCopiedKeet(false), 3000)
   }
 
   return (
@@ -98,6 +113,35 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
             </button>
           </div>
         </div>
+
+        {/* Keet/Pear compatible id (z-base-32) */}
+        {keetId && (
+          <div className="mb-4">
+            <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+              {t('contacts.keetId')}
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={keetId}
+                className="flex-1 bg-asgard-black/30 border border-asgard-border/30 rounded-xl px-3 py-2.5 text-xs text-asgard-text-secondary font-mono truncate focus:outline-none"
+              />
+              <button
+                onClick={handleShareKeetId}
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  copiedKeet
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-asgard-nordic/20 text-asgard-glacier hover:bg-asgard-nordic/30'
+                }`}
+              >
+                {copiedKeet ? t('common.copied') : t('common.copy')}
+              </button>
+            </div>
+            <p className="text-xs text-asgard-text-muted mt-1.5">
+              {t('contacts.keetIdHint')}
+            </p>
+          </div>
+        )}
 
         {/* Info */}
         <div className="bg-asgard-nordic/5 border border-asgard-nordic/10 rounded-xl p-3 mb-4">

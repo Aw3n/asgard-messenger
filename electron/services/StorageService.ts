@@ -4,15 +4,20 @@ import fs from 'fs/promises'
 import crypto from 'crypto'
 
 /**
- * StorageService — manages persistent local storage using Corestore + Hyperbee + Hyperblobs.
+ * StorageService — manages persistent local storage using Corestore + Hyperbee.
  *
  * Runs in the Electron main process. Provides structured storage for messages,
  * contacts, groups, and file blobs. All data is stored in userData/asgard-data/.
+ *
+ * CONFORMITÉ HOLEPUNCH : les blobs de fichiers sont stockés sur le filesystem
+ * (voir putBlob/getBlob) — décision de robustesse assumée (limites IPC).
+ * L'instance Hyperblobs n'est PAS initialisée : son API officielle
+ * (put → id objet { block, blockOffset, blockLength, offset, length }) est
+ * déclarée dans electron/types.d.ts pour toute future migration.
  */
 export class StorageService {
   private corestore: CorestoreInstance | null = null
   private bees: Map<string, HyperbeeInstance> = new Map()
-  private blobs: HyperblobsInstance | null = null
   private initialized = false
   private dataPath = ''
   private blobsPath = ''
@@ -21,7 +26,10 @@ export class StorageService {
   private watchCallbacks: Map<string, (version: number) => void> = new Map()
 
   /**
-   * Initialize the storage layer — creates Corestore, default Hyperbee, and Hyperblobs.
+   * Initialize the storage layer — creates Corestore and the default Hyperbee.
+   * CONFORMITÉ HOLEPUNCH : le core 'blobs' Hyperblobs n'est plus ouvert — il était
+   * initialisé mais jamais lu ni écrit (putBlob/getBlob utilisent le filesystem),
+   * et se retrouvait répliqué P2P via corestore.replicate() pour rien.
    */
   async initialize(): Promise<void> {
     if (this.initialized) return
@@ -35,7 +43,6 @@ export class StorageService {
       // Dynamic imports for ESM-only packages
       const Corestore = (await import('corestore')).default
       const Hyperbee = (await import('hyperbee')).default
-      const Hyperblobs = (await import('hyperblobs')).default
 
       // Initialize Corestore at the data path
       this.corestore = new Corestore(this.dataPath) as unknown as CorestoreInstance
@@ -48,11 +55,6 @@ export class StorageService {
       const defaultCore = this.corestore.get({ name: 'default' })
       await defaultCore.ready()
       this.bees.set('default', new Hyperbee(defaultCore, { keyEncoding: 'utf-8', valueEncoding: 'json' }) as unknown as HyperbeeInstance)
-
-      // Initialize Hyperblobs for file attachments
-      const blobsCore = this.corestore.get({ name: 'blobs' })
-      await blobsCore.ready()
-      this.blobs = new Hyperblobs(blobsCore) as unknown as HyperblobsInstance
 
       this.initialized = true
       console.log('[StorageService] Initialized at', this.dataPath)
@@ -1967,7 +1969,9 @@ export class StorageService {
 
   /**
    * Get a partial range of a blob.
-   * OPTIMIZATION: Uses Hyperblobs get() with start/length for partial reads.
+   * Uses fs.open/fs.read with positional read for partial reads — évite de
+   * charger le blob entier en mémoire. (Les commentaires précédents citaient
+   * à tort Hyperblobs.get() : les blobs sont stockés sur le filesystem.)
    * Useful for streaming large files or resuming downloads.
    */
   async getBlobRange(id: string, start: number, length: number): Promise<Buffer | null> {
@@ -2159,13 +2163,14 @@ export class StorageService {
    * Clear all data (factory reset).
    */
   async clearAll(): Promise<void> {
-    // Close all bees
+    // CONFORMITÉ HOLEPUNCH : Hyperbee.close() existe bien (hyperbee 2.27.3,
+    // index.js:1278) — les bees DOIVENT être fermées AVANT corestore.close()
+    // et la suppression du dossier, sinon les handles ouverts sur les fichiers
+    // supprimés provoquent des erreurs d'écriture.
     for (const [, bee] of this.bees) {
-      // Hyperbee doesn't have a close method in all versions
-      void bee
+      await bee.close().catch(() => {})
     }
     this.bees.clear()
-    this.blobs = null
 
     // Close corestore
     if (this.corestore) {
@@ -2563,14 +2568,19 @@ export class StorageService {
 
   /**
    * Destroy and clean up.
+   * CONFORMITÉ HOLEPUNCH : ferme chaque bee (Hyperbee.close()) avant le
+   * corestore — l'ordre inverse laisse des sessions Hypercore pendantes.
    */
   async destroy(): Promise<void> {
+    for (const [, bee] of this.bees) {
+      await bee.close().catch(() => {})
+    }
+    this.bees.clear()
+
     if (this.corestore) {
       await (this.corestore as unknown as { close: () => Promise<void> }).close()
       this.corestore = null
     }
-    this.bees.clear()
-    this.blobs = null
     this.initialized = false
   }
 }
@@ -2618,10 +2628,17 @@ interface HyperbeeInstance {
   version: number
 }
 
+interface HyperbeeWatchSnapshot {
+  version: number
+}
+
 interface HyperbeeWatcher {
   ready: () => Promise<void>
   close: () => Promise<void>
-  [Symbol.asyncIterator]: () => AsyncIterator<[{ version: number }, { version: number }]>
+  // CONFORMITÉ HOLEPUNCH (hyperbee/index.js:1606) : l'itérateur yield
+  // [currentSnapshot, previousSnapshot] — des snapshots Hyperbee complets
+  // (exposant .version), pas des objets littéraux { version }.
+  [Symbol.asyncIterator]: () => AsyncIterator<[HyperbeeWatchSnapshot, HyperbeeWatchSnapshot]>
 }
 
 interface HyperbeeBatch {
@@ -2629,14 +2646,6 @@ interface HyperbeeBatch {
   del: (key: string) => Promise<void>
   flush: () => Promise<void>
   close: () => Promise<void>
-}
-
-interface HyperblobsInstance {
-  put: (data: Buffer, opts?: { blockSize?: number }) => Promise<number>
-  get: (id: number, opts?: { start?: number; length?: number; wait?: boolean; timeout?: number }) => Promise<Buffer | null>
-  clear: (id: number) => Promise<void>
-  createReadStream: (id: number, opts?: { start?: number; end?: number }) => NodeJS.ReadableStream
-  createWriteStream: () => NodeJS.WritableStream & { id: number }
 }
 
 export interface SerializedMessage {

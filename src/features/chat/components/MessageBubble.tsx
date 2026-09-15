@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 import { formatMessageTime } from '@/utils/time'
+import { useUIStore } from '@/stores/uiStore'
 import { FileAttachment } from './FileAttachment'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { LinkPreview } from './LinkPreview'
 import type { Message } from '@/types'
 
 interface MessageBubbleProps {
@@ -13,6 +15,8 @@ interface MessageBubbleProps {
   senderName?: string
   senderAvatar?: string
   showSender?: boolean
+  /** CHAT SETTINGS (collapseMessages): consecutive message from the same sender — compact layout */
+  compact?: boolean
   onReply?: (message: Message) => void
   onEdit?: (message: Message) => void
   onDelete?: (message: Message) => void
@@ -32,6 +36,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   isOwn,
   senderName,
   showSender = false,
+  compact = false,
   onReply,
   onEdit,
   onDelete,
@@ -41,6 +46,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onPin,
 }) => {
   const { t } = useTranslation()
+  // CHAT SETTINGS: timestamps, seconds, read status ticks and density
+  const chatSettings = useUIStore((s) => s.settings.chat)
+  // PRIVACY SETTINGS (privacy.linkPreviews): first URL of the message gets a
+  // preview card when the user opted in — metadata is fetched by the main
+  // process only, nothing leaves the app when the setting is off.
+  const linkPreviewUrl = useUIStore.getState().settings.privacy.linkPreviews
+    ? message.content?.match(/\bhttps?:\/\/[^\s<>()[\]"']+/)?.[0]?.replace(/[.,;:!?)]+$/, '')
+    : undefined
   const [showActions, setShowActions] = useState(false)
   const [showContextMenu, setShowContextMenu] = useState(false)
 
@@ -61,7 +74,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.15 }}
       className={cn(
-        'group flex px-4 py-0.5 message-enter',
+        'group flex message-enter',
+        // CHAT SETTINGS (density + collapseMessages): vertical rhythm per row
+        compact ? 'py-0 px-4' : chatSettings.density === 'compact' ? 'py-0.5 px-4' : chatSettings.density === 'cozy' ? 'py-1 px-4' : 'py-1.5 px-4',
         isOwn ? 'flex-row-reverse' : 'flex-row',
         'items-end gap-2'
       )}
@@ -100,7 +115,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {/* Main bubble */}
         <div
           className={cn(
-            'px-3 py-2 rounded-2xl relative',
+            'px-3 rounded-2xl relative',
+            // CHAT SETTINGS (density): bubble padding
+            chatSettings.density === 'compact' ? 'py-1.5' : chatSettings.density === 'cozy' ? 'py-2' : 'py-2.5',
             isOwn ? 'message-bubble-own' : 'message-bubble-other',
           )}
         >
@@ -108,6 +125,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {message.content && (
             <div className="text-sm text-white leading-5 message-content">
               <MarkdownRenderer content={message.content} />
+              {linkPreviewUrl && <LinkPreview url={linkPreviewUrl} />}
             </div>
           )}
 
@@ -132,13 +150,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
         </div>
 
-        {/* Timestamp + status */}
-        <div className={cn('flex items-center gap-1 mt-0.5 px-1', isOwn ? 'flex-row-reverse' : 'flex-row')}>
-          <span className="text-xxs text-asgard-text-muted">
-            {formatMessageTime(message.timestamp)}
-          </span>
-          {isOwn && <MessageStatusIcon status={message.status} />}
-        </div>
+        {/* Timestamp + status — CHAT SETTINGS: timestamps/seconds hidden via
+            chat.showTimestamps / chat.showSeconds ; read ticks via chat.showReadStatus.
+            In collapsed mode the timestamp only shows for the last message of a group. */}
+        {(chatSettings.showTimestamps || (isOwn && chatSettings.showReadStatus)) && (
+          <div className={cn('flex items-center gap-1 mt-0.5 px-1', isOwn ? 'flex-row-reverse' : 'flex-row')}>
+            {chatSettings.showTimestamps && !compact && (
+              <span className="text-xxs text-asgard-text-muted">
+                {formatMessageTime(message.timestamp, { withSeconds: chatSettings.showSeconds })}
+              </span>
+            )}
+            {isOwn && chatSettings.showReadStatus && <MessageStatusIcon status={message.status} />}
+          </div>
+        )}
 
         {/* Reactions */}
         {message.reactions && message.reactions.length > 0 && (

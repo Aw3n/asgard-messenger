@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { QRCodeModal } from '@/features/contacts/components/QRCodeModal'
 import { mediaDeviceService, type MediaDeviceInfo } from '@/services/MediaDeviceService'
 import { SUPPORTED_LANGUAGES, changeLanguage, getCurrentLanguage } from '@/i18n/config'
+import { PRESENCE_CHOICES, presenceMeta } from '@/utils/presence'
 import { TrashManager } from './components/TrashManager'
 import { ThemeSelector } from './components/ThemeSelector'
 import { DownloadHistory } from './components/DownloadHistory'
@@ -17,7 +18,6 @@ import { ShareLinksManager } from './components/ShareLinksManager'
 import { FavoritesManager } from './components/FavoritesManager'
 import { BlockedPeersManager } from './components/BlockedPeersManager'
 import { PageTransition } from '@/components/ui/PageTransition'
-import { secretKeyToSeedPhrase } from '@/services/SeedPhraseService'
 import type { Theme, UserStatus } from '@/types'
 
 type SettingsSection = 'profile' | 'appearance' | 'language' | 'notifications' | 'privacy' | 'security' | 'network' | 'devices' | 'storage' | 'chat' | 'media' | 'accessibility' | 'about'
@@ -128,7 +128,11 @@ const ProfileSection: React.FC = () => {
   // CRITICAL FIX: Status change is instant — no need to click Save
   const handleStatusChange = async (newStatus: UserStatus) => {
     await storeSetStatus(newStatus)
-    addToast({ type: 'success', title: `${t('settings.status')}: ${statusOptions.find(o => o.value === newStatus)?.label ?? newStatus}`, duration: 2000 })
+    addToast({
+      type: 'success',
+      title: `${t('settings.status')}: ${t(presenceMeta(newStatus).labelKey)}`,
+      duration: 2000,
+    })
   }
 
   const handleAvatarChange = () => {
@@ -160,12 +164,10 @@ const ProfileSection: React.FC = () => {
     addToast({ type: 'success', title: t('settings.avatarRemoved') })
   }
 
-  const statusOptions: { value: UserStatus; label: string; color: string }[] = [
-    { value: 'online', label: t('common.online'), color: 'bg-green-500' },
-    { value: 'away', label: t('common.away'), color: 'bg-yellow-500' },
-    { value: 'busy', label: t('common.busy'), color: 'bg-red-500' },
-    { value: 'invisible', label: t('common.invisible'), color: 'bg-gray-500' },
-  ]
+  // Les quatre choix viennent de src/utils/presence.ts : la page Contacts propose
+  // la même liste, dans le même ordre, avec les mêmes pastilles et les mêmes
+  // libellés traduits — plus de seconde palette ni de second vocabulaire.
+  const statusOptions = PRESENCE_CHOICES
 
   return (
     <div>
@@ -204,8 +206,8 @@ const ProfileSection: React.FC = () => {
                     : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
                 }`}
               >
-                <span className={`w-2.5 h-2.5 rounded-full ${opt.color}`} />
-                {opt.label}
+                <span className={`w-2.5 h-2.5 rounded-full ${opt.dot}`} />
+                {t(opt.labelKey)}
               </button>
             ))}
           </div>
@@ -302,7 +304,9 @@ const LanguageSection: React.FC = () => {
                 : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
             }`}
           >
-            <span className="text-xl">{lang.flag}</span>
+            <span className="w-8 h-6 shrink-0 rounded-md border border-asgard-border flex items-center justify-center text-[10px] font-semibold tracking-widest opacity-80">
+              {lang.code.toUpperCase()}
+            </span>
             <span className="flex-1 text-left font-medium">{lang.name}</span>
             {currentLang === lang.code && (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -318,6 +322,32 @@ const LanguageSection: React.FC = () => {
 
 // ─── Appearance Section ───────────────────────────────────────────────────────
 
+/**
+ * Les trois modes du thème et les trois tailles de caractère, chacun avec sa
+ * clé traduite.
+ *
+ * Comme les onglets de la page Contacts, ces boutons rendaient leur
+ * identifiant brut (`dark`, `small`…) : du mot anglais à l'écran dans les 25
+ * langues, avec en plus un paramètre de boucle nommé `t` qui masquait la
+ * fonction de traduction. Les clés `settings.dark|light|system` dormaient
+ * dans le catalogue depuis le début, jamais câblées ; les quatre clés de
+ * taille y ont été ajoutées (`settings.fontSize`, `fontSmall|Medium|Large`).
+ * `capitalize` est retiré en même temps : les libellés traduits portent leur
+ * propre casse, et la règle Tailwind aurait écrit « En Ligne » là où l'on met
+ * « En ligne ».
+ */
+const THEME_CHOICES: { id: Theme; labelKey: string }[] = [
+  { id: 'dark', labelKey: 'settings.dark' },
+  { id: 'light', labelKey: 'settings.light' },
+  { id: 'system', labelKey: 'settings.system' },
+]
+
+const FONT_SIZE_CHOICES = [
+  { id: 'small', labelKey: 'settings.fontSmall' },
+  { id: 'medium', labelKey: 'settings.fontMedium' },
+  { id: 'large', labelKey: 'settings.fontLarge' },
+] as const
+
 const AppearanceSection: React.FC = () => {
   const { theme, setTheme, settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
@@ -328,19 +358,19 @@ const AppearanceSection: React.FC = () => {
       <div className="space-y-6">
         {/* Theme */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">Theme</label>
+          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.theme')}</label>
           <div className="flex gap-3">
-            {(['dark', 'light', 'system'] as Theme[]).map((t) => (
+            {THEME_CHOICES.map(({ id, labelKey }) => (
               <button
-                key={t}
-                onClick={() => setTheme(t)}
-                className={`flex-1 py-3 rounded-xl border text-sm font-medium capitalize transition-colors ${
-                  theme === t
+                key={id}
+                onClick={() => setTheme(id)}
+                className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${
+                  theme === id
                     ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
                     : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
                 }`}
               >
-                {t}
+                {t(labelKey)}
               </button>
             ))}
           </div>
@@ -351,19 +381,19 @@ const AppearanceSection: React.FC = () => {
 
         {/* Font size */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">Font Size</label>
+          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.fontSize')}</label>
           <div className="flex gap-3">
-            {(['small', 'medium', 'large'] as const).map((s) => (
+            {FONT_SIZE_CHOICES.map(({ id, labelKey }) => (
               <button
-                key={s}
-                onClick={() => updateSettings({ fontSize: s })}
-                className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
-                  settings.fontSize === s
+                key={id}
+                onClick={() => updateSettings({ fontSize: id })}
+                className={`flex-1 py-2 rounded-xl border text-sm transition-colors ${
+                  settings.fontSize === id
                     ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
                     : 'border-asgard-border text-asgard-text-secondary hover:bg-asgard-surface-alt'
                 }`}
               >
-                {s}
+                {t(labelKey)}
               </button>
             ))}
           </div>
@@ -453,7 +483,7 @@ return (
           <ToggleRow
             label={t('settings.linkPreviews')}
             description={t('settings.linkPreviewsDesc')}
-            checked={priv.linkPreviews ?? true}
+            checked={priv.linkPreviews ?? false}
             onChange={(v) => updateSettings({ privacy: { ...priv, linkPreviews: v } })}
           />
 
@@ -474,11 +504,14 @@ const SecuritySection: React.FC = () => {
   const [copied, setCopied] = useState(false)
   const [seedPhrase, setSeedPhrase] = useState<string>('')
 
-  const handleShowSeed = () => {
-    if (!identity) return
+  const handleShowSeed = async () => {
+    // COHÉRENCE ARCHI : l'IPC identity:exportSeedPhrase lit la source de
+    // vérité disque (même code que importSeedPhrase → round-trip garanti)
+    // au lieu de reconstituer la phrase depuis le store renderer, dont le
+    // persist écrase secretKey à ''.
     try {
-      const phrase = secretKeyToSeedPhrase(identity.keyPair.secretKey)
-      setSeedPhrase(phrase)
+      const words = await window.asgard.identity.exportSeedPhrase()
+      setSeedPhrase(words.join(' '))
       setShowSeed(true)
     } catch (err) {
       console.error('Failed to generate seed phrase:', err)
@@ -816,12 +849,43 @@ return (
 const NetworkSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
   const net = settings.network
   const [isSuspending, setIsSuspending] = useState(false)
   const swarmSuspended = useNetworkStore((s) => s.swarmSuspended)
   const setSwarmSuspended = useNetworkStore((s) => s.setSwarmSuspended)
   const status = useNetworkStore((s) => s.status)
   const [peerScores, setPeerScores] = useState<Record<string, { latency: number; score: number }>>({})
+  const [firewallStatus, setFirewallStatus] = useState<'configured' | 'needs-admin' | 'not-configured' | 'checking'>('checking')
+  const [isConfiguringFirewall, setIsConfiguringFirewall] = useState(false)
+
+  // Check firewall status on mount
+  useEffect(() => {
+    window.asgard.firewall.getStatus().then(setFirewallStatus).catch(() => setFirewallStatus('not-configured'))
+  }, [])
+
+  const handleConfigureFirewall = async () => {
+    setIsConfiguringFirewall(true)
+    try {
+      // Try silent configuration first
+      await window.asgard.firewall.configure()
+      let status = await window.asgard.firewall.getStatus()
+      if (status === 'not-configured') {
+        // Try UAC elevation
+        const result = await window.asgard.firewall.runAsAdmin()
+        status = result ? 'configured' : 'not-configured'
+      }
+      setFirewallStatus(status)
+      if (status === 'configured') {
+        addToast({ type: 'success', title: t('settings.firewallSuccess') })
+      } else {
+        addToast({ type: 'warning', title: t('settings.firewallFailed') })
+      }
+    } catch {
+      addToast({ type: 'error', title: t('settings.firewallFailed') })
+    }
+    setIsConfiguringFirewall(false)
+  }
 
   // Fetch peer scores periodically
   useEffect(() => {
@@ -873,6 +937,47 @@ return (
       <div>
         <SectionHeader title={t('settings.network')} subtitle={t('settings.networkSubtitle')} />
         <div className="space-y-4">
+          {/* Firewall status card */}
+          <div className="glass rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  firewallStatus === 'configured'
+                    ? 'bg-green-500/15 text-green-400'
+                    : firewallStatus === 'checking'
+                    ? 'bg-yellow-500/15 text-yellow-400'
+                    : 'bg-red-500/15 text-red-400'
+                }`}>
+                  {firewallStatus === 'configured' ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-asgard-text-primary">{t('settings.firewall')}</p>
+                  <p className="text-xs text-asgard-text-muted">
+                    {firewallStatus === 'configured'
+                      ? t('settings.firewallConfigured')
+                      : firewallStatus === 'checking'
+                      ? t('settings.firewallChecking')
+                      : t('settings.firewallNotConfigured')}
+                  </p>
+                </div>
+              </div>
+              {firewallStatus !== 'configured' && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleConfigureFirewall}
+                  disabled={isConfiguringFirewall}
+                >
+                  {isConfiguringFirewall ? t('settings.firewallConfiguring') : t('settings.firewallConfigure')}
+                </Button>
+              )}
+            </div>
+          </div>
+
           <div className="glass rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-asgard-text-primary">{t('settings.connectionStatus')}</p>

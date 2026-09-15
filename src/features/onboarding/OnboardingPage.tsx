@@ -7,9 +7,9 @@ import { useUIStore } from '@/stores/uiStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Avatar } from '@/components/ui/Avatar'
-import { secretKeyToSeedPhrase } from '@/services/SeedPhraseService'
+import { Icon } from '@/components/ui/Icon'
 
-type Step = 'welcome' | 'create' | 'seed' | 'profile' | 'done'
+type Step = 'welcome' | 'create' | 'seed' | 'profile' | 'done' | 'restore'
 
 /**
  * OnboardingPage — first-run experience.
@@ -31,12 +31,12 @@ export const OnboardingPage: React.FC = () => {
     setIsCreating(true)
     try {
       await createIdentity()
-      // Generate seed phrase from the newly created identity
-      const currentIdentity = useIdentityStore.getState().identity
-      if (currentIdentity) {
-        const phrase = secretKeyToSeedPhrase(currentIdentity.keyPair.secretKey)
-        setSeedPhrase(phrase)
-      }
+      // COHÉRENCE ARCHI : la seed phrase vient de l'IPC identity:exportSeedPhrase
+      // (source de vérité disque, exactement le code inverse de
+      // importSeedPhrase → round-trip garanti) plutôt que d'une reconstitution
+      // renderer depuis le store, dont le persist écrase secretKey à ''.
+      const words = await window.asgard.identity.exportSeedPhrase()
+      setSeedPhrase(words.join(' '))
       setStep('seed')
     } catch {
       addToast({ type: 'error', title: t('onboarding.createFailed'), duration: 4000 })
@@ -68,7 +68,7 @@ export const OnboardingPage: React.FC = () => {
 
       <AnimatePresence mode="wait">
         {step === 'welcome' && (
-          <WelcomeStep key="welcome" onNext={() => setStep('create')} />
+          <WelcomeStep key="welcome" onNext={() => setStep('create')} onRestore={() => setStep('restore')} />
         )}
         {step === 'create' && (
           <CreateStep key="create" onCreate={handleCreateIdentity} isCreating={isCreating} />
@@ -90,6 +90,24 @@ export const OnboardingPage: React.FC = () => {
         {step === 'done' && (
           <DoneStep key="done" identity={identity} onFinish={handleFinish} />
         )}
+        {step === 'restore' && (
+          <RestoreStep
+            key="restore"
+            onRestored={() => {
+              // COHÉRENCE RESTAURATION : importSeedPhrase sauvegarde l'identité
+              // restaurée avec un displayName par défaut (User-xxxx) et
+              // RestoreStep vient de recharger le store (loadIdentity).
+              // Pré-remplir l'étape profile depuis l'identité restaurée pour
+              // refléter l'état réel du disque, au lieu d'un champ vide qui
+              // laisse croire que le profil a été perdu.
+              const restored = useIdentityStore.getState().identity
+              setDisplayName(restored?.profile.displayName ?? '')
+              setAbout(restored?.profile.about ?? '')
+              setStep('profile')
+            }}
+            onBack={() => setStep('welcome')}
+          />
+        )}
       </AnimatePresence>
     </div>
   )
@@ -103,7 +121,7 @@ const stepVariants = {
   exit: { opacity: 0, y: -20, scale: 0.98 },
 }
 
-const WelcomeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
+const WelcomeStep: React.FC<{ onNext: () => void; onRestore: () => void }> = ({ onNext, onRestore }) => {
   const { t } = useTranslation()
   return (
   <motion.div
@@ -148,9 +166,9 @@ const WelcomeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       transition={{ delay: 0.4 }}
       className="text-asgard-text-muted mb-10 leading-relaxed"
     >
-      No servers. No accounts. No surveillance.
+      {t('onboarding.noServersLine')}
       <br />
-      Pure peer-to-peer communication, secured by cryptography.
+      {t('onboarding.p2pSecuredLine')}
     </motion.p>
 
     {/* Feature list */}
@@ -160,13 +178,15 @@ const WelcomeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       transition={{ delay: 0.5 }}
       className="grid grid-cols-3 gap-4 mb-10"
     >
-      {[
-        { icon: '🔐', label: t('onboarding.feature.e2e') },
-        { icon: '🌐', label: t('onboarding.feature.noServer') },
-        { icon: '🛡️', label: t('onboarding.feature.zeroData') },
-      ].map((f) => (
+      {([
+        { icon: 'lock', label: t('onboarding.feature.e2e') },
+        { icon: 'globe', label: t('onboarding.feature.noServer') },
+        { icon: 'shield', label: t('onboarding.feature.zeroData') },
+      ] as const).map((f) => (
         <div key={f.label} className="glass rounded-2xl p-4 text-center">
-          <div className="text-2xl mb-2">{f.icon}</div>
+          <div className="flex items-center justify-center h-8 mb-2 text-asgard-glacier">
+            <Icon name={f.icon} size={28} />
+          </div>
           <div className="text-xs text-asgard-text-secondary font-medium">{f.label}</div>
         </div>
       ))}
@@ -176,9 +196,13 @@ const WelcomeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.6 }}
+      className="space-y-3"
     >
       <Button size="lg" fullWidth onClick={onNext}>
         {t('onboarding.enterRealm')}
+      </Button>
+      <Button size="lg" fullWidth onClick={onRestore} variant="ghost">
+        {t('onboarding.restoreIdentity')}
       </Button>
     </motion.div>
   </motion.div>
@@ -232,7 +256,7 @@ const CreateStep: React.FC<{ onCreate: () => void; isCreating: boolean }> = ({
       </div>
 
       <Button size="lg" fullWidth onClick={onCreate} loading={isCreating}>
-        {isCreating ? 'Generating keys…' : t('onboarding.createAccount')}
+        {isCreating ? t('onboarding.generatingKeys') : t('onboarding.createAccount')}
       </Button>
     </div>
   </motion.div>
@@ -268,14 +292,14 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
   >
     <div className="glass rounded-3xl p-8 border border-asgard-border">
       <h2 className="text-2xl font-bold text-asgard-text-primary text-center mb-6">
-        Set Up Your Profile
+        {t('onboarding.setUpProfile')}
       </h2>
 
       {/* Avatar preview */}
       <div className="flex justify-center mb-6">
         <div className="relative">
           <Avatar
-            name={displayName || 'You'}
+            name={displayName || t('onboarding.you')}
             publicKey={identity?.keyPair.publicKey}
             size="xl"
             status="online"
@@ -311,7 +335,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
       </div>
 
       <Button size="lg" fullWidth onClick={onSave} disabled={!displayName.trim()}>
-        Continue
+        {t('onboarding.continue')}
       </Button>
     </div>
   </motion.div>
@@ -362,7 +386,7 @@ const SeedStep: React.FC<{ seedPhrase: string; onNext: () => void }> = ({ seedPh
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4">
           <p className="text-xs text-red-400 text-center">
             <strong>{t('onboarding.neverShare')}</strong>
-            <br />Anyone with these words can access your account.
+            <br />{t('settings.recoveryPhraseWarning')}
           </p>
         </div>
 
@@ -386,7 +410,7 @@ const SeedStep: React.FC<{ seedPhrase: string; onNext: () => void }> = ({ seedPh
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-online">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
-              Copied!
+              {t('settings.copied')}
             </>
           ) : (
             <>
@@ -412,7 +436,7 @@ const SeedStep: React.FC<{ seedPhrase: string; onNext: () => void }> = ({ seedPh
         </label>
 
         <Button size="lg" fullWidth onClick={onNext} disabled={!confirmed}>
-          Continue
+          {t('onboarding.continue')}
         </Button>
       </div>
     </motion.div>
@@ -463,6 +487,89 @@ const DoneStep: React.FC<{
     <Button size="lg" fullWidth onClick={onFinish}>
       {t('onboarding.finish')}
     </Button>
+  </motion.div>
+  )
+}
+
+// RestoreStep — restore identity from seed phrase
+const RestoreStep: React.FC<{ onRestored: () => void; onBack: () => void }> = ({ onRestored, onBack }) => {
+  const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
+  const [seedInput, setSeedInput] = useState('')
+  const [isRestoring, setIsRestoring] = useState(false)
+
+  const handleRestore = async () => {
+    const words = seedInput.trim().split(/\s+/).filter(w => w.length > 0)
+    if (words.length !== 24) {
+      addToast({ type: 'error', title: t('onboarding.seedPhraseInvalid'), duration: 4000 })
+      return
+    }
+    setIsRestoring(true)
+    try {
+      const result = await window.asgard.identity.importSeedPhrase(words)
+      if (result) {
+        // Reload identity into store
+        await useIdentityStore.getState().loadIdentity()
+        addToast({ type: 'success', title: t('onboarding.identityRestored'), duration: 4000 })
+        onRestored()
+      } else {
+        addToast({ type: 'error', title: t('onboarding.restoreFailed'), duration: 4000 })
+      }
+    } catch (err) {
+      console.error('[Onboarding] Restore failed:', err)
+      addToast({ type: 'error', title: t('onboarding.restoreFailed'), duration: 4000 })
+    } finally {
+      setIsRestoring(false)
+    }
+  }
+
+  return (
+  <motion.div
+    variants={stepVariants}
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    transition={{ duration: 0.3 }}
+    className="max-w-md mx-4 relative z-10"
+  >
+    <div className="glass rounded-3xl p-8 border border-asgard-border">
+      <div className="flex justify-center mb-6">
+        <div className="w-16 h-16 rounded-2xl bg-asgard-glacier/20 border border-asgard-glacier/20 flex items-center justify-center">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-asgard-glacier" strokeWidth="1.5">
+            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-bold text-asgard-text-primary text-center mb-2">
+        {t('onboarding.restoreIdentity')}
+      </h2>
+      <p className="text-asgard-text-secondary text-center text-sm mb-6 leading-relaxed">
+        {t('onboarding.restoreDesc')}
+      </p>
+
+      <div className="mb-6">
+        <textarea
+          value={seedInput}
+          onChange={(e) => setSeedInput(e.target.value)}
+          placeholder={t('onboarding.seedPhrasePlaceholder')}
+          className="w-full h-32 px-4 py-3 rounded-xl bg-asgard-surface border border-asgard-border text-asgard-text-primary placeholder-asgard-text-muted text-sm resize-none focus:outline-none focus:ring-2 focus:ring-asgard-glacier/50"
+          disabled={isRestoring}
+        />
+        <p className="text-xs text-asgard-text-muted mt-2">
+          {seedInput.trim().split(/\s+/).filter(w => w.length > 0).length} / 24 {t('onboarding.words')}
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <Button size="lg" fullWidth onClick={handleRestore} loading={isRestoring}>
+          {isRestoring ? t('onboarding.restoring') : t('onboarding.restoreIdentity')}
+        </Button>
+        <Button size="lg" fullWidth onClick={onBack} variant="ghost">
+          {t('onboarding.back')}
+        </Button>
+      </div>
+    </div>
   </motion.div>
   )
 }

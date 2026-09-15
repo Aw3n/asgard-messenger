@@ -2,32 +2,41 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { translations } from './translations'
 
+/**
+ * Langues prises en charge. Pas de drapeau émoji : un drapeau n'est pas un
+ * caractère mais une suite de deux indicateurs régionaux (U+1F1E6…U+1F1FF)
+ * qu'une police doit savoir composer. Linux n'impose aucune police émoji, et
+ * Noto Color Emoji elle-même ne contient aucun drapeau — le rendu y est donc
+ * soit un rectangle vide, soit les deux lettres brutes. La liste affiche
+ * désormais le code en lettrines, avec le même chemin de code que le nom de la
+ * langue : identique sur les trois systèmes.
+ */
 export const SUPPORTED_LANGUAGES = [
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'pt', name: 'Português', flag: '🇵🇹' },
-  { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' },
-  { code: 'da', name: 'Dansk', flag: '🇩🇰' },
-  { code: 'fi', name: 'Suomi', flag: '🇫🇮' },
-  { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
-  { code: 'hr', name: 'Hrvatski', flag: '🇭🇷' },
-  { code: 'et', name: 'Eesti', flag: '🇪🇪' },
-  { code: 'hu', name: 'Magyar', flag: '🇭🇺' },
-  { code: 'lv', name: 'Latviešu', flag: '🇱🇻' },
-  { code: 'lt', name: 'Lietuvių', flag: '🇱🇹' },
-  { code: 'mt', name: 'Malti', flag: '🇲🇹' },
-  { code: 'pl', name: 'Polski', flag: '🇵🇱' },
-  { code: 'sk', name: 'Slovenčina', flag: '🇸🇰' },
-  { code: 'sl', name: 'Slovenščina', flag: '🇸🇮' },
-  { code: 'cs', name: 'Čeština', flag: '🇨🇿' },
-  { code: 'bg', name: 'Български', flag: '🇧🇬' },
-  { code: 'ga', name: 'Gaeilge', flag: '🇮🇪' },
-  { code: 'ro', name: 'Română', flag: '🇷🇴' },
-  { code: 'uk', name: 'Українська', flag: '🇺🇦' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'fr', name: 'Français' },
+  { code: 'nl', name: 'Nederlands' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'it', name: 'Italiano' },
+  { code: 'es', name: 'Español' },
+  { code: 'pt', name: 'Português' },
+  { code: 'el', name: 'Ελληνικά' },
+  { code: 'da', name: 'Dansk' },
+  { code: 'fi', name: 'Suomi' },
+  { code: 'sv', name: 'Svenska' },
+  { code: 'hr', name: 'Hrvatski' },
+  { code: 'et', name: 'Eesti' },
+  { code: 'hu', name: 'Magyar' },
+  { code: 'lv', name: 'Latviešu' },
+  { code: 'lt', name: 'Lietuvių' },
+  { code: 'mt', name: 'Malti' },
+  { code: 'pl', name: 'Polski' },
+  { code: 'sk', name: 'Slovenčina' },
+  { code: 'sl', name: 'Slovenščina' },
+  { code: 'cs', name: 'Čeština' },
+  { code: 'bg', name: 'Български' },
+  { code: 'ga', name: 'Gaeilge' },
+  { code: 'ro', name: 'Română' },
+  { code: 'uk', name: 'Українська' },
+  { code: 'en', name: 'English' },
 ] as const
 
 export type LanguageCode = typeof SUPPORTED_LANGUAGES[number]['code']
@@ -48,11 +57,16 @@ i18n
     defaultNS: 'translation',
   })
 
+// Keep the main process in sync so the native tray menu uses the same
+// language (see electron/tray.ts — the main process has no i18next).
+try { window.asgard?.setLanguage?.(savedLang) } catch { /* preload not ready */ }
+
 export function changeLanguage(lang: string): void {
   i18n.changeLanguage(lang)
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('asgard-language', lang)
   }
+  window.asgard?.setLanguage?.(lang)
 }
 
 export function getCurrentLanguage(): string {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { Icon } from '@/components/ui/Icon'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useIdentityStore } from '@/stores/identityStore'
@@ -10,8 +11,10 @@ import { cryptoService } from '@/services/CryptoService'
 import { chatService } from '@/services/ChatService'
 import { formatPublicKey } from '@/utils/id'
 import { formatLastSeen } from '@/utils/time'
+import { fromNetworkStatus, presenceMeta, isLivePresence } from '@/utils/presence'
 import type { Contact } from '@/types'
 import { useTranslation } from 'react-i18next'
+import { getCurrentLanguage } from '@/i18n/config'
 
 interface ContactDetailViewProps {
   contact: Contact
@@ -188,20 +191,17 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
           <p className="text-sm text-asgard-text-muted mt-0.5">@{contact.remoteName}</p>
         )}
 
-        {/* Status badge */}
+        {/* Status badge — pastille ET libellé viennent de src/utils/presence.ts, la
+            même source que l'avatar et les sélecteurs : plus de palette parallèle
+            (bg-green-400 ici, .status-online ailleurs) ni de quatrième liste de
+            libellés. */}
         <div className="flex flex-col items-center gap-1 mt-3">
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${
-              contact.status === 'online' ? 'bg-green-400' :
-              contact.status === 'away' ? 'bg-yellow-400' :
-              contact.status === 'busy' ? 'bg-red-400' :
-              'bg-gray-500'
-            }`} />
+            <span className={`w-2 h-2 rounded-full ${presenceMeta(contact.status).dot}`} />
             <span className="text-xs text-asgard-text-muted">
-              {contact.status === 'online' ? t('common.online') :
-               contact.status === 'away' ? t('common.away') :
-               contact.status === 'busy' ? t('common.busy') :
-               contact.lastSeen ? formatLastSeen(contact.lastSeen) : t('common.offline')}
+              {isLivePresence(contact.status)
+                ? t(presenceMeta(contact.status).labelKey)
+                : contact.lastSeen ? formatLastSeen(contact.lastSeen) : t('common.offline')}
             </span>
             {contact.verified && (
               <span className="ml-2 text-xs text-asgard-glacier bg-asgard-glacier/10 px-2 py-0.5 rounded-full">
@@ -253,7 +253,7 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
         )}
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider">{t('common.added')}</span>
-          <span className="text-sm text-asgard-text-secondary">{new Date(contact.addedAt).toLocaleDateString()}</span>
+          <span className="text-sm text-asgard-text-secondary">{new Date(contact.addedAt).toLocaleDateString(getCurrentLanguage())}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider">{t('common.relation')}</span>
@@ -277,31 +277,39 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
           </button>
         </div>
         {dhtProfile ? (() => {
-          // CRITICAL FIX: Show actual DHT status, not always green.
-          // DHT profiles can be stale (app closed without updating DHT).
-          // Use both the status field AND the timestamp to determine real state.
+          // CRITICAL FIX: Reconcile P2P connection status with DHT profile status.
+          // Une liaison P2P vivante est l'autorité de présence : l'enregistrement
+          // DHT, lui, peut avoir des minutes. Mais « vivante » ne veut pas dire « en
+          // ligne » — un pair qui déclare « occupé » est connecté, et forcer
+          // 'online' ici faisait mentir ce panneau alors que l'en-tête de la
+          // conversation, lui, affichait le statut déclaré.
+          const hasLivePresence = isLivePresence(contact.status)
           const STALE_THRESHOLD = 5 * 60 * 1000 // 5 minutes — older than this = stale
           const age = Date.now() - dhtProfile.timestamp
           const isStale = age > STALE_THRESHOLD
-          const dhtStatus = isStale ? 'offline' : (dhtProfile.status || 'online')
-          const statusColor =
-            dhtStatus === 'online' ? 'bg-green-400' :
-            dhtStatus === 'away' ? 'bg-yellow-400' :
-            dhtStatus === 'dnd' ? 'bg-red-400' :
-            'bg-asgard-border'
-          const statusLabel =
-            dhtStatus === 'online' ? t('common.available') :
-            dhtStatus === 'away' ? t('common.away') :
-            dhtStatus === 'dnd' ? t('common.dnd') :
-            t('common.offline')
+          // The DHT carries the NETWORK vocabulary ('dnd'), the UI the product one
+          // (« occupé »). Normalize first — this panel used to print the raw token
+          // and to invent "online" whenever the record had no status at all.
+          const declared = fromNetworkStatus(dhtProfile.status)
+          // En présence P2P, c'est le statut déclaré qui s'affiche ; sinon
+          // l'enregistrement DHT, avec son contrôle de fraîcheur.
+          const dhtStatus = hasLivePresence ? contact.status : (isStale ? 'offline' : declared)
+          // La pastille vient de presenceMeta() : mêmes classes `status-*` que
+          // l'avatar, au lieu d'une palette Tailwind parallèle (bg-green-400…).
+          const { dot, labelKey } = presenceMeta(dhtStatus)
+          const statusLabel = hasLivePresence
+            ? `${t(presenceMeta(contact.status).labelKey)} (P2P)`
+            : dhtStatus === 'online'
+              ? t('common.available')
+              : t(labelKey)
           return (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${statusColor}`} />
+              <span className={`w-2 h-2 rounded-full ${dot}`} />
               <span className="text-xs text-asgard-text-muted">{statusLabel}</span>
-              {isStale && (
-                <span className="text-xs text-asgard-text-muted/60" title={t('contacts.updatedAt', { time: formatLastSeen(dhtProfile.timestamp) })}>
-                  ⏱ {formatLastSeen(dhtProfile.timestamp)}
+              {isStale && !hasLivePresence && (
+                <span className="text-xs text-asgard-text-muted/60 inline-flex items-center gap-1" title={t('contacts.updatedAt', { time: formatLastSeen(dhtProfile.timestamp) })}>
+                  <Icon name="clock" size={12} /> {formatLastSeen(dhtProfile.timestamp)}
                 </span>
               )}
               <span className="text-xs text-asgard-text-muted ml-auto">

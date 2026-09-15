@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Virtuoso } from 'react-virtuoso'
 import { useContactStore } from '@/stores/contactStore'
@@ -10,23 +10,43 @@ import { Button } from '@/components/ui/Button'
 import { PageTransition } from '@/components/ui/PageTransition'
 import { formatLastSeen } from '@/utils/time'
 import { formatPublicKey } from '@/utils/id'
+import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
+import { PRESENCE_CHOICES, presenceMeta, fromNetworkStatus, isLivePresence } from '@/utils/presence'
 import { p2pService } from '@/services/P2PService'
 import { cryptoService } from '@/services/CryptoService'
 import { ContactDetailView } from './components/ContactDetailView'
 import { QRCodeModal } from './components/QRCodeModal'
 import { ContactInviteModal } from './components/ContactInviteModal'
-import type { Contact } from '@/types'
+import type { Contact, UserStatus } from '@/types'
 import { useTranslation } from 'react-i18next'
 
 type Tab = 'all' | 'online' | 'favorites' | 'blocked'
-type UserStatus = 'online' | 'away' | 'offline' | 'dnd'
 
-const STATUS_CONFIG: Record<UserStatus, { label: string; color: string; icon: string }> = {
-  online: { label: 'Online', color: 'bg-green-500', icon: '🟢' },
-  away: { label: 'Away', color: 'bg-yellow-500', icon: '🟡' },
-  dnd: { label: 'Do Not Disturb', color: 'bg-red-500', icon: '🔴' },
-  offline: { label: 'Offline', color: 'bg-gray-500', icon: '⚫' },
-}
+/**
+ * Les quatre onglets, dans l'ordre d'affichage, chacun avec sa clé traduite.
+ *
+ * Ils rendaient leur identifiant brut (`all`, `online`, `favorites`,
+ * `blocked`), donc du mot anglais dans les 25 langues — et le paramètre de la
+ * boucle s'appelait `t`, ce qui masquait la fonction `t` de la traduction : le
+ * libellé n'aurait pas pu être affiché correctement même s'il avait existé.
+ *
+ * Trois étiquettes existent déjà ailleurs dans le catalogue et sont réutilisées
+ * telles quelles (le dépôt connaît ces emprunts : l'onboarding et
+ * ConversationInfoPanel lisent des clés `settings.*`) ; recopier leurs valeurs
+ * sous `contacts.*` aurait créé des doublons qui dérivent à la première
+ * retouche. Seul « Bloqués » a été ajouté (`contacts.tabBlocked`),
+ * `contacts.blocked` étant une phrase de notification, « Contact bloqué ».
+ *
+ * L'onglet « En ligne » groupe tous les statuts vivants — en ligne, absent,
+ * occupé : un pair absent est présent, le retirer de l'onglet le ferait
+ * disparaître de la vue alors qu'il est joignable.
+ */
+const TABS: { id: Tab; labelKey: string }[] = [
+  { id: 'all', labelKey: 'settings.all' },
+  { id: 'online', labelKey: 'common.online' },
+  { id: 'favorites', labelKey: 'settings.favorites' },
+  { id: 'blocked', labelKey: 'contacts.tabBlocked' },
+]
 
 /**
  * ContactsPage — full contacts management interface.
@@ -38,24 +58,24 @@ export const ContactsPage: React.FC = () => {
   const [showQRModal, setShowQRModal] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
-  const [userStatus, setUserStatus] = useState<UserStatus>('online')
   const [showStatusMenu, setShowStatusMenu] = useState(false)
-  const [statusMessage, setStatusMessage] = useState('')
+  // Notre propre présence vient du profil (identityStore), plus d'un état local
+  // lu une seule fois dans le DHT : la liste des contacts, le bandeau et
+  // l'avatar montrent donc la même valeur que les Préférences, et elle se met à
+  // jour dès qu'elle change ailleurs.
+  const identity = useIdentityStore((s) => s.identity)
+  const setProfileStatus = useIdentityStore((s) => s.setStatus)
+  const userStatus: UserStatus = identity?.profile.status ?? 'online'
 
-  // Load current status on mount
-  useEffect(() => {
-    window.asgard.network.getCurrentStatus().then((s) => {
-      if (s?.status) setUserStatus(s.status as UserStatus)
-      if (s?.message) setStatusMessage(s.message)
-    }).catch(() => {})
-  }, [])
-
-  const handleStatusChange = async (newStatus: UserStatus) => {
-    setUserStatus(newStatus)
+  const handleStatusChange = (newStatus: UserStatus) => {
     setShowStatusMenu(false)
-    try {
-      await window.asgard.network.publishStatus(newStatus, statusMessage || undefined)
-    } catch {}
+    // identityStore is the single write path: it persists the profile, publishes
+    // the privacy-gated status to the DHT, and the ChatService / GroupService
+    // subscriptions broadcast it to peers and groups immediately. This handler
+    // used to call `network.publishStatus()` on its own — a DHT-only write with
+    // no profile change, so the 30 s re-publish loop (which reads the profile)
+    // silently reverted it: the menu looked broken.
+    setProfileStatus(newStatus).catch(() => {})
   }
 
   const { getFilteredContacts, getFavorites, getBlocked, searchQuery, setSearchQuery } =
@@ -65,7 +85,10 @@ export const ContactsPage: React.FC = () => {
     const all = getFilteredContacts()
     switch (tab) {
       case 'online':
-        return all.filter((c) => c.status === 'online')
+        // « En ligne » au sens large : un contact qui a déclaré « absent » ou
+        // « occupé » est là, lui — l'ancien test `=== 'online'` les masquait de
+        // l'onglet alors qu'ils restent joignables.
+        return all.filter((c) => isLivePresence(c.status))
       case 'favorites':
         return getFavorites()
       case 'blocked':
@@ -90,8 +113,8 @@ export const ContactsPage: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className={`w-3 h-3 rounded-full ${STATUS_CONFIG[userStatus].color} ring-2 ring-asgard-surface hover:ring-asgard-nordic/50 transition-all`}
-                title={STATUS_CONFIG[userStatus].label}
+                className={`w-3 h-3 rounded-full ${presenceMeta(userStatus).dot} ring-2 ring-asgard-surface hover:ring-asgard-nordic/50 transition-all`}
+                title={t(presenceMeta(userStatus).labelKey)}
               />
               <AnimatePresence>
                 {showStatusMenu && (
@@ -101,16 +124,16 @@ export const ContactsPage: React.FC = () => {
                     exit={{ opacity: 0, y: -5 }}
                     className="absolute top-full left-0 mt-2 w-48 bg-asgard-surface border border-asgard-border rounded-lg shadow-lg z-50 py-1"
                   >
-                    {(Object.keys(STATUS_CONFIG) as UserStatus[]).map((status) => (
+                    {PRESENCE_CHOICES.map((choice) => (
                       <button
-                        key={status}
-                        onClick={() => handleStatusChange(status)}
+                        key={choice.value}
+                        onClick={() => handleStatusChange(choice.value)}
                         className={`w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-asgard-surface-alt transition-colors ${
-                          userStatus === status ? 'bg-asgard-nordic/10' : ''
+                          userStatus === choice.value ? 'bg-asgard-nordic/10' : ''
                         }`}
                       >
-                        <span className={`w-3 h-3 rounded-full ${STATUS_CONFIG[status].color}`} />
-                        <span className="text-asgard-text-primary">{STATUS_CONFIG[status].label}</span>
+                        <span className={`w-3 h-3 rounded-full ${choice.dot}`} />
+                        <span className="text-asgard-text-primary">{t(choice.labelKey)}</span>
                       </button>
                     ))}
                   </motion.div>
@@ -144,7 +167,10 @@ export const ContactsPage: React.FC = () => {
                         addContact({
                           publicKey: c.publicKey,
                           displayName: c.displayName,
-                          status: (c.status as 'online' | 'away' | 'offline' | 'dnd') || 'offline',
+                          // Normaliser plutôt que caster : une valeur réseau brute
+                          // ('dnd') a pu être persistée jadis dans le store de
+                          // contacts par le refresh DHT.
+                          status: fromNetworkStatus(c.status),
                           relation: (c.relation as 'contact' | 'favorite' | 'blocked') || 'contact',
                           verified: c.verified ?? false,
                           addedAt: c.addedAt ?? Date.now(),
@@ -222,17 +248,20 @@ export const ContactsPage: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex gap-1 px-3 pb-2 flex-shrink-0">
-          {(['all', 'online', 'favorites', 'blocked'] as Tab[]).map((t) => (
+          {TABS.map(({ id, labelKey }) => (
+            // plus de `capitalize` : les identifiants anglais en minuscules en
+            // dépendaient, les libellés traduits portent déjà leur casse
+            // (« En ligne », pas « En Ligne »)
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg capitalize transition-colors ${
-                tab === t
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                tab === id
                   ? 'bg-asgard-nordic/30 text-asgard-glacier border border-asgard-nordic/40'
                   : 'text-asgard-text-muted hover:text-asgard-text-secondary hover:bg-asgard-surface-alt border border-transparent'
               }`}
             >
-              {t}
+              {t(labelKey)}
             </button>
           ))}
         </div>
@@ -294,7 +323,15 @@ export const ContactsPage: React.FC = () => {
 
 // ─── Contact Item ─────────────────────────────────────────────────────────────
 
-const ContactItem: React.FC<{ contact: Contact; isSelected: boolean; onClick: () => void }> = ({ contact, isSelected, onClick }) => (
+const ContactItem: React.FC<{ contact: Contact; isSelected: boolean; onClick: () => void }> = ({ contact, isSelected, onClick }) => {
+  const { t } = useTranslation()
+  // Un contact « hors ligne » (y compris un pair en mode invisible) garde la
+  // dernière connexion vue ; sinon c'est le statut déclaré qui s'affiche, avec le
+  // même libellé que partout ailleurs — « Online » était en dur et non traduit.
+  const statusLabel = isLivePresence(contact.status)
+    ? t(presenceMeta(contact.status).labelKey)
+    : null
+  return (
   <motion.button
     layout
     onClick={onClick}
@@ -313,11 +350,10 @@ const ContactItem: React.FC<{ contact: Contact; isSelected: boolean; onClick: ()
     <div className="flex-1 min-w-0">
       <p className="text-sm font-medium text-asgard-text-primary truncate">{contact.displayName}</p>
       <p className="text-xs text-asgard-text-muted">
-        {contact.status === 'online'
-          ? 'Online'
-          : contact.lastSeen
-          ? formatLastSeen(contact.lastSeen)
-          : formatPublicKey(contact.publicKey)}
+        {statusLabel
+          ?? (contact.lastSeen
+            ? formatLastSeen(contact.lastSeen)
+            : formatPublicKey(contact.publicKey))}
       </p>
     </div>
     {contact.relation === 'favorite' && (
@@ -326,7 +362,8 @@ const ContactItem: React.FC<{ contact: Contact; isSelected: boolean; onClick: ()
       </svg>
     )}
   </motion.button>
-)
+  )
+}
 
 // ─── Add Contact Modal ────────────────────────────────────────────────────────
 
@@ -336,9 +373,42 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [error, setError] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const addContact = useContactStore((s) => s.addContact)
+  const getContact = useContactStore((s) => s.getContact)
   const addToast = useUIStore((s) => s.addToast)
   const identity = useIdentityStore((s) => s.identity)
   const { t } = useTranslation()
+
+  // UX COPY/PASTE : un lien d'invitation complet (asgard://invite/<key>?name=)
+  // collé dans le champ remplit automatiquement la clé ET le nom
+  // d'affichage — même parsing que les deep links (parseInviteInput).
+  const handlePublicKeyChange = (value: string) => {
+    if (value.toLowerCase().includes('asgard://')) {
+      const parsed = parseInviteInput(value)
+      if (parsed) {
+        setPublicKey(parsed.publicKey)
+        if (parsed.name && !displayName.trim()) setDisplayName(parsed.name)
+        setError('')
+        return
+      }
+    }
+    setPublicKey(value)
+    setError('')
+  }
+
+  // UX COPY/PASTE : colle depuis le presse-papiers et accepte indifféremment
+  // une clé publique brute ou un lien d'invitation complet.
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      const parsed = parseInviteInput(text)
+      if (!parsed) return
+      setPublicKey(parsed.publicKey)
+      if (parsed.name) setDisplayName(parsed.name)
+      setError('')
+    } catch {
+      setError(t('common.clipboardError'))
+    }
+  }
 
   const handleAdd = async () => {
     const trimmedKey = publicKey.trim()
@@ -346,7 +416,14 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setError(t('contacts.error.publicKeyRequired'))
       return
     }
-    if (trimmedKey.length < 32) {
+    // COMPATIBILITÉ KEET + VALIDATION STRICTE : normalise les trois formats
+    // d'identifiant (DER hex 88 Asgard, hex 64 Hypercore, z32 52 Keet/Pear,
+    // liens pear:// keet://) en clé canonique. L'ancienne garde
+    // `length < 32` laissait passer n'importe quel texte assez long — le
+    // contact atteignait alors joinTopic/Buffer.from(key,'hex') qui décodent
+    // silencieusement en octets nuls : contact fantôme jamais connectable.
+    const normalizedKey = normalizeAsgardPublicKey(trimmedKey)
+    if (!normalizedKey) {
       setError(t('contacts.error.invalidPublicKey'))
       return
     }
@@ -357,23 +434,46 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     setIsAdding(true)
     try {
-      // Add contact to local store
-      addContact({
-        publicKey: trimmedKey,
-        displayName: displayName.trim() || `User-${trimmedKey.slice(0, 8)}`,
+      // COHÉRENCE (pattern ModalContainer) : rejet des doublons — impossible
+      // d'ajouter deux fois la même personne, quel que soit le format de clé
+      // saisi (la normalisation rend les doublons inter-formats détectables).
+      if (getContact(normalizedKey)) {
+        setError(t('modal.error.contactExists'))
+        return
+      }
+
+      // Add contact to local store — clé TOUJOURS canonique (88 hex DER),
+      // donc les doublons « même personne, deux formats » (hex 64 vs DER 88)
+      // sont désormais détectés par getContact.
+      const contact: Contact = {
+        publicKey: normalizedKey,
+        displayName: displayName.trim() || `User-${normalizedKey.slice(24, 32)}`,
         status: 'offline',
         relation: 'contact',
         verified: false,
         addedAt: Date.now(),
-      })
+      }
+      addContact(contact)
+
+      // COHÉRENCE PERSISTANCE : même double persistance que ModalContainer
+      // (store localStorage via zustand/persist + Hyperbee) — le contact
+      // survit aussi au flux de restauration « reload contacts from Hyperbee ».
+      try {
+        await window.asgard.storage.saveContact(contact)
+      } catch (err) {
+        console.warn('[AddContact] Hyperbee persistence failed (localStorage persist remains):', err)
+      }
 
       // CRITICAL: Derive and join the Hyperswarm conversation topic
       // so both peers can discover each other via Hyperswarm DHT.
       // Once connected, ChatService's peer:connected listener will
       // automatically send contact:request to the peer.
+      // COHÉRENCE KEET : le topic est dérivé depuis la clé CANONIQUE (DER 88) —
+      // le pair distant dérive depuis la sienne ; une clé hex 64 ou z32 non
+      // normalisée produirait un topic différent et aucune connexion.
       const topic = await cryptoService.deriveConversationTopic(
         identity.keyPair.publicKey,
-        trimmedKey
+        normalizedKey
       )
       await p2pService.joinTopic(topic)
 
@@ -407,13 +507,30 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </p>
 
         <div className="space-y-4">
-          <Input
-            label={t('contacts.publicKey')}
-            placeholder={t('contacts.publicKeyPlaceholder')}
-            value={publicKey}
-            onChange={(e) => { setPublicKey(e.target.value); setError('') }}
-            error={error}
-          />
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-asgard-text-secondary">
+                {t('contacts.publicKey')}
+              </label>
+              <button
+                type="button"
+                onClick={handlePasteFromClipboard}
+                className="flex items-center gap-1.5 text-xs text-asgard-text-muted hover:text-asgard-glacier transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                </svg>
+                {t('common.paste')}
+              </button>
+            </div>
+            <Input
+              placeholder={t('contacts.publicKeyPlaceholder')}
+              value={publicKey}
+              onChange={(e) => handlePublicKeyChange(e.target.value)}
+              error={error}
+            />
+          </div>
           <Input
             label={t('contacts.displayNameOptional')}
             placeholder={t('contacts.displayNamePlaceholder')}

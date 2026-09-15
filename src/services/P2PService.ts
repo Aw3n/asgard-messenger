@@ -156,6 +156,13 @@ class P2PService extends EventEmitter {
       console.warn('[P2PService] Could not fetch initial status:', err)
     }
 
+    // CONNECTIVITÉ CRITIQUE : réconciliation immédiate de la LISTE des pairs.
+    // getStatus() ne donne qu'un COMPTE : un pair déjà connecté ici avant
+    // l'enregistrement des listeners ci-dessus restait invisible pour toujours
+    // (voir syncPeersFromMain). Sans ça : `peers=0` avec un socket vivant, donc
+    // aucune présence émise et aucun message reçu → présence unilatérale.
+    await this.syncPeersFromMain()
+
     // PERFORMANCE: Reduced polling to 30s as fallback — real-time updates come from onStatusUpdate
     this.statusInterval = setInterval(async () => {
       try {
@@ -171,7 +178,85 @@ class P2PService extends EventEmitter {
       } catch {
         // Silently fail — status sync is best-effort
       }
+      // FILET DE SÉCURITÉ : tout évènement `network:peer` égaré (rechargement de
+      // fenêtre, navigation, évènement perdu) laisse sinon le renderer sur un
+      // état faux de façon permanente. 30 s de retard au pire : acceptable.
+      await this.syncPeersFromMain()
     }, 30000)
+  }
+
+  /**
+   * CONNECTIVITÉ : réconciliation de l'état des pairs du renderer avec la vérité
+   * du process principal (pull `network:getLivePeers`).
+   *
+   * Les évènements de pair sont uniquement PUSH et émis UNE fois. Le swarm, lui,
+   * démarre dès `network:setIdentity` : un pair qui se connecte avant
+   * l'abonnement des listeners est donc connecté pour de vrai (le process
+   * principal a le socket, `send()` y écrit même avec succès — d'où un
+   * « ✅ sendRawMessage OK » mensonger côté ChatService) alors que le renderer
+   * reste à `peers=0`. Il n'émet alors ni `presence:update` ni message, et ne
+   * reçoit rien : chaque côté voit l'autre hors ligne, ou pire unilatéral.
+   *
+   * Idempotent : n'ajoute/retire/émet que sur divergence réelle, pour ne pas
+   * relancer les minuteurs de grâce de ChatService à chaque cycle. `force` est
+   * utilisé juste après l'abonnement des services (ChatService/CallService/…) :
+   * les pairs déjà connus doivent quand même leur être rejoués, sinon leur map
+   * interne reste vide alors que la connexion est établie.
+   */
+  async syncPeersFromMain(force = false): Promise<void> {
+    let live: Awaited<ReturnType<typeof window.asgard.network.getLivePeers>>
+    try {
+      live = await window.asgard.network.getLivePeers()
+    } catch (err) {
+      console.warn('[P2PService] Peer reconciliation unavailable:', err)
+      return
+    }
+    if (!Array.isArray(live)) return
+
+    const known = useNetworkStore.getState().peers
+    const liveIds = new Set<string>()
+
+    for (const peer of live) {
+      liveIds.add(peer.id)
+      const ed25519 = peer.ed25519PublicKey ?? null
+      const missing = !known[peer.id]?.connected
+      if (missing) {
+        useNetworkStore.getState().addPeer({
+          id: peer.id,
+          publicKey: peer.publicKey,
+          remotePublicKey: peer.remotePublicKey,
+          connected: true,
+          connectedAt: Date.now(),
+        })
+        console.log('[P2PService] peer recovered by reconciliation:', peer.id.slice(0, 16))
+      }
+      if (missing || force) {
+        this.emit('peer:connected', {
+          id: peer.id, publicKey: peer.publicKey, remotePublicKey: peer.remotePublicKey,
+          ed25519PublicKey: ed25519, connected: true,
+        })
+      }
+      // Identité connue du process principal mais jamais vue par le renderer :
+      // sans ceci, `ed25519ToNoiseMap` reste vide → `mapped: false` et le
+      // ChatService ne peut adresser ni présence ni message au contact.
+      if (ed25519 && (force || this.ed25519ToNoiseMap.get(ed25519) !== peer.id)) {
+        this.ed25519ToNoiseMap.set(ed25519, peer.id)
+        this.emit('peer:identified', { peerId: peer.id, publicKey: ed25519 })
+      }
+    }
+
+    // Pairs que le renderer croit connectés alors que le socket est parti sans
+    // que l'évènement de fermeture nous soit parvenu.
+    for (const id of Object.keys(known)) {
+      if (!liveIds.has(id) && known[id]?.connected) {
+        useNetworkStore.getState().removePeer(id)
+        const ed25519 = this.getPeerPublicKey(id) ?? null
+        console.log('[P2PService] peer dropped by reconciliation:', id.slice(0, 16))
+        this.emit('peer:disconnected', {
+          id, publicKey: id, ed25519PublicKey: ed25519, connected: false,
+        })
+      }
+    }
   }
 
   /**

@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import type { MemberRole } from '@/types'
 import { useTranslation } from 'react-i18next'
+import { getCurrentLanguage } from '@/i18n/config'
 
 /**
  * GroupSettings — panel for managing group settings.
@@ -62,7 +63,7 @@ export const GroupSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             <h4 className="text-base font-semibold text-asgard-text-primary">{activeGroup.name}</h4>
             <p className="text-xs text-asgard-text-muted">
               {t('groups.memberCount', { count: activeGroup.members.length })} · {t('groups.createdAt')}{' '}
-              {new Date(activeGroup.createdAt).toLocaleDateString()}
+              {new Date(activeGroup.createdAt).toLocaleDateString(getCurrentLanguage())}
             </p>
           </div>
         </div>

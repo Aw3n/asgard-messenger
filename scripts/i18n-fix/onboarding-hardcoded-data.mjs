@@ -1,0 +1,217 @@
+/**
+ * onboarding-hardcoded-data.mjs — fix25: translations for the last hard-coded
+ * strings of OnboardingPage.tsx:
+ *
+ *   onboarding.noServersLine   — "No servers. No accounts. No surveillance."
+ *   onboarding.p2pSecuredLine  — "Pure peer-to-peer communication, secured by cryptography."
+ *   onboarding.generatingKeys  — "Generating keys…" (loading label of the create step)
+ *   onboarding.setUpProfile    — profile step title
+ *   onboarding.you             — avatar fallback name
+ *   onboarding.continue        — profile & seed step buttons
+ *
+ * "Anyone with these words can access your account." and "Copied!" reuse
+ * settings.recoveryPhraseWarning / settings.copied, already present in the
+ * 25 languages. 6 keys × 25 languages.
+ */
+export const DATA = {
+  fr: {
+    'onboarding.noServersLine': 'Pas de serveurs. Pas de comptes. Pas de surveillance.',
+    'onboarding.p2pSecuredLine': 'Communication purement pair-à-pair, sécurisée par la cryptographie.',
+    'onboarding.generatingKeys': 'Génération des clés…',
+    'onboarding.setUpProfile': 'Configurez votre profil',
+    'onboarding.you': 'Vous',
+    'onboarding.continue': 'Continuer',
+  },
+  nl: {
+    'onboarding.noServersLine': 'Geen servers. Geen accounts. Geen toezicht.',
+    'onboarding.p2pSecuredLine': 'Zuivere peer-to-peer-communicatie, beveiligd met cryptografie.',
+    'onboarding.generatingKeys': 'Sleutels genereren…',
+    'onboarding.setUpProfile': 'Stel uw profiel in',
+    'onboarding.you': 'U',
+    'onboarding.continue': 'Doorgaan',
+  },
+  de: {
+    'onboarding.noServersLine': 'Keine Server. Keine Konten. Keine Überwachung.',
+    'onboarding.p2pSecuredLine': 'Reine Peer-to-Peer-Kommunikation, durch Kryptografie abgesichert.',
+    'onboarding.generatingKeys': 'Schlüssel werden generiert…',
+    'onboarding.setUpProfile': 'Richten Sie Ihr Profil ein',
+    'onboarding.you': 'Sie',
+    'onboarding.continue': 'Fortfahren',
+  },
+  it: {
+    'onboarding.noServersLine': 'Nessun server. Nessun account. Nessuna sorveglianza.',
+    'onboarding.p2pSecuredLine': 'Comunicazione puramente peer-to-peer, protetta dalla crittografia.',
+    'onboarding.generatingKeys': 'Generazione delle chiavi…',
+    'onboarding.setUpProfile': 'Imposta il tuo profilo',
+    'onboarding.you': 'Tu',
+    'onboarding.continue': 'Continua',
+  },
+  es: {
+    'onboarding.noServersLine': 'Sin servidores. Sin cuentas. Sin vigilancia.',
+    'onboarding.p2pSecuredLine': 'Comunicación puramente punto a punto, protegida por criptografía.',
+    'onboarding.generatingKeys': 'Generando claves…',
+    'onboarding.setUpProfile': 'Configura tu perfil',
+    'onboarding.you': 'Tú',
+    'onboarding.continue': 'Continuar',
+  },
+  pt: {
+    'onboarding.noServersLine': 'Sem servidores. Sem contas. Sem vigilância.',
+    'onboarding.p2pSecuredLine': 'Comunicação puramente ponto a ponto, protegida por criptografia.',
+    'onboarding.generatingKeys': 'A gerar chaves…',
+    'onboarding.setUpProfile': 'Configure o seu perfil',
+    'onboarding.you': 'Você',
+    'onboarding.continue': 'Continuar',
+  },
+  el: {
+    'onboarding.noServersLine': 'Χωρίς διακομιστές. Χωρίς λογαριασμούς. Χωρίς παρακολούθηση.',
+    'onboarding.p2pSecuredLine': 'Αμιγής επικοινωνία peer-to-peer, ασφαλισμένη με κρυπτογράφηση.',
+    'onboarding.generatingKeys': 'Δημιουργία κλειδιών…',
+    'onboarding.setUpProfile': 'Ρυθμίστε το προφίλ σας',
+    'onboarding.you': 'Εσείς',
+    'onboarding.continue': 'Συνέχεια',
+  },
+  da: {
+    'onboarding.noServersLine': 'Ingen servere. Ingen konti. Ingen overvågning.',
+    'onboarding.p2pSecuredLine': 'Ren peer-to-peer-kommunikation, sikret med kryptografi.',
+    'onboarding.generatingKeys': 'Genererer nøgler…',
+    'onboarding.setUpProfile': 'Opsæt din profil',
+    'onboarding.you': 'Dig',
+    'onboarding.continue': 'Fortsæt',
+  },
+  fi: {
+    'onboarding.noServersLine': 'Ei palvelimia. Ei tilejä. Ei valvontaa.',
+    'onboarding.p2pSecuredLine': 'Täysin vertaisverkkoon perustuva viestintä, suojattuna kryptografialla.',
+    'onboarding.generatingKeys': 'Luodaan avaimia…',
+    'onboarding.setUpProfile': 'Määritä profiilisi',
+    'onboarding.you': 'Sinä',
+    'onboarding.continue': 'Jatka',
+  },
+  sv: {
+    'onboarding.noServersLine': 'Inga servrar. Inga konton. Ingen övervakning.',
+    'onboarding.p2pSecuredLine': 'Ren peer-to-peer-kommunikation, säkrad med kryptografi.',
+    'onboarding.generatingKeys': 'Genererar nycklar…',
+    'onboarding.setUpProfile': 'Konfigurera din profil',
+    'onboarding.you': 'Du',
+    'onboarding.continue': 'Fortsätt',
+  },
+  hr: {
+    'onboarding.noServersLine': 'Bez poslužitelja. Bez računa. Bez nadzora.',
+    'onboarding.p2pSecuredLine': 'Čista komunikacija peer-to-peer, zaštićena kriptografijom.',
+    'onboarding.generatingKeys': 'Generiranje ključeva…',
+    'onboarding.setUpProfile': 'Postavite svoj profil',
+    'onboarding.you': 'Vi',
+    'onboarding.continue': 'Nastavi',
+  },
+  et: {
+    'onboarding.noServersLine': 'Serverideta. Kontodeta. Järelvalveta.',
+    'onboarding.p2pSecuredLine': 'Puhtalt peer-to-peer-suhtlus, krüptograafiaga kaitstud.',
+    'onboarding.generatingKeys': 'Võtmete genereerimine…',
+    'onboarding.setUpProfile': 'Seadistage oma profiil',
+    'onboarding.you': 'Teie',
+    'onboarding.continue': 'Jätka',
+  },
+  hu: {
+    'onboarding.noServersLine': 'Nincs szerver. Nincs fiók. Nincs megfigyelés.',
+    'onboarding.p2pSecuredLine': 'Tiszta peer-to-peer kommunikáció, kriptográfiai védelemmel.',
+    'onboarding.generatingKeys': 'Kulcsok generálása…',
+    'onboarding.setUpProfile': 'Állítsa be a profilját',
+    'onboarding.you': 'Ön',
+    'onboarding.continue': 'Folytatás',
+  },
+  lv: {
+    'onboarding.noServersLine': 'Bez serveriem. Bez kontiem. Bez uzraudzības.',
+    'onboarding.p2pSecuredLine': 'Tīra peer-to-peer komunikācija, aizsargāta ar kriptogrāfiju.',
+    'onboarding.generatingKeys': 'Atslēgu ģenerēšana…',
+    'onboarding.setUpProfile': 'Iestatiet savu profilu',
+    'onboarding.you': 'Jūs',
+    'onboarding.continue': 'Turpināt',
+  },
+  lt: {
+    'onboarding.noServersLine': 'Be serverių. Be paskyrų. Be stebėjimo.',
+    'onboarding.p2pSecuredLine': 'Grynas peer-to-peer bendravimas, apsaugotas kriptografija.',
+    'onboarding.generatingKeys': 'Generuojami raktai…',
+    'onboarding.setUpProfile': 'Nustatykite savo profilį',
+    'onboarding.you': 'Jūs',
+    'onboarding.continue': 'Tęsti',
+  },
+  mt: {
+    'onboarding.noServersLine': 'Ebda servers. Ebda kontijiet. Ebda sorveljanza.',
+    'onboarding.p2pSecuredLine': 'Komunikazzjoni pura peer-to-peer, protetta bil-kriptografija.',
+    'onboarding.generatingKeys': 'Iġġenerar taċ-ċavetti…',
+    'onboarding.setUpProfile': 'Issettja l-profil tiegħek',
+    'onboarding.you': 'Inti',
+    'onboarding.continue': 'Kompli',
+  },
+  pl: {
+    'onboarding.noServersLine': 'Bez serwerów. Bez kont. Bez inwigilacji.',
+    'onboarding.p2pSecuredLine': 'Czysta komunikacja peer-to-peer, zabezpieczona kryptografią.',
+    'onboarding.generatingKeys': 'Generowanie kluczy…',
+    'onboarding.setUpProfile': 'Skonfiguruj swój profil',
+    'onboarding.you': 'Ty',
+    'onboarding.continue': 'Kontynuuj',
+  },
+  sk: {
+    'onboarding.noServersLine': 'Žiadne servery. Žiadne účty. Žiadny dohľad.',
+    'onboarding.p2pSecuredLine': 'Čistá komunikácia peer-to-peer, zabezpečená kryptografiou.',
+    'onboarding.generatingKeys': 'Generovanie kľúčov…',
+    'onboarding.setUpProfile': 'Nastavte si svoj profil',
+    'onboarding.you': 'Vy',
+    'onboarding.continue': 'Pokračovať',
+  },
+  sl: {
+    'onboarding.noServersLine': 'Brez strežnikov. Brez računov. Brez nadzora.',
+    'onboarding.p2pSecuredLine': 'Čista komunikacija peer-to-peer, zaščitena s kriptografijo.',
+    'onboarding.generatingKeys': 'Ustvarjanje ključev…',
+    'onboarding.setUpProfile': 'Nastavite svoj profil',
+    'onboarding.you': 'Vi',
+    'onboarding.continue': 'Nadaljuj',
+  },
+  cs: {
+    'onboarding.noServersLine': 'Žádné servery. Žádné účty. Žádný dohled.',
+    'onboarding.p2pSecuredLine': 'Čistá komunikace peer-to-peer, zabezpečená kryptografií.',
+    'onboarding.generatingKeys': 'Generování klíčů…',
+    'onboarding.setUpProfile': 'Nastavte si svůj profil',
+    'onboarding.you': 'Vy',
+    'onboarding.continue': 'Pokračovat',
+  },
+  bg: {
+    'onboarding.noServersLine': 'Без сървъри. Без акаунти. Без наблюдение.',
+    'onboarding.p2pSecuredLine': 'Изцяло peer-to-peer комуникация, защитена с криптография.',
+    'onboarding.generatingKeys': 'Генериране на ключове…',
+    'onboarding.setUpProfile': 'Настройте профила си',
+    'onboarding.you': 'Вие',
+    'onboarding.continue': 'Продължи',
+  },
+  ga: {
+    'onboarding.noServersLine': 'Gan fhreastalaithe. Gan chuntais. Gan fhaireachán.',
+    'onboarding.p2pSecuredLine': 'Cumarsáid fíor-peer-to-peer, cosanta le cripteagrafaíocht.',
+    'onboarding.generatingKeys': 'Eochracha a ghiniúint…',
+    'onboarding.setUpProfile': 'Socraigh do phróifíl',
+    'onboarding.you': 'Tú',
+    'onboarding.continue': 'Lean ar aghaidh',
+  },
+  ro: {
+    'onboarding.noServersLine': 'Fără servere. Fără conturi. Fără supraveghere.',
+    'onboarding.p2pSecuredLine': 'Comunicare pur peer-to-peer, securizată prin criptografie.',
+    'onboarding.generatingKeys': 'Se generează cheile…',
+    'onboarding.setUpProfile': 'Configurați-vă profilul',
+    'onboarding.you': 'Tu',
+    'onboarding.continue': 'Continuă',
+  },
+  en: {
+    'onboarding.noServersLine': 'No servers. No accounts. No surveillance.',
+    'onboarding.p2pSecuredLine': 'Pure peer-to-peer communication, secured by cryptography.',
+    'onboarding.generatingKeys': 'Generating keys…',
+    'onboarding.setUpProfile': 'Set Up Your Profile',
+    'onboarding.you': 'You',
+    'onboarding.continue': 'Continue',
+  },
+  uk: {
+    'onboarding.noServersLine': 'Без серверів. Без облікових записів. Без нагляду.',
+    'onboarding.p2pSecuredLine': 'Чисте peer-to-peer спілкування, захищене криптографією.',
+    'onboarding.generatingKeys': 'Генерування ключів…',
+    'onboarding.setUpProfile': 'Налаштуйте свій профіль',
+    'onboarding.you': 'Ви',
+    'onboarding.continue': 'Продовжити',
+  },
+}

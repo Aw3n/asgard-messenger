@@ -18,6 +18,7 @@
     "build:vite": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && node -e \"require('fs').writeFileSync('dist/preload/package.json', '{\\\"type\\\":\\\"commonjs\\\"}')\"",
     "build:icons": "node scripts/build-icons.js",
+    "build:emoji-font": "python scripts/build-emoji-font.py",
     "package": "npm run build && electron-builder",
     "package:win": "npm run build && electron-builder --win",
     "package:linux": "npm run build && electron-builder --linux",
@@ -27,24 +28,33 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "check:presence": "node scripts/check-presence-invariants.mjs",
+    "check:teardown": "node scripts/check-quit-teardown.mjs",
+    "check:i18n": "node scripts/check-i18n-labels.mjs",
+    "check:devtools": "node scripts/check-devtools.mjs",
+    "check:emoji": "node scripts/check-no-emoji-icons.mjs",
+    "audit:labels": "node scripts/find-hardcoded-labels.mjs",
+    "check:all": "npm run check:presence && npm run check:teardown && npm run check:i18n && npm run check:devtools && npm run check:emoji && node scripts/audit-languages.mjs",
+    "verify:build": "node scripts/verify-build-labels.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@noble/ed25519": "^3.1.0",
+    "@noble/ed25519": "^3.2.0",
     "@noble/hashes": "^2.2.0",
+    "@scure/bip39": "^2.4.0",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "autobase": "^7.28.2",
     "b4a": "^1.6.7",
-    "compact-encoding": "^2.15.0",
-    "corestore": "^7.12.4",
+    "compact-encoding": "^3.5.0",
+    "corestore": "^7.12.5",
     "date-fns": "^4.4.0",
     "eventemitter3": "^5.0.4",
     "framer-motion": "^11.3.0",
     "hyperbee": "^2.27.3",
     "hyperblobs": "^2.12.1",
-    "hypercore": "^11.35.5",
+    "hypercore": "^11.36.1",
     "hypercore-crypto": "^3.7.0",
     "hyperdht": "^6.34.0",
     "hyperdrive": "^13.3.3",
@@ -105,8 +115,6 @@
       "node_modules/corestore/**/*",
       "node_modules/protomux/**/*",
       "node_modules/sodium-native/**/*",
-      "node_modules/utp-native/**/*",
-      "node_modules/bare-buffer/**/*",
       "node_modules/bare-stream/**/*",
       "node_modules/bare-events/**/*",
       "**/*.node",
@@ -119,6 +127,14 @@
     ],
     "npmRebuild": true,
     "buildDependenciesFromSource": false,
+    "protocols": [
+      {
+        "name": "Asgard invite",
+        "schemes": [
+          "asgard"
+        ]
+      }
+    ],
     "files": [
       "dist/**/*",
       "assets/**/*"
@@ -150,11 +166,13 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "license": "LICENSE.txt"
+      "license": "LICENSE.txt",
+      "include": "build/nsis/installer.nsh",
+      "allowElevation": true
     },
     "linux": {
       "icon": "assets/icons",
-      "category": "Network",
+      "category": "Network;InstantMessaging;Chat",
       "maintainer": "Asgard Team",
       "vendor": "Asgard Team",
       "synopsis": "Decentralized P2P Messenger powered by Pear Runtime",
@@ -192,17 +210,13 @@
         "Name": "Asgard",
         "Comment": "Decentralized P2P Messenger",
         "GenericName": "Messenger",
-        "Categories": "Network;InstantMessaging;Chat;",
         "StartupWMClass": "Asgard",
         "Terminal": "false",
         "Type": "Application",
         "StartupNotify": "true"
       },
       "executableName": "asgard",
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-      "mimeTypes": [
-        "x-scheme-handler/asgard"
-      ]
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "mac": {
       "icon": "assets/icon.icns",
@@ -231,16 +245,19 @@
     "afterPack": "scripts/after-pack.js",
     "deb": {
       "depends": [
-        "libgtk-3-0",
+        "libgtk-3-0 | libgtk-3-0t64",
         "libnotify4",
         "libnss3",
+        "libxss1",
         "libxtst6",
         "libx11-xcb1",
         "xdg-utils",
-        "libatspi2.0-0",
+        "libatspi2.0-0 | libatspi2.0-0t64",
+        "libuuid1",
+        "libsecret-1-0",
         "libdrm2",
         "libgbm1",
-        "libasound2"
+        "libasound2 | libasound2t64"
       ]
     },
     "appImage": {

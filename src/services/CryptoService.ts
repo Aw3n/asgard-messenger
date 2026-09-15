@@ -46,7 +46,7 @@ export class CryptoService {
    * by Node.js crypto.generateKeyPairSync in the Electron main process.
    *
    * SPKI DER (44 bytes): 12-byte header + 32-byte raw public key
-   * PKCS8 DER (49 bytes): 16-byte header + 32-byte raw private key seed
+   * PKCS8 DER (48 bytes): 16-byte header + 32-byte raw private key seed
    */
   async importKeyPair(publicKeyHex: string, secretKeyHex: string): Promise<void> {
     console.log('[CryptoService] importKeyPair: publicKeyHex len:', publicKeyHex.length, '| secretKeyHex len:', secretKeyHex.length)

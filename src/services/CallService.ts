@@ -5,6 +5,7 @@ import { useContactStore } from '@/stores/contactStore'
 import { useUIStore } from '@/stores/uiStore'
 import { mediaDeviceService } from './MediaDeviceService'
 import { ringtoneService } from './RingtoneService'
+import { toNetworkStatus } from '@/utils/presence'
 import type { CallRecord, CallType } from '@/stores/callStore'
 
 /**
@@ -97,6 +98,14 @@ class CallService {
   private sendCanvasCtx: CanvasRenderingContext2D | null = null
   private videoFrameInterval: ReturnType<typeof setInterval> | null = null
   private tempVideo: HTMLVideoElement | null = null
+  // COHÉRENCE TRANSPORT: génération du transport vidéo courant. Chaque boucle
+  // de capture capture le numéro de génération au démarrage ; un restart
+  // (partage d'écran, changement de périphérique, passage 1:1 → mesh) incrémente
+  // la génération et les boucles obsolètes meurent au tick suivant au lieu
+  // d'encoder en double sur le nouvel encodeur (requestVideoFrameCallback ne
+  // peut pas être annulé autrement — la boucle se réenregistre tant que ses
+  // gates sont vraies, et l'encodeur recréé les rend vraies à nouveau).
+  private videoTransportGeneration = 0
 
   // PERFORMANCE: Group video transport — shared encoder for multiple peers
   // Instead of encoding N times for N peers, encode once and send to all
@@ -323,8 +332,11 @@ class CallService {
       console.log(`[CallService] 📞 Setting up incoming call: ${call.peerName} (${type})`)
 
       // DND: Auto-reject if our status is 'busy' (Ne pas déranger)
+      // Le test passe par la règle de mapping unique : « occupé » est le mot du
+      // produit, « dnd » celui du réseau, et un profil ancien persisté avec l'un
+      // ou l'autre doit produire le même comportement.
       const identity = useIdentityStore.getState().identity
-      if (identity?.profile.status === 'busy') {
+      if (toNetworkStatus(identity?.profile.status) === 'dnd') {
         console.log('[CallService] 🔕 DND active — auto-rejecting incoming call')
         p2pService.sendMessage(msg.from, 'call:reject', { reason: 'busy' }).catch(() => {})
         // Don't show the call UI — just log it in history
@@ -553,9 +565,13 @@ class CallService {
       if (this.isGroupVideoTransportRunning) {
         this.groupVideoPeers.add(msg.from)
       } else if (activeCall.type === 'video' && isNew) {
-        // If video transport isn't running yet but this is a video call,
-        // start sending video to the new participant
-        this.startVideoTransport(msg.from)
+        // COHÉRENCE MESH: appel vidéo de groupe dont le transport mesh n'est pas
+        // encore démarré (il n'avait que 2 participants). Le 3e arrivant le
+        // convertit en mesh: startVideoTransport() ne gère qu'une seule boucle
+        // d'encodage et n'enverrait qu'à un seul pair, et le late joiner
+        // recevrait la vidéo de personne. groupAudioPeers vient d'inclure
+        // msg.from → mesh complet d'un coup.
+        this.startGroupVideoTransport([...this.groupAudioPeers])
       }
 
       // MESH RESPONSE: Send our own call:participant:joined back to the new participant
@@ -943,10 +959,8 @@ class CallService {
           const newTrack = videoStream.getVideoTracks()[0]
           if (newTrack) {
             this.localStream.addTrack(newTrack)
-            // Restart video transport if in a video call
-            if (this.currentPeerId) {
-              this.restartVideoTransport(this.currentPeerId)
-            }
+            // Restart video transport if in a call
+            this.restartVideoTransportForCall()
           }
         } catch (err) {
           console.error('[CallService] Failed to get camera:', err)
@@ -997,9 +1011,7 @@ class CallService {
         useCallStore.getState().toggleScreenShare()
 
         // Restart video transport with new track
-        if (this.currentPeerId) {
-          this.restartVideoTransport(this.currentPeerId)
-        }
+        this.restartVideoTransportForCall()
       } catch {
         // User cancelled or error
         useCallStore.getState().toggleScreenShare()
@@ -1033,9 +1045,7 @@ class CallService {
     }
 
     // Restart video transport
-    if (this.currentPeerId) {
-      this.restartVideoTransport(this.currentPeerId)
-    }
+    this.restartVideoTransportForCall()
   }
 
   /**
@@ -1150,6 +1160,8 @@ class CallService {
 
     this.peerStream = null
     this.currentPeerId = null
+    // COHÉRENCE STATS: clôture la session de diagnostics à la fin de l'appel.
+    this.stopDiagnostics()
   }
 
   /**
@@ -1331,6 +1343,9 @@ class CallService {
     this.windowFramesLost = 0
     this.windowFramesReceived = 0
     this.tuneJitterBuffer()
+    // COHÉRENCE STATS: un nouvel appel démarre aussi la session de diagnostics
+    // (startDiagnostics reset les compteurs — durée, octets, pertes, switches).
+    this.startDiagnostics()
   }
 
   /**
@@ -1342,6 +1357,9 @@ class CallService {
     } else {
       this.bytesReceived += bytes
     }
+    // COHÉRENCE STATS: alimente les diagnostics d'appel (getCallDiagnostics /
+    // generateCallReport) avec les mêmes octets que le calcul de bande passante.
+    this.recordBytes(isSend ? bytes : 0, isSend ? 0 : bytes)
 
     const now = Date.now()
     if (now - this.lastBandwidthCheck >= CallService.BANDWIDTH_CHECK_INTERVAL) {
@@ -1416,6 +1434,9 @@ class CallService {
       this.tuneJitterBuffer()
       this.reconfigureAudioEncoder()
       this.reconfigureEncoder()
+      // COHÉRENCE STATS: chaque bascule de palier de qualité est un évènement
+      // de diagnostic comptabilisé (callDiagnostics.qualitySwitches).
+      this.recordQualitySwitch()
     }
 
     this.windowAudioLost = 0
@@ -2547,6 +2568,10 @@ class CallService {
       console.warn('[CallService] startVideoTransport: no video tracks')
       return
     }
+    // COHÉRENCE TRANSPORT: invalide les boucles de capture précédentes —
+    // elles vérifient la génération au tick suivant et meurent au lieu
+    // d'encoder en double sur le nouvel encodeur.
+    const generation = ++this.videoTransportGeneration
 
     console.log(`[CallService] startVideoTransport: peerId=${peerId.slice(0, 16)}, currentPeerId=${this.currentPeerId?.slice(0, 16)}, tracks=${videoTracks.length}`)
 
@@ -2572,6 +2597,7 @@ class CallService {
       console.log('[CallService] Using WebCodecs VP8 encoder for video transport →', peerId.slice(0, 16))
 
       const captureFrameWebCodecs = () => {
+        if (generation !== this.videoTransportGeneration) return
         if (!this.currentPeerId || !this.tempVideo || !this.videoEncoder || this.videoEncoder.state !== 'configured') return
         if (useCallStore.getState().isCameraOff) return
         if (this.tempVideo.readyState < 2) return
@@ -2607,6 +2633,7 @@ class CallService {
 
       if (typeof videoWithCallback.requestVideoFrameCallback === 'function') {
         const loop = () => {
+          if (generation !== this.videoTransportGeneration) return
           captureFrameWebCodecs()
           if (this.currentPeerId && this.videoEncoder && this.videoEncoder.state === 'configured') {
             videoWithCallback.requestVideoFrameCallback(loop)
@@ -2632,6 +2659,7 @@ class CallService {
       // Use requestVideoFrameCallback for frame-accurate capture
       let videoFramesSent = 0
       const captureFrame = () => {
+        if (generation !== this.videoTransportGeneration) return
         if (!this.currentPeerId || !this.sendCanvasCtx || !this.sendCanvas || !this.tempVideo) return
 
         // CRITICAL: Skip frame capture when camera is off (save bandwidth)
@@ -2724,6 +2752,7 @@ class CallService {
       let currentInterval = getAdaptiveInterval()
 
       const captureLoop = () => {
+        if (generation !== this.videoTransportGeneration) return
         if (!this.currentPeerId || !this.sendCanvasCtx || !this.sendCanvas || !this.tempVideo) return
 
         // CRITICAL: Skip frame capture when camera is off (save bandwidth)
@@ -2796,9 +2825,53 @@ class CallService {
       this.videoEncoder = null
     }
     this.useWebCodecs = false
+    // PRO QUALITY: le premier frame après un restart doit être un keyframe —
+    // la résolution peut avoir changé (écran vs caméra) et les récepteurs
+    // attendent sinon jusqu'à 3 s (KEYFRAME_INTERVAL) une image correcte.
+    this.forceKeyframe = true
 
     // Restart with current video tracks
     this.startVideoTransport(peerId)
+  }
+
+  /**
+   * COHÉRENCE MESH: relance le transport vidéo du contexte d'appel courant.
+   * Un appel de groupe (transport vidéo mesh actif, ou appel audio de groupe
+   * auquel on active la caméra / partage l'écran) doit relancer le transport
+   * MESH vers TOUS les pairs — sinon la vidéo ne partirait que vers
+   * currentPeerId (le premier participant) et les autres membres ne verraient
+   * ni le partage d'écran ni la caméra activée en cours d'appel. Les appels
+   * 1:1 relancent le transport standard.
+   */
+  private restartVideoTransportForCall(): void {
+    if (this.isGroupVideoTransportRunning && this.groupVideoPeers.size > 0) {
+      // Restart mesh : stoppe boucle + encodeur sans perdre les pairs mesh.
+      if (this.videoFrameInterval) {
+        clearInterval(this.videoFrameInterval)
+        this.videoFrameInterval = null
+      }
+      if (this.videoEncoder) {
+        try { this.videoEncoder.close() } catch {}
+        this.videoEncoder = null
+      }
+      this.useWebCodecs = false
+      this.sendCanvas = null
+      this.sendCanvasCtx = null
+      this.tempVideo = null
+      this.forceKeyframe = true
+      this.startGroupVideoTransport([...this.groupVideoPeers])
+      return
+    }
+    if (this.isGroupAudioCall) {
+      // Caméra activée / écran partagé pendant un appel de groupe audio :
+      // démarrer le transport vidéo mesh maintenant (groupAudioPeers = mesh).
+      this.forceKeyframe = true
+      this.startGroupVideoTransport([...this.groupAudioPeers])
+      return
+    }
+    if (this.currentPeerId) {
+      this.restartVideoTransport(this.currentPeerId)
+    }
   }
 
   /**
@@ -2811,6 +2884,23 @@ class CallService {
     if (!this.localStream || peerIds.length === 0) return
     const videoTracks = this.localStream.getVideoTracks()
     if (videoTracks.length === 0) return
+
+    // COHÉRENCE TRANSPORT: ferme l'éventuel encodeur d'un transport précédent.
+    // Chemin late-joiner (1:1 → mesh direct) : la boucle 1:1 meurt au tick
+    // suivant via la génération, mais son encodeur resterait ouvert —
+    // initVideoEncoder() remplace this.videoEncoder sans close() l'existant.
+    if (this.videoEncoder) {
+      try { this.videoEncoder.close() } catch {}
+      this.videoEncoder = null
+    }
+    if (this.videoFrameInterval) {
+      clearInterval(this.videoFrameInterval)
+      this.videoFrameInterval = null
+    }
+
+    // COHÉRENCE TRANSPORT: invalide les boucles de capture précédentes
+    // (1:1 comme groupe) — conversion mesh ou restart.
+    const generation = ++this.videoTransportGeneration
 
     // Store all group peers
     this.groupVideoPeers = new Set(peerIds)
@@ -2835,6 +2925,7 @@ class CallService {
       console.log('[CallService] Using WebCodecs VP8 encoder for group video transport →', peerIds.length, 'peers')
 
       const captureFrameWebCodecs = () => {
+        if (generation !== this.videoTransportGeneration) return
         if (!this.isGroupVideoTransportRunning || !this.tempVideo || !this.videoEncoder || this.videoEncoder.state !== 'configured') return
         if (useCallStore.getState().isCameraOff) return
         if (this.tempVideo.readyState < 2) return
@@ -2865,6 +2956,7 @@ class CallService {
 
       if (typeof videoWithCallback.requestVideoFrameCallback === 'function') {
         const loop = () => {
+          if (generation !== this.videoTransportGeneration) return
           captureFrameWebCodecs()
           if (this.isGroupVideoTransportRunning && this.videoEncoder && this.videoEncoder.state === 'configured') {
             videoWithCallback.requestVideoFrameCallback(loop)
@@ -2894,6 +2986,7 @@ class CallService {
     let currentInterval = getAdaptiveInterval()
 
     const captureLoop = () => {
+      if (generation !== this.videoTransportGeneration) return
       if (!this.isGroupVideoTransportRunning || !this.sendCanvasCtx || !this.tempVideo) return
       if (useCallStore.getState().isCameraOff) return
       if (this.tempVideo.readyState < 2) return
@@ -3463,7 +3556,9 @@ class CallService {
 
     // Parse header: [1 byte: flags][2 bytes: seq][4 bytes: timestamp][encoded data]
     const seq = (data[1] << 8) | data[2]
-    const ts = (data[3] << 24) | (data[4] << 16) | (data[5] << 8) | data[6]
+    // Unsigned 32-bit: après ~36 min d'appel le bit 31 du timestamp µs est set
+    // et le décalage signé produirait un timestamp négatif.
+    const ts = data[3] * 0x1000000 + (data[4] << 16) + (data[5] << 8) + data[6]
     const chunkData = data.slice(7)
 
     // Per-peer frame loss detection
@@ -3536,7 +3631,9 @@ class CallService {
 
     // Parse header: [1 byte: flags][2 bytes: seq][4 bytes: timestamp][encoded data]
     const seq = (data[1] << 8) | data[2]
-    const ts = (data[3] << 24) | (data[4] << 16) | (data[5] << 8) | data[6]
+    // Unsigned 32-bit: après ~36 min d'appel le bit 31 du timestamp µs est set
+    // et le décalage signé produirait un timestamp négatif.
+    const ts = data[3] * 0x1000000 + (data[4] << 16) + (data[5] << 8) + data[6]
     const chunkData = data.slice(7)
 
     // Frame loss detection via sequence numbers
@@ -3613,6 +3710,30 @@ class CallService {
    * Get local media stream from user's devices.
    */
   private async getLocalMedia(type: CallType): Promise<MediaStream> {
+    // MEDIA SETTINGS (default call quality): apply the user's default audio
+    // bitrate and encoder resolution BEFORE acquiring media. setAudioBitrate
+    // pins an override that wins over the adaptive tier — an explicit user
+    // choice is exactly what the override was built for.
+    const mediaPrefs = useUIStore.getState().settings.media
+    if (mediaPrefs.audioQuality === 'low') this.setAudioBitrate(CallService.OPUS_BITRATE_LOW)
+    else if (mediaPrefs.audioQuality === 'high') this.setAudioBitrate(128_000)
+    else this.setAudioBitrate(CallService.OPUS_BITRATE)
+    switch (mediaPrefs.videoQuality) {
+      case 'low':
+        CallService.VIDEO_WIDTH = 640
+        CallService.VIDEO_HEIGHT = 360
+        break
+      case 'medium':
+        CallService.VIDEO_WIDTH = 854
+        CallService.VIDEO_HEIGHT = 480
+        break
+      case 'high':
+        CallService.VIDEO_WIDTH = 1280
+        CallService.VIDEO_HEIGHT = 720
+        break
+      // 'auto' keeps the adaptive default (960×540, network-adaptive bitrate)
+    }
+
     const constraints = mediaDeviceService.buildCallConstraints(type)
     const stream = new MediaStream()
 
@@ -3748,8 +3869,8 @@ class CallService {
       }
 
       // If replacing video, restart video transport
-      if (kind === 'video' && this.currentPeerId) {
-        this.restartVideoTransport(this.currentPeerId)
+      if (kind === 'video') {
+        this.restartVideoTransportForCall()
       }
 
       console.log(`[CallService] Replaced ${kind} track with preferred device`)

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Icon } from '@/components/ui/Icon'
 
 /**
  * TitleBar — React component occupying the title bar region (38px).
@@ -92,7 +93,7 @@ export const TitleBar: React.FC = () => {
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             onClick={minimize}
           >
-            −
+            <Icon name="minimize" size={12} />
           </button>
           <button
             type="button"
@@ -102,7 +103,7 @@ export const TitleBar: React.FC = () => {
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             onClick={maximize}
           >
-            {isMaximized ? '❐' : '□'}
+            <Icon name={isMaximized ? 'restore' : 'maximize'} size={12} />
           </button>
           <button
             type="button"
@@ -112,7 +113,7 @@ export const TitleBar: React.FC = () => {
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             onClick={close}
           >
-            ×
+            <Icon name="close" size={12} />
           </button>
         </div>
       )}

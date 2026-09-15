@@ -3,6 +3,7 @@ import '@testing-library/jest-dom'
 
 // Mock Electron API for tests
 const mockAsgardAPI = {
+  setLanguage: vi.fn().mockResolvedValue(true),
   window: {
     minimize: vi.fn(),
     maximize: vi.fn(),
@@ -18,6 +19,11 @@ const mockAsgardAPI = {
     load: vi.fn().mockResolvedValue(null),
     save: vi.fn().mockResolvedValue(undefined),
     exists: vi.fn().mockResolvedValue(false),
+    exportSeedPhrase: vi.fn().mockResolvedValue(Array(24).fill('abandon')),
+    importSeedPhrase: vi.fn().mockResolvedValue({
+      publicKey: 'a'.repeat(64),
+      keyPair: { publicKey: new Uint8Array(32), secretKey: new Uint8Array(64) },
+    }),
   },
   network: {
     join: vi.fn().mockResolvedValue(undefined),
@@ -41,6 +47,8 @@ const mockAsgardAPI = {
     openExternal: vi.fn(),
     getTheme: vi.fn().mockResolvedValue('dark'),
     onThemeChange: vi.fn().mockReturnValue(() => {}),
+    getPendingDeepLink: vi.fn().mockResolvedValue(null),
+    onDeepLink: vi.fn().mockReturnValue(() => {}),
   },
 }
 

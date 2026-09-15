@@ -29,8 +29,19 @@
 
 html { scroll-behavior:smooth; }
 
+/* Police émoji de repli embarquée : le même sous-ensemble de 44 glyphes que
+   l'application (OpenMoji, CC BY-SA 4.0, voir assets/fonts/LICENSE-OpenMoji.txt).
+   Les pictogrammes de .feature-icon sont des caractères, donc des émojis : sans
+   police installée sur le système — le cas d'un Linux neuf — ils s'affichent en
+   rectangles vides. Placée en fin de pile, elle ne sert qu'en secours. */
+@font-face{
+  font-family:'Asgard Emoji';
+  src:url('fonts/asgard-emoji.woff2') format('woff2');
+  font-display:swap;
+}
+
 body {
-  font-family:'Inter',sans-serif;
+  font-family:'Inter',sans-serif,'Noto Color Emoji','Apple Color Emoji','Segoe UI Emoji','Asgard Emoji';
   background:var(--bg-base);
   color:var(--text-primary);
   overflow-x:hidden;

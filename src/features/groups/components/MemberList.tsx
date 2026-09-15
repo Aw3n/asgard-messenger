@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useGroupStore } from '@/stores/groupStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/utils/cn'
+import { presenceMeta } from '@/utils/presence'
 import type { GroupMember, MemberRole } from '@/types'
 import { useTranslation } from 'react-i18next'
 
@@ -80,6 +81,10 @@ const MemberSection: React.FC<{ title: string; members: GroupMember[]; onlineMem
 const MemberItem: React.FC<{ member: GroupMember; isOnline: boolean }> = ({ member, isOnline }) => {
   const { t } = useTranslation()
   const roleBadge = getRoleBadge(member.role, t)
+  // La pastille prend la couleur du STATUT déclaré (vert / jaune / rouge), pas un
+  // binaire « connecté ou non » : un membre « absent » et un membre « occupé » ne
+  // doivent pas porter la même pastille verte que quelqu'un d'en ligne.
+  const statusDot = presenceMeta(member.status).dot
 
   return (
     <motion.div
@@ -97,7 +102,7 @@ const MemberItem: React.FC<{ member: GroupMember; isOnline: boolean }> = ({ memb
         <div
           className={cn(
             'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-asgard-deep-black',
-            isOnline ? 'bg-asgard-online' : 'bg-asgard-text-muted/50'
+            isOnline ? statusDot : 'bg-asgard-text-muted/50'
           )}
         />
       </div>

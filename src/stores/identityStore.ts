@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { LocalIdentity, UserProfile, UserStatus } from '@/types'
 import { bytesToHexSafe } from '@/utils/bytes'
+import { toNetworkStatus, presenceMessage } from '@/utils/presence'
+import { useUIStore } from './uiStore'
 
 interface IdentityState {
   identity: LocalIdentity | null
@@ -39,7 +41,9 @@ export const useIdentityStore = create<IdentityState>()(
           const secretKeyHex = bytesToHexSafe(result.keyPair.secretKey)
           const profile: UserProfile = {
             publicKey: publicKeyHex,
-            displayName: `User-${publicKeyHex.slice(0, 8)}`,
+            // COHÉRENCE : slice(24, 32) = 8 premiers chars de la clé BRUTE —
+            // les 8 premiers chars du DER SPKI sont le préfixe constant (302a3005).
+            displayName: `User-${publicKeyHex.slice(24, 32)}`,
             status: 'online',
             createdAt: now,
             updatedAt: now,
@@ -80,7 +84,9 @@ export const useIdentityStore = create<IdentityState>()(
             const current = get().identity
             const profile: UserProfile = current?.profile ?? {
               publicKey: publicKeyHex,
-              displayName: `User-${publicKeyHex.slice(0, 8)}`,
+              // COHÉRENCE : slice(24, 32) = 8 premiers chars de la clé BRUTE —
+              // les 8 premiers chars du DER SPKI sont le préfixe constant (302a3005).
+              displayName: `User-${publicKeyHex.slice(24, 32)}`,
               status: 'online',
               createdAt: Date.now(),
               updatedAt: Date.now(),
@@ -148,20 +154,18 @@ export const useIdentityStore = create<IdentityState>()(
           }
         }
 
-        // CRITICAL FIX: Publish status to DHT and peers when status changes
-        // Map 'busy'/'invisible' to supported network statuses
+        // Publish the status to the DHT through the single mapping rule of
+        // src/utils/presence.ts, privacy gate included: this record is public, so
+        // writing `updatedProfile.status` mapped by hand leaked the real status of
+        // anyone who had hidden their presence (the P2P channel said « hors ligne »,
+        // the DHT said « online » until the next refresh).
         if (updates.status !== undefined && window.asgard?.network?.publishStatus) {
           try {
-            const networkStatus: 'online' | 'away' | 'offline' | 'dnd' =
-              updatedProfile.status === 'busy' ? 'dnd' :
-              updatedProfile.status === 'invisible' ? 'offline' :
-              updatedProfile.status === 'dnd' ? 'dnd' :
-              updatedProfile.status === 'away' ? 'away' :
-              updatedProfile.status === 'offline' ? 'offline' :
-              'online'
+            const hidePresence = !useUIStore.getState().settings.privacy.onlineStatus
+            const networkStatus = toNetworkStatus(updatedProfile.status, hidePresence)
             await window.asgard.network.publishStatus(
               networkStatus,
-              updatedProfile.customStatus
+              presenceMessage(updatedProfile)
             )
             console.log('[IdentityStore] Status published to network:', networkStatus)
           } catch (err) {

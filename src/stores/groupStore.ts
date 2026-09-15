@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import type { Group, GroupMember, GroupChannel, MemberRole, ChannelType, GroupActivity } from '@/types'
 import { generateId } from '@/utils/id'
+import { GROUP_PRESENCE_TIMEOUT, isLivePresence } from '@/utils/presence'
 
 interface GroupState {
   /** All groups indexed by ID */
@@ -138,6 +139,9 @@ interface GroupState {
 
   /** Get online members in a group */
   getOnlineMembers: (groupId: string) => string[]
+
+  /** Clean up stale presence in all groups (called periodically) */
+  cleanupStalePresence: () => void
 }
 
 /**
@@ -603,9 +607,50 @@ export const useGroupStore = create<GroupState>()(
       getOnlineMembers: (groupId) => {
         const presence = get().groupPresence[groupId]
         if (!presence) return []
+        // CRITICAL: Check both presence status AND member.lastSeen for staleness.
+        // A member is considered present if:
+        // 1. Their declared status is a live one — « en ligne », « absent » ou
+        //    « occupé ». Le filtre ne testait que 'online' : un membre absent
+        //    comptait comme déconnecté ici même alors que sa fiche de contact, elle,
+        //    l'affichait « absent » — le compte « X membres en ligne » mentait.
+        // 2. Their lastSeen is still fresh (GROUP_PRESENCE_TIMEOUT — the group
+        //    presence heartbeat is 30s, the forced re-announce stays inside it)
+        const now = Date.now()
+        const group = get().groups[groupId]
         return Object.entries(presence)
-          .filter(([_, status]) => status === 'online')
+          .filter(([publicKey, status]) => {
+            if (!isLivePresence(status)) return false
+            // Check member's lastSeen for staleness
+            const member = group?.members.find((m) => m.publicKey === publicKey)
+            if (member?.lastSeen && (now - member.lastSeen) > GROUP_PRESENCE_TIMEOUT) {
+              return false // Stale presence
+            }
+            return true
+          })
           .map(([publicKey]) => publicKey)
+      },
+
+      cleanupStalePresence: () => {
+        // CRITICAL: Clean up stale presence entries in all groups.
+        // A presence entry is stale if the member's lastSeen is older than
+        // GROUP_PRESENCE_TIMEOUT.
+        const now = Date.now()
+        set((state) => {
+          for (const groupId of Object.keys(state.groupPresence)) {
+            const group = state.groups[groupId]
+            if (!group) continue
+            for (const publicKey of Object.keys(state.groupPresence[groupId])) {
+              const member = group.members.find((m) => m.publicKey === publicKey)
+              if (member?.lastSeen && (now - member.lastSeen) > GROUP_PRESENCE_TIMEOUT) {
+                // Mark as offline
+                state.groupPresence[groupId][publicKey] = 'offline'
+                if (member) {
+                  member.status = 'offline'
+                }
+              }
+            }
+          }
+        })
       },
     })),
     {

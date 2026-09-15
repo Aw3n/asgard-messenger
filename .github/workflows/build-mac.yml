@@ -26,8 +26,10 @@ jobs:
           node-version: 22
           cache: npm
 
-      # npm install recompile les modules natifs Holepunch (sodium-native, utp-native)
+      # npm install recompile les modules natifs Holepunch (sodium-native, udx-native)
       # pour darwin, ce qui n'est possible que sur un runner macOS.
+      # (udx-native : transport d'hyperswarm 4 / hyperdht 6 — utp-native n'existe
+      # plus dans la stack et n'est pas installé.)
       # npm install (pas ci) car le lockfile est régénéré après mise à jour des deps.
       - run: npm install
 
@@ -43,6 +45,23 @@ jobs:
       - run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      # Contrôle des émojis, fait ICI et pas sur le poste de développement : macOS
+      # n'a pas le défaut de Linux (Apple Color Emoji est installée sur toute la
+      # plateforme, aucun repli n'est nécessaire pour l'interface), mais c'est
+      # aussi la seule des trois cibles où personne ne peut lancer le paquet avant
+      # toi. Le verrou source prouve qu'aucun émoji n'est revenu comme icône et
+      # que chaque émoji de contenu est couvert par le sous-ensemble embarqué ; le
+      # contrôle du paquet prouve que la police et son @font-face voyagent bien
+      # dans l'asar mac, comme elles le font sous Windows et Linux.
+      - name: Contrôler icônes et police émoji dans le paquet
+        run: |
+          set -euo pipefail
+          node scripts/check-no-emoji-icons.mjs
+          asar="$(find release -maxdepth 6 -name app.asar -path '*Asgard.app/*' | head -1)"
+          if [ -z "$asar" ]; then echo "app.asar introuvable sous release/"; ls -lR release; exit 1; fi
+          echo "contrôle de $asar"
+          node scripts/verify-build-labels.mjs --asar "$asar"
 
       - uses: actions/upload-artifact@v4
         with:

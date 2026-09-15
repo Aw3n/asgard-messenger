@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
+import { useUIStore } from '@/stores/uiStore'
 import type { Message } from '@/types'
 
 interface MessageInputProps {
@@ -32,6 +33,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const { t } = useTranslation()
   const effectivePlaceholder = placeholder ?? t('chat.typeMessage')
+  // CHAT SETTINGS: Enter sends the message, or requires Ctrl+Enter when disabled
+  const sendOnEnter = useUIStore((s) => s.settings.chat.sendOnEnter)
   const [content, setContent] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
@@ -94,9 +97,19 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, [content, pendingFiles, disabled, onSend, onFiles, handleTyping])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+    if (e.key === 'Enter') {
+      // Ctrl+Enter always sends (explicit user intent)
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        handleSend()
+        return
+      }
+      // CHAT SETTINGS: Enter sends only when sendOnEnter is enabled;
+      // otherwise Enter inserts a newline and Ctrl+Enter sends.
+      if (!e.shiftKey && sendOnEnter) {
+        e.preventDefault()
+        handleSend()
+      }
     }
     if (e.key === 'Escape' && replyTo) {
       onCancelReply?.()
@@ -169,7 +182,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm0 16.17l-1.17-1.17H4V4h16v14.17z"/>
           </svg>
           <span className="text-sm text-asgard-text-secondary">
-            This is a broadcast channel. Only the admin can post messages.
+            {t('groups.broadcastModeHint')}
           </span>
         </div>
       )}

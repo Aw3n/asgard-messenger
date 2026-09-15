@@ -51,6 +51,9 @@ const defaultSettings: AppSettings = {
     typingIndicators: true,
     onlineStatus: true,
     lastSeen: 'contacts',
+    // PRIVACY BY DEFAULT: link previews make an outbound HTTP request to the
+    // linked host — opt-in only for a privacy-first messenger.
+    linkPreviews: false,
   },
   storage: {
     autoDownload: {

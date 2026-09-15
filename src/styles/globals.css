@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Police émoji de repli ────────────────────────────────────────────────
+ * Un émoji de CONTENU (réaction reçue d'un pair, smiley converti, caractère tapé
+ * par l'utilisateur) ne peut pas être remplacé par un SVG : c'est une donnée qui
+ * voyage. Windows et macOS installent leur police émoji, Linux n'en impose
+ * aucune — sur une distribution nue, le caractère s'affiche en rectangle vide.
+ * « Asgard Emoji » est donc un sous-ensemble embarqué de 44 glyphes (OpenMoji,
+ * CC BY-SA 4.0 — voir assets/fonts/LICENSE-OpenMoji.txt), régénéré par
+ * scripts/build-emoji-font.py à partir de scripts/emoji-subset.json.
+ * Il est placé EN FIN de pile, jamais avant : les émojis système restent la
+ * norme sur les plateformes qui en ont, et ce fichier ne sert qu'en secours.
+ */
+@font-face {
+  font-family: 'Asgard Emoji';
+  src: url('../../assets/fonts/asgard-emoji.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ─── Root Variables ─────────────────────────────────────────────────────── */
 :root {
   --titlebar-height: 40px;
@@ -245,7 +264,14 @@ html {
 body {
   height: 100%;
   overflow: hidden;
-  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  /* Pile de polices multiplateforme. Les quatre derniers noms sont la pile de
+   * repli émoji : un émoji restant du CONTENU (réactions, smileys convertis, ce
+   * que tape l'utilisateur), il ne peut pas être remplacé par du SVG et doit
+   * trouver une police qui le dessine. Placés APRÈS les polices de texte, ils
+   * ne servent que pour les glyphes absents d'ailleurs — sans eux, Windows
+   * rend tout par chance (Segoe UI Emoji est installé) et Linux non. */
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, 'Ubuntu', 'DejaVu Sans', sans-serif,
+    'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Asgard Emoji';
   font-size: var(--font-size-base);
   background-color: rgb(var(--asgard-black));
   color: rgb(var(--asgard-text-primary));
@@ -290,6 +316,32 @@ body {
   outline: 2px solid rgba(var(--asgard-glacier) / 0.6);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ─── Barre de lecture audio ───────────────────────────────────────── */
+/* Piste et pouce dessinés par nous dans le widget de pièce jointe audio : le
+   contrôle natif ne suit ni la hauteur de 6 px ni le fond déjà coloré de la
+   bulle. `-webkit-appearance` est écrit en toutes lettres parce que Tailwind
+   n'émet que la forme non préfixée dans sa variante `appearance-none`. */
+input.audio-scrub {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input.audio-scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 9999px;
+  background: rgb(var(--asgard-text-primary));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* Durée inconnue (fichier pas encore lu) : le pouce se retire, la jauge reste. */
+input.audio-scrub:disabled::-webkit-slider-thumb {
+  background: rgba(var(--asgard-text-primary) / 0.35);
 }
 
 /* ─── Mica Background Effect ─────────────────────────────────────────────── */
@@ -724,4 +776,47 @@ input, textarea, button, a, [contenteditable] {
 
 .message-content a:hover {
   text-decoration: underline;
+}
+
+/* ─── Accessibility Settings Hooks (Settings → Accessibility) ────────────── */
+/* These classes are toggled on <html> by App.tsx from settings.accessibility */
+
+/* ACCESSIBILITY (highContrast): brighter borders/surfaces/text for low vision.
+   !important wins over inline custom-theme variables set on the same element. */
+.a11y-high-contrast {
+  --asgard-surface: 18 18 30 !important;
+  --asgard-surface-alt: 26 26 42 !important;
+  --asgard-border: 64 64 96 !important;
+  --asgard-border-alt: 82 82 118 !important;
+  --asgard-text-primary: 245 247 255 !important;
+  --asgard-text-secondary: 186 194 236 !important;
+  --asgard-text-muted: 132 146 226 !important;
+  --asgard-text-dim: 92 106 192 !important;
+}
+
+/* ACCESSIBILITY (reducedMotion): neutralize CSS animations/transitions.
+   framer-motion animations are handled separately via MotionConfig. */
+.a11y-reduced-motion *,
+.a11y-reduced-motion *::before,
+.a11y-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ACCESSIBILITY (keyboardNav): enhanced, always-visible keyboard focus rings */
+.a11y-keyboard-nav :focus-visible {
+  outline: 2px solid rgb(var(--asgard-glacier));
+  outline-offset: 2px;
+}
+
+/* ACCESSIBILITY (largerTouchTargets): minimum 40px hit areas for pointer input */
+.a11y-large-touch button,
+.a11y-large-touch [role='button'],
+.a11y-large-touch a,
+.a11y-large-touch input,
+.a11y-large-touch select {
+  min-height: 40px;
+  min-width: 40px;
 }

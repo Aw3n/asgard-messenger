@@ -81,6 +81,12 @@ interface MessageState {
   // File actions
   deleteFileAttachment: (messageId: string, conversationId: string, attachmentId: string) => Promise<boolean>
   downloadFileAttachment: (attachment: MessageAttachment) => Promise<string>
+  /**
+   * Publie dans le store l'URL locale (ré)solue d'une pièce jointe. Nécessaire
+   * parce que `FileService.downloadFile` mute l'objet en place : sans mise à
+   * jour immuable du store, ni la bulle ni la galerie ne se re-rendent.
+   */
+  setAttachmentLocalUrl: (messageId: string, conversationId: string, attachmentId: string, localUrl: string) => void
   renderTemplate: (id: string, variables: Record<string, string>) => string
 }
 
@@ -787,6 +793,10 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
       const deleted = await fileService.deleteSentFile(attachment.blobKey)
       if (!deleted) return false
 
+      // Le fichier n'est plus : l'URL d'objet qui servait à l'afficher ne sert
+      // plus à rien et retiendrait le buffer en mémoire pour rien.
+      fileService.releaseLocalUrl(attachment.localUrl)
+
       // Update the message to mark attachment as deleted
       set((state) => {
         const convMessages = state.messages[conversationId]
@@ -813,6 +823,26 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
       console.error('[MessageStore] deleteFileAttachment failed:', err)
       return false
     }
+  },
+
+  setAttachmentLocalUrl: (messageId, conversationId, attachmentId, localUrl) => {
+    set((state) => {
+      const convMessages = state.messages[conversationId]
+      if (!convMessages) return state
+      let changed = false
+      const next = convMessages.map((m) => {
+        if (m.id !== messageId || !m.attachments) return m
+        const target = m.attachments.find((a) => a.id === attachmentId)
+        // Idempotent : une URL déjà à jour ne doit pas déclencher de re-rendu.
+        if (!target || target.localUrl === localUrl) return m
+        changed = true
+        return {
+          ...m,
+          attachments: m.attachments.map((a) => (a.id === attachmentId ? { ...a, localUrl } : a)),
+        }
+      })
+      return changed ? { messages: { ...state.messages, [conversationId]: next } } : state
+    })
   },
 
   downloadFileAttachment: async (attachment) => {

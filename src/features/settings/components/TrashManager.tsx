@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/cn'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { getCurrentLanguage } from '@/i18n/config'
 
 interface TrashEntry {
   blobKey: string
@@ -222,7 +223,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
                       {item.blobKey.slice(0, 16)}...
                     </p>
                     <p className="text-xs text-asgard-text-muted">
-                      {t('settings.deletedAt')}: {new Date(item.deletedAt).toLocaleDateString()}
+                      {t('settings.deletedAt')}: {new Date(item.deletedAt).toLocaleDateString(getCurrentLanguage())}
                     </p>
                   </div>
 

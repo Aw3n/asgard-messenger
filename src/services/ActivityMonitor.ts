@@ -15,6 +15,10 @@ class ActivityMonitor {
   private lastActivity = Date.now()
   private previousStatus: UserStatus = 'online'
   private isAway = false
+  // Distinction capitale : « away » posé par nous (inactivité) ne doit jamais être
+  // confondu avec « absent » choisi à la main par l'utilisateur. Le premier se
+  // relève au retour, le second non.
+  private autoSetAway = false
   private checkInterval: ReturnType<typeof setInterval> | null = null
   private isStarted = false
 
@@ -64,6 +68,10 @@ class ActivityMonitor {
       this.checkInterval = null
     }
 
+    // Un auto-away en cours ne doit pas survivre à l'arrêt du monitor : sinon le
+    // profil resterait bloqué sur « absent » alors que l'utilisateur est là.
+    if (this.isAway) this.restoreStatus()
+
     console.log('[ActivityMonitor] Stopped monitoring user activity')
   }
 
@@ -105,13 +113,15 @@ class ActivityMonitor {
     const identity = useIdentityStore.getState().identity
     const privacy = useUIStore.getState().settings.privacy
 
-    // Don't auto-away if:
-    // - Privacy setting disables online status
-    // - User is busy (don't interrupt)
-    // - User is invisible
+    // Ne jamais toucher un statut choisi :
+    // - Privacy coupée : rien à annoncer.
+    // - L'auto-away ne s'applique qu'à un utilisateur clairement « en ligne ».
+    // Il partait de n'importe quel statut sauf busy/invisible, donc un « absent »
+    // manuel était écrasé puis, au retour, transformé en « en ligne » par la
+    // règle `previousStatus === 'away' ? 'online'` : le choix de l'utilisateur
+    // mourait au premier mouvement de souris.
     if (!privacy.onlineStatus) return
-    if (identity?.profile.status === 'busy') return
-    if (identity?.profile.status === 'invisible') return
+    if (identity?.profile.status !== 'online') return
 
     if (idleTime >= ActivityMonitor.AWAY_TIMEOUT && !this.isAway) {
       this.setAutoAway()
@@ -124,10 +134,12 @@ class ActivityMonitor {
   private setAutoAway(): void {
     const identity = useIdentityStore.getState().identity
     if (!identity) return
+    if (identity.profile.status !== 'online') return
 
     // Save current status to restore later
     this.previousStatus = identity.profile.status
     this.isAway = true
+    this.autoSetAway = true
 
     // Set status to away
     useIdentityStore.getState().setStatus('away').catch(console.error)
@@ -146,15 +158,20 @@ class ActivityMonitor {
     if (!identity || !this.isAway) return
 
     this.isAway = false
+    if (!this.autoSetAway) return
+    this.autoSetAway = false
 
-    // Restore previous status (unless it was away)
-    const statusToRestore = this.previousStatus === 'away' ? 'online' : this.previousStatus
-    useIdentityStore.getState().setStatus(statusToRestore).catch(console.error)
+    // Annuler uniquement CE QUE NOUS AVONS FAIT. Si le profil ne dit plus « away »
+    // (statut choisi entre-temps, changement venu d'un autre écran), cette
+    // déclaration prime et ne doit pas être écrasée.
+    if (identity.profile.status !== 'away') return
+
+    useIdentityStore.getState().setStatus(this.previousStatus).catch(console.error)
 
     // Broadcast presence update
     chatService.broadcastPresence().catch(console.error)
 
-    console.log('[ActivityMonitor] User active again, restoring status to', statusToRestore)
+    console.log('[ActivityMonitor] User active again, restoring status to', this.previousStatus)
   }
 
   /**

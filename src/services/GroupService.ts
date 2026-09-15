@@ -6,9 +6,11 @@ import { useIdentityStore } from '@/stores/identityStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useMessageStore } from '@/stores/messageStore'
 import { useContactStore } from '@/stores/contactStore'
+import { useUIStore } from '@/stores/uiStore'
 import { fileService } from './FileService'
 import { storageService } from './StorageService'
 import { generateId } from '@/utils/id'
+import { toNetworkStatus, fromNetworkStatus, GROUP_PRESENCE_TIMEOUT, type NetworkStatus } from '@/utils/presence'
 
 /**
  * GroupService — orchestrates group management over P2P.
@@ -30,9 +32,22 @@ class GroupService {
   private static readonly HEARTBEAT_INTERVAL_MS = 30_000 // 30s — balance between freshness and bandwidth
   // OFFLINE QUEUE: Messages queued for delivery when group members are offline.
   // Per Holepunch/Keet pattern: messages should be delivered when peers reconnect.
-  private pendingGroupMessages: Map<string, Array<{ groupId: string; channelId: string; message: Record<string, unknown>; createdAt: number }>> = new Map()
+  // Key format: 'messageId:peerPublicKey' for per-peer tracking.
+  private pendingGroupMessages: Map<string, { groupId: string; channelId: string; message: Record<string, unknown>; createdAt: number }> = new Map()
   // Track last broadcast status to avoid redundant re-broadcasts
   private lastBroadcastStatus: string | null = null
+  // HEARTBEAT COUNTER: Force a re-broadcast every N heartbeats even if status
+  // hasn't changed, so peers that missed our announcement eventually get it.
+  // Derived from the presence lifetime instead of hardcoded: we must re-announce
+  // at ~3/4 of GROUP_PRESENCE_TIMEOUT, i.e. BEFORE groupStore.cleanupStalePresence()
+  // flips a never-changing member to 'offline'. The previous value (5 heartbeats =
+  // 2.5 min) exceeded that 2 min lifetime, so every stable member blinked offline
+  // for about 30 s on each cycle.
+  private heartbeatCount = 0
+  private static readonly FORCE_BROADCAST_EVERY = Math.max(
+    1,
+    Math.round((GROUP_PRESENCE_TIMEOUT / GroupService.HEARTBEAT_INTERVAL_MS) * 0.75),
+  ) // 3 heartbeats = 90 s, inside the 120 s lifetime
   // DEDUPLICATION: Track sent group avatars to avoid resending identical data.
   // Key: peerId+groupId, Value: hash of the last sent avatar
   private sentGroupAvatarHashes: Map<string, string> = new Map()
@@ -119,20 +134,30 @@ class GroupService {
     // This ensures our status stays fresh even if we miss a status change event.
     this.heartbeatInterval = setInterval(() => {
       this.announcePresenceToAllGroups().catch(() => {})
+      // CRITICAL: Clean up stale presence entries in all groups.
+      // Members who haven't sent presence in 2 minutes are marked offline.
+      useGroupStore.getState().cleanupStalePresence()
     }, GroupService.HEARTBEAT_INTERVAL_MS)
   }
 
   /**
    * Announce presence to all groups the user is a member of.
    * Called automatically on profile status change and via heartbeat.
+   * FORCE RE-BROADCAST: Every N heartbeats, re-announces even if status unchanged
+   * so peers that missed our announcement eventually get updated.
    */
   private async announcePresenceToAllGroups(): Promise<void> {
     const identity = useIdentityStore.getState().identity
     if (!identity) return
 
-    // Skip if status hasn't changed (avoid redundant broadcasts)
-    const currentStatus = identity.profile.status + ':' + (identity.profile.customStatus ?? '')
-    if (currentStatus === this.lastBroadcastStatus) return
+    this.heartbeatCount++
+    const forceBroadcast = this.heartbeatCount % GroupService.FORCE_BROADCAST_EVERY === 0
+
+    // Skip key uses the OUTGOING status (mapping + privacy gate already applied),
+    // so switching `privacy.onlineStatus` counts as a change: the new silence is
+    // announced immediately instead of up to FORCE_BROADCAST_EVERY heartbeats later.
+    const currentStatus = this.outgoingPresence() + ':' + (identity.profile.customStatus ?? '')
+    if (!forceBroadcast && currentStatus === this.lastBroadcastStatus) return
     this.lastBroadcastStatus = currentStatus
 
     const groups = useGroupStore.getState().getAllGroups()
@@ -677,9 +702,23 @@ class GroupService {
   }
 
   /**
+   * Our status as the network must see it — the same single rule ChatService
+   * applies (src/utils/presence.ts): internal-to-network mapping plus the
+   * `privacy.onlineStatus` gate. Group announcements bypassed the gate entirely,
+   * so a user who had hidden their presence was still listed "en ligne" in every
+   * group while their 1:1 chats said "hors ligne".
+   */
+  private outgoingPresence(): NetworkStatus {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return 'offline'
+    const hidePresence = !useUIStore.getState().settings.privacy.onlineStatus
+    return toNetworkStatus(identity.profile.status, hidePresence)
+  }
+
+  /**
    * Announce presence in a group with full profile status.
    * Per Holepunch/Keet pattern: group presence includes the actual profile
-   * status (online/away/busy/invisible) so members see the correct status.
+   * status, mapped to the network vocabulary by outgoingPresence().
    * Previously only sent 'online' regardless of actual status.
    *
    * PERFORMANCE: Avatar is NEVER included in the signed message.
@@ -694,16 +733,7 @@ class GroupService {
     const identity = useIdentityStore.getState().identity
     if (!identity) return
 
-    // CRITICAL: Use the ACTUAL profile status, not hardcoded 'online'.
-    // Map internal UserStatus to network-compatible status for P2P.
-    const internalStatus = identity.profile.status
-    const status: string =
-      internalStatus === 'busy' ? 'dnd' :
-      internalStatus === 'invisible' ? 'offline' :
-      internalStatus === 'dnd' ? 'dnd' :
-      internalStatus === 'away' ? 'away' :
-      internalStatus === 'offline' ? 'offline' :
-      'online'
+    const status: string = this.outgoingPresence()
 
     const memberKeys = this.getGroupMemberKeys(groupId)
     await p2pService.broadcastToPeers(memberKeys, 'group:presence', {
@@ -1009,6 +1039,11 @@ class GroupService {
         createdAt: group.createdAt,
         updatedAt: group.createdAt,
       })
+
+      // PRESENCE: Announce our presence to existing group members immediately.
+      // Per Holepunch/Keet pattern: new members should announce themselves so
+      // existing members see their status right away.
+      this.announceGroupPresence(group.id, true).catch(() => {})
     } else if (action === 'request') {
       // Someone wants to join via invite key — verify and send group data
       this.handleJoinRequest(msg.from, payload).catch(console.error)
@@ -1073,6 +1108,10 @@ class GroupService {
         member: newMember,
       }).catch(console.error)
     }
+
+    // PRESENCE: Announce our presence to the new member so they see our status.
+    // Also, the new member will announce their own presence upon receiving the invite.
+    this.announceGroupPresence(group.id, true).catch(() => {})
   }
 
   /**
@@ -1346,8 +1385,14 @@ class GroupService {
       }
     }
 
+    // Normalize ONCE, then store the same internal value everywhere. The member
+    // list used to keep the raw network token ('dnd') while the 1:1 contact got
+    // 'busy' — the same person therefore carried two different labels depending
+    // on where you looked, and neither store could feed the other.
+    const memberStatus = fromNetworkStatus(status)
+
     // Update member presence in the store (now stores status + customStatus + lastSeen on the member)
-    useGroupStore.getState().updateMemberPresence(groupId, publicKey, status, customStatus)
+    useGroupStore.getState().updateMemberPresence(groupId, publicKey, memberStatus, customStatus)
 
     // CRITICAL: Also update the member's profile in the group store so
     // displayName and status changes are reflected. This ensures group members
@@ -1363,15 +1408,10 @@ class GroupService {
       }
     }
 
-    // Also update the contact store so 1:1 chat shows the same status
-    // Map network 'dnd' back to internal 'busy' for display consistency
-    const mappedStatus: import('@/types').UserStatus =
-      status === 'dnd' ? 'busy' :
-      status === 'offline' ? 'offline' :
-      status === 'away' ? 'away' :
-      'online'
+    // Also update the contact store so 1:1 chat shows the SAME status as the
+    // member list — same normalized value, no second mapping here.
     useContactStore.getState().updateContact(publicKey, {
-      status: mappedStatus,
+      status: memberStatus,
       customStatus: customStatus ?? undefined,
       lastSeen: Date.now(),
     })
@@ -1474,55 +1514,70 @@ class GroupService {
   /**
    * Queue a group message for delivery to offline members.
    * Per Holepunch/Keet pattern: messages should be delivered when peers reconnect.
-   * The message is stored per-peer and flushed when the peer comes online.
+   * FIX: Each peer gets its own queue entry so flushing for one peer doesn't
+   * delete messages for other offline peers.
    */
   private queuePendingGroupMessage(
     groupId: string,
     channelId: string,
     message: Record<string, unknown>,
-    _peerIds: string[]
+    peerIds: string[]
   ): void {
-    // We queue per-peer, but since the message is the same for all peers,
-    // we store the message once with the peer list for later delivery.
     const messageId = message.id as string
-    const existing = this.pendingGroupMessages.get(messageId) ?? []
-    existing.push({
-      groupId,
-      channelId,
-      message,
-      createdAt: Date.now(),
-    })
-    this.pendingGroupMessages.set(messageId, existing)
-    console.log(`[GroupService] Group message queued for offline delivery (queue: ${existing.length})`)
+    let queued = 0
+    for (const peerId of peerIds) {
+      // Per-peer key: ensures flushing for peer A doesn't affect peer B's queue
+      const key = messageId + ':' + peerId
+      if (!this.pendingGroupMessages.has(key)) {
+        this.pendingGroupMessages.set(key, {
+          groupId,
+          channelId,
+          message,
+          createdAt: Date.now(),
+        })
+        queued++
+      }
+    }
+    if (queued > 0) {
+      console.log(`[GroupService] Group message ${messageId.slice(0, 16)} queued for ${queued} offline peers (total queue: ${this.pendingGroupMessages.size})`)
+    }
   }
 
   /**
    * Flush pending group messages for a peer that just came online.
    * Called when a peer reconnects (from peer:connected event).
+   * FIX: Only removes entries for this specific peer, not for all peers.
    */
   async flushPendingGroupMessages(peerPublicKey: string): Promise<void> {
     if (this.pendingGroupMessages.size === 0) return
 
     let flushed = 0
-    for (const [messageId, entries] of this.pendingGroupMessages.entries()) {
-      for (const entry of entries) {
-        try {
-          await p2pService.sendMessage(peerPublicKey, 'group:message', {
-            groupId: entry.groupId,
-            channelId: entry.channelId,
-            message: entry.message,
-          })
-          flushed++
-        } catch (err) {
-          console.warn(`[GroupService] Failed to flush pending group message to ${peerPublicKey.slice(0, 16)}:`, err)
-        }
+    const keysToDelete: string[] = []
+
+    for (const [key, entry] of this.pendingGroupMessages.entries()) {
+      // Only flush entries for this specific peer (key format: messageId:peerPublicKey)
+      if (!key.endsWith(':' + peerPublicKey)) continue
+
+      try {
+        await p2pService.sendMessage(peerPublicKey, 'group:message', {
+          groupId: entry.groupId,
+          channelId: entry.channelId,
+          message: entry.message,
+        })
+        keysToDelete.push(key)
+        flushed++
+      } catch (err) {
+        console.warn(`[GroupService] Failed to flush pending group message to ${peerPublicKey.slice(0, 16)}:`, err)
       }
-      // Remove successfully flushed messages
-      this.pendingGroupMessages.delete(messageId)
+    }
+
+    // Only remove entries that were successfully flushed for THIS peer
+    for (const key of keysToDelete) {
+      this.pendingGroupMessages.delete(key)
     }
 
     if (flushed > 0) {
-      console.log(`[GroupService] Flushed ${flushed} pending group messages to ${peerPublicKey.slice(0, 16)}`)
+      console.log(`[GroupService] Flushed ${flushed} pending group messages to ${peerPublicKey.slice(0, 16)} (remaining queue: ${this.pendingGroupMessages.size})`)
     }
   }
 

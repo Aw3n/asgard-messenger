@@ -44,7 +44,7 @@ export const FileTransferManager: React.FC<{ onClose?: () => void }> = ({ onClos
 
   const filteredTransfers = filter === 'all'
     ? transfers
-    : transfers.filter((t) => t.status === filter)
+    : transfers.filter((transfer) => transfer.status === filter)
 
   const formatBytes = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`
@@ -99,10 +99,10 @@ export const FileTransferManager: React.FC<{ onClose?: () => void }> = ({ onClos
 
   const stats = {
     total: transfers.length,
-    uploading: transfers.filter((t) => t.status === 'uploading').length,
-    downloading: transfers.filter((t) => t.status === 'downloading').length,
-    complete: transfers.filter((t) => t.status === 'complete').length,
-    error: transfers.filter((t) => t.status === 'error').length,
+    uploading: transfers.filter((transfer) => transfer.status === 'uploading').length,
+    downloading: transfers.filter((transfer) => transfer.status === 'downloading').length,
+    complete: transfers.filter((transfer) => transfer.status === 'complete').length,
+    error: transfers.filter((transfer) => transfer.status === 'error').length,
   }
 
   return (

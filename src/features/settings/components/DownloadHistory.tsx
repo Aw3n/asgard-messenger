@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { getCurrentLanguage } from '@/i18n/config'
 
 interface DownloadHistoryEntry {
   id: string
@@ -69,7 +70,7 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
     if (diffMins < 60) return t('time.minutesAgo', { count: diffMins })
     if (diffHours < 24) return t('time.hoursAgo', { count: diffHours })
     if (diffDays < 7) return t('time.daysAgo', { count: diffDays })
-    return date.toLocaleDateString()
+    return date.toLocaleDateString(getCurrentLanguage())
   }
 
   const getFileIcon = (mimeType: string) => {

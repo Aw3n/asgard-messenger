@@ -12,6 +12,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { MessageBubble } from './components/MessageBubble'
 import { MessageInput } from './components/MessageInput'
 import { ForwardModal } from './components/ForwardModal'
+import { ActiveTransfersWidget } from './components/ActiveTransfersWidget'
 import { Avatar } from '@/components/ui/Avatar'
 import { chatService } from '@/services/ChatService'
 import { p2pService } from '@/services/P2PService'
@@ -19,6 +20,7 @@ import { cryptoService } from '@/services/CryptoService'
 import { callService } from '@/services/CallService'
 import { fileService } from '@/services/FileService'
 import { RightPanel } from '@/components/panels/RightPanel'
+import { presenceMeta, isLivePresence } from '@/utils/presence'
 import type { Message } from '@/types'
 
 /**
@@ -44,6 +46,10 @@ export const ChatView: React.FC = () => {
   const setRightPanelView = useUIStore((s) => s.setRightPanelView)
   const rightPanelView = useUIStore((s) => s.rightPanelView)
   const setSearchOpen = useUIStore((s) => s.setSearchOpen)
+  // CHAT/PRIVACY/A11Y SETTINGS: collapse grouping, read receipts, screen reader
+  const collapseMessages = useUIStore((s) => s.settings.chat.collapseMessages)
+  const sendReadReceipts = useUIStore((s) => s.settings.privacy.readReceipts)
+  const screenReaderMode = useUIStore((s) => s.settings.accessibility.screenReader)
 
   const conversation = conversationId ? getConversation(conversationId) : undefined
 
@@ -95,9 +101,13 @@ export const ChatView: React.FC = () => {
     // Mark them as read locally immediately (optimistic UI)
     useMessageStore.getState().markAllAsRead(resolvedId)
     useConversationStore.getState().clearUnread(resolvedId)
-    // Send read receipt to the peer (best-effort)
-    chatService.sendReadReceipt(resolvedId, conversation.participantId, unreadIds).catch(() => {})
-  }, [resolvedId, conversation?.participantId, identity, messages.length])
+    // PRIVACY SETTINGS: read receipts are only sent over the network when
+    // privacy.readReceipts is enabled — the local read state stays accurate
+    // either way, but the peer never learns we read their messages when off.
+    if (sendReadReceipts) {
+      chatService.sendReadReceipt(resolvedId, conversation.participantId, unreadIds).catch(() => {})
+    }
+  }, [resolvedId, conversation?.participantId, identity, messages.length, sendReadReceipts])
 
   // Join the Hyperswarm discovery topic for this conversation
   useEffect(() => {
@@ -202,14 +212,17 @@ export const ChatView: React.FC = () => {
           <h3 className="text-sm font-semibold text-asgard-text-primary truncate">{displayName}</h3>
           <div className="flex items-center gap-1.5">
             {/* Connection quality indicator */}
-            {contact?.status === 'online' && contact?.publicKey && (
+            {/* Un pair qui se déclare « absent » ou « occupé » est connecté : sa
+                qualité de liaison est tout aussi pertinente que celle d'un pair
+                « en ligne » (et le libellé en dessous l'affiche bien tel quel). */}
+            {contact && isLivePresence(contact.status) && contact.publicKey && (
               <ConnectionQuality peerId={contact.publicKey} />
             )}
             <p className="text-xs text-asgard-text-muted">
               {typingUsers.length > 0
                 ? t('chat.typing')
-                : contact?.status === 'online'
-                ? t('common.online')
+                : contact && isLivePresence(contact.status)
+                ? t(presenceMeta(contact.status).labelKey)
                 : contact?.lastSeen
                 ? t('chat.lastSeen')
                 : t('common.offline')}
@@ -291,18 +304,33 @@ export const ChatView: React.FC = () => {
         {messages.length === 0 ? (
           <ConversationStart name={displayName} />
         ) : (
+          <div
+            className="h-full"
+            // ACCESSIBILITY SETTINGS: live region announces new messages to screen readers
+            aria-live={screenReaderMode ? 'polite' : 'off'}
+            aria-relevant="additions"
+          >
           <Virtuoso
             ref={virtuosoRef}
             data={messages}
             followOutput="smooth"
             className="h-full virtual-list"
             initialTopMostItemIndex={messages.length - 1}
-            itemContent={(_, message) => (
+            itemContent={(index, message) => (
               <MessageBubble
                 key={message.id}
                 message={message}
                 isOwn={message.senderId === identity?.keyPair.publicKey}
                 senderName={contact?.displayName}
+                // CHAT SETTINGS (collapseMessages): group consecutive messages from
+                // the same sender within 5 minutes — only the last one shows its
+                // timestamp, the others render in compact mode.
+                compact={
+                  collapseMessages &&
+                  index > 0 &&
+                  messages[index - 1].senderId === message.senderId &&
+                  message.timestamp - messages[index - 1].timestamp < 300_000
+                }
                 onReply={setReplyTo}
                 onDelete={(msg) => {
                   if (!conversation.participantId || !dataId) return
@@ -336,8 +364,14 @@ export const ChatView: React.FC = () => {
               ),
             }}
           />
+          </div>
         )}
       </div>
+
+      {/* Active file transfers widget */}
+      <AnimatePresence>
+        <ActiveTransfersWidget />
+      </AnimatePresence>
 
       {/* Message input */}
       <MessageInput

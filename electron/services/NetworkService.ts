@@ -45,6 +45,11 @@ export class NetworkService extends EventEmitter {
   private bandwidthWindow: { up: number[]; down: number[]; timestamps: number[] } = { up: [], down: [], timestamps: [] }
   private static readonly BANDWIDTH_WINDOW_MS = 3000 // 3s sliding window
   private initialized = false
+  // FERMETURE : true dès que destroy() est appelé. Les timers périodiques ne
+  // doivent plus rien pousser vers l'UI : la BrowserWindow est déjà détruite à
+  // ce moment-là, et un `webContents.send` sur un objet détruit lève une
+  // exception non rattrapée dans le process principal.
+  private shuttingDown = false
   private corestore: CorestoreLike | null = null
   private seed: Buffer | null = null
   private initPromise: Promise<void> | null = null
@@ -52,11 +57,21 @@ export class NetworkService extends EventEmitter {
   private peerPublicKeyMap: Map<string, string> = new Map() // Hyperswarm peerId → Ed25519 pk
   private peerChannels: Map<string, { main: any; media: any; file: any }> = new Map() // Protomux channels per peer
   private peerInfos: Map<string, any> = new Map() // PeerInfo for prioritization
+  // KEEP-ALIVE APPLICATIF : le keep-alive Hyperswarm (transport TCP/noise, 15s) ne détecte pas
+  // un mux applicatif gelé chez un process distant vivant — la connexion reste "open" alors
+  // qu'aucun message applicatif ne circule plus ("ghost online"). Ping 0x03/pong 0x05 sur le
+  // canal main ; sans preuve de vie en 60s → destroy → reconnexion auto (handler 'close').
+  private peerKeepAlive: Map<string, { timer: NodeJS.Timeout; lastAlive: number }> = new Map()
   // PERFORMANCE: Track peer latency for smart routing
   private peerLatency: Map<string, number> = new Map() // peerId → last ping RTT (ms)
   private peerScores: Map<string, number> = new Map() // peerId → quality score (0-100)
   // Blocked peers (firewall)
   private blockedPeers: Set<string> = new Set()
+  // CONFORMITÉ HOLEPUNCH: hyperdht 6.34.0 n'expose pas de dht.firewall() dynamique
+  // (le mot "firewall" est absent de hyperdht/index.js) — le firewall se configure
+  // via l'option `firewall` du constructeur Hyperswarm (pattern officiel).
+  // setFirewall() stocke la règle ici ; le firewall du constructeur la consulte.
+  private customFirewall: ((remotePublicKeyHex: string, remoteHandshakePayload: unknown) => boolean) | null = null
   // PERFORMANCE: Periodic re-announce timer for DHT freshness
   private reannounceInterval: ReturnType<typeof setInterval> | null = null
   private static readonly REANNOUNCE_INTERVAL_MS = 60_000 // 1 minute
@@ -66,6 +81,17 @@ export class NetworkService extends EventEmitter {
   // DHT Profile publishing
   private profileRepublishInterval: ReturnType<typeof setInterval> | null = null
   private static readonly PROFILE_REPUBLISH_INTERVAL_MS = 300_000 // 5 minutes
+  // FERMETURE : budgets du teardown réseau. Le filet global (`before-quit` →
+  // force-exit 5 s dans ipc/handlers.ts) est PARTAGÉ avec le stockage : sans
+  // borne ici, un DHT injoignable mangeait tout le budget et le corestore
+  // n'était jamais refermé proprement.
+  private static readonly OFFLINE_PUBLISH_TIMEOUT_MS = 1_500
+  private static readonly SWARM_DESTROY_TIMEOUT_MS = 1_500
+  // BLINDAGE : nombre de tentatives du drain quand la file interne d'hyperswarm
+  // est incohérente. `head()` remélange le seau de priorité à chaque tirage, donc
+  // un trou dans le tableau est franchi dès la tentative suivante (cf.
+  // hardenSwarmQueueDrain).
+  private static readonly SWARM_DRAIN_ATTEMPTS = 4
   private lastDisplayName = ''
   private profileCache: Map<string, { data: DHTProfile; timestamp: number }> = new Map()
   private static readonly PROFILE_CACHE_TTL_MS = 60_000 // 1 minute cache
@@ -152,27 +178,28 @@ export class NetworkService extends EventEmitter {
       const { default: Hyperswarm } = await import('hyperswarm') as unknown as { default: HyperswarmConstructor }
       const { default: HyperDHT } = await import('hyperdht') as unknown as { default: HyperDHTConstructor }
 
-      // CRITICAL FIX: Create HyperDHT separately with proper constructor options.
-      // Hyperswarm does NOT accept `ephemeral` as a constructor option.
-      // To have a non-ephemeral DHT (persistent on DHT), create DHT with ephemeral: false
-      // and pass it to Hyperswarm via the `dht` option.
-      // Per HyperDHT source (index.js):
-      //   DEFAULTS = { ...DHT.DEFAULTS, connectionKeepAlive: 5000, randomPunchInterval: 20000 }
-      //   DHT inherits from dht-rpc, which accepts bootstrap, nodes, port, deferRandomPunch
-      // The _randomPunchInterval/_randomPunchLimit are internal properties.
-      // We use the public randomPunchInterval constructor option instead.
+      // CRITICAL FIX: Create HyperDHT with CORRECT options per Holepunch specification.
+      // Per HyperDHT docs (https://github.com/holepunchto/hyperdht):
+      //   - bootstrap: array of bootstrap nodes (defaults to Pear mainnet)
+      //   - keyPair: default key pair for server.listen and connect
+      //   - connectionKeepAlive: keep-alive interval (defaults to 5000ms)
+      //   - randomPunchInterval: min delay between punch retries (defaults to 20000ms)
+      // Per dht-rpc docs (https://github.com/holepunchto/dht-rpc):
+      //   - ephemeral: false to become persistent immediately (bypass adaptive mode)
+      //   - firewalled: auto-detected, but can be set to false if known open
+      //   - fullyBootstrapped(): wait for routing table to be fully populated
+      //   - Events: 'bootstrap', 'ready', 'persistent', 'wake-up', 'network-change'
       const dhtOpts: {
         bootstrap?: string[]
-        nodes?: Array<{ host: string; port: number }>
+        keyPair?: { publicKey: Buffer; secretKey: Buffer }
         port?: number
-        deferRandomPunch?: boolean
-        randomPunchInterval?: number
         connectionKeepAlive?: number
+        randomPunchInterval?: number
         ephemeral?: boolean
-        seed?: Buffer
       } = {}
 
       // Use default Pear bootstrap nodes (public DHT)
+      // These are the official Holepunch bootstrap nodes per hyperdht docs.
       dhtOpts.bootstrap = [
         '88.99.3.86@node1.hyperdht.org:49737',
         '142.93.90.113@node2.hyperdht.org:49737',
@@ -180,8 +207,7 @@ export class NetworkService extends EventEmitter {
       ]
 
       // CRITICAL: Set connectionKeepAlive on the DHT (defaults to 5000ms).
-      // Hyperswarm does NOT forward connectionKeepAlive to the DHT.
-      // Must set on DHT constructor so NoiseSecretStream uses it.
+      // Higher value (15s) helps maintain connections through NATs.
       dhtOpts.connectionKeepAlive = 15000
 
       // CRITICAL: Use public randomPunchInterval (not internal _randomPunchInterval).
@@ -189,37 +215,62 @@ export class NetworkService extends EventEmitter {
       dhtOpts.randomPunchInterval = 5000
 
       // NON-EPHEMERAL: Announce ourselves to the DHT as reachable servers.
-      // Without this, contacts cannot discover or reconnect to us.
+      // Per dht-rpc docs: "Nodes per default use adaptive mode to decide whether or not
+      // they want to join other nodes' routing table. Adaptive mode is conservative,
+      // so it might take ~20-30 mins for the node to turn persistent."
+      // Setting ephemeral: false bypasses adaptive mode and becomes persistent immediately
+      // (assuming open NAT). This is critical for contacts to discover us.
       dhtOpts.ephemeral = false
 
-      // CRITICAL: Pass seed to DHT (not Hyperswarm) for deterministic Noise key.
-      // HyperDHT uses seed to generate deterministic keyPair via createKeyPair(opts.seed).
-      // If seed is passed to Hyperswarm but opts.dht is provided, Hyperswarm ignores seed.
-      // Without deterministic seed, Noise peer ID changes on every restart — breaking
-      // ed25519ToNoiseMap and peer reconnection.
+      // CRITICAL: Generate deterministic keyPair from seed using HyperDHT.keyPair().
+      // Per HyperDHT docs: "keyPair = DHT.keyPair([seed]) — Use this method to generate
+      // the required keypair for DHT operations. Returns {publicKey, secretKey}."
+      // This is the CORRECT way to use a seed — NOT passing seed to constructor.
+      let dhtKeyPair: { publicKey: Buffer; secretKey: Buffer } | undefined
       if (this.seed) {
-        dhtOpts.seed = this.seed
-        console.log('[NetworkService] Using deterministic identity seed for DHT')
+        const HyperDHTModule = await import('hyperdht')
+        dhtKeyPair = (HyperDHTModule.default as any).keyPair(this.seed) as { publicKey: Buffer; secretKey: Buffer }
+        dhtOpts.keyPair = dhtKeyPair
+        logMain(`[NetworkService] 🔑 DHT keyPair generated from seed | publicKey=${dhtKeyPair!.publicKey.toString('hex').slice(0, 16)}`)
       } else {
-        console.warn('[NetworkService] No identity seed — Noise peer ID will be random')
+        logMain('[NetworkService] ⚠️ No identity seed — DHT keyPair will be random')
       }
 
       const dht = new HyperDHT(dhtOpts)
+      logMain(`[NetworkService] 🔧 HyperDHT created | bootstrap=${dhtOpts.bootstrap?.join(', ')} | ephemeral=${dhtOpts.ephemeral} | keepAlive=${dhtOpts.connectionKeepAlive}ms | punchInterval=${dhtOpts.randomPunchInterval}ms`)
 
       const swarmOpts: {
         maxPeers: number
-        firewall: (key: Buffer) => boolean
+        firewall: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => boolean
         dht: HyperDHTInstance
+        keyPair?: { publicKey: Buffer; secretKey: Buffer }
       } = {
         maxPeers: 100,
+        // CRITICAL FIX: Pass the deterministic DHT keyPair to Hyperswarm.
+        // Per Hyperswarm source (index.js constructor): `keyPair = DHT.keyPair(seed)`
+        // defaults to a RANDOM keypair when neither `keyPair` nor `seed` is passed —
+        // even when a custom `dht` carrying its own keyPair is provided.
+        // A random swarm.keyPair silently breaks two things:
+        //   1. swarm.listen() → server.listen(this.keyPair): the server would listen
+        //      on a key that changes every restart, so remote peers calling
+        //      joinPeer(deriveNoisePublicKey(...)) could NEVER connect to us.
+        //   2. dht.mutablePut(this.swarm.keyPair, ...): profiles/status would be
+        //      published under a random key that fetchProfile() never derives.
+        keyPair: dhtKeyPair,
         // CRITICAL: Non-ephemeral nodes announce themselves to the DHT as reachable servers.
         // Without this, contacts cannot discover or reconnect to us when we are online.
         // Note: `ephemeral` is NOT a Hyperswarm option — handled via DHT constructor above.
         // PERFORMANCE: Firewall blocks known-banned peers
-        firewall: (remotePublicKey: Buffer) => {
+        firewall: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => {
           const hex = remotePublicKey.toString('hex')
           if (this.blockedPeers.has(hex)) {
             console.log('[NetworkService] Firewall blocked peer:', hex.slice(0, 16))
+            return true // Reject
+          }
+          // CONFORMITÉ HOLEPUNCH: hyperswarm/index.js appelle _firewall(remotePublicKey,
+          // payload) avec le payload du handshake — route la règle dynamique de setFirewall().
+          if (this.customFirewall && this.customFirewall(hex, remoteHandshakePayload)) {
+            console.log('[NetworkService] Firewall custom rule rejected peer:', hex.slice(0, 16))
             return true // Reject
           }
           return false // Allow
@@ -228,32 +279,62 @@ export class NetworkService extends EventEmitter {
       }
 
       this.swarm = new Hyperswarm(swarmOpts)
+      // BLINDAGE posé dès la création de l'instance : le drain de la file
+      // d'essaimage peut lever une exception que rien ne rattrape, depuis
+      // n'importe quel handler `close`, y compris quand notre teardown ne
+      // s'exécute pas (fin de session brutale, force-exit, version installée
+      // plus ancienne que le correctif).
+      this.hardenSwarmQueueDrain(this.swarm)
+      logMain(`[NetworkService] 🔑 swarm.keyPair ${dhtKeyPair ? 'deterministic (seed-derived)' : 'RANDOM (no seed!)'} | publicKey=${(this.swarm as unknown as { keyPair?: { publicKey: Buffer } }).keyPair?.publicKey.toString('hex').slice(0, 16)}`)
 
       // CRITICAL: Configure underlying DHT for faster hole punching
-      // Per HyperDHT source:
-      //   connectionKeepAlive: kept-alive interval for NoiseSecretStream (set via constructor)
-      //   randomPunchInterval: min delay between random punch retries (constructor option)
-      //   randomPunchLimit: max concurrent random punches (constructor option)
-      // These are critical for cross-border connections where both NATs are randomized.
+      // Per HyperDHT/dht-rpc docs:
+      //   Events: 'bootstrap', 'ready', 'persistent', 'wake-up', 'network-change'
+      //   Properties: host, port, firewalled, ephemeral, id
+      //   Methods: fullyBootstrapped(), refresh(), toArray()
       const configuredDht = this.getDHT()
       if (configuredDht) {
-        // Note: connectionKeepAlive, randomPunchInterval already set via DHT constructor above
-        console.log('[NetworkService] DHT configured: connectionKeepAlive=15s, randomPunchInterval=5s')
+        logMain('[NetworkService] 🔧 DHT event listeners registered')
+
+        // CRITICAL: Listen for DHT bootstrap events for diagnostics
+        configuredDht.on('bootstrap', () => {
+          logMain(`[NetworkService] ✅ DHT BOOTSTRAP | routing table fully populated | nodes=${configuredDht.toArray?.()?.length ?? '?'}`)
+        })
+        configuredDht.on('ready', () => {
+          logMain(`[NetworkService] ✅ DHT READY | fully bootstrapped | host=${configuredDht.host ?? 'unknown'} | port=${configuredDht.port ?? 'unknown'} | firewalled=${configuredDht.firewalled ?? 'unknown'} | ephemeral=${configuredDht.ephemeral ?? 'unknown'}`)
+        })
 
         // HOLEPUNCH BEST PRACTICE: Republish profile/status when the node becomes
         // persistent (non-ephemeral) and after wake-up from sleep.
         const handlePersistent = () => {
-          console.log('[NetworkService] DHT became persistent — republishing profile')
+          logMain(`[NetworkService] ✅ DHT PERSISTENT | node is now persistent (reachable) | host=${configuredDht.host ?? 'unknown'} | port=${configuredDht.port ?? 'unknown'}`)
           if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
           this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
         }
         const handleWakeUp = () => {
-          console.log('[NetworkService] DHT wake-up detected — republishing profile')
+          logMain('[NetworkService] ⚠️ DHT WAKE-UP | computer resumed from sleep — re-bootstrapping')
+          if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
+          this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
+        }
+        const handleNetworkChange = () => {
+          logMain('[NetworkService] ⚠️ DHT NETWORK-CHANGE | interfaces changées — re-bootstrapping')
           if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
           this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
         }
         configuredDht.on('persistent', handlePersistent)
         configuredDht.on('wake-up', handleWakeUp)
+        configuredDht.on('network-change', handleNetworkChange)
+      }
+
+      // CRITICAL: Wait for DHT to be fully bootstrapped before proceeding.
+      // Per dht-rpc docs: "await node.fullyBootstrapped() — Wait for the node to be fully bootstrapped etc."
+      // This ensures the routing table is populated before we try to publish/fetch.
+      logMain('[NetworkService] ⏳ Waiting for DHT to fully bootstrap...')
+      try {
+        await dht.fullyBootstrapped()
+        logMain(`[NetworkService] ✅ DHT FULLY BOOTSTRAPPED | host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'} | firewalled=${dht.firewalled ?? 'unknown'} | ephemeral=${dht.ephemeral ?? 'unknown'} | nodes=${dht.toArray?.()?.length ?? '?'}`)
+      } catch (bootstrapErr) {
+        logMain(`[NetworkService] ❌ DHT BOOTSTRAP FAILED: ${bootstrapErr instanceof Error ? bootstrapErr.message : String(bootstrapErr)}`)
       }
 
       // CRITICAL: Start the DHT server before any topic joins.
@@ -261,9 +342,9 @@ export class NetworkService extends EventEmitter {
       // server, but explicit ensures inbound connections are ready early.
       try {
         await (this.swarm as unknown as { listen: () => Promise<void> }).listen()
-        console.log('[NetworkService] DHT server listening')
+        logMain(`[NetworkService] ✅ Swarm listening | DHT host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'}`)
       } catch (err) {
-        console.warn('[NetworkService] swarm.listen() failed:', err)
+        logMain(`[NetworkService] ❌ swarm.listen() failed: ${err instanceof Error ? err.message : String(err)}`)
       }
 
       // Handle new peer connections
@@ -308,8 +389,22 @@ export class NetworkService extends EventEmitter {
    * PERFORMANCE: Republishes periodically to keep the record fresh.
    */
   async publishProfile(displayName: string, _avatar?: string): Promise<boolean> {
-    if (!this.swarm) return false
+    // HARDENING: toutes les écritures de records mutables sont sérialisées ici.
+    // publishProfile et publishStatus dérivent chacun leur `seq` d'un
+    // mutableGet({latest:true}) puis écrivent seq+1 : appelés en parallèle
+    // (démarrage, intervalle interne 5 min, boucle 30 s du renderer, wake-up,
+    // re-public sur connexion de pair), ils envoient le MÊME seq avec des
+    // VALEURS DIFFÉRENTES → les nœuds répondent SEQ_REUSED
+    // (hyperdht/lib/persistent.js:onmutableput) et hyperdht ne remonte jamais
+    // l'erreur : mutablePut se résout normalement. Une écriture sur deux était
+    // donc perdue en silence, ce qui peut figer l'horodatage vu par les
+    // contacts (présence unilatérale « il me voit mais je ne le vois pas »).
     this.lastDisplayName = displayName
+    return this.enqueueDhtWrite('publishProfile', () => this.doPublishProfile(displayName))
+  }
+
+  private async doPublishProfile(displayName: string): Promise<boolean> {
+    if (!this.swarm) return false
     try {
       // Ensure the DHT is fully bootstrapped before publishing (lighter than flush()).
       const dht = this.getDHT()
@@ -327,27 +422,31 @@ export class NetworkService extends EventEmitter {
         version: 2,
         status: this.currentStatus,
         statusMessage: this.currentStatusMessage,
+        // AUTO-DÉCLARATION de la clé Ed25519 : permet à un contact qui lit cet
+        // enregistrement de détecter une entrée obsolète (identité régénérée
+        // après un import de seed phrase par exemple) au lieu d'afficher
+        // silencieusement « hors ligne » sur un record gelé depuis des jours.
+        identityPk: this.localPublicKey || undefined,
       }
 
       const value = Buffer.from(JSON.stringify(profile))
-      if (value.length > 1000) {
-        console.warn('[NetworkService] Profile too large for DHT:', value.length, 'bytes — truncating')
-        // Truncate displayName to fit
-        const trimmed = { displayName: displayName.slice(0, 50), timestamp: Date.now(), version: 2, status: this.currentStatus, statusMessage: this.currentStatusMessage }
-        const trimmedValue = Buffer.from(JSON.stringify(trimmed))
-        const keyPair = (this.swarm as unknown as { keyPair?: { publicKey: Buffer; secretKey: Buffer } }).keyPair
-        if (!keyPair) return false
-        await dht.mutablePut(keyPair, trimmedValue)
-        return true
-      }
       const keyPair = (this.swarm as unknown as { keyPair?: { publicKey: Buffer; secretKey: Buffer } }).keyPair
       if (!keyPair) {
         console.warn('[NetworkService] No keyPair available for profile publishing')
         return false
       }
+      if (value.length > 1000) {
+        console.warn('[NetworkService] Profile too large for DHT:', value.length, 'bytes — truncating')
+        // Truncate displayName to fit
+        const trimmed = { displayName: displayName.slice(0, 50), timestamp: Date.now(), version: 2, status: this.currentStatus, statusMessage: this.currentStatusMessage, identityPk: this.localPublicKey || undefined }
+        const trimmedValue = Buffer.from(JSON.stringify(trimmed))
+        return this.mutablePutLatest(dht, keyPair, trimmedValue)
+      }
 
-      await dht.mutablePut(keyPair, value)
-      console.log('[NetworkService] Profile published to DHT:', displayName)
+      const landed = await this.mutablePutLatest(dht, keyPair, value)
+      console.log('[NetworkService] ' + (landed ? '✅' : '⚠️') + ' Profile ' + (landed ? 'published' : 'NOT published (rejeté par les nœuds DHT)') + ' to DHT:', displayName,
+        '| DHT key:', keyPair.publicKey.toString('hex').slice(0, 16),
+        '| status:', this.currentStatus)
 
       // Start periodic republish if not already running
       if (!this.profileRepublishInterval) {
@@ -357,7 +456,7 @@ export class NetworkService extends EventEmitter {
         }, NetworkService.PROFILE_REPUBLISH_INTERVAL_MS)
       }
 
-      return true
+      return landed
     } catch (err) {
       console.error('[NetworkService] Failed to publish profile:', err)
       return false
@@ -371,7 +470,11 @@ export class NetworkService extends EventEmitter {
   async publishStatus(status: 'online' | 'away' | 'offline' | 'dnd', statusMessage?: string): Promise<boolean> {
     this.currentStatus = status
     this.currentStatusMessage = statusMessage
+    // Sérialisé avec publishProfile — voir enqueueDhtWrite().
+    return this.enqueueDhtWrite('publishStatus', () => this.doPublishStatus(status, statusMessage))
+  }
 
+  private async doPublishStatus(status: 'online' | 'away' | 'offline' | 'dnd', statusMessage?: string): Promise<boolean> {
     if (!this.swarm) return false
     try {
       const dht = this.getDHT()
@@ -385,10 +488,14 @@ export class NetworkService extends EventEmitter {
       if (!keyPair) return false
 
       let existingProfile: Partial<DHTProfile> = {}
+      let existingSeq: number | undefined
       try {
-        const existing = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { value?: Buffer } | null
+        const existing = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { value?: Buffer; seq?: number } | null
         if (existing?.value) {
           existingProfile = JSON.parse(existing.value.toString())
+        }
+        if (existing && typeof existing.seq === 'number') {
+          existingSeq = existing.seq
         }
       } catch {}
 
@@ -402,20 +509,22 @@ export class NetworkService extends EventEmitter {
         status,
         statusMessage,
         lastSeen: status === 'offline' ? Date.now() : existingProfile.lastSeen,
+        identityPk: this.localPublicKey || existingProfile.identityPk || undefined,
       }
 
       const value = Buffer.from(JSON.stringify(profile))
+      logMain(`[NetworkService] 📡 DHT PUBLISH | name=${profile.displayName} | status=${status} | valueSize=${value.length} | dhtKey=${keyPair.publicKey.toString('hex').slice(0, 16)}`)
+      let landed: boolean
       if (value.length > 1000) {
         // Truncate statusMessage to fit
         profile.statusMessage = statusMessage?.slice(0, 100)
         const trimmedValue = Buffer.from(JSON.stringify(profile))
-        await dht.mutablePut(keyPair, trimmedValue)
+        landed = await this.mutablePutLatest(dht, keyPair, trimmedValue, existingSeq)
       } else {
-        await dht.mutablePut(keyPair, value)
+        landed = await this.mutablePutLatest(dht, keyPair, value, existingSeq)
       }
-
-      console.log('[NetworkService] Status published to DHT:', status)
-      return true
+      logMain(`[NetworkService] ${landed ? '✅ DHT PUBLISH SUCCESS' : '❌ DHT PUBLISH REJECTED (record non atterri sur le réseau)'} | status=${status} | size=${value.length}`)
+      return landed
     } catch (err) {
       console.error('[NetworkService] Failed to publish status:', err)
       return false
@@ -427,6 +536,90 @@ export class NetworkService extends EventEmitter {
    */
   getCurrentStatus(): { status: string; message?: string } {
     return { status: this.currentStatus, message: this.currentStatusMessage }
+  }
+
+  /**
+   * HOLEPUNCH CONFORMANCE: dht.mutablePut() signs with `seq = opts.seq || 0` (hyperdht
+   * index.js) and DHT nodes reject records whose seq is not strictly greater than the
+   * stored one — hyperdht/lib/persistent.js onmutableput() replies SEQ_REUSED when
+   * seq === existing.seq with a different value, and SEQ_TOO_LOW when seq < existing.seq.
+   * Publishing without an increasing seq therefore fails silently after the very first
+   * write. This helper resolves the latest stored seq via mutableGet({ latest: true })
+   * and writes with seq + 1, matching the official HyperDHT mutable-record pattern.
+   *
+   * CRITICAL: `mutablePut` est un fire-and-forget — il résout sa promise même
+   * lorsque TOUS les nœuds interrogés ont rejeté l'écriture (hyperdht/index.js:365-399,
+   * les erreurs ne sont que dans `closestNodes`). L'ancienne version retournait donc
+   * void et l'app affirmait « statut publié » sur un réseau qui n'avait rien reçu.
+   * Cette version relit l'enregistrement et ne déclare le succès que si la valeur lue est
+   * OCTET POUR OCTET celle envoyée (un autre writer au même seq produirait une valeur
+   * différente), avec autant de tentatives que nécessaire en repartant du seq réellement
+   * stocké. Retourne false uniquement après épuisement des tentatives.
+   */
+  private async mutablePutLatest(
+    dht: HyperDHTInstance,
+    keyPair: { publicKey: Buffer; secretKey: Buffer },
+    value: Buffer,
+    knownSeq?: number
+  ): Promise<boolean> {
+    const MAX_ATTEMPTS = 3
+    let seq = knownSeq
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      if (seq === undefined) {
+        seq = 0
+        try {
+          const existing = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { seq?: number } | null
+          if (existing && typeof existing.seq === 'number') {
+            seq = existing.seq
+          }
+        } catch {
+          // No stored record yet (or transient lookup failure) — start from a fresh seq.
+        }
+      }
+      const sentSeq = seq + 1
+      try {
+        await dht.mutablePut(keyPair, value, { seq: sentSeq })
+      } catch (err) {
+        logMain(`[NetworkService] ❌ mutablePut threw | seq=${sentSeq} | err=${err instanceof Error ? err.message : String(err)}`)
+      }
+      // VÉRIFICATION: relire et comparer — seul moyen de détecter un rejet
+      // SEQ_REUSED/SEQ_TOO_LOW, que hyperdht avale silencieusement.
+      try {
+        const after = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { seq?: number; value?: Uint8Array } | null
+        if (after?.value && Buffer.compare(Buffer.from(after.value), value) === 0) {
+          if (attempt > 1) logMain(`[NetworkService] ✅ DHT mutable record landed on attempt ${attempt} | seq=${sentSeq}`)
+          return true
+        }
+        const storedSeq = after && typeof after.seq === 'number' ? after.seq : 0
+        logMain(`[NetworkService] ⚠️ DHT WRITE NOT LANDED | attempt=${attempt}/${MAX_ATTEMPTS} | sent seq=${sentSeq} | stored seq=${storedSeq} ${storedSeq === sentSeq ? '(SEQ_REUSED: une autre valeur occupe ce seq)' : '(SEQ_TOO_LOW / non propagé)'} — retry depuis le seq stocké`)
+        seq = storedSeq
+      } catch (err) {
+        logMain(`[NetworkService] ⚠️ DHT write verification unreadable | attempt=${attempt}/${MAX_ATTEMPTS} | err=${err instanceof Error ? err.message : String(err)}`)
+        seq = undefined
+      }
+    }
+    logMain('[NetworkService] ❌ DHT WRITE FAILED after all attempts — le réseau garde un enregistrement périmé (présence unilatérale probable)')
+    return false
+  }
+
+  /**
+   * File d'attente FIFO des écritures de records mutables DHT.
+   * Garantit qu'une seule séquence (lecture du seq → écriture seq+1 → vérification)
+   * est en vol à la fois, ce qui supprime les collisions SEQ_REUSED entre
+   * publishProfile et publishStatus (appelés en parallèle au démarrage, par la
+   * boucle 30 s du renderer, l'intervalle 5 min interne, les évènements
+   * persistent/wake-up/network-change et la re-public sur connexion de pair).
+   */
+  private dhtWriteQueue: Promise<unknown> = Promise.resolve()
+
+  private enqueueDhtWrite<T>(label: string, fn: () => Promise<T>): Promise<T> {
+    const run = this.dhtWriteQueue.then(fn, fn)
+    // La file ne doit jamais se bloquer sur un rejet.
+    this.dhtWriteQueue = run.then(() => undefined, (err) => {
+      console.warn(`[NetworkService] DHT write ${label} failed:`, err instanceof Error ? err.message : String(err))
+      return undefined
+    })
+    return run
   }
 
   /**
@@ -482,12 +675,21 @@ export class NetworkService extends EventEmitter {
     // Check cache first
     const cached = this.profileCache.get(publicKeyHex)
     if (cached && Date.now() - cached.timestamp < NetworkService.PROFILE_CACHE_TTL_MS) {
+      console.log('[NetworkService] Profile cache hit for:', publicKeyHex.slice(0, 16), '| age:', Math.round((Date.now() - cached.timestamp) / 1000) + 's')
       return cached.data
     }
 
     try {
       const dht = this.getDHT()
-      if (!dht) return null
+      if (!dht) {
+        console.warn('[NetworkService] DHT not available for profile fetch')
+        return null
+      }
+
+      // CRITICAL: Ensure DHT is fully bootstrapped before lookup.
+      // Without this, mutableGet can fail silently because the node hasn't
+      // connected to enough DHT bootstrap nodes yet.
+      await dht.fullyBootstrapped().catch(() => {})
 
       // CRITICAL: The DHT mutable record key is NOT the raw Ed25519 public key.
       // setIdentity derives the Hyperswarm seed as sha256(ed25519PublicKeyHex),
@@ -499,30 +701,40 @@ export class NetworkService extends EventEmitter {
       const keyPair = HyperDHT.default.keyPair(seed)
       const publicKey = keyPair.publicKey
 
-      // Try up to 2 times — DHT lookups can fail on first try due to propagation
+      console.log('[NetworkService] Fetching DHT profile for:', publicKeyHex.slice(0, 16), '| DHT key:', publicKey.toString('hex').slice(0, 16))
+      logMain(`[NetworkService] 🔍 DHT FETCH | peer=${publicKeyHex.slice(0, 16)} | dhtKey=${publicKey.toString('hex').slice(0, 16)}`)
+
+      // Try up to 3 times — DHT lookups can fail due to propagation delays,
+      // especially for cross-border connections (e.g. Belgium ↔ France).
       let result: { value?: Buffer } | null = null
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         try {
           result = await dht.mutableGet(publicKey, { latest: true }) as { value?: Buffer } | null
-          if (result?.value) break
-          // Wait briefly before retry
-          if (attempt < 1) await new Promise(r => setTimeout(r, 2000))
-        } catch {
-          if (attempt < 1) await new Promise(r => setTimeout(r, 2000))
+          if (result?.value) {
+            logMain(`[NetworkService] ✅ DHT FETCH SUCCESS on attempt ${attempt + 1} | peer=${publicKeyHex.slice(0, 16)} | valueSize=${result.value.length}`)
+            break
+          }
+          logMain(`[NetworkService] ⚠️ DHT FETCH NOT FOUND on attempt ${attempt + 1} | peer=${publicKeyHex.slice(0, 16)}`)
+          // Wait before retry — increasing backoff: 1.5s, 3s
+          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+        } catch (err) {
+          logMain(`[NetworkService] ❌ DHT FETCH ERROR on attempt ${attempt + 1}: ${err instanceof Error ? err.message : String(err)}`)
+          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
         }
       }
 
       if (!result || !result.value) {
-        console.log('[NetworkService] Profile not found in DHT:', publicKeyHex.slice(0, 16))
+        logMain(`[NetworkService] ⚠️ DHT FETCH FAILED after 3 attempts | peer=${publicKeyHex.slice(0, 16)}`)
         return null
       }
 
       const profile: DHTProfile = JSON.parse(result.value.toString())
+      const ageSeconds = profile.timestamp ? Math.round((Date.now() - profile.timestamp) / 1000) : 0
 
       // Cache the result
       this.profileCache.set(publicKeyHex, { data: profile, timestamp: Date.now() })
 
-      console.log('[NetworkService] Profile fetched from DHT:', publicKeyHex.slice(0, 16), profile.displayName)
+      logMain(`[NetworkService] ✅ DHT PROFILE | peer=${publicKeyHex.slice(0, 16)} | name=${profile.displayName} | status=${profile.status || 'none'} | age=${ageSeconds}s`)
       return profile
     } catch (err) {
       console.error('[NetworkService] Failed to fetch profile:', err)
@@ -646,8 +858,12 @@ export class NetworkService extends EventEmitter {
    * NOT a raw sha256 hash of the Ed25519 key.
    */
   joinPeer(noisePublicKeyHex: string): void {
-    if (!this.swarm) return
+    if (!this.swarm) {
+      console.warn('[NetworkService] joinPeer: swarm not initialized')
+      return
+    }
     const keyBuffer = Buffer.from(noisePublicKeyHex, 'hex')
+    console.log('[NetworkService] joinPeer: calling swarm.joinPeer for', noisePublicKeyHex.slice(0, 16) + '...')
     this.swarm.joinPeer(keyBuffer)
     // CRITICAL: Reset Hyperswarm's internal attempts counter.
     // Per Hyperswarm source: peers with attempts >= 5 are skipped in _attemptClientConnections.
@@ -656,8 +872,9 @@ export class NetworkService extends EventEmitter {
     const peerInfo = peers?.get(noisePublicKeyHex)
     if (peerInfo) {
       peerInfo.attempts = 0
+      console.log('[NetworkService] joinPeer: reset attempts for', noisePublicKeyHex.slice(0, 16) + '...')
     }
-    console.log('[NetworkService] joinPeer:', noisePublicKeyHex.slice(0, 16) + '...')
+    console.log('[NetworkService] joinPeer: initiated for', noisePublicKeyHex.slice(0, 16) + '...')
   }
 
   /**
@@ -734,7 +951,7 @@ export class NetworkService extends EventEmitter {
    * Check if a peer is currently connected with open channels.
    */
   isPeerConnected(peerId: string): boolean {
-    const peer = this.peers.get(peerId)
+    const peer = this.peers.get(this.resolvePeerKey(peerId))
     return !!peer && !!peer.sendMessage
   }
 
@@ -810,9 +1027,7 @@ export class NetworkService extends EventEmitter {
 
     // PERFORMANCE: Avoid unnecessary Buffer copy if data is already a Buffer
     const buf = Buffer.isBuffer(data) ? data : Buffer.from(data)
-    peer.sendMessage.send(buf)
-    this.trackBandwidth(buf.length, 0)
-
+    
     // DIAGNOSTIC: Log message sends to help debug presence issues
     let sentMsgType = 'unknown'
     try {
@@ -822,7 +1037,23 @@ export class NetworkService extends EventEmitter {
         sentMsgType = parsed?.type ?? 'json-no-type'
       }
     } catch {}
-    logMain(`[NetworkService] 📤 SEND to ${peerId.slice(0, 16)} | type=${sentMsgType} | size=${buf.length}`)
+    
+    // CRITICAL DIAGNOSTIC: Log send attempt with channel state
+    const channelState = {
+      hasSendMessage: !!peer.sendMessage,
+      hasSendMethod: typeof peer.sendMessage?.send === 'function',
+      socketDestroyed: peer.socket?.destroyed ?? 'unknown',
+    }
+    logMain(`[NetworkService] 📤 SEND to ${peerId.slice(0, 16)} | type=${sentMsgType} | size=${buf.length} | state=${JSON.stringify(channelState)}`)
+    
+    try {
+      peer.sendMessage.send(buf)
+      this.trackBandwidth(buf.length, 0)
+      logMain(`[NetworkService] ✅ SEND SUCCESS to ${peerId.slice(0, 16)}`)
+    } catch (sendErr) {
+      logMain(`[NetworkService] ❌ SEND FAILED to ${peerId.slice(0, 16)}: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`)
+      throw sendErr
+    }
   }
 
   /**
@@ -837,6 +1068,20 @@ export class NetworkService extends EventEmitter {
       }
     }
     return null
+  }
+
+  /**
+   * CONFORMITÉ (résolution unifiée) : accepte indifféremment le Noise peer id
+   * ou la clé publique Ed25519 du contact, et retourne la clé interne (Noise)
+   * qui indexe this.peers / this.peerChannels / this.peerInfos. send() faisait
+   * déjà cette résolution, mais corkChannel()/uncorkChannel()/isChannelOpen()/
+   * isPeerConnected()/… non — le renderer (ex. FileService) passant la clé
+   * Ed25519, le cork/uncork des transferts de fichiers était silencieusement
+   * sans effet. Retourne l'entrée inchangée quand aucun mapping n'est connu.
+   */
+  private resolvePeerKey(peerId: string): string {
+    if (this.peers.has(peerId)) return peerId
+    return this.resolveNoisePeerId(peerId) ?? peerId
   }
 
   /**
@@ -915,7 +1160,8 @@ export class NetworkService extends EventEmitter {
     }
 
     // CRITICAL: Cork the media channel to batch all sends
-    const channels = this.peerChannels.get(peerId)
+    // (peerChannels is keyed by Noise id — resolve Ed25519 keys the same way send() does)
+    const channels = this.peerChannels.get(this.resolvePeerKey(peerId))
     if (channels?.media?.cork) {
       channels.media.cork()
     }
@@ -1054,7 +1300,7 @@ export class NetworkService extends EventEmitter {
    * reference counting when some channels are null (causing the batch to never flush).
    */
   corkChannel(peerId: string): void {
-    const channels = this.peerChannels.get(peerId)
+    const channels = this.peerChannels.get(this.resolvePeerKey(peerId))
     // Cork the shared mux exactly once via any available channel
     const anyChannel = channels?.main ?? channels?.media ?? channels?.file
     if (anyChannel?.cork) {
@@ -1067,7 +1313,7 @@ export class NetworkService extends EventEmitter {
    * Must be called exactly once per corkChannel() call.
    */
   uncorkChannel(peerId: string): void {
-    const channels = this.peerChannels.get(peerId)
+    const channels = this.peerChannels.get(this.resolvePeerKey(peerId))
     // Uncork the shared mux exactly once via any available channel
     const anyChannel = channels?.main ?? channels?.media ?? channels?.file
     if (anyChannel?.uncork) {
@@ -1083,11 +1329,11 @@ export class NetworkService extends EventEmitter {
    * VERY_HIGH_PRIORITY = 4, HIGH_PRIORITY = 3, NORMAL_PRIORITY = 2
    */
   prioritizePeer(peerId: string, prioritized: boolean): void {
-    const info = this.peerInfos.get(peerId)
+    const info = this.peerInfos.get(this.resolvePeerKey(peerId))
     if (info) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(info as any).priority = prioritized ? 4 : 2 // VERY_HIGH_PRIORITY or NORMAL_PRIORITY
+        (info as any).priority = prioritized ? 4 : 2 // VERY_HIGH_PRIORITY or NORMAL_PRIORITY
         console.log('[NetworkService] Peer', peerId.slice(0, 16), 'priority set to:', prioritized ? 'VERY_HIGH (4)' : 'NORMAL (2)')
       } catch {
         // PeerInfo.priority is read-only in this Hyperswarm version — skip silently
@@ -1102,7 +1348,7 @@ export class NetworkService extends EventEmitter {
   updateConfig(config: { maxPeers?: number; relayEnabled?: boolean }): void {
     if (config.maxPeers !== undefined && this.swarm) {
       // Hyperswarm stores maxPeers as a mutable property
-      ;(this.swarm as unknown as { maxPeers: number }).maxPeers = config.maxPeers
+      (this.swarm as unknown as { maxPeers: number }).maxPeers = config.maxPeers
       console.log('[NetworkService] maxPeers updated to', config.maxPeers)
     }
     if (config.relayEnabled !== undefined) {
@@ -1131,10 +1377,57 @@ export class NetworkService extends EventEmitter {
       peerLatency: Object.fromEntries(this.peerLatency),
       // OPTIMIZATION: Expose swarm.connections size for precise connection count
       activeConnections: this.swarm?.connections?.size ?? 0,
-      maxPeers: (this as unknown as { maxPeers?: number }).maxPeers ?? 64,
+      // Read the real configured limit from the Hyperswarm instance (was previously
+      // reading a non-existent service property — always returned the default 64)
+      maxPeers: this.swarm?.maxPeers ?? 100,
       // OPTIMIZATION: Expose active Protomux channel count
       activeChannels: this.peerChannels.size,
     }
+  }
+
+  /**
+   * CONNECTIVITÉ : instantané PULL des pairs réellement connectés dans ce
+   * processus.
+   *
+   * NÉCESSAIRE : les évènements `network:peer` / `network:peerIdentified` sont
+   * uniquement PUSH (forwardés vers le renderer par handlers.ts). Or le swarm
+   * démarre dès `network:setIdentity`, donc tout pair qui se connecte avant que
+   * `p2pService.initialize()` n'enregistre ses listeners est perdu sans retour
+   * possible : le socket vit ici (`this.peers`, `send()` y écrit même avec
+   * succès) alors que le renderer croit voir `peers=0`. Il n'envoie alors ni
+   * présence ni messages, et le contact nous voit « hors ligne » alors que nous
+   * le voyons « en ligne » via le DHT — asymétrie exacte des logs.
+   *
+   * Cette méthode permet la réconciliation (et un filet périodique contre tout
+   * évènement égaré : rechargement de fenêtre, navigation, perte d'évènement).
+   */
+  getLivePeers(): Array<{
+    id: string
+    publicKey: string
+    remotePublicKey: string
+    ed25519PublicKey: string | null
+    connected: true
+    channelReady: boolean
+  }> {
+    const list: Array<{
+      id: string
+      publicKey: string
+      remotePublicKey: string
+      ed25519PublicKey: string | null
+      connected: true
+      channelReady: boolean
+    }> = []
+    for (const [peerId, peer] of this.peers.entries()) {
+      list.push({
+        id: peerId,
+        publicKey: peerId,
+        remotePublicKey: peer.socket?.remotePublicKey?.toString('hex') ?? peerId,
+        ed25519PublicKey: this.peerPublicKeyMap.get(peerId) ?? null,
+        connected: true,
+        channelReady: !!peer.sendMessage,
+      })
+    }
+    return list
   }
 
   /**
@@ -1142,7 +1435,7 @@ export class NetworkService extends EventEmitter {
    * OPTIMIZATION: Avoids creating duplicate channels.
    */
   isChannelOpen(peerId: string): boolean {
-    const channels = this.peerChannels.get(peerId)
+    const channels = this.peerChannels.get(this.resolvePeerKey(peerId))
     return !!(channels?.main || channels?.media)
   }
 
@@ -1168,7 +1461,7 @@ export class NetworkService extends EventEmitter {
    * Both peers compute the same hash, useful for session deduplication.
    */
   getHandshakeHash(peerId: string): string | null {
-    const peer = this.peers.get(peerId)
+    const peer = this.peers.get(this.resolvePeerKey(peerId))
     if (!peer?.socket?.handshakeHash) return null
     return peer.socket.handshakeHash.toString('hex')
   }
@@ -1179,7 +1472,7 @@ export class NetworkService extends EventEmitter {
    * More accurate than sliding window as it measures actual encrypted bytes.
    */
   getPeerBandwidth(peerId: string): { written: number; read: number } | null {
-    const peer = this.peers.get(peerId)
+    const peer = this.peers.get(this.resolvePeerKey(peerId))
     if (!peer?.socket) return null
     return {
       written: peer.socket.rawBytesWritten ?? 0,
@@ -1193,7 +1486,7 @@ export class NetworkService extends EventEmitter {
    * Sends heartbeat when socket is idle.
    */
   setPeerKeepAlive(peerId: string, ms: number): void {
-    const peer = this.peers.get(peerId)
+    const peer = this.peers.get(this.resolvePeerKey(peerId))
     if (peer?.socket?.setKeepAlive) {
       peer.socket.setKeepAlive(ms)
     }
@@ -1320,12 +1613,17 @@ export class NetworkService extends EventEmitter {
 
   /**
    * Announce presence on a topic via DHT.
-   * OPTIMIZATION: Uses HyperDHT announce() for direct announcements.
+   * CONFORMITÉ HOLEPUNCH (pattern officiel hyperswarm/lib/peer-discovery.js:110):
+   * `dht.announce(topic, swarm.keyPair, swarm.server.relayAddresses, opts)` — le 3e
+   * argument relayAddresses est requis (hyperdht/index.js:254 n'a pas de valeur par
+   * défaut) ; sans lui l'announce échoue au commit.
    * Useful for custom discovery mechanisms.
    */
   async dhtAnnounce(topic: Buffer): Promise<boolean> {
+    if (!this.swarm) return false
+
     const dht = (this.swarm as unknown as { dht?: {
-      announce: (topic: Buffer, keyPair: { publicKey: Buffer; secretKey: Buffer }) => AsyncIterable<unknown>
+      announce: (topic: Buffer, keyPair: { publicKey: Buffer; secretKey: Buffer }, relayAddresses: Array<{ host: string; port: number }>) => AsyncIterable<unknown>
     } }).dht
 
     if (!dht || typeof dht.announce !== 'function') {
@@ -1335,8 +1633,10 @@ export class NetworkService extends EventEmitter {
     const keyPair = (this.swarm as unknown as { keyPair?: { publicKey: Buffer; secretKey: Buffer } }).keyPair
     if (!keyPair) return false
 
+    const relayAddresses = this.swarm.server?.relayAddresses ?? []
+
     try {
-      for await (const _ of dht.announce(topic, keyPair)) {
+      for await (const _ of dht.announce(topic, keyPair, relayAddresses)) {
         // Consume the stream
       }
       return true
@@ -1432,16 +1732,12 @@ export class NetworkService extends EventEmitter {
    * Useful for reproducible identities.
    */
   async generateKeyPair(seed?: Buffer): Promise<{ publicKey: string; secretKey: string } | null> {
-    const dht = (this.swarm as unknown as { dht?: {
-      keyPair: (seed?: Buffer) => { publicKey: Buffer; secretKey: Buffer }
-    } }).dht
-
-    if (!dht || typeof dht.keyPair !== 'function') {
-      return null
-    }
-
+    // CONFORMITÉ HOLEPUNCH: `keyPair(seed)` est une méthode STATIQUE de HyperDHT
+    // (hyperdht/index.js:458) — `dht.keyPair` d'instance n'existe pas (l'ancien code
+    // retournait donc toujours null). Même pattern que setSeed()/_doInitialize().
     try {
-      const keyPair = dht.keyPair(seed)
+      const HyperDHTModule = await import('hyperdht') as unknown as { default: HyperDHTConstructor }
+      const keyPair = HyperDHTModule.default.keyPair(seed)
       return {
         publicKey: keyPair.publicKey.toString('hex'),
         secretKey: keyPair.secretKey.toString('hex')
@@ -1501,6 +1797,8 @@ export class NetworkService extends EventEmitter {
    * Score factors: connection age (stability), recent activity (liveness).
    */
   private updatePeerScores(): void {
+    // Fenêtre fermée → plus personne à informer : inutile de réveiller l'IPC.
+    if (this.shuttingDown) return
     const now = Date.now()
     for (const [peerId, peer] of this.peers) {
       const connectionAge = now - peer.connectedAt
@@ -1550,19 +1848,118 @@ export class NetworkService extends EventEmitter {
   }
 
   /**
+   * GEL DE LA MACHINERIE DE RE-CONNEXION — à appeler avant toute attente du shutdown.
+   *
+   * Hyperswarm draine sa file de pairs à connecter depuis les handlers `close`
+   * de chaque stream chiffré (`_connectDone` → `_attemptClientConnections`,
+   * hyperswarm/index.js:276-307). Or pendant tout le teardown les connexions
+   * meurent une à une (on a coupé nos keep-alive, le pair cesse de répondre) :
+   * la boucle `while (this._queue.length && this._shouldConnect())` peut alors
+   * sortir un `peerInfo` null et lever
+   * `TypeError: Cannot set properties of null (setting 'queued')` — exception
+   * levée dans un callback de la librairie, donc hors de portée de notre `try`,
+   * et qui affichait la boîte d'erreur à la fermeture.
+   *
+   * `swarm.suspended` est le drapeau que la librairie consulte en tête de
+   * `_attemptClientConnections()` (`if (this._drainingQueue || this.suspended)
+   * return`) et que `suspend()` pose lui-même avant de détruire ses streams —
+   * `destroy()`, lui, ne le pose jamais. Le poser est donc le geste attendu :
+   * la machine à re-connecter est gelée, le DHT reste utilisable (la publication
+   * « offline » passe par `swarm.dht`).
+   */
+  private quiesceSwarm(): void {
+    if (!this.swarm) return
+    this.swarm.suspended = true
+  }
+
+  /**
+   * BLINDAGE INDÉPENDANT DU CHEMIN DE FERMETURE — à poser à la création du swarm.
+   *
+   * `quiesceSwarm()` gèle la machine à re-connexion, mais seulement si notre
+   * teardown s'exécute. La file interne d'hyperswarm 4.17.1 peut, elle, être
+   * incohérente pendant toute la vie du swarm : `ShuffledPriorityQueue.head()`
+   * (shuffled-priority-queue/index.js:19) tire un élément AU HASARD dans le seau
+   * de priorité, et un trou laissé dans ce tableau par un `remove()` compte
+   * toujours dans `length` (l.11). Le `while (this._queue.length &&
+   * this._shouldConnect())` d'hyperswarm/index.js:300 entre alors en boucle sur
+   * un `shift()` qui rend null, et l'écriture `peerInfo.queued = false` (l.302)
+   * tue le process principal.
+   *
+   * Remplacer la méthode sur NOTRE instance est le seul point dont nous sommes
+   * maîtres sans patcher `node_modules` : la librairie ne l'appelle que via
+   * `this._attemptClientConnections()`, notre propriété d'instance masque donc
+   * celle du prototype pour tous les appelants (`_connectDone`, handlers
+   * `close`, `resume()`, retry timer…).
+   *
+   * Attraper ne suffit pas : la garde d'entrée teste `_drainingQueue`, qui
+   * resterait à true après l'exception et figerait l'essaimage pour toute la
+   * session. Le drain est donc ré-essayé `SWARM_DRAIN_ATTEMPTS` fois — chaque
+   * tirage remélangeant le seau, un pair sauté ce tour-ci est de toute façon
+   * re-propagé par la découverte.
+   */
+  private hardenSwarmQueueDrain(swarm: HyperswarmInstance): void {
+    const mutable = swarm as unknown as {
+      _attemptClientConnections?: () => void
+      _drainingQueue?: boolean
+    }
+    const drain = typeof mutable._attemptClientConnections === 'function'
+      ? mutable._attemptClientConnections.bind(swarm)
+      : null
+    if (!drain) {
+      logMain('[NetworkService] ⚠️ hyperswarm._attemptClientConnections introuvable — blindage non posé')
+      return
+    }
+
+    let failures = 0
+    mutable._attemptClientConnections = (): void => {
+      for (let attempt = 1; attempt <= NetworkService.SWARM_DRAIN_ATTEMPTS; attempt++) {
+        try {
+          drain()
+          return
+        } catch (err) {
+          // File incohérente : on remet la garde d'entrée en état puis on
+          // retente, jusqu'à franchir le trou. Le dernier échec est journalisé —
+          // jamais masqué — pour rester diagnostiquable chez l'utilisateur.
+          mutable._drainingQueue = false
+          if (attempt === NetworkService.SWARM_DRAIN_ATTEMPTS) {
+            failures++
+            const message = err instanceof Error ? err.message : String(err)
+            logMain(`[NetworkService] ⚠️ file d'essaimage hyperswarm incohérente, drain n°${failures} neutralisé: ${message}`)
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Attend `p` au plus `ms`, puis l'abandonne. En fermeture, aucune promesse
+   * réseau ne doit immobiliser le reste du teardown (le stockage attend son
+   * tour, et un force-exit à 5 s attend derrière). Les rejets tardifs de la
+   * promesse abandonnée sont avalés : un `publishStatus` qui échoue deux
+   * secondes après le délai n'a plus personne à prévenir.
+   */
+  private static async bounded<T>(p: Promise<T>, ms: number): Promise<T | undefined> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const guard = new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), ms) })
+    p.catch(() => { /* échec tardif : trop tard pour en faire quoi que ce soit */ })
+    try {
+      return await Promise.race([p, guard])
+    } finally {
+      if (timer !== undefined) clearTimeout(timer)
+    }
+  }
+
+  /**
    * Destroy the swarm and clean up
    */
   async destroy(): Promise<void> {
-    // CRITICAL: Publish 'offline' status to DHT before destroying the swarm.
-    // This ensures contacts don't see us as 'online' after we've closed the app.
-    // Without this, our last-published 'online' status persists in the DHT.
-    try {
-      await this.publishStatus('offline')
-      console.log('[NetworkService] Published offline status to DHT before shutdown')
-    } catch (err) {
-      console.warn('[NetworkService] Failed to publish offline status before shutdown:', err)
-    }
-
+    // FERMETURE PROPRE : coupure des timers AVANT toute attente. `publishStatus`
+    // ci-dessous est réseau (DHT, jusqu'à plusieurs secondes) et le shutdown est
+    // séquentiel : tant qu'il durait, `scoreUpdateInterval` continuait d'émettre
+    // `status:update` vers une fenêtre déjà détruite — le `webContents.send` du
+    // handler levait alors `TypeError: Object has been destroyed`, affiché sous
+    // forme de boîte d'erreur JavaScript à chaque fermeture.
+    this.shuttingDown = true
     if (this.reannounceInterval) {
       clearInterval(this.reannounceInterval)
       this.reannounceInterval = null
@@ -1575,8 +1972,50 @@ export class NetworkService extends EventEmitter {
       clearInterval(this.profileRepublishInterval)
       this.profileRepublishInterval = null
     }
+    // KEEP-ALIVE : arrêter tous les timers de vie des pairs (anti-fuite au shutdown)
+    for (const ka of this.peerKeepAlive.values()) {
+      clearInterval(ka.timer)
+    }
+    this.peerKeepAlive.clear()
+
+    // Geler la machinerie de re-connexion AVANT la moindre attente : dès ici les
+    // connexions qui meurent ne relancent plus la file de l'essaimage, qui était
+    // à l'origine de la boîte d'erreur à la fermeture (cf. quiesceSwarm()).
+    this.quiesceSwarm()
+
+    // CRITICAL: Publish 'offline' status to DHT before destroying the swarm.
+    // This ensures contacts don't see us as 'online' after we've closed the app.
+    // Without this, our last-published 'online' status persists in the DHT.
+    // Mais borné : `doPublishStatus` attend `fullyBootstrapped()`, qui peut ne
+    // jamais revenir sur un réseau mort, et le teardown du stockage attend derrière.
+    try {
+      const published = await NetworkService.bounded(
+        this.publishStatus('offline'),
+        NetworkService.OFFLINE_PUBLISH_TIMEOUT_MS,
+      )
+      if (published === undefined) {
+        console.warn('[NetworkService] Statut offline non confirmé dans le délai — fermeture poursuivie')
+      } else {
+        console.log('[NetworkService] Published offline status to DHT before shutdown')
+      }
+    } catch (err) {
+      console.warn('[NetworkService] Failed to publish offline status before shutdown:', err)
+    }
+
     if (this.swarm) {
-      await this.swarm.destroy()
+      // `force` : le chemin normal attendrait le `clear()` de toutes les sessions
+      // de découverte, plusieurs secondes sur un DHT lent — alors que le
+      // force-exit de `quitCleanups` tourne déjà en parallèle. Ce que le
+      // corestore attend de nous, à savoir les streams de réplication fermés par
+      // `dht.destroy()`, est bien conservé dans ce chemin.
+      try {
+        await NetworkService.bounded(
+          this.swarm.destroy({ force: true }),
+          NetworkService.SWARM_DESTROY_TIMEOUT_MS,
+        )
+      } catch (err) {
+        console.warn('[NetworkService] swarm.destroy() a échoué — fermeture poursuivie:', err)
+      }
       this.swarm = null
     }
     this.peers.clear()
@@ -1613,10 +2052,63 @@ export class NetworkService extends EventEmitter {
     }
   }
 
+  /**
+   * KEEP-ALIVE APPLICATIF (header 0x03 ping / 0x05 pong sur le canal main).
+   * RÉSILIENCE ZOMBIE : un pair au mux gelé (process vivant, TCP open, zéro message
+   * applicatif) survit au keep-alive transport de Hyperswarm et reste "ghost online".
+   * Chaque message applicatif reçu marque la vie (markPeerAlive) ; un ping part toutes
+   * les 20s ; sans preuve de vie en 60s le socket est détruit — le handler 'close'
+   * existant nettoie et planifie la reconnexion avec backoff.
+   * COMPATIBILITÉ ANCIENNES BUILDS : elles ignorent 0x03/0x05 (payload binaire → JSON
+   * parse silencieux → drop inoffensif côté renderer) — seuls leurs messages applicatifs
+   * (chat, présence) les maintiennent en vie ; en idle elles sont recyclées puis
+   * ré-identifiées à la reconnexion, ce qui rafraîchit le canal pour l'échange suivant.
+   */
+  private markPeerAlive(peerId: string): void {
+    const ka = this.peerKeepAlive.get(peerId)
+    if (ka) ka.lastAlive = Date.now()
+  }
+
+  private startPeerKeepAlive(peerId: string, socket: PeerSocket): void {
+    if (this.peerKeepAlive.has(peerId)) return
+    const entry = { timer: null as unknown as NodeJS.Timeout, lastAlive: Date.now() }
+    const PING_INTERVAL = 20000
+    const ZOMBIE_AFTER = 60000
+    entry.timer = setInterval(() => {
+      const peer = this.peers.get(peerId)
+      if (!peer || socket.destroyed) {
+        this.stopPeerKeepAlive(peerId)
+        return
+      }
+      // Canal établi → ping [0x03][timestamp LE] (canal en cours d'établissement → skip ce tick)
+      if (peer.sendMessage) {
+        const ping = Buffer.alloc(9)
+        ping[0] = 0x03
+        ping.writeBigUInt64LE(BigInt(Date.now()), 1)
+        try { peer.sendMessage.send(ping) } catch { /* canal en cours de fermeture */ }
+      }
+      if (Date.now() - entry.lastAlive > ZOMBIE_AFTER) {
+        logMain(`[NetworkService] 🧟 Zombie peer ${peerId.slice(0, 16)} — aucune preuve de vie depuis ${Math.round((Date.now() - entry.lastAlive) / 1000)}s malgré les pings, destruction de la connexion`)
+        this.stopPeerKeepAlive(peerId)
+        try { socket.destroy?.() } catch { /* déjà détruit */ }
+      }
+    }, PING_INTERVAL)
+    this.peerKeepAlive.set(peerId, entry)
+  }
+
+  private stopPeerKeepAlive(peerId: string): void {
+    const ka = this.peerKeepAlive.get(peerId)
+    if (ka) {
+      clearInterval(ka.timer)
+      this.peerKeepAlive.delete(peerId)
+    }
+  }
+
   // ─── Private ───────────────────────────────────────────────────────────────
 
   private async handleConnection(socket: PeerSocket, info: PeerInfo): Promise<void> {
     const peerId = info.publicKey.toString('hex')
+    logMain(`[NetworkService] === HANDLE CONNECTION === peer=${peerId.slice(0, 32)} | localPublicKey=${!!this.localPublicKey} | socket.destroyed=${socket.destroyed}`)
 
     // ── Load Protomux + compact-encoding ──
     // CRITICAL: These are now static imports (loaded at module level).
@@ -1632,6 +2124,7 @@ export class NetworkService extends EventEmitter {
     // synchronously without yielding to the event loop.
 
     const mux = Protomux.from(socket)
+    logMain(`[NetworkService] Protomux created for peer: ${peerId.slice(0, 16)}`)
 
     // ── Corestore replication ──
     if (this.corestore) {
@@ -1662,7 +2155,26 @@ export class NetworkService extends EventEmitter {
     const onMainMessage = (buf: unknown) => {
       const data = buf as Buffer
       this.trackBandwidth(0, data.length)
+      // CRITICAL DIAGNOSTIC: Log EVERY incoming message at the very start
+      const firstBytes = data.length > 0 ? Array.from(data.slice(0, Math.min(8, data.length))).map(b => b.toString(16).padStart(2, '0')).join(' ') : 'empty'
+      logMain(`[NetworkService] 🔴 ON_MAIN_MESSAGE | peer=${peerId.slice(0, 16)} | size=${data.length} | firstBytes=${firstBytes}`)
       if (data.length > 0) {
+        // KEEP-ALIVE : tout octet applicatif reçu = preuve de vie (anti zombie)
+        this.markPeerAlive(peerId)
+        if (data[0] === 0x03) {
+          // Ping keep-alive → répondre pong immédiatement (écho du payload)
+          const peer = this.peers.get(peerId)
+          if (peer?.sendMessage) {
+            const pong = Buffer.from(data)
+            pong[0] = 0x05
+            try { peer.sendMessage.send(pong) } catch { /* canal en cours de fermeture */ }
+          }
+          return
+        }
+        if (data[0] === 0x05) {
+          // Pong keep-alive — la vie est déjà marquée ci-dessus
+          return
+        }
         if (data[0] === 0x01) {
           const remotePk = data.slice(1).toString('utf-8')
           this.peerPublicKeyMap.set(peerId, remotePk)
@@ -1672,7 +2184,11 @@ export class NetworkService extends EventEmitter {
         }
         if (data[0] === 0x02) {
           logMain(`[recvMedia] ⚠️ Main channel fallback recv from ${peerId.slice(0, 16)}, size: ${data.length}`)
-          this.emit('media', { from: peerId, data: new Uint8Array(data), timestamp: Date.now() })
+          // CONFORMITÉ PROTOCOLE : sendMedia()/sendMediaBatch() émettent
+          // [0x02][payload] sur le canal main en fallback — déframer comme le
+          // fait l'identité 0x01 (data.slice(1)), sinon chaque chunk média
+          // arrive au renderer avec un octet 0x02 parasite en tête.
+          this.emit('media', { from: peerId, data: new Uint8Array(data.slice(1)), timestamp: Date.now() })
           return
         }
       }
@@ -1765,6 +2281,18 @@ export class NetworkService extends EventEmitter {
           onmessage: (buf: unknown) => {
             const data = buf as Buffer
             this.trackBandwidth(0, data.length)
+            // CONFORMITÉ PROTOCOLE : sendFileData() fallback émet [0x04][payload]
+            // sur le canal média quand 'asgard-files' n'est pas ouvert — déframer
+            // et router vers 'file' (jamais 'media'), sinon le chunk fichier
+            // arrive comme chunk audio/vidéo avec un octet 0x04 parasite.
+            if (data.length > 0 && data[0] === 0x04) {
+              if (!this._fileRecvCount) this._fileRecvCount = new Map()
+              const fcount = (this._fileRecvCount.get(peerId) ?? 0) + 1
+              this._fileRecvCount.set(peerId, fcount)
+              if (fcount <= 3) logMain(`[recvFile] ⚠️ Media channel fallback recv #${fcount} from ${peerId.slice(0, 16)}, size: ${data.length}`)
+              this.emit('file', { from: peerId, data: new Uint8Array(data.slice(1)), timestamp: Date.now() })
+              return
+            }
             if (!this._mediaRecvCount) this._mediaRecvCount = new Map()
             const count = (this._mediaRecvCount.get(peerId) ?? 0) + 1
             this._mediaRecvCount.set(peerId, count)
@@ -1832,6 +2360,7 @@ export class NetworkService extends EventEmitter {
         }
         this.peers.set(peerId, peer)
         this.peerInfos.set(peerId, info)
+        this.startPeerKeepAlive(peerId, socket)
         const knownEd25519 = this.peerPublicKeyMap.get(peerId)
         this.emit('peer', {
           id: peerId, publicKey: peerId, remotePublicKey: peerId,
@@ -1874,6 +2403,7 @@ export class NetworkService extends EventEmitter {
       sendFile,
     }
     this.peers.set(peerId, peer)
+    this.startPeerKeepAlive(peerId, socket)
 
     // CONNECTIVITY: Reset reconnect attempts on successful connection
     this.reconnectAttempts.delete(peerId)
@@ -1903,6 +2433,7 @@ export class NetworkService extends EventEmitter {
       if (disconnectHandled) return
       disconnectHandled = true
 
+      this.stopPeerKeepAlive(peerId)
       this.peers.delete(peerId)
       this.peerChannels.delete(peerId)
       this.peerInfos.delete(peerId)
@@ -2051,8 +2582,8 @@ export class NetworkService extends EventEmitter {
    * OPTIMIZATION: Uses Hyperswarm peers for group call management.
    * Returns a map of peer public key to peer info.
    */
-  getConnectedPeersInfo(): Map<string, { publicKey: string; topics: string[]; prioritized: boolean }> {
-    const result = new Map<string, { publicKey: string; topics: string[]; prioritized: boolean }>()
+  getConnectedPeersInfo(): Map<string, { publicKey: string; topics: string[]; prioritized: boolean; ed25519PublicKey: string | null }> {
+    const result = new Map<string, { publicKey: string; topics: string[]; prioritized: boolean; ed25519PublicKey: string | null }>()
     if (!this.swarm) return result
 
     try {
@@ -2064,6 +2595,10 @@ export class NetworkService extends EventEmitter {
           publicKey: Buffer.isBuffer(peerInfo.publicKey) ? peerInfo.publicKey.toString('hex') : String(peerInfo.publicKey),
           topics: Array.isArray(peerInfo.topics) ? peerInfo.topics : [],
           prioritized: Boolean(peerInfo.prioritized),
+          // Clé Ed25519 (identité Asgard) si le pair s'est identifié — permet au
+          // renderer de distinguer les vrais contacts des pairs bruts non identifiés
+          // (ex : zombie d'une ancienne build connecté au topic de rendez-vous).
+          ed25519PublicKey: this.peerPublicKeyMap.get(key) ?? null,
         })
       }
     } catch (err) {
@@ -2087,7 +2622,7 @@ export class NetworkService extends EventEmitter {
       const peers = (this.swarm as unknown as { peers?: Map<string, { priority?: number }> }).peers
       if (!peers) return false
 
-      const peerInfo = peers.get(peerPublicKey)
+      const peerInfo = peers.get(this.resolvePeerKey(peerPublicKey))
       if (!peerInfo) return false
 
       peerInfo.priority = prioritized ? 4 : 2 // VERY_HIGH_PRIORITY or NORMAL_PRIORITY
@@ -2110,7 +2645,7 @@ export class NetworkService extends EventEmitter {
       const peers = (this.swarm as unknown as { peers?: Map<string, { ban?: (status: boolean) => void }> }).peers
       if (!peers) return false
 
-      const peerInfo = peers.get(peerPublicKey)
+      const peerInfo = peers.get(this.resolvePeerKey(peerPublicKey))
       if (!peerInfo || typeof peerInfo.ban !== 'function') return false
 
       peerInfo.ban(banStatus)
@@ -2122,58 +2657,35 @@ export class NetworkService extends EventEmitter {
   }
 
   /**
-   * Register a callback for peer ban events.
-   * OPTIMIZATION: Uses Hyperswarm ban event for call error handling.
-   */
-  onPeerBan(callback: (peerInfo: unknown, error: Error) => void): void {
-    if (!this.swarm) return
-
-    try {
-      this.swarm.on('ban', (peerInfo: unknown, err: Error) => {
-        callback(peerInfo, err)
-      })
-    } catch (err) {
-      console.error('[NetworkService] Failed to register peer ban callback:', err)
-    }
-  }
-
-  /**
    * Set a firewall function to validate incoming connections.
-   * OPTIMIZATION: Uses HyperDHT firewall for call security.
+   * CONFORMITÉ HOLEPUNCH: route via l'option `firewall` du constructeur Hyperswarm
+   * (hyperdht 6.34.0 n'expose pas de dht.firewall() dynamique — l'ancien code
+   * retournait donc toujours false).
    * Returns true if successful.
    */
   setFirewall(firewallFn: (remotePublicKey: string, remoteHandshakePayload: unknown) => boolean): boolean {
-    if (!this.swarm) return false
-
-    try {
-      const dht = (this.swarm as unknown as { dht?: { firewall?: (fn: (remotePublicKey: Buffer, remoteHandshakePayload: unknown) => boolean) => void } }).dht
-      if (!dht || typeof dht.firewall !== 'function') return false
-
-      // Convert hex string to Buffer for the firewall function
-      dht.firewall((remotePublicKey: Buffer, remoteHandshakePayload: unknown) => {
-        const publicKeyHex = Buffer.isBuffer(remotePublicKey) ? remotePublicKey.toString('hex') : String(remotePublicKey)
-        return firewallFn(publicKeyHex, remoteHandshakePayload)
-      })
-      return true
-    } catch (err) {
-      console.error('[NetworkService] Failed to set firewall:', err)
-      return false
-    }
+    // Le firewall du constructeur (voir swarmOpts dans _doInitialize) consulte
+    // this.customFirewall à chaque handshake entrant — aucune API interne DHT.
+    this.customFirewall = firewallFn
+    return true
   }
 
   /**
    * Get the server address information.
-   * OPTIMIZATION: Uses HyperDHT server.address() for call diagnostics.
+   * CONFORMITÉ HOLEPUNCH: utilise swarm.server.address() (hyperdht/lib/server.js:83)
+   * — le server DHT vit sur le SWARM (hyperswarm/index.js:47 :
+   * `this.server = this.dht.createServer(...)`), pas sur le DHT. L'ancien code lisait
+   * `dht.server` (inexistant) et retournait donc toujours null.
    * Returns the server address info (host, port, publicKey).
    */
   getServerAddress(): { host: string; port: number; publicKey: string } | null {
     if (!this.swarm) return null
 
     try {
-      const dht = (this.swarm as unknown as { dht?: { server?: { address?: () => { host: string; port: number; publicKey: Buffer } } } }).dht
-      if (!dht?.server || typeof dht.server.address !== 'function') return null
+      const server = this.swarm.server
+      if (!server || typeof server.address !== 'function') return null
 
-      const address = dht.server.address()
+      const address = server.address()
       if (!address) return null
 
       return {
@@ -2189,17 +2701,19 @@ export class NetworkService extends EventEmitter {
 
   /**
    * Refresh the server, causing it to reannounce its address.
-   * OPTIMIZATION: Uses HyperDHT server.refresh() for call reconnection.
+   * CONFORMITÉ HOLEPUNCH: utilise swarm.server.refresh() (hyperdht/lib/server.js:205
+   * — relance l'announcer). Le server est exposé par le SWARM, pas par le DHT —
+   * l'ancien code retournait donc toujours false.
    * Returns true if successful.
    */
   refreshServer(): boolean {
     if (!this.swarm) return false
 
     try {
-      const dht = (this.swarm as unknown as { dht?: { server?: { refresh?: () => void } } }).dht
-      if (!dht?.server || typeof dht.server.refresh !== 'function') return false
+      const server = this.swarm.server
+      if (!server || typeof server.refresh !== 'function') return false
 
-      dht.server.refresh()
+      server.refresh()
       return true
     } catch (err) {
       console.error('[NetworkService] Failed to refresh server:', err)
@@ -2494,25 +3008,47 @@ export class NetworkService extends EventEmitter {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+interface HyperDHTServer {
+  // hyperdht/lib/server.js:83 — address() → { publicKey, host, port }
+  address: () => { host: string | null; port: number | null; publicKey: Buffer } | null
+  // hyperdht/lib/server.js:205 — refresh() relance l'announcer (re-annonce d'adresse)
+  refresh: () => void
+  // hyperdht/lib/server.js:60 — adresses relay par lesquelles ce server est joignable
+  relayAddresses: Array<{ host: string; port: number }>
+}
+
 interface HyperswarmInstance {
   on: (event: string, handler: (...args: any[]) => void) => void // eslint-disable-line @typescript-eslint/no-explicit-any
   join: (topic: Buffer, options?: { client?: boolean; server?: boolean; limit?: number }) => { flushed: () => Promise<void> }
   leave: (topic: Buffer) => Promise<void>
-  destroy: () => Promise<void>
-  status: (topic: Buffer) => { flushed?: () => Promise<void> } | null
+  destroy: (options?: { force?: boolean }) => Promise<void>
+  status: (topic: Buffer) => { flushed?: () => Promise<void>; refresh?: () => Promise<void> } | null
   joinPeer: (publicKey: Buffer) => void
   leavePeer: (publicKey: Buffer) => void
   suspend: () => Promise<void>
   resume: () => Promise<void>
   connections: Set<unknown>
   connecting: number
+  // Hyperswarm index.js:623 — `suspend()` pose ce drapeau avant de détruire ses
+  // streams, et `_attemptClientConnections()` y coupe court. Notre teardown en a
+  // besoin pour la même raison (cf. quiesceSwarm()).
+  suspended: boolean
   dht?: unknown
+  // Per Hyperswarm source (index.js:47): `this.server = this.dht.createServer(...)`
+  // — le server DHT vit sur le SWARM, pas sur l'instance DHT.
+  server?: HyperDHTServer
+  // Per Hyperswarm source: the DHT server listens on this keyPair (server.listen(this.keyPair))
+  // and client connections use it (dht.connect(..., { keyPair: this.keyPair })).
+  keyPair?: { publicKey: Buffer; secretKey: Buffer }
+  maxPeers?: number
 }
 
 interface HyperswarmConstructor {
   new (options?: {
     maxPeers?: number
-    firewall?: (key: Buffer) => boolean
+    // Per Hyperswarm source (index.js:315): _firewall(remotePublicKey, payload) est
+    // appelé avec le payload du handshake comme second argument.
+    firewall?: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => boolean
     seed?: Buffer
     connectionKeepAlive?: number
   }): HyperswarmInstance
@@ -2586,9 +3122,19 @@ interface HyperDHTInstance {
   immutablePut: (value: Buffer) => Promise<{ hash: Buffer }>
   immutableGet: (hash: Buffer) => Promise<{ value: Buffer } | null>
   fullyBootstrapped: () => Promise<void>
-  on: (event: 'persistent' | 'wake-up' | 'network-change' | 'network-update', handler: () => void) => void
-  off: (event: 'persistent' | 'wake-up', handler: () => void) => void
-  ephemeral?: boolean
+  on: (event: 'bootstrap' | 'ready' | 'persistent' | 'wake-up' | 'network-change' | 'network-update' | string, handler: (...args: any[]) => void) => void
+  off: (event: string, handler: (...args: any[]) => void) => void
+  // DHT properties per dht-rpc docs
+  readonly host: string | null
+  readonly port: number | null
+  readonly firewalled: boolean
+  readonly ephemeral: boolean
+  readonly id: string | null
+  readonly randomized: boolean
+  toArray: (opts?: { limit?: number }) => Array<{ host: string; port: number }>
+  refresh: () => void
+  destroy: (opts?: { force?: boolean }) => Promise<void>
+  readonly destroyed: boolean
   // HyperDHT internal properties (with underscore prefix)
   // See: github.com/holepunchto/hyperdht/blob/master/index.js
   connectionKeepAlive?: number
@@ -2603,11 +3149,14 @@ interface HyperDHTConstructor {
     bootstrap?: string[]
     nodes?: Array<{ host: string; port: number }>
     port?: number
+    host?: string
     deferRandomPunch?: boolean
     randomPunchInterval?: number
-    connectionKeepAlive?: number
+    connectionKeepAlive?: number | false
     ephemeral?: boolean
     seed?: Buffer
+    keyPair?: { publicKey: Buffer; secretKey: Buffer }
+    firewalled?: boolean
   }): HyperDHTInstance
   keyPair: (seed?: Buffer) => { publicKey: Buffer; secretKey: Buffer }
 }
@@ -2623,6 +3172,13 @@ interface DHTProfile {
   lastSeen?: number
   /** Optional status message */
   statusMessage?: string
+  /**
+   * Clé publique Ed25519 auto-déclarée par l'auteur de l'enregistrement.
+   * Permet au lecteur de vérifier que l'entrée de contact qu'il a interrogée
+   * correspond bien à l'identité actuelle de cette personne (au lieu de
+   * confondre « hors ligne » et « clé publique changée / entrée obsolète »).
+   */
+  identityPk?: string
 }
 
 interface TopicMetadata {

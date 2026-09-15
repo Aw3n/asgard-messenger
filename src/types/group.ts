@@ -43,7 +43,9 @@ export interface GroupMember {
   canPost: boolean
   /** Whether this member is muted by an admin */
   mutedBy?: string
-  /** Network presence status (online/away/dnd/offline) — updated via group:presence */
+  /** Presence of the member, already normalized to the internal vocabulary
+   *  (online/away/busy/offline) by src/utils/presence.ts — never the raw
+   *  network token, so the member list and the 1:1 chat agree. */
   status?: string
   /** Custom status message (e.g., "In a meeting") */
   customStatus?: string

@@ -55,7 +55,7 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
   const stopRecording = useCallback(() => {
     if (!mediaRecorderRef.current) return
     mediaRecorderRef.current.stop()
-    mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop())
+    mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
 
     mediaRecorderRef.current.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
@@ -72,7 +72,7 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
   // Cancel recording
   const cancelRecording = useCallback(() => {
     if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop())
+      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
       mediaRecorderRef.current = null
     }
     cleanup()

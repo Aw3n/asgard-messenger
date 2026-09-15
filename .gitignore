@@ -19,3 +19,40 @@ release-mac/
 assets/icon.icns
 assets/icons/
 
+# Journaux d'outils et sondes jetables restés à la racine pendant le
+# développement : sans ces lignes, un « git add -A » les emporterait dans
+# l'histoire du dépôt alors qu'ils ne servent qu'au poste qui les a produits.
+/*-output.txt
+/_vit.txt
+/scripts/_*.asar
+/*-build*.log
+/*-builder*.log
+/build-linux*.log
+
+# Binaires et retombees de passes de traduction restes a la racine. Les .deb
+# viennent des `apt-get download` des scripts WSL (bibliotheques d'execution
+# d'Electron deploiees pour les sondes) ; les .js sont les mutateurs jetables
+# d'un seul usage — les outils durables vivent dans scripts/, et la config de
+# racine deja suivie (postcss.config.js) n'est pas concernee par ces motifs.
+/*.deb
+/check.js
+/do_translate.js
+/final_update.js
+/translate_*.js
+/update_all.js
+/update_translations*.js
+
+# Sorties d'audit : reecrites a chaque execution, jamais une source. Attention
+# a ne pas y mettre scripts/i18n-fix/ : ces tables sont importees par
+# audit-languages.mjs et fix-languages.mjs, donc par `npm run check:all`.
+/scripts/*-report.txt
+/scripts/*-report.json
+/scripts/fr-en-dups.txt
+/scripts/full-summary.txt
+/scripts/worklist.txt
+/scripts/untranslated-residual.txt
+
+# Copie de securite d'un catalogue de traduction ; la source suivie est
+# src/i18n/translations.ts, et *.bak ne couvrait pas ce nom en .backup.
+src/i18n/translations.ts.backup
+

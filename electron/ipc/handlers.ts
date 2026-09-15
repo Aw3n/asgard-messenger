@@ -4,6 +4,8 @@ import fs from 'fs/promises'
 import { IdentityService } from '../services/IdentityService'
 import { NetworkService } from '../services/NetworkService'
 import { StorageService } from '../services/StorageService'
+import { configureFirewall, checkFirewallRule, runFirewallHelperAsAdmin, getFirewallStatus } from '../services/FirewallService'
+import { AsgardTray } from '../tray'
 
 /**
  * Registers all IPC handlers for the main process.
@@ -12,6 +14,50 @@ import { StorageService } from '../services/StorageService'
 let storageService: StorageService | null = null
 let networkServiceRef: NetworkService | null = null
 
+// ── Quit cleanup coordination (pattern officiel Electron) ─────────────────────
+// ELECTRON/HOLEPUNCH CONFORMANCE : Electron n'attend PAS les promesses des
+// listeners 'before-quit'. Un listener `async () => { await service.destroy() }`
+// s'interrompt au premier await — le statut 'offline' DHT
+// (NetworkService.destroy → publishStatus) et la fermeture propre du corestore
+// (StorageService.destroy) ne s'exécutaient donc JAMAIS jusqu'au bout, et les
+// contacts voyaient l'utilisateur « online » jusqu'à l'expiration du TTL DHT.
+// Pattern requis : event.preventDefault() + flag + cleanup SÉQUENTIEL + re-quit.
+// L'ordre d'enregistrement est critique : le swarm DOIT être détruit AVANT le
+// corestore (swarm.destroy() ferme les streams de réplication corestore).
+const quitCleanups: Array<{ name: string; fn: () => Promise<void> }> = []
+let quitCleanupStarted = false
+
+function registerQuitCleanup(name: string, fn: () => Promise<void>): void {
+  quitCleanups.push({ name, fn })
+}
+
+app.on('before-quit', (event) => {
+  if (quitCleanupStarted) return // re-quit après cleanup — laisser le quit procéder
+  quitCleanupStarted = true
+  event.preventDefault()
+
+  // Filet de sécurité : ne jamais bloquer la fermeture au-delà de 5s
+  // (DHT injoignable, corestore verrouillé, etc.)
+  const forceQuitTimer = setTimeout(() => {
+    console.error('[Quit] Cleanup timeout after 5s — forcing exit')
+    app.exit(0)
+  }, 5000)
+
+  void (async () => {
+    // Exécution SÉQUENTIELLE dans l'ordre d'enregistrement (network → storage)
+    for (const { name, fn } of quitCleanups) {
+      try {
+        await fn()
+        console.log(`[Quit] ${name} cleanup complete`)
+      } catch (err) {
+        console.error(`[Quit] ${name} cleanup failed:`, err)
+      }
+    }
+    clearTimeout(forceQuitTimer)
+    app.quit() // re-quit : quitCleanupStarted=true → quit réel
+  })()
+})
+
 function getStorage(): StorageService {
   if (!storageService) {
     storageService = new StorageService()
@@ -19,12 +65,46 @@ function getStorage(): StorageService {
   return storageService
 }
 
-export async function setupIpcHandlers(mainWindow: BrowserWindow): Promise<void> {
+/**
+ * FERMETURE PROPRE : tout envoi vers le renderer passe par ici.
+ *
+ * La `BrowserWindow` est détruite dès que l'utilisateur ferme la fenêtre, alors
+ * que le réseau, lui, continue d'émettre pendant tout le shutdown (les timers
+ * Hyperswarm ne sont arrêtés qu'après `publishStatus('offline')`, lui-même
+ * séquentiel dans `quitCleanups`). `webContents.send()` sur un objet détruit
+ * lève `TypeError: Object has been destroyed` ; non rattrapée dans le process
+ * principal, cette exception affichait la boîte « A JavaScript error occurred in
+ * the main process » à chaque fermeture de l'application (stack : updatePeerScores
+ * → emit('status:update') → listener → webContents.send).
+ *
+ * Une exception en fermeture n'est jamais une erreur utilisateur : on perd la
+ * trame, on journalise une seule fois, et la fermeture se poursuit normalement.
+ */
+let destroyedSendLogged = false
+function safeSend(win: BrowserWindow | null | undefined, channel: string, payload?: unknown): boolean {
+  if (!win || win.isDestroyed()) return false
+  const contents = win.webContents
+  if (!contents || contents.isDestroyed()) return false
+  try {
+    contents.send(channel, payload)
+    return true
+  } catch (err) {
+    if (!destroyedSendLogged) {
+      destroyedSendLogged = true
+      console.warn(`[IPC] envoi '${channel}' ignoré (renderer indisponible):`, err instanceof Error ? err.message : err)
+    }
+    return false
+  }
+}
+
+export async function setupIpcHandlers(mainWindow: BrowserWindow, tray?: AsgardTray): Promise<void> {
   // Guard: remove all existing handlers to prevent double registration on reload
   const channels = [
     'window:isMaximized',
+    'ui:setLanguage',
     'identity:create', 'identity:load', 'identity:save', 'identity:exists',
     'network:join', 'network:leave', 'network:send', 'network:status',
+    'network:getLivePeers',
     'network:getStoredPeers', 'network:blockPeer', 'network:unblockPeer',
     'network:setPeerPriorized', 'network:banPeer', 'network:refreshServer',
     'network:getPeerCount', 'network:getTopics', 'network:getBandwidth',
@@ -35,7 +115,7 @@ export async function setupIpcHandlers(mainWindow: BrowserWindow): Promise<void>
     'storage:conversations:save', 'storage:conversations:load',
     'storage:settings:save', 'storage:settings:load',
     'notifications:requestPermission',
-    'app:getVersion', 'app:getTheme',
+    'app:getVersion', 'app:getTheme', 'app:getPendingDeepLink',
   ]
   for (const ch of channels) {
     try { ipcMain.removeHandler(ch) } catch { /* ignore */ }
@@ -50,11 +130,11 @@ export async function setupIpcHandlers(mainWindow: BrowserWindow): Promise<void>
   // ── CRITICAL: Register ALL handlers SYNCHRONOUSLY first ──
   // This ensures IPC handlers are available before the renderer starts executing.
   // The async storage initialization (corestore) happens AFTER all handlers are registered.
-  setupWindowHandlers(mainWindow)
+  setupWindowHandlers(mainWindow, tray)
   setupIdentityHandlers()
   setupNetworkHandlers(mainWindow)
   setupNotificationHandlers()
-  setupAppHandlers(mainWindow)
+  setupAppHandlers()
 
   // ── Now do async storage initialization ──
   await setupStorageHandlers()
@@ -69,7 +149,7 @@ export async function setupIpcHandlers(mainWindow: BrowserWindow): Promise<void>
 
 // ─── Window Handlers ────────────────────────────────────────────────────────
 
-function setupWindowHandlers(win: BrowserWindow): void {
+function setupWindowHandlers(win: BrowserWindow, tray?: AsgardTray): void {
   ipcMain.on('window:minimize', () => win.minimize())
 
   ipcMain.on('window:maximize', () => {
@@ -87,9 +167,16 @@ function setupWindowHandlers(win: BrowserWindow): void {
 
   ipcMain.handle('window:isMaximized', () => win.isMaximized())
 
+  // Language sync: renderer → main. Localizes the native tray menu
+  // (the main process has no access to i18next, see electron/tray.ts).
+  ipcMain.handle('ui:setLanguage', (_event, lang: string) => {
+    tray?.setLanguage(lang)
+    return true
+  })
+
   // Notify renderer of maximize state changes
-  win.on('maximize', () => win.webContents.send('window:maximizeChange', true))
-  win.on('unmaximize', () => win.webContents.send('window:maximizeChange', false))
+  win.on('maximize', () => safeSend(win, 'window:maximizeChange', true))
+  win.on('unmaximize', () => safeSend(win, 'window:maximizeChange', false))
 }
 
 // ─── Identity Handlers ───────────────────────────────────────────────────────
@@ -115,11 +202,26 @@ function setupIdentityHandlers(): void {
 
   // Seed phrase export/import (BIP39-style)
   ipcMain.handle('identity:exportSeedPhrase', async () => {
-    return await identityService.exportSeedPhrase()
+    try {
+      return await identityService.exportSeedPhrase()
+    } catch (err) {
+      console.error('[IPC] identity:exportSeedPhrase failed:', err)
+      throw new Error(err instanceof Error ? err.message : String(err))
+    }
   })
 
   ipcMain.handle('identity:importSeedPhrase', async (_event, words: string[]) => {
-    return await identityService.importSeedPhrase(words)
+    console.log('[IPC] identity:importSeedPhrase called with', words.length, 'words')
+    try {
+      const result = await identityService.importSeedPhrase(words)
+      console.log('[IPC] identity:importSeedPhrase SUCCESS, publicKey:', result.publicKey.slice(0, 16))
+      return result
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : JSON.stringify(err)
+      console.error('[IPC] identity:importSeedPhrase failed:', errMsg)
+      console.error('[IPC] Error details:', err instanceof Error ? err.stack : String(err))
+      throw new Error(errMsg)
+    }
   })
 }
 
@@ -134,36 +236,36 @@ function setupNetworkHandlers(win: BrowserWindow): void {
 
   // Forward network events to renderer
   networkService.on('peer', (peer) => {
-    win.webContents.send('network:peer', peer)
+    safeSend(win, 'network:peer', peer)
   })
 
   networkService.on('message', (msg) => {
-    win.webContents.send('network:message', msg)
+    safeSend(win, 'network:message', msg)
   })
 
   // Forward media data (audio/video chunks) to renderer
   networkService.on('media', (msg) => {
-    win.webContents.send('network:media', msg)
+    safeSend(win, 'network:media', msg)
   })
 
   // Forward file transfer data to renderer (dedicated Protomux channel)
   networkService.on('file', (msg) => {
-    win.webContents.send('network:file', msg)
+    safeSend(win, 'network:file', msg)
   })
 
   // Forward peer identity events (Ed25519 key mapped to Hyperswarm peer ID)
   networkService.on('peer:identified', (data) => {
-    win.webContents.send('network:peerIdentified', data)
+    safeSend(win, 'network:peerIdentified', data)
   })
 
   // PERFORMANCE: Forward peer ban events to UI
   networkService.on('peer:banned', (data) => {
-    win.webContents.send('network:peerBanned', data)
+    safeSend(win, 'network:peerBanned', data)
   })
 
   // PERFORMANCE: Forward real-time status updates to UI
   networkService.on('status:update', (status) => {
-    win.webContents.send('network:statusUpdate', status)
+    safeSend(win, 'network:statusUpdate', status)
   })
 
   ipcMain.handle('network:join', async (_event, topic: string) => {
@@ -439,16 +541,10 @@ function setupNetworkHandlers(win: BrowserWindow): void {
     return networkService.getBlockedPeers()
   })
 
-  // OPTIMIZATION: Hyperswarm ban event
-  ipcMain.on('network:onPeerBan', async (_event) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = (peerInfo: unknown, error: Error) => {
-      if (win) {
-        win.webContents.send('network:peerBan', peerInfo, error)
-      }
-    }
-    networkService.onPeerBan(callback)
-  })
+  // CONFORMITÉ IPC : le canal mort 'network:onPeerBan' → 'network:peerBan' a été
+  // retiré — les événements de bannissement Hyperswarm atteignent déjà le
+  // renderer via le forwarding 'peer:banned' → 'network:peerBanned'
+  // (→ preload onPeerBanned). Le second listener était redondant.
 
   // OPTIMIZATION: HyperDHT call optimization
   ipcMain.handle('network:setFirewall', async (
@@ -530,10 +626,17 @@ function setupNetworkHandlers(win: BrowserWindow): void {
     return networkService.getStatus()
   })
 
-  // Cleanup on app quit
-  app.on('before-quit', async () => {
-    await networkService.destroy()
+  // CONNECTIVITÉ : réconciliation PULL de la liste des pairs connectés. Les
+  // évènements push `network:peer` peuvent être égarés (pair connecté avant
+  // l'abonnement du renderer, rechargement de fenêtre) — sans ce pull, le
+  // renderer resterait à `peers=0` sur un socket pourtant vivant.
+  ipcMain.handle('network:getLivePeers', async () => {
+    return networkService.getLivePeers()
   })
+
+  // Cleanup on app quit — AVANT le corestore (ordre d'enregistrement ; cf.
+  // registerQuitCleanup en tête de fichier pour le pattern preventDefault/re-quit)
+  registerQuitCleanup('network', () => networkService.destroy())
 }
 
 // ─── Storage Handlers ────────────────────────────────────────────────────────
@@ -831,11 +934,8 @@ async function setupStorageHandlers(): Promise<void> {
     callbackId: string
   ) => {
     const cleanup = await storage.onConversationEvent(conversationId, event, callbackId, (data) => {
-      const { BrowserWindow } = require('electron')
       const win = BrowserWindow.getAllWindows()[0]
-      if (win) {
-        win.webContents.send('storage:conversationEvent', { callbackId, data })
-      }
+      safeSend(win, 'storage:conversationEvent', { callbackId, data })
     })
     return cleanup
   })
@@ -1101,123 +1201,12 @@ async function setupStorageHandlers(): Promise<void> {
     return await storage.waitForConversationReady(conversationId)
   })
 
-  // OPTIMIZATION: Hypercore event subscriptions
-  ipcMain.on('storage:onConversationPeerAdd', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = (peer: unknown) => {
-      if (win) {
-        win.webContents.send('storage:conversationPeerAdd', conversationId, peer)
-      }
-    }
-    await storage.onConversationPeerAdd(conversationId, callback)
-  })
-
-  ipcMain.on('storage:onConversationPeerRemove', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = (peer: unknown) => {
-      if (win) {
-        win.webContents.send('storage:conversationPeerRemove', conversationId, peer)
-      }
-    }
-    await storage.onConversationPeerRemove(conversationId, callback)
-  })
-
-  ipcMain.on('storage:onConversationUpload', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = (index: number, byteLength: number, peer: unknown) => {
-      if (win) {
-        win.webContents.send('storage:conversationUpload', conversationId, index, byteLength, peer)
-      }
-    }
-    await storage.onConversationUpload(conversationId, callback)
-  })
-
-  ipcMain.on('storage:onConversationDownload', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = (index: number, byteLength: number, peer: unknown) => {
-      if (win) {
-        win.webContents.send('storage:conversationDownload', conversationId, index, byteLength, peer)
-      }
-    }
-    await storage.onConversationDownload(conversationId, callback)
-  })
-
-  ipcMain.on('storage:onConversationAppend', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = () => {
-      if (win) {
-        win.webContents.send('storage:conversationAppend', conversationId)
-      }
-    }
-    await storage.onConversationAppend(conversationId, callback)
-  })
-
-  ipcMain.on('storage:onConversationTruncate', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = (ancestors: number, forkId: number) => {
-      if (win) {
-        win.webContents.send('storage:conversationTruncate', conversationId, ancestors, forkId)
-      }
-    }
-    await storage.onConversationTruncate(conversationId, callback)
-  })
-
-  ipcMain.on('storage:onConversationRemoteContiguousLength', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = (length: number) => {
-      if (win) {
-        win.webContents.send('storage:conversationRemoteContiguousLength', conversationId, length)
-      }
-    }
-    await storage.onConversationRemoteContiguousLength(conversationId, callback)
-  })
-
-  ipcMain.on('storage:onConversationClose', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = () => {
-      if (win) {
-        win.webContents.send('storage:conversationClose', conversationId)
-      }
-    }
-    await storage.onConversationClose(conversationId, callback)
-  })
-
-  ipcMain.on('storage:onConversationReady', async (
-    _event,
-    conversationId: string
-  ) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
-    const callback = () => {
-      if (win) {
-        win.webContents.send('storage:conversationReady', conversationId)
-      }
-    }
-    await storage.onConversationReady(conversationId, callback)
-  })
+  // CONFORMITÉ IPC : les 9 canaux 'storage:onConversation*' (PeerAdd,
+  // PeerRemove, Upload, Download, Append, Truncate, RemoteContiguousLength,
+  // Close, Ready) ont été retirés — ils émettaient vers des canaux sans
+  // récepteur preload. Le canal générique 'storage:onConversationEvent'
+  // (→ preload onConversationEventReceived) couvre ces mêmes événements
+  // Hypercore, plomberie complète.
 
   // OPTIMIZATION: Corestore suspend/resume and deterministic keys
   ipcMain.handle('storage:suspendStorage', async () => {
@@ -1254,11 +1243,8 @@ async function setupStorageHandlers(): Promise<void> {
   ) => {
     const unwatch = await storage.watchKey(conversationId, key, (value) => {
       // Send value back via IPC event
-      const { BrowserWindow } = require('electron')
       const win = BrowserWindow.getAllWindows()[0]
-      if (win) {
-        win.webContents.send('storage:keyChanged', { callbackId, value })
-      }
+      safeSend(win, 'storage:keyChanged', { callbackId, value })
     })
     return unwatch
   })
@@ -1286,11 +1272,10 @@ async function setupStorageHandlers(): Promise<void> {
 
   // OPTIMIZATION: Corestore group-active event
   ipcMain.on('storage:onGroupActive', async (_event) => {
-    const win = require('electron').BrowserWindow.getAllWindows()[0]
+    // Fenêtre résolue À CHAQUE callback : la capturée à l'abonnement serait un
+    // objet périmé (donc « destroyed ») dès que l'utilisateur ferme la fenêtre.
     const callback = (topic: string) => {
-      if (win) {
-        win.webContents.send('storage:groupActive', topic)
-      }
+      safeSend(BrowserWindow.getAllWindows()[0], 'storage:groupActive', topic)
     }
     storage.onGroupActive(callback)
   })
@@ -1338,10 +1323,9 @@ async function setupStorageHandlers(): Promise<void> {
     }
   })
 
-  // Cleanup on app quit
-  app.on('before-quit', async () => {
-    await storage.destroy()
-  })
+  // Cleanup on app quit — APRÈS le réseau (le swarm doit être détruit tant que
+  // le corestore est encore ouvert ; cf. registerQuitCleanup en tête de fichier)
+  registerQuitCleanup('storage', () => storage.destroy())
 }
 
 // ─── Notification Handlers ───────────────────────────────────────────────────
@@ -1365,8 +1349,112 @@ function setupNotificationHandlers(): void {
 
 // ─── App Handlers ────────────────────────────────────────────────────────────
 
-function setupAppHandlers(win: BrowserWindow): void {
+// DEEP LINK: asgard://invite/<publicKey>?name=<displayName> — liens générés
+// par ContactInviteModal et transmis par l'OS (mimeTypes Linux .desktop,
+// build.protocols → Info.plist macOS, setAsDefaultProtocolClient Windows).
+// Au démarrage à froid l'URL arrive AVANT que le renderer n'enregistre son
+// listener : elle est gardée en attente et tirée par app:getPendingDeepLink
+// (pull) au montage du renderer, insensible à la course d'enregistrement.
+let pendingDeepLink: string | null = null
+
+export function setPendingDeepLink(url: string | null): void {
+  pendingDeepLink = url
+}
+
+// ── PRIVACY SETTINGS (privacy.linkPreviews) ──
+// Aperçus de liens : les métadonnées Open Graph sont récupérées par le MAIN
+// process — le renderer ne contacte jamais l'hôte directement. Le cache
+// borne à une requête par URL et par session (50 entrées max, FIFO).
+const linkPreviewCache = new Map<string, LinkPreviewResult>()
+
+interface LinkPreviewResult {
+  url: string
+  hostname: string
+  title: string | null
+  description: string | null
+}
+
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+}
+
+async function fetchLinkPreview(rawUrl: string): Promise<LinkPreviewResult | null> {
+  try {
+    const url = new URL(rawUrl)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+
+    const cached = linkPreviewCache.get(rawUrl)
+    if (cached) return cached
+
+    // 5s de timeout — un site lent ne doit jamais bloquer le renderer
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Asgard Link Preview)' },
+    })
+    clearTimeout(timeout)
+
+    const preview: LinkPreviewResult = { url: rawUrl, hostname: url.hostname, title: null, description: null }
+    if (res.ok && res.body) {
+      // Lire au plus 64 KB — les balises OG vivent dans le <head>
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let html = ''
+      let received = 0
+      while (received < 65536) {
+        const { done, value } = await reader.read()
+        if (done) break
+        received += value.length
+        html += decoder.decode(value, { stream: true })
+      }
+      try { await reader.cancel() } catch {}
+
+      const pick = (...patterns: RegExp[]): string | null => {
+        for (const p of patterns) {
+          const m = html.match(p)
+          if (m?.[1]) return decodeHtmlEntities(m[1].trim()).slice(0, 200)
+        }
+        return null
+      }
+      preview.title = pick(
+        /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
+        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i,
+        /<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i,
+        /<title[^>]*>([^<]+)<\/title>/i
+      )
+      preview.description = pick(
+        /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i,
+        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i,
+        /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i
+      )
+    }
+
+    if (linkPreviewCache.size >= 50) {
+      const oldest = linkPreviewCache.keys().next().value
+      if (oldest !== undefined) linkPreviewCache.delete(oldest)
+    }
+    linkPreviewCache.set(rawUrl, preview)
+    return preview
+  } catch {
+    return null
+  }
+}
+
+function setupAppHandlers(): void {
   ipcMain.handle('app:getVersion', () => app.getVersion())
+
+  ipcMain.handle('app:getPendingDeepLink', () => {
+    const url = pendingDeepLink
+    pendingDeepLink = null
+    return url
+  })
 
   ipcMain.on('app:openExternal', (_event, url: string) => {
     // Validate URL before opening
@@ -1380,6 +1468,10 @@ function setupAppHandlers(win: BrowserWindow): void {
     }
   })
 
+  // PRIVACY SETTINGS (privacy.linkPreviews): récupération des métadonnées OG
+  // pour la carte d'aperçu — uniquement http(s), timeout 5s, lecture plafonnée.
+  ipcMain.handle('app:fetchLinkPreview', (_event, rawUrl: string) => fetchLinkPreview(rawUrl))
+
   ipcMain.handle('app:getTheme', () => {
     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   })
@@ -1387,6 +1479,16 @@ function setupAppHandlers(win: BrowserWindow): void {
   // Notify renderer of system theme changes
   nativeTheme.on('updated', () => {
     const theme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
-    win.webContents.send('app:themeChange', theme)
+    // Émetteur lié au cycle de vie de l'app (pas de la fenêtre) : résolution
+    // fraîche + safeSend, sinon « Object has been destroyed » après la fermeture.
+    safeSend(BrowserWindow.getAllWindows()[0], 'app:themeChange', theme)
   })
+
+  // ── Firewall handlers ──
+  ipcMain.handle('firewall:getStatus', () => getFirewallStatus())
+  // CONFORMITÉ IPC : await réel du netsh — l'ancienne version répondait true
+  // avant la fin de l'ajout, provoquant une UAC inutile côté renderer.
+  ipcMain.handle('firewall:configure', () => configureFirewall())
+  ipcMain.handle('firewall:runAsAdmin', () => runFirewallHelperAsAdmin())
+  ipcMain.handle('firewall:check', () => checkFirewallRule())
 }

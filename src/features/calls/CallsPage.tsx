@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useCallStore } from '@/stores/callStore'
 import { useContactStore } from '@/stores/contactStore'
 import { callService } from '@/services/CallService'
@@ -8,6 +8,17 @@ import { formatPublicKey } from '@/utils/id'
 import { PageTransition } from '@/components/ui/PageTransition'
 import type { CallRecord } from '@/stores/callStore'
 import { useTranslation } from 'react-i18next'
+import { getCurrentLanguage } from '@/i18n/config'
+
+/** Grouped call history entry: latest call per contact + count */
+interface GroupedCallEntry {
+  peerId: string
+  peerName: string
+  peerAvatar?: string
+  latestCall: CallRecord
+  totalCount: number
+  allCalls: CallRecord[]
+}
 
 /**
  * CallsPage — call history + initiate new calls.
@@ -18,10 +29,34 @@ export const CallsPage: React.FC = () => {
   const clearHistory = useCallStore((s) => s.clearHistory)
   const contacts = useContactStore((s) => Object.values(s.contacts).filter((c) => c.relation !== 'blocked'))
   const [search, setSearch] = useState('')
+  const [expandedPeer, setExpandedPeer] = useState<string | null>(null)
+
+  // Group call history by contact (peerId) — shows unique contacts with call count
+  const groupedHistory = useMemo<GroupedCallEntry[]>(() => {
+    const groups = new Map<string, GroupedCallEntry>()
+    for (const call of history) {
+      const existing = groups.get(call.peerId)
+      if (existing) {
+        existing.totalCount++
+        existing.allCalls.push(call)
+        // Keep the latest call (history is already sorted newest-first)
+      } else {
+        groups.set(call.peerId, {
+          peerId: call.peerId,
+          peerName: call.peerName,
+          peerAvatar: call.peerAvatar,
+          latestCall: call,
+          totalCount: 1,
+          allCalls: [call],
+        })
+      }
+    }
+    return Array.from(groups.values())
+  }, [history])
   
   // INTEGRATION: Hyperswarm connection status
   const [connectingCount, setConnectingCount] = useState(0)
-  const [connectedPeers, setConnectedPeers] = useState<Map<string, { publicKey: string; topics: string[]; prioritized: boolean }>>(new Map())
+  const [connectedPeers, setConnectedPeers] = useState<Map<string, { publicKey: string; topics: string[]; prioritized: boolean; ed25519PublicKey: string | null }>>(new Map())
   
   // INTEGRATION: HyperDHT server diagnostics
   const [serverAddress, setServerAddress] = useState<{ host: string; port: number; publicKey: string } | null>(null)
@@ -29,6 +64,22 @@ export const CallsPage: React.FC = () => {
   // INTEGRATION: Corestore group activity
   const [activeGroupTopics, setActiveGroupTopics] = useState<string[]>([])
   const { t } = useTranslation()
+
+  // Nombre de CONTACTS réellement connectés (clé Ed25519 identifiée, dédupliquée).
+  // Les connexions swarm brutes peuvent inclure des pairs non identifiés ou des
+  // doublons (ex : zombie d'une ancienne build de la même personne) — le badge
+  // doit refléter la liste de contacts affichée ci-dessous, pas le nombre de
+  // sockets ouverts.
+  const connectedContactIds = useMemo(() => {
+    const ids = new Set<string>()
+    const contactKeys = new Set(contacts.map((c) => c.publicKey))
+    for (const info of connectedPeers.values()) {
+      if (info.ed25519PublicKey && contactKeys.has(info.ed25519PublicKey)) {
+        ids.add(info.ed25519PublicKey)
+      }
+    }
+    return ids
+  }, [connectedPeers, contacts])
 
   // Fetch connection status periodically
   useEffect(() => {
@@ -61,9 +112,9 @@ export const CallsPage: React.FC = () => {
     return cleanup
   }, [])
 
-  // Listen for peer ban events
+  // Listen for peer ban events — forwarded by the main process as
+  // 'network:peerBanned' (no subscription call is needed)
   useEffect(() => {
-    window.asgard.network.onPeerBan()
     const cleanup = window.asgard.network.onPeerBanned((data) => {
       console.warn('[CallsPage] Peer banned:', data)
     })
@@ -85,10 +136,11 @@ export const CallsPage: React.FC = () => {
   const formatDate = (timestamp: number): string => {
     const now = Date.now()
     const diff = now - timestamp
+    const locale = getCurrentLanguage()
     if (diff < 86400000) {
-      return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      return new Date(timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
     }
-    return new Date(timestamp).toLocaleDateString()
+    return new Date(timestamp).toLocaleDateString(locale)
   }
 
   const getCallIcon = (call: CallRecord) => {
@@ -135,13 +187,14 @@ export const CallsPage: React.FC = () => {
                 <span className="text-xs text-asgard-glacier">{connectingCount}</span>
               </div>
             )}
-            {/* INTEGRATION: Connected peers count */}
-            {connectedPeers.size > 0 && (
+            {/* INTEGRATION: Connected contacts count — clé Ed25519 identifiée,
+                dédupliquée par contact (cohérent avec la liste ci-dessous) */}
+            {connectedContactIds.size > 0 && (
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-asgard-cyan/20 border border-asgard-cyan/30">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-cyan">
                   <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
                 </svg>
-                <span className="text-xs text-asgard-cyan">{connectedPeers.size}</span>
+                <span className="text-xs text-asgard-cyan">{connectedContactIds.size}</span>
               </div>
             )}
           </div>
@@ -173,17 +226,9 @@ export const CallsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* INTEGRATION: Server diagnostics panel */}
-        {serverAddress && (
-          <div className="px-3 py-2 border-b border-asgard-border bg-asgard-deep-black/50">
-            <div className="flex items-center gap-2 text-xs text-asgard-text-muted">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
-                <path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-              </svg>
-              <span className="truncate">{serverAddress.host}:{serverAddress.port}</span>
-            </div>
-          </div>
-        )}
+        {/* PRIVACY: le panneau de diagnostics serveur (IP publique host:port)
+            n'est plus affiché — l'adresse reste récupérée en arrière-plan pour
+            activer le bouton de refresh ci-dessus. */}
 
         {/* INTEGRATION: Active group topics */}
         {activeGroupTopics.length > 0 && (
@@ -269,7 +314,7 @@ export const CallsPage: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {history.length === 0 ? (
+          {groupedHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-8">
               <div className="w-16 h-16 rounded-2xl bg-asgard-nordic/10 border border-asgard-nordic/20 flex items-center justify-center mb-4">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier/50">
@@ -281,56 +326,99 @@ export const CallsPage: React.FC = () => {
             </div>
           ) : (
             <div className="divide-y divide-asgard-border">
-              {history.map((call) => (
-                <div key={call.id} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-asgard-surface transition-colors">
-                  <Avatar
-                    src={call.peerAvatar}
-                    name={call.peerName}
-                    publicKey={call.peerId}
-                    size="sm"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm truncate ${call.missed ? 'text-red-400 font-medium' : 'text-asgard-text-primary'}`}>
-                      {call.peerName}
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      {getCallIcon(call)}
-                      {/* Call type + direction label */}
-                      <span className="text-xs text-asgard-text-muted">
-                        {call.missed ? t('calls.missedCall') : call.direction === 'incoming' ? t('calls.incomingCall') : t('calls.outgoingCall')}
-                      </span>
-                      <span className="text-xs text-asgard-text-muted">•</span>
-                      <span className="text-xs text-asgard-text-muted capitalize">{call.type}</span>
-                      {call.duration !== undefined && call.duration > 0 && (
-                        <>
-                          <span className="text-xs text-asgard-text-muted">•</span>
-                          <span className="text-xs text-asgard-text-muted">{formatDuration(call.duration)}</span>
-                        </>
-                      )}
+              {groupedHistory.map((group) => (
+                <div key={group.peerId}>
+                  {/* Main entry: latest call for this contact */}
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-asgard-surface transition-colors cursor-pointer"
+                    onClick={() => setExpandedPeer(expandedPeer === group.peerId ? null : group.peerId)}
+                  >
+                    <Avatar
+                      src={group.peerAvatar}
+                      name={group.peerName}
+                      publicKey={group.peerId}
+                      size="sm"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm truncate ${group.latestCall.missed ? 'text-red-400 font-medium' : 'text-asgard-text-primary'}`}>
+                        {group.peerName}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        {getCallIcon(group.latestCall)}
+                        <span className="text-xs text-asgard-text-muted">
+                          {group.latestCall.missed ? t('calls.missedCall') : group.latestCall.direction === 'incoming' ? t('calls.incomingCall') : t('calls.outgoingCall')}
+                        </span>
+                        <span className="text-xs text-asgard-text-muted">•</span>
+                        <span className="text-xs text-asgard-text-muted capitalize">{group.latestCall.type}</span>
+                        {group.latestCall.duration !== undefined && group.latestCall.duration > 0 && (
+                          <>
+                            <span className="text-xs text-asgard-text-muted">•</span>
+                            <span className="text-xs text-asgard-text-muted">{formatDuration(group.latestCall.duration)}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
+                    {/* Call count badge */}
+                    {group.totalCount > 1 && (
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-asgard-glacier/15 text-asgard-glacier font-medium">
+                        {group.totalCount}
+                      </span>
+                    )}
+                    <span className="text-xs text-asgard-text-muted">{formatDate(group.latestCall.startedAt)}</span>
+                    {/* Expand indicator */}
+                    {group.totalCount > 1 && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={`text-asgard-text-muted transition-transform ${expandedPeer === group.peerId ? 'rotate-180' : ''}`}>
+                        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+                      </svg>
+                    )}
+                    {/* Quick re-call button */}
+                    {!group.latestCall.missed && !group.latestCall.isGroupCall && (
+                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => callService.startCall(group.peerId, group.peerName, 'audio', group.peerAvatar)}
+                          className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
+                          title={t('calls.audioCall')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
+                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => callService.startCall(group.peerId, group.peerName, 'video', group.peerAvatar)}
+                          className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
+                          title={t('calls.videoCall')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
+                            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs text-asgard-text-muted">{formatDate(call.startedAt)}</span>
-                  {/* Quick re-call button */}
-                  {!call.missed && !call.isGroupCall && (
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => callService.startCall(call.peerId, call.peerName, 'audio', call.peerAvatar)}
-                        className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
-                        title={t('calls.audioCall')}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
-                          <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => callService.startCall(call.peerId, call.peerName, 'video', call.peerAvatar)}
-                        className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
-                        title={t('calls.videoCall')}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
-                          <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
-                        </svg>
-                      </button>
+                  {/* Expanded: show all calls for this contact */}
+                  {expandedPeer === group.peerId && group.totalCount > 1 && (
+                    <div className="bg-asgard-deep-black/30 px-4 pb-2">
+                      {group.allCalls.slice(1).map((call) => (
+                        <div key={call.id} className="flex items-center gap-3 py-2 border-t border-asgard-border/50">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              {getCallIcon(call)}
+                              <span className="text-xs text-asgard-text-muted">
+                                {call.missed ? t('calls.missedCall') : call.direction === 'incoming' ? t('calls.incomingCall') : t('calls.outgoingCall')}
+                              </span>
+                              <span className="text-xs text-asgard-text-muted">•</span>
+                              <span className="text-xs text-asgard-text-muted capitalize">{call.type}</span>
+                              {call.duration !== undefined && call.duration > 0 && (
+                                <>
+                                  <span className="text-xs text-asgard-text-muted">•</span>
+                                  <span className="text-xs text-asgard-text-muted">{formatDuration(call.duration)}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-xs text-asgard-text-muted">{formatDate(call.startedAt)}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

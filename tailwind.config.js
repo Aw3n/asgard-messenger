@@ -43,9 +43,13 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Segoe UI Variable', 'Segoe UI', 'system-ui', 'sans-serif'],
+        // Même pile que src/styles/globals.css : les quatre derniers noms sont
+        // le repli émoji (contenu), placé après les polices de texte. Le dernier,
+        // 'Asgard Emoji', est la police embarquée (assets/fonts) qui sauve les
+        // installations sans aucune police émoji — déclarée par @font-face.
+        sans: ['Segoe UI Variable', 'Segoe UI', 'system-ui', 'Ubuntu', 'DejaVu Sans', 'sans-serif', 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Asgard Emoji'],
         mono: ['Cascadia Code', 'Consolas', 'monospace'],
-        display: ['Segoe UI Variable Display', 'Segoe UI', 'sans-serif'],
+        display: ['Segoe UI Variable Display', 'Segoe UI', 'sans-serif', 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Asgard Emoji'],
       },
       fontSize: {
         'xxs': '0.625rem',

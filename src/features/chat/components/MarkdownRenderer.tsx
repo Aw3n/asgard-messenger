@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { cn } from '@/utils/cn'
+import { useUIStore } from '@/stores/uiStore'
 
 interface MarkdownRendererProps {
   content: string
@@ -10,6 +11,8 @@ interface MarkdownRendererProps {
  * MarkdownRenderer — renders markdown content with support for:
  * bold, italic, code, code blocks, links, blockquotes, lists, headings.
  * Uses a lightweight custom parser (no external deps needed at runtime).
+ * CHAT SETTINGS: autoEmoji converts text smileys to emoji ; inlinePreviews
+ * auto-links bare URLs so they are clickable.
  */
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className }) => {
   const rendered = useMemo(() => parseMarkdown(content), [content])
@@ -220,5 +223,75 @@ function parseSimpleInline(text: string): React.ReactNode {
       </>
     )
   }
-  return text
+  // CHAT SETTINGS: apply autoEmoji and bare-URL linkification to plain text runs
+  const { autoEmoji, inlinePreviews } = useUIStore.getState().settings.chat
+  let processed = text
+  if (autoEmoji) processed = applyAutoEmoji(processed)
+  if (inlinePreviews) return linkifyUrls(processed)
+  return processed
+}
+
+// CHAT SETTINGS (chat.autoEmoji): classic text smileys → emoji equivalents.
+// Applied at render time so the stored message content is never mutated.
+const AUTO_EMOJI_MAP: Record<string, string> = {
+  ':)': '🙂',
+  ':-)': '🙂',
+  ':(': '🙁',
+  ':-(': '🙁',
+  ':D': '😄',
+  ':-D': '😄',
+  ';)': '😉',
+  ';-)': '😉',
+  ":'(": '😢',
+  ':P': '😛',
+  ':-P': '😛',
+  ':o': '😮',
+  ':-o': '😮',
+  ':O': '😮',
+  ':-O': '😮',
+  ':/': '😕',
+  ':-/': '😕',
+  '<3': '❤️',
+  '</3': '💔',
+  ':|': '😐',
+  ':-|': '😐',
+  ':*': '😘',
+  '=)': '🙂',
+  'xD': '😆',
+  'XD': '😆',
+}
+
+function applyAutoEmoji(text: string): string {
+  let result = text
+  for (const [smiley, emoji] of Object.entries(AUTO_EMOJI_MAP)) {
+    // Word-boundary-ish replacement: smiley surrounded by whitespace or string edges
+    const escaped = smiley.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    result = result.replace(new RegExp(`(^|\\s)${escaped}(?=\\s|$)`, 'g'), `$1${emoji}`)
+  }
+  return result
+}
+
+// CHAT SETTINGS (chat.inlinePreviews): turn bare http(s) URLs into clickable links
+const URL_RE = /\bhttps?:\/\/[^\s<>()[\]"']+/g
+
+function linkifyUrls(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = []
+  let last = 0
+  let key = 0
+  for (const match of text.matchAll(URL_RE)) {
+    const idx = match.index ?? 0
+    if (idx > last) parts.push(text.slice(last, idx))
+    // Trim trailing punctuation commonly glued to URLs in prose
+    let url = match[0]
+    const trailing = url.match(/[.,;:!?)]+$/)
+    if (trailing) url = url.slice(0, url.length - trailing[0].length)
+    parts.push(
+      <a key={key++} href={url} target="_blank" rel="noopener noreferrer" className="text-asgard-glacier hover:underline break-all">
+        {url}
+      </a>
+    )
+    last = idx + url.length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts.length === 1 && typeof parts[0] === 'string' ? (parts[0] as string) : <>{parts}</>
 }

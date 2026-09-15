@@ -5,6 +5,14 @@
 
 export interface AsgardElectronAPI {
   debugLog: (msg: string) => void
+  // Language sync (renderer → main, e.g. for the native tray menu)
+  setLanguage: (lang: string) => Promise<boolean>
+  firewall: {
+    getStatus: () => Promise<'configured' | 'needs-admin' | 'not-configured'>
+    configure: () => Promise<boolean>
+    runAsAdmin: () => Promise<boolean>
+    check: () => Promise<boolean>
+  }
   window: {
     minimize: () => void
     maximize: () => void
@@ -54,11 +62,10 @@ export interface AsgardElectronAPI {
     getPeerBandwidth: (peerId: string) => Promise<{ written: number; read: number } | null>
     setPeerKeepAlive: (peerId: string, ms: number) => Promise<void>
     getConnectingCount: () => Promise<number>
-    getConnectedPeersInfo: () => Promise<Map<string, { publicKey: string; topics: string[]; prioritized: boolean }>>
+    getConnectedPeersInfo: () => Promise<Map<string, { publicKey: string; topics: string[]; prioritized: boolean; ed25519PublicKey: string | null }>>
     setPeerPriorized: (peerPublicKey: string, prioritized: boolean) => Promise<boolean>
     banPeer: (peerPublicKey: string, banStatus: boolean) => Promise<boolean>
     getBlockedPeers: () => Promise<string[]>
-    onPeerBan: () => void
     // STATUS: User online status management
     publishStatus: (status: 'online' | 'away' | 'offline' | 'dnd', statusMessage?: string) => Promise<boolean>
     getCurrentStatus: () => Promise<{ status: string; message?: string }>
@@ -92,6 +99,13 @@ export interface AsgardElectronAPI {
     setLocalPublicKey: (publicKeyHex: string) => Promise<void>
     reidentifyAll: () => Promise<void>
     getStatus: () => Promise<NetworkAPIStatus>
+    /**
+     * Instantané PULL des pairs réellement connectés dans le process principal.
+     * Nécessaire pour réconcilier l'état du renderer quand un évènement push
+     * `network:peer` a été égaré (pair connecté avant l'abonnement des
+     * listeners, rechargement de fenêtre) — sinon `peers=0` sur un socket vivant.
+     */
+    getLivePeers: () => Promise<Array<PeerAPIInfo & { channelReady: boolean }>>
   }
   storage: {
     getPath: () => Promise<string>
@@ -181,15 +195,6 @@ export interface AsgardElectronAPI {
     createCore: (storage: unknown, opts?: Record<string, unknown>) => Promise<unknown>
     closeConversation: (conversationId: string, error?: Error) => Promise<boolean>
     waitForConversationReady: (conversationId: string) => Promise<boolean>
-    onConversationPeerAdd: (conversationId: string) => void
-    onConversationPeerRemove: (conversationId: string) => void
-    onConversationUpload: (conversationId: string) => void
-    onConversationDownload: (conversationId: string) => void
-    onConversationAppend: (conversationId: string) => void
-    onConversationTruncate: (conversationId: string) => void
-    onConversationRemoteContiguousLength: (conversationId: string) => void
-    onConversationClose: (conversationId: string) => void
-    onConversationReady: (conversationId: string) => void
     suspendStorage: () => Promise<boolean>
     resumeStorage: () => Promise<boolean>
     createDeterministicKeyPair: (name: string, namespace?: string) => Promise<{ publicKey: string; secretKey: string } | null>
@@ -222,6 +227,17 @@ export interface AsgardElectronAPI {
     openExternal: (url: string) => void
     getTheme: () => Promise<'light' | 'dark' | 'system'>
     onThemeChange: (callback: (theme: 'light' | 'dark') => void) => () => void
+    // DEEP LINK: asgard://invite/… — pull au démarrage à froid
+    getPendingDeepLink: () => Promise<string | null>
+    // DEEP LINK: liens reçus pendant que l'app tourne
+    onDeepLink: (callback: (url: string) => void) => () => void
+    // PRIVACY SETTINGS (privacy.linkPreviews): métadonnées OG récupérées côté main
+    fetchLinkPreview: (url: string) => Promise<{
+      url: string
+      hostname: string
+      title: string | null
+      description: string | null
+    } | null>
   }
 }
 
@@ -281,6 +297,12 @@ interface DHTProfileData {
   status?: 'online' | 'away' | 'offline' | 'dnd'
   lastSeen?: number
   statusMessage?: string
+  /**
+   * Clé Ed25519 auto-déclarée par l'auteur du record. Si elle diffère de la clé
+   * du contact interrogé, l'entrée est obsolète (identité régénérée de son côté)
+   * — ce n'est pas la même chose que « hors ligne ».
+   */
+  identityPk?: string
 }
 
 interface ConversationStorageInfo {

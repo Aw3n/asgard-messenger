@@ -1,6 +1,7 @@
 import type { Message } from '@/types/message'
 import type { Contact } from '@/types/contact'
 import type { Group } from '@/types/group'
+import { getCurrentLanguage } from '@/i18n/config'
 
 /**
  * StorageService — frontend wrapper for persistent storage via IPC.
@@ -192,7 +193,7 @@ class StorageServiceClient {
 
     const backup: BackupInfo = {
       id: `backup-${Date.now()}`,
-      name: name || `Backup ${new Date().toLocaleString()}`,
+      name: name || `Backup ${new Date().toLocaleString(getCurrentLanguage())}`,
       createdAt: Date.now(),
       size: 0,
       type: 'full',

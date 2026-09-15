@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/cn'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { getCurrentLanguage } from '@/i18n/config'
 
 interface ShareLink {
   token: string
@@ -49,7 +50,8 @@ export const ShareLinksManager: React.FC<{ onClose?: () => void }> = ({ onClose 
 
   const formatDate = (timestamp: number): string => {
     const date = new Date(timestamp)
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+    const locale = getCurrentLanguage()
+    return date.toLocaleDateString(locale) + ' ' + date.toLocaleTimeString(locale)
   }
 
   const formatTimeRemaining = (expiresAt: number): string => {

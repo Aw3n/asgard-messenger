@@ -3,6 +3,7 @@ import { p2pService } from './P2PService'
 import { cryptoService } from './CryptoService'
 import { storageService } from './StorageService'
 import { groupService } from './GroupService'
+import { ringtoneService } from './RingtoneService'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
@@ -11,6 +12,13 @@ import { useNetworkStore } from '@/stores/networkStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { generateId } from '@/utils/id'
+import {
+  toNetworkStatus,
+  fromNetworkStatus,
+  shouldPromoteToOnline,
+  presenceMessage,
+  type NetworkStatus,
+} from '@/utils/presence'
 
 /** Queued message for offline delivery retry */
 interface PendingMessage {
@@ -68,6 +76,14 @@ class ChatService {
   private sentAvatarHashes: Map<string, string> = new Map()
   // Map Ed25519 public key → Noise peer id for proactive reconnections.
   private ed25519ToNoiseMap: Map<string, string> = new Map()
+  // CACHE: ed25519 → Noise key dérivée (HyperDHT.keyPair(sha256(pkHex)) par le
+  // process principal). Indispensable pour re-tenter les contacts encore jamais
+  // rejoints — voir la note sur l'étape 4 de heartbeatTick().
+  private noiseKeyCache: Map<string, string> = new Map()
+  // Anti-rentree: connexions en cours de dérivation/tentative
+  private redialInFlight: Set<string> = new Set()
+  private lastRedialAt: Map<string, number> = new Map()
+  private static readonly REDIAL_INTERVAL = 30_000 // 30 s entre deux jointPeer vers un contact non connecté
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null
   // Peers considered offline until heard from (ms)
   // CRITICAL FIX: Reduced from 120s to 45s. A Hyperswarm/Noise connection does NOT
@@ -87,12 +103,18 @@ class ChatService {
   // and the sender never sees the ✓✓ (read) status.
   private pendingReceipts: Map<string, Array<{ messageIds: string[]; status: 'delivered' | 'read'; conversationId?: string }>> = new Map()
   private lastBroadcastStatus: string | null = null   // Skip re-broadcast if unchanged
+  // PRESENCE : horodatage de la dernière DÉCLARATION reçue d'un pair
+  // (`presence:update`), distinct de la dernière ACTIVITÉ. Une simple activité ne
+  // doit pas effacer un statut que le pair a choisi : « absent », « occupé » et
+  // surtout « invisible » sont sa parole. Sans cette distinction, le ping du
+  // heartbeat (5 s) faisait apparaître « en ligne » n'importe quel pair, y
+  // compris un pair en mode invisible — voir markPeerActive().
+  private presenceDeclaredAt: Map<string, number> = new Map()
   // PERFORMANCE: Auto-away detection — set status to 'away' after user inactivity
   private lastUserActivity = Date.now()
   private static readonly IDLE_TIMEOUT = 300_000 // 5 minutes — auto-away after 5 min idle
   private static readonly IDLE_CHECK_INTERVAL = 60_000 // Check every minute
   private idleCheckInterval: ReturnType<typeof setInterval> | null = null
-  private wasOnlineBeforeIdle: boolean = false
   // OFFLINE QUEUE: Messages queued for delivery when peer is offline
   private pendingMessages: Map<string, PendingMessage[]> = new Map() // peerId → queue
   // Peers connected before we learned their Ed25519 key; flushed on peer:identified
@@ -408,8 +430,7 @@ class ChatService {
       console.log(recvMsg)
       try { window.asgard.debugLog(recvMsg) } catch {}
       const contact = useContactStore.getState().getContact(msg.from)
-      const mappedStatus: UserStatus =
-        payload.status === 'dnd' ? 'busy' : (payload.status as UserStatus)
+      const mappedStatus = fromNetworkStatus(payload.status)
       const updateMsg = `[ChatService] Presence update: contact found=${!!contact} | mapped=${mappedStatus}`
       console.log(updateMsg)
       try { window.asgard.debugLog(updateMsg) } catch {}
@@ -552,13 +573,14 @@ class ChatService {
           this.pendingOfflineTimers.delete(ed25519Key)
           console.log('[ChatService] Offline timer cancelled — peer reconnected:', ed25519Key.slice(0, 16))
         }
-        // Live socket = online (Holepunch/Keet presence model)
-        this.peerLastActivity.set(ed25519Key, Date.now())
+        // Live socket proves liveness, nothing more: it is NOT a status the peer
+        // chose. markPeerActive() promotes to 'online' only while no declaration is
+        // fresh, so a peer who declared 'invisible' does not flash "en ligne" at
+        // every reconnection before their presence:update lands.
         if (useContactStore.getState().getContact(ed25519Key)) {
-          useContactStore.getState().updateContact(ed25519Key, {
-            status: 'online',
-            lastSeen: Date.now(),
-          })
+          this.markPeerActive(ed25519Key)
+        } else {
+          this.peerLastActivity.set(ed25519Key, Date.now())
         }
         this.flushPendingMessages(ed25519Key).catch(() => {})
         // RECEIPT RETRY: Flush any pending read/delivery receipts for this peer.
@@ -589,15 +611,7 @@ class ChatService {
       // presence, fixing the "I see them online but they don't see me" bug.
       const identity = useIdentityStore.getState().identity
       if (identity) {
-        const privacy = useUIStore.getState().settings.privacy
-        const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
-        const status: 'online' | 'away' | 'offline' | 'dnd' =
-          internalStatus === 'busy' ? 'dnd' :
-          internalStatus === 'invisible' ? 'offline' :
-          internalStatus === 'dnd' ? 'dnd' :
-          internalStatus === 'away' ? 'away' :
-          internalStatus === 'offline' ? 'offline' :
-          'online'
+        const status = this.outgoingPresence()
         p2pService.sendMessage(peer.id, 'presence:update', {
           status,
           displayName: identity.profile.displayName,
@@ -616,6 +630,22 @@ class ChatService {
         if (identity?.profile.avatar) {
           this.sendAvatarViaMedia(ed25519Key, identity.profile.avatar, 'contact').catch(() => {})
         }
+      }
+
+      // CRITICAL: Re-publish our DHT profile when a peer connects.
+      // This ensures our profile is fresh in the DHT for other peers who might fetch it.
+      // Without this, profiles can become stale (days old) if the app was running but
+      // the DHT record TTL expired.
+      const currentIdentity = useIdentityStore.getState().identity
+      if (currentIdentity) {
+        // PRIVACY: this path used to publish the raw profile status, ignoring
+        // `privacy.onlineStatus` — the DHT therefore kept advertising a user who
+        // had hidden their presence as "online", five lines after the P2P channel
+        // had correctly told everyone they were offline.
+        const networkStatus = this.outgoingPresence()
+        const statusMessage = presenceMessage(currentIdentity.profile)
+        window.asgard.network.publishStatus(networkStatus, statusMessage).catch(() => {})
+        console.log('[ChatService] DHT status re-published on peer connect:', networkStatus)
       }
     })
 
@@ -641,6 +671,21 @@ class ChatService {
         this.pushAvatarToAllContacts(newAvatar).catch(() => {})
       }
     })
+
+    // PRIVACY SYNC: the moment the user flips "let my contacts see my status",
+    // what we announce has to flip too. Nothing used to listen to that setting, so
+    // the peers and the DHT kept the noisy declaration until the 30 s re-publish
+    // loop happened to overwrite it — and only if the profile status had changed.
+    let prevPresenceVisible = useUIStore.getState().settings.privacy.onlineStatus
+    useUIStore.subscribe((state) => {
+      const visible = state.settings.privacy.onlineStatus
+      if (visible === prevPresenceVisible) return
+      prevPresenceVisible = visible
+      console.log('[ChatService] Presence visibility changed:', visible, '— re-announcing')
+      this.lastBroadcastStatus = null
+      this.broadcastPresence().catch(() => {})
+      this.publishDhtStatus().catch(() => {})
+    })
   }
 
   private handleIdentifiedPeer(data: { peerId: string; publicKey: string }): void {
@@ -660,12 +705,16 @@ class ChatService {
     })
     window.asgard.network.prioritize(data.peerId, true).catch(() => {})
 
-    // CRITICAL FIX: Do NOT set peerLastActivity here. A Noise connection does NOT
-    // prove the remote app is running — Hyperswarm can establish connections to
-    // peers whose DHT entries exist but whose app is closed. Only actual presence
-    // messages (presence:update, ping, pong) prove liveness via markPeerActive().
-    // Setting peerLastActivity here caused the heartbeat to keep "ghost" peers as
-    // online for up to PRESENCE_TIMEOUT after they were already gone.
+    // PRESENCE TRACKING: Initialize peerLastActivity when peer is identified.
+    // A successful identity exchange strongly indicates the remote app is running.
+    // Without this, the peer is never tracked by the heartbeat, and contacts
+    // appear offline even though they're connected.
+    // The ghost online issue is handled by the heartbeat: if we don't receive
+    // any actual presence messages within PRESENCE_TIMEOUT (45s), we mark them offline.
+    const existingActivity = this.peerLastActivity.get(data.publicKey)
+    if (!existingActivity || Date.now() - existingActivity > ChatService.PRESENCE_TIMEOUT) {
+      this.peerLastActivity.set(data.publicKey, Date.now())
+    }
 
     const offlineTimer = this.pendingOfflineTimers.get(data.publicKey)
     if (offlineTimer) {
@@ -674,25 +723,17 @@ class ChatService {
       console.log('[ChatService] Offline timer cancelled — peer re-identified:', data.publicKey.slice(0, 16))
     }
 
-    // CRITICAL FIX: Do NOT set status to 'online' here. The identity exchange
-    // proves the peer was once online, but not that they are STILL online.
-    // Status is set to 'online' only by:
-    //   1. applyPresenceUpdate() — when we receive a presence:update message
-    //   2. markPeerActive() — when we receive any message (ping, pong, etc.)
-    // This prevents "ghost online" where contacts show online but the remote app
-    // is actually closed.
+    // STATUS: the identity exchange proves the remote app is running, but it does
+    // NOT prove the user chose "online". Go through markPeerActive() so a recently
+    // declared 'away' / 'busy' / 'invisible' survives until presence:update says
+    // otherwise; a peer that never declares anything (old client) still lands
+    // online as before. If the peer is a "ghost" (app closed but Hyperswarm keeps
+    // the socket), the heartbeat marks them offline after PRESENCE_TIMEOUT (45 s).
+    this.markPeerActive(data.publicKey)
 
     const identity = useIdentityStore.getState().identity
     if (identity) {
-      const privacy = useUIStore.getState().settings.privacy
-      const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
-      const status: 'online' | 'away' | 'offline' | 'dnd' =
-        internalStatus === 'busy' ? 'dnd' :
-        internalStatus === 'invisible' ? 'offline' :
-        internalStatus === 'dnd' ? 'dnd' :
-        internalStatus === 'away' ? 'away' :
-        internalStatus === 'offline' ? 'offline' :
-        'online'
+      const status = this.outgoingPresence()
       const presMsg = `[ChatService] Sending presence to peer: ${data.peerId.slice(0, 32)} | status: ${status} | hasAvatar: ${!!identity.profile.avatar}`
       console.log(presMsg)
       try { window.asgard.debugLog(presMsg) } catch {}
@@ -754,15 +795,7 @@ class ChatService {
       if (p2pService.getConnectedPeers().includes(data.peerId)) {
         const freshIdentity = useIdentityStore.getState().identity
         if (freshIdentity) {
-          const freshPrivacy = useUIStore.getState().settings.privacy
-          const freshInternal = freshPrivacy.onlineStatus ? freshIdentity.profile.status : 'offline'
-          const freshStatus: 'online' | 'away' | 'offline' | 'dnd' =
-            freshInternal === 'busy' ? 'dnd' :
-            freshInternal === 'invisible' ? 'offline' :
-            freshInternal === 'dnd' ? 'dnd' :
-            freshInternal === 'away' ? 'away' :
-            freshInternal === 'offline' ? 'offline' :
-            'online'
+          const freshStatus = this.outgoingPresence()
           p2pService.sendMessage(data.peerId, 'presence:update', {
             status: freshStatus,
             displayName: freshIdentity.profile.displayName,
@@ -776,10 +809,12 @@ class ChatService {
   }
 
   private applyPresenceUpdate(publicKey: string, payload: PresencePayload): void {
-    const mappedStatus: UserStatus =
-      payload.status === 'dnd' ? 'busy' : (payload.status as UserStatus)
+    const mappedStatus = fromNetworkStatus(payload.status)
     const now = Date.now()
 
+    // This IS the declaration — record it so markPeerActive() and the identity
+    // exchange below stop overwriting it with a bare 'online'.
+    this.presenceDeclaredAt.set(publicKey, now)
     this.lastPresenceStatus.set(publicKey, mappedStatus)
     this.peerLastActivity.set(publicKey, now)
 
@@ -1527,7 +1562,7 @@ class ChatService {
       identity.keyPair.publicKey
     )
 
-    // Upload audio to Hyperblobs
+    // Store audio blob (filesystem via StorageService.putBlob — cf. electron/services/StorageService.ts)
     const blobKey = await storageService.putBlob(await audioBlob.arrayBuffer())
 
     // Update message with attachment
@@ -2056,17 +2091,62 @@ class ChatService {
     if (!myPk) return
 
     for (const contact of Object.values(contacts)) {
-      const noisePeerId = this.ed25519ToNoiseMap.get(contact.publicKey)
+      if (contact.relation === 'blocked') continue
+      const noisePeerId = this.ed25519ToNoiseMap.get(contact.publicKey) ?? this.noiseKeyCache.get(contact.publicKey)
       if (noisePeerId) {
         // If already connected, skip
         if (connectedPeers.has(noisePeerId)) continue
-        window.asgard.network.connectToContact(noisePeerId, true).catch(() => {})
+        void this.redial(contact.publicKey, noisePeerId)
       } else {
-        // No Noise id yet — re-join the conversation topic to trigger discovery
+        // No Noise id known yet: derive it from the contact's Ed25519 key
+        // (direct joinPeer) AND re-join the conversation topic so discovery
+        // keeps working for peers that announce only via topic.
         cryptoService.deriveConversationTopic(myPk, contact.publicKey)
           .then((topic) => p2pService.joinTopic(topic))
           .catch(() => {})
+        void this.redial(contact.publicKey)
       }
+    }
+  }
+
+  /**
+   * CONNECTIVITY: Establish (or re-establish) a direct connection to one contact.
+   *
+   * The Noise peer id is NOT stored anywhere when a contact is added — it can
+   * only be obtained either from a live `peer:identified` event or by deriving
+   * it from the contact's Ed25519 key (same SHA-256 → HyperDHT.keyPair chain as
+   * the local identity, computed by the main process). Relying on
+   * `ed25519ToNoiseMap` alone meant a contact never reached since startup was
+   * never retried: Hyperswarm gives up after ~5 attempts, and App.tsx only
+   * calls joinPeer once, so the peer stayed invisible until the app restarted
+   * (hence the permanent `peers=0` and one-way presence).
+   *
+   * Cheap and idempotent: Hyperswarm deduplicates `joinPeer` for a known peer,
+   * and `redialInFlight` prevents overlapping derivations.
+   */
+  private async redial(ed25519Key: string, knownNoiseKey?: string): Promise<void> {
+    if (this.redialInFlight.has(ed25519Key)) return
+    this.redialInFlight.add(ed25519Key)
+    try {
+      let noiseKey = knownNoiseKey ?? this.noiseKeyCache.get(ed25519Key)
+      if (!noiseKey) {
+        noiseKey = await window.asgard.network.deriveNoisePublicKey(ed25519Key)
+        if (noiseKey) this.noiseKeyCache.set(ed25519Key, noiseKey)
+      }
+      if (!noiseKey) {
+        console.warn('[ChatService] Re-dial skipped: no Noise key for', ed25519Key.slice(0, 16))
+        return
+      }
+      if (!this.ed25519ToNoiseMap.has(ed25519Key)) {
+        const msg = `[ChatService] re-dial → ${ed25519Key.slice(0, 16)} (noise ${noiseKey.slice(0, 16)})`
+        console.log(msg)
+        try { window.asgard.debugLog(msg) } catch { /* logging must never break connectivity */ }
+      }
+      await window.asgard.network.connectToContact(noiseKey, true)
+    } catch (err) {
+      console.warn('[ChatService] Re-dial failed for', ed25519Key.slice(0, 16), err)
+    } finally {
+      this.redialInFlight.delete(ed25519Key)
     }
   }
 
@@ -2081,17 +2161,12 @@ class ChatService {
     // Track user activity
     const updateActivity = () => {
       this.lastUserActivity = Date.now()
-      // If user was idle and status was set to 'away', restore previous status
-      if (this.wasOnlineBeforeIdle) {
-        const identity = useIdentityStore.getState().identity
-        if (identity && identity.profile.status === 'away') {
-          useIdentityStore.getState().updateProfile({ status: 'online' })
-          this.lastBroadcastStatus = null // Force re-broadcast
-          this.broadcastPresence().catch(() => {})
-          console.log('[ChatService] User active again — status restored to online')
-        }
-        this.wasOnlineBeforeIdle = false
-      }
+      // PAS DE RESTAURATION ICI. La politique « devenir absent quand l'utilisateur
+      // ne bouge plus, le rétablir à son retour » appartient à ActivityMonitor, qui
+      // seul sait si le « absent » affiché vient de lui ou d'un choix manuel. Ce
+      // bloc réécrivait 'online' à la main : un second décideur pour le même
+      // statut, et déjà désaccordé — il transformait un « absent » choisi par
+      // l'utilisateur en « en ligne » au premier mouvement de souris.
     }
 
     // Listen for user activity events
@@ -2134,30 +2209,49 @@ class ChatService {
     const now = Date.now()
     const timeout = ChatService.PRESENCE_TIMEOUT
 
-    // 1. Detect stale peers. Holepunch/Keet presence = live Hyperswarm socket.
-    // Never mark offline while the Noise connection is still open.
+    // 1. Detect stale peers.
+    // CRITICAL FIX: A Noise connection (Hyperswarm socket) does NOT prove the remote
+    // app is running. Hyperswarm can maintain TCP connections to peers whose DHT entries
+    // exist but whose app is closed. Only actual presence messages (presence:update,
+    // ping, pong, chat messages) prove liveness via markPeerActive().
+    // We use the Noise connection only as a secondary signal: if the connection is
+    // broken, we know for sure the peer is offline. But if it's open, we still
+    // require recent presence activity to mark them online.
     const liveNoise = new Set(p2pService.getConnectedPeers())
     for (const [ed25519Key, lastActivity] of this.peerLastActivity.entries()) {
       const noiseId = this.ed25519ToNoiseMap.get(ed25519Key)
-      if (noiseId && liveNoise.has(noiseId)) {
-        this.peerLastActivity.set(ed25519Key, now)
-        const liveContact = useContactStore.getState().getContact(ed25519Key)
-        if (liveContact && liveContact.status === 'offline') {
-          useContactStore.getState().updateContact(ed25519Key, {
-            status: 'online',
-            lastSeen: now,
-          })
-        }
-        continue
-      }
-      if (now - lastActivity > timeout) {
+      const isConnected = noiseId && liveNoise.has(noiseId)
+
+      // CRITICAL: Do NOT update peerLastActivity based on Noise connection alone.
+      // Only markPeerActive() should update it (when actual messages are received).
+      // However, if the connection is broken, we can accelerate offline detection.
+      if (!isConnected && now - lastActivity > timeout) {
         const contact = useContactStore.getState().getContact(ed25519Key)
-        if (contact && contact.status === 'online') {
+        // EXPIRY: every non-offline status must expire, not just 'online'. A peer
+        // that declared 'away' or 'busy' and then closed the app stayed forever
+        // « absent » / « occupé » on our side: the test only matched 'online'.
+        if (contact && contact.status !== 'offline') {
           useContactStore.getState().updateContact(ed25519Key, {
             status: 'offline',
           })
+          console.log('[ChatService] Peer marked offline (no presence + no connection):', ed25519Key.slice(0, 16))
         }
         this.peerLastActivity.delete(ed25519Key)
+        this.presenceDeclaredAt.delete(ed25519Key)
+      } else if (isConnected && now - lastActivity > timeout * 2) {
+        // CRITICAL: Even with an active Noise connection, if we haven't received
+        // any presence messages for 2x timeout (90s), mark offline.
+        // This handles the "ghost online" case where Hyperswarm keeps the socket
+        // open but the remote app is closed.
+        const contact = useContactStore.getState().getContact(ed25519Key)
+        if (contact && contact.status !== 'offline') {
+          useContactStore.getState().updateContact(ed25519Key, {
+            status: 'offline',
+          })
+          console.log('[ChatService] Peer marked offline (ghost online — connection open but no presence):', ed25519Key.slice(0, 16))
+        }
+        this.peerLastActivity.delete(ed25519Key)
+        this.presenceDeclaredAt.delete(ed25519Key)
       }
     }
 
@@ -2175,12 +2269,25 @@ class ChatService {
     // (WiFi → mobile, NAT rebinding). Re-calling joinPeer every heartbeat
     // ensures Hyperswarm keeps actively trying to reach offline peers.
     // This is cheap — Hyperswarm deduplicates internally.
+    //
+    // CRITICAL: la re-tentative ne peut PAS se limiter aux pairs présents dans
+    // `ed25519ToNoiseMap` — cette map n'est remplie que par `peer:identified`,
+    // donc UNIQUEMENT APRÈS une connexion aboutie. Un contact jamais atteint
+    // depuis le démarrage n'y figure jamais : le heartbeat ne le re-join donc
+    // jamais, alors que Hyperswarm abandonne après 5 tentatives
+    // (peerInfo.attempts) — App.tsx ne faisant qu'UN seul joinPeer au
+    // démarrage, un pair manqué à cet instant restait inexistant jusqu'au
+    // redémarrage de l'app. D'où le « peers=0 » permanent et la présence
+    // unilatérale. On dérive donc la Noise key depuis la clé du contact.
     const contacts = useContactStore.getState().contacts
     for (const contact of Object.values(contacts)) {
-      const noisePeerId = this.ed25519ToNoiseMap.get(contact.publicKey)
-      if (noisePeerId && !liveNoise.has(noisePeerId)) {
-        window.asgard.network.connectToContact(noisePeerId, true).catch(() => {})
-      }
+      if (contact.relation === 'blocked') continue
+      const noisePeerId = this.ed25519ToNoiseMap.get(contact.publicKey) ?? this.noiseKeyCache.get(contact.publicKey)
+      if (noisePeerId && liveNoise.has(noisePeerId)) continue
+      const lastAttempt = this.lastRedialAt.get(contact.publicKey) ?? 0
+      if (now - lastAttempt < ChatService.REDIAL_INTERVAL) continue
+      this.lastRedialAt.set(contact.publicKey, now)
+      void this.redial(contact.publicKey, noisePeerId)
     }
 
     // 5. RECEIPT RETRY: Re-attempt flushing any pending receipts for connected peers.
@@ -2196,14 +2303,56 @@ class ChatService {
       }
     }
 
-    // 6. GROUP PRESENCE: Announce our presence to all groups we're a member of.
-    // Per Hyperswarm/Keet pattern, group presence should be broadcast periodically
-    // so members see accurate status (online/away/busy). Previously, group presence
-    // was only sent once when entering a group view — no periodic updates.
-    const groups = useGroupStore.getState().getAllGroups()
-    for (const group of groups) {
-      groupService.announceGroupPresence(group.id).catch(() => {})
-    }
+    // 6. GROUP PRESENCE: délégué au heartbeat dédié de GroupService (30 s, avec
+    // skip si statut inchangé, force-broadcast toutes les ~2,5 min et
+    // cleanupStalePresence). Ce tick 5 s annonçait DE FAÇON INCONDITIONNELLE à tous
+    // les membres de chaque groupe (message signé broadcast) — soit ~6× le trafic
+    // du heartbeat dédié, sans gain de fraîcheur : un changement réel de statut
+    // déclenche l'annonce immédiate via l'abonnement AUTO-PRESENCE de GroupService.
+  }
+
+  /**
+   * Our own status as the network must see it: the single internal-to-network
+   * mapping of src/utils/presence.ts, gated by the `privacy.onlineStatus`
+   * setting. Every emission point (peer:connected, peer:identified, delayed
+   * re-send, heartbeat broadcast, contact:request / contact:accept, DHT
+   * re-publish) goes through here. They used to each inline their own chain of
+   * ternaries, and two of them forgot the privacy gate - so a user hiding their
+   * presence still leaked their real status into the DHT and to each new peer.
+   */
+  private outgoingPresence(): NetworkStatus {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return 'offline'
+    const hidePresence = !useUIStore.getState().settings.privacy.onlineStatus
+    return toNetworkStatus(identity.profile.status, hidePresence)
+  }
+
+  /**
+   * Publish our (privacy-gated) status to the DHT. App.tsx owns the startup
+   * publish and the 30 s refresh loop; this method lets an immediate event — a
+   * visibility toggle, a status picked in the settings — reach the DHT without
+   * waiting for that loop. Always goes through outgoingPresence() so the DHT can
+   * never advertise more than the P2P channel does.
+   */
+  async publishDhtStatus(): Promise<void> {
+    if (!window.asgard?.network?.publishStatus) return
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return
+    const statusMessage = presenceMessage(identity.profile)
+    const networkStatus = this.outgoingPresence()
+    await window.asgard.network.publishStatus(networkStatus, statusMessage).catch(() => {})
+    console.log('[ChatService] DHT status published:', networkStatus)
+  }
+
+  /**
+   * Do we hold a recent presence DECLARATION from this peer? The DHT refresh loop
+   * in App.tsx asks this: a DHT record is an older copy of the same declaration
+   * (republished every 30 s, read every 60 s), so it may inform us about a peer we
+   * cannot reach over P2P, but it must never contradict a live declaration.
+   */
+  hasFreshPresence(publicKey: string, maxAgeMs: number = ChatService.PRESENCE_TIMEOUT): boolean {
+    const declaredAt = this.presenceDeclaredAt.get(publicKey)
+    return declaredAt !== undefined && Date.now() - declaredAt <= maxAgeMs
   }
 
   /**
@@ -2215,23 +2364,14 @@ class ChatService {
     const identity = useIdentityStore.getState().identity
     if (!identity) return
 
-    // Respect privacy setting: hide online status if disabled
-    const privacy = useUIStore.getState().settings.privacy
-    const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
+    const status = this.outgoingPresence()
 
-    // Map internal UserStatus to network-compatible status for P2P:
-    // 'busy' → 'dnd', 'invisible' → 'offline' (appears offline to others)
-    const status: 'online' | 'away' | 'offline' | 'dnd' =
-      internalStatus === 'busy' ? 'dnd' :
-      internalStatus === 'invisible' ? 'offline' :
-      internalStatus === 'dnd' ? 'dnd' :
-      internalStatus === 'away' ? 'away' :
-      internalStatus === 'offline' ? 'offline' :
-      'online'
-
-    // CRITICAL: Always broadcast when peers are connected. Skip only when
-    // status is unchanged AND no peers are connected (nothing to send to).
-    // This fixes the "both online but can't see each other" bug.
+    // CRITICAL: Always re-broadcast when peers are connected — this acts as a
+    // keep-alive so peers always know our current status. Skip only when status
+    // is unchanged AND 0 peers are connected (nothing to send to).
+    // The presence:ping message does NOT carry our status — only presence:update does.
+    // Without periodic re-broadcast, peers who missed the initial update never
+    // learn our status, causing "I see them but they don't see me" asymmetry.
     const connectedPeerCount = Object.values(useNetworkStore.getState().peers).filter((p) => p.connected).length
     const willSkip = status === this.lastBroadcastStatus && connectedPeerCount === 0
     console.log(`[ChatService] broadcastPresence: status=${status} | lastBroadcast=${this.lastBroadcastStatus} | peers=${connectedPeerCount} | skip=${willSkip}`)
@@ -2255,9 +2395,16 @@ class ChatService {
    * Mark a peer as online when we see any activity from them (typing, ping, pong,
    * message, etc.). This acts as a fallback when the remote client is on an older
    * build that still reports 'away' or misses presence broadcasts.
+   *
+   * FALLBACK only — it must not contradict a status the peer declared itself.
+   * P2PService emits `message:<type>` BEFORE the generic `message` event, so this
+   * method ran AFTER applyPresenceUpdate() on every presence:update; forcing
+   * 'online' here therefore erased the declared status every 5 s, which is why
+   * « absent », « occupé » and « invisible » never showed up on the other side.
    */
   private markPeerActive(peerId: string): void {
-    this.peerLastActivity.set(peerId, Date.now())
+    const now = Date.now()
+    this.peerLastActivity.set(peerId, now)
     const contact = useContactStore.getState().getContact(peerId)
     if (!contact) return
     // Cancel any pending offline timer — peer is clearly active
@@ -2266,13 +2413,23 @@ class ChatService {
       clearTimeout(offlineTimer)
       this.pendingOfflineTimers.delete(peerId)
     }
-    const now = Date.now()
-    // Only update store if status is not online or lastSeen is stale (>5s)
-    if (contact.status !== 'online' || now - (contact.lastSeen ?? 0) > 5000) {
-      useContactStore.getState().updateContact(peerId, {
-        status: 'online',
-        lastSeen: now,
-      })
+
+    if (shouldPromoteToOnline(this.presenceDeclaredAt.get(peerId), now, ChatService.PRESENCE_TIMEOUT)) {
+      // Nothing declared (or the declaration is stale): activity is our only
+      // evidence, so show the peer online.
+      if (contact.status !== 'online' || now - (contact.lastSeen ?? 0) > 5000) {
+        useContactStore.getState().updateContact(peerId, {
+          status: 'online',
+          lastSeen: now,
+        })
+      }
+      return
+    }
+
+    // A declaration stands: keep 'away' / 'busy' / 'offline' as written, but the
+    // peer is provably alive, so refresh the lastSeen used by the UI labels.
+    if (now - (contact.lastSeen ?? 0) > 5000) {
+      useContactStore.getState().updateContact(peerId, { lastSeen: now })
     }
   }
 
@@ -2612,14 +2769,49 @@ class ChatService {
     // Show notification if not active conversation AND notifications are allowed
     if (activeId !== resolvedId) {
       const notifSettings = useUIStore.getState().settings.notifications
+      const a11ySettings = useUIStore.getState().settings.accessibility
       if (notifSettings.enabled && !notifSettings.dndMode) {
         const senderName = contact?.displayName ?? msg.from.slice(0, 8)
-        const body = notifSettings.showPreview
-          ? correctedMessage.content.slice(0, 100)
-          : 'New message'
-        window.asgard.notifications.show(senderName, body)
+        const content = correctedMessage.content ?? ''
+        // NOTIFICATION SETTINGS (mentionsOnly): only notify when the message
+        // mentions us — @displayName, @all or @here.
+        if (!notifSettings.mentionsOnly || this.isMentioned(content)) {
+          const body = notifSettings.showPreview
+            ? content.slice(0, 100)
+            : 'New message'
+          window.asgard.notifications.show(senderName, body)
+          // NOTIFICATION SETTINGS (sound): short beep alongside the notification
+          if (notifSettings.sound) ringtoneService.playBeep(660, 120)
+          // ACCESSIBILITY SETTINGS (ttsEnabled): read the message aloud
+          if (a11ySettings.ttsEnabled) this.speakText(`${senderName}. ${body}`)
+        }
       }
     }
+  }
+
+  /**
+   * NOTIFICATION SETTINGS (mentionsOnly): detect whether a message mentions the
+   * local user — @displayName (case-insensitive), @all or @here.
+   */
+  private isMentioned(content: string): boolean {
+    const lower = content.toLowerCase()
+    if (lower.includes('@all') || lower.includes('@here')) return true
+    const myName = useIdentityStore.getState().identity?.profile.displayName?.trim().toLowerCase()
+    if (!myName || myName.length < 2) return false
+    return lower.includes(`@${myName}`)
+  }
+
+  /**
+   * ACCESSIBILITY SETTINGS (ttsEnabled): speak text aloud with the Web Speech
+   * API. Best-effort — silently ignored when unsupported.
+   */
+  private speakText(text: string): void {
+    try {
+      if (!('speechSynthesis' in window)) return
+      const utterance = new SpeechSynthesisUtterance(text.slice(0, 300))
+      utterance.lang = navigator.language || 'fr-FR'
+      window.speechSynthesis.speak(utterance)
+    } catch { /* best-effort */ }
   }
 
   /**
@@ -2631,29 +2823,26 @@ class ChatService {
     const { displayName, avatar } = msg.payload as { displayName?: string; avatar?: string }
     const existing = useContactStore.getState().getContact(msg.from)
 
-    // CRITICAL: Update activity timestamp — receiving a contact request proves the peer is online
-    this.peerLastActivity.set(msg.from, Date.now())
+    // Activité, pas déclaration : c'est markPeerActive() qui décide de montrer le
+    // pair « en ligne », et il respecte un « absent » / « occupé » / « invisible »
+    // fraîchement déclaré — un pair caché ne doit pas être révélé par sa demande.
+    // Pour un contact encore inconnu, il ne fait qu'enregistrer l'horodatage.
+    this.markPeerActive(msg.from)
 
-    if (existing) {
-      // Contact already exists — upgrade from pending if needed, but don't overwrite
-      if (existing.relation === 'pending') {
-        useContactStore.getState().updateContact(msg.from, {
-          relation: 'contact',
-          displayName: displayName ?? existing.displayName,
-          avatar: avatar ?? existing.avatar,
-          status: 'online',
-          lastSeen: Date.now(),
-        })
-      } else {
-        // Already a full contact — just mark online (reconnection scenario)
-        useContactStore.getState().updateContact(msg.from, {
-          status: 'online',
-          lastSeen: Date.now(),
-        })
-      }
-    } else {
+    if (existing && existing.relation === 'pending') {
+      // Montée de relation : les champs déclaratifs sont repris, mais le statut
+      // n'est pas écrit ici.
+      useContactStore.getState().updateContact(msg.from, {
+        relation: 'contact',
+        displayName: displayName ?? existing.displayName,
+        avatar: avatar ?? existing.avatar,
+        lastSeen: Date.now(),
+      })
+    } else if (!existing) {
       // New contact — create as 'contact' directly (not 'pending')
-      // since they initiated the request, they've already added us
+      // since they initiated the request, they've already added us. Aucun pair
+      // jamais atteint n'a de déclaration en poche : « online » est ici exactement
+      // ce que markPeerActive() aurait décidé.
       const contact: Contact = {
         publicKey: msg.from,
         displayName: displayName ?? msg.from.slice(0, 8),
@@ -2693,16 +2882,7 @@ class ChatService {
       })
 
       // Also send our presence so they know we're online
-      const privacy = useUIStore.getState().settings.privacy
-      const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
-      // Map internal UserStatus to network-compatible status for P2P
-      const status: 'online' | 'away' | 'offline' | 'dnd' =
-        internalStatus === 'busy' ? 'dnd' :
-        internalStatus === 'invisible' ? 'offline' :
-        internalStatus === 'dnd' ? 'dnd' :
-        internalStatus === 'away' ? 'away' :
-        internalStatus === 'offline' ? 'offline' :
-        'online'
+      const status = this.outgoingPresence()
       p2pService.sendMessage(msg.from, 'presence:update', {
         status,
         displayName: identity.profile.displayName,
@@ -2722,16 +2902,17 @@ class ChatService {
   private handleContactAccept(msg: ProtocolMessage): void {
     const { displayName } = msg.payload as { displayName?: string }
 
-    // CRITICAL: Update activity timestamp — receiving accept proves the peer is online
-    this.peerLastActivity.set(msg.from, Date.now())
-
+    // CRITICAL: Update activity timestamp — receiving accept proves the peer is there,
+    // nothing more. L'acceptation est une activité, pas une déclaration : c'est
+    // markPeerActive() qui tranche, pour ne pas effacer un « absent » / « occupé » /
+    // « invisible » que ce pair vient de nous annoncer.
     useContactStore.getState().updateContact(msg.from, {
       relation: 'contact',
       displayName: displayName ?? undefined,
       // Avatar will arrive via binary media channel (not in signed message)
-      status: 'online',
       lastSeen: Date.now(),
     })
+    this.markPeerActive(msg.from)
 
     // CRITICAL: Auto-create conversation so user can navigate to it
     const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
@@ -2746,15 +2927,7 @@ class ChatService {
     // never learns our status. Sending presence on contact:accept closes this gap.
     const identity = useIdentityStore.getState().identity
     if (identity) {
-      const privacy = useUIStore.getState().settings.privacy
-      const internalStatus = privacy.onlineStatus ? identity.profile.status : 'offline'
-      const status: 'online' | 'away' | 'offline' | 'dnd' =
-        internalStatus === 'busy' ? 'dnd' :
-        internalStatus === 'invisible' ? 'offline' :
-        internalStatus === 'dnd' ? 'dnd' :
-        internalStatus === 'away' ? 'away' :
-        internalStatus === 'offline' ? 'offline' :
-        'online'
+      const status = this.outgoingPresence()
       p2pService.sendMessage(msg.from, 'presence:update', {
         status,
         displayName: identity.profile.displayName,
@@ -2782,6 +2955,7 @@ class ChatService {
       this.pendingPresenceUpdates.delete(msg.from)
       this.pendingIdentifiedPeers.delete(msg.from)
       this.lastPresenceStatus.delete(msg.from)
+      this.presenceDeclaredAt.delete(msg.from)
       console.log('[ChatService] Contact removed by peer:', msg.from.slice(0, 16))
     }
   }
@@ -2821,11 +2995,15 @@ class ChatService {
     this.pendingPresenceUpdates.clear()
     this.pendingIdentifiedPeers.clear()
     this.lastPresenceStatus.clear()
+    this.presenceDeclaredAt.clear()
     this.pendingConnectedPeers.clear()
     this.pendingMessages.clear()
     this.pendingReceipts.clear()
     this.avatarBuffers.clear()
     this.ed25519ToNoiseMap.clear()
+    this.noiseKeyCache.clear()
+    this.redialInFlight.clear()
+    this.lastRedialAt.clear()
     this.lastTypingSent.clear()
   }
 

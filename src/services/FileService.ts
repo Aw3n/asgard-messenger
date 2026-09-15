@@ -5,6 +5,7 @@ import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useIdentityStore } from '@/stores/identityStore'
+import { useUIStore } from '@/stores/uiStore'
 import { generateId } from '@/utils/id'
 import type { MessageAttachment, Message } from '@/types'
 import type { ProtocolMessage } from '@/types'
@@ -21,6 +22,22 @@ const FILE_TRANSFER_MARKER = 0x04
 // const BLOB_BLOCK_SIZE = 64 * 1024
 /** Transfer speed tracking window (3 seconds) */
 const SPEED_WINDOW_MS = 3000
+
+/** Plus grand côté d'une miniature d'image, en pixels. */
+export const THUMBNAIL_MAX_SIDE = 192
+
+/**
+ * Boîte de rendu d'une miniature : l'image entière dans un carré de `maxSide`,
+ * proportions conservées, jamais agrandie. Exportée pour être testée seule —
+ * c'est la garantie qu'aucun bord de la photo n'est rogné à l'émission.
+ */
+export function fitWithin(width: number, height: number, maxSide: number): { w: number; h: number } {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return { w: 1, h: 1 }
+  }
+  const ratio = Math.min(maxSide / width, maxSide / height, 1)
+  return { w: Math.max(1, Math.round(width * ratio)), h: Math.max(1, Math.round(height * ratio)) }
+}
 
 /**
  * FileService — handles file sending, receiving, and management.
@@ -51,6 +68,20 @@ class FileService {
   private currentSpeed = 0 // bytes per second
   // RESUME: Track interrupted transfers for resume capability
   private interruptedTransfers: Map<string, InterruptedTransfer> = new Map()
+  // COHÉRENCE CHUNKS: chunks reçus avant la metadata file:transfer. L'ordre
+  // inter-canaux Protomux (canal messages signés vs canal fichiers dédié)
+  // n'est PAS garanti — un chunk peut devancer son message de metadata.
+  // Bufferisés par transferId puis rejoués à l'arrivée de la metadata.
+  private orphanChunks: Map<string, { from: string; data: Uint8Array; receivedAt: number }[]> = new Map()
+  // URLs LOCALES VIVANTES : `localUrl` est une URL `blob:` liée à la SESSION
+  // navigateur courante, mais elle est persistée telle quelle dans le message
+  // (SerializedMessage.localUrl côté StorageService) : après un redémarrage, la
+  // référence est morte et le `<img>` affiche l'icône d'image cassée — c'est
+  // exactement ce que montrait la visionneuse à 100 % sur « Avatar.webp ». Le
+  // blob, lui, est toujours sur disque : le registre permet de distinguer une
+  // URL réellement résolvable d'un fantôme et de relire le blob.
+  private liveUrls = new Set<string>()
+  private urlByBlobKey = new Map<string, string>()
 
   initialize(): void {
     p2pService.on('message:file:transfer', (msg: ProtocolMessage) => {
@@ -78,19 +109,23 @@ class FileService {
     conversationId: string,
     peerId: string
   ): Promise<MessageAttachment> {
+    // MEDIA SETTINGS (compressImages/compressVideos): compress before sending
+    // when the user enabled it — best-effort, the original is sent on failure.
+    const fileToSend = await this.compressForNetwork(file).catch(() => file)
+
     const transferId = generateId()
     const transfer: FileTransfer = {
       id: transferId,
-      fileName: file.name,
-      fileSize: file.size,
+      fileName: fileToSend.name,
+      fileSize: fileToSend.size,
       progress: 0,
       status: 'uploading',
-      type: this.getFileType(file.type),
+      type: this.getFileType(fileToSend.type),
     }
     this.transfers.set(transferId, transfer)
 
     try {
-      const buffer = await file.arrayBuffer()
+      const buffer = await fileToSend.arrayBuffer()
       const blobId = await storageService.putBlob(buffer)
       // Transfer starts as uploading; will become complete after peer receives it.
       transfer.status = 'uploading'
@@ -99,15 +134,15 @@ class FileService {
       const attachment: MessageAttachment = {
         id: generateId(),
         type: transfer.type,
-        name: file.name,
-        size: file.size,
-        mimeType: file.type || 'application/octet-stream',
+        name: fileToSend.name,
+        size: fileToSend.size,
+        mimeType: fileToSend.type || 'application/octet-stream',
         blobKey: blobId,
       }
 
       if (transfer.type === 'image') {
         try {
-          const thumbnail = await this.generateThumbnail(file)
+          const thumbnail = await this.generateThumbnail(fileToSend)
           attachment.thumbnail = thumbnail
         } catch { /* best-effort */ }
       }
@@ -136,15 +171,25 @@ class FileService {
 
         // PERFORMANCE: Cork the Protomux channel to batch all chunks into one network write
         await window.asgard.network.cork(peerId).catch(() => {})
-
+        
+        // COHÉRENCE CHUNKS: chaque chunk est préfixé du transferId — la réception
+        // route par (expéditeur, transferId) au lieu de « premier buffer incomplet
+        // de ce pair », ce qui rend sûrs les transferts simultanés d'un même pair
+        // et tolère l'arrivée des chunks avant la metadata (canaux séparés).
+        const idBytes = new TextEncoder().encode(transferId)
+        
         // PERFORMANCE: Sliding window pipeline — send WINDOW_SIZE chunks in parallel
         // instead of awaiting each chunk sequentially (4x faster for large files)
         const pending: Promise<void>[] = []
         let chunksSent = 0
         for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
           const chunk = bytes.slice(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
+          const framed = new Uint8Array(1 + idBytes.length + chunk.length)
+          framed[0] = idBytes.length
+          framed.set(idBytes, 1)
+          framed.set(chunk, 1 + idBytes.length)
           // HOLEPUNCH PATTERN: Use dedicated file channel — no marker byte needed
-          const chunkPromise = p2pService.sendFileData(peerId, chunk)
+          const chunkPromise = p2pService.sendFileData(peerId, framed)
           pending.push(chunkPromise)
 
           // Update progress as chunks complete
@@ -227,15 +272,74 @@ class FileService {
     }
   }
 
+  /**
+   * Une `localUrl` n'est utilisable que si elle a été créée dans la session
+   * courante. Les URL `data:` (miniatures) et `http(s):` sont autonomes.
+   */
+  isLiveUrl(url?: string | null): boolean {
+    if (!url) return false
+    if (!url.startsWith('blob:')) return true
+    return this.liveUrls.has(url)
+  }
+
+  /**
+   * Matérialise (ou réutilise) l'URL d'objet de la session pour des octets déjà
+   * en main. Une seule URL par blobKey : relire le même fichier après un
+   * redémarrage ne doit pas empiler les blobs en mémoire.
+   */
+  private createLocalUrl(
+    data: Uint8Array | ArrayBuffer,
+    mimeType: string | undefined,
+    blobKey?: string
+  ): string {
+    const existing = blobKey ? this.urlByBlobKey.get(blobKey) : undefined
+    if (existing && this.liveUrls.has(existing)) return existing
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
+    const blob = new Blob([bytes as BlobPart], { type: mimeType || 'application/octet-stream' })
+    const url = URL.createObjectURL(blob)
+    this.liveUrls.add(url)
+    if (blobKey) this.urlByBlobKey.set(blobKey, url)
+    return url
+  }
+
+  /** Libère une URL d'objet créée par ce service (no-op sur une URL fantôme). */
+  releaseLocalUrl(url?: string | null): void {
+    if (!url || !this.liveUrls.has(url)) return
+    this.liveUrls.delete(url)
+    for (const [key, value] of this.urlByBlobKey) {
+      if (value === url) this.urlByBlobKey.delete(key)
+    }
+    try { URL.revokeObjectURL(url) } catch { /* déjà révoquée */ }
+  }
+
+  /**
+   * Résout l'URL affichable d'une pièce jointe, en relisant le blob du disque
+   * si la référence locale est périmée. Retourne null quand le fichier n'est pas
+   * encore là localement (pas de blobKey, blob absent) — l'appelant garde alors
+   * sa miniature.
+   */
+  async resolveLocalUrl(attachment: MessageAttachment): Promise<string | null> {
+    if (this.isLiveUrl(attachment.localUrl)) return attachment.localUrl ?? null
+    if (!attachment.blobKey) return null
+    try {
+      return await this.downloadFile(attachment)
+    } catch (err) {
+      console.warn('[FileService] resolveLocalUrl échouée:', attachment.id, err)
+      return null
+    }
+  }
+
   async downloadFile(attachment: MessageAttachment): Promise<string> {
-    if (attachment.localUrl) return attachment.localUrl
+    // Ne PAS renvoyer une localUrl sans vérifier qu'elle est vivante : une URL
+    // `blob:` héritée d'une session précédente est une référence morte qui
+    // casse l'affichage, et l'appelant ne peut pas s'en rendre compte.
+    if (this.isLiveUrl(attachment.localUrl)) return attachment.localUrl as string
     if (!attachment.blobKey) throw new Error('No blob key for attachment')
 
     const data = await storageService.getBlob(attachment.blobKey)
     if (!data) throw new Error('Blob not found')
 
-    const blob = new Blob([data], { type: attachment.mimeType })
-    const url = URL.createObjectURL(blob)
+    const url = this.createLocalUrl(data, attachment.mimeType, attachment.blobKey)
     attachment.localUrl = url
     return url
   }
@@ -412,14 +516,21 @@ class FileService {
       // Cork for batch sending
       await window.asgard.network.cork(peerId).catch(() => {})
 
+      // COHÉRENCE CHUNKS: même header transferId que sendFile — voir sendFile.
+      const idBytes = new TextEncoder().encode(transferId)
+
       // Sliding window pipeline
       const pending: Promise<void>[] = []
       let chunksSent = 0
 
       for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
         const chunk = bytes.slice(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
+        const framed = new Uint8Array(1 + idBytes.length + chunk.length)
+        framed[0] = idBytes.length
+        framed.set(idBytes, 1)
+        framed.set(chunk, 1 + idBytes.length)
         // HOLEPUNCH PATTERN: Use dedicated file channel — no marker byte needed
-        const chunkPromise = p2pService.sendFileData(peerId, chunk)
+        const chunkPromise = p2pService.sendFileData(peerId, framed)
         pending.push(chunkPromise)
 
         chunkPromise.then(() => {
@@ -483,6 +594,41 @@ class FileService {
       }
     }
     return null
+  }
+
+  /**
+   * Get all active receive buffers (used by ActiveTransfersWidget).
+   * Returns summary data for each in-progress receive transfer.
+   */
+  getActiveReceives(): Array<{
+    transferId: string
+    fileName: string
+    fileSize: number
+    progress: number
+    type: string
+    attachment: MessageAttachment
+  }> {
+    const result: Array<{
+      transferId: string
+      fileName: string
+      fileSize: number
+      progress: number
+      type: string
+      attachment: MessageAttachment
+    }> = []
+    for (const [id, buf] of this.receiveBuffers.entries()) {
+      if (buf.totalChunks > 0 && buf.receivedChunks < buf.totalChunks) {
+        result.push({
+          transferId: id,
+          fileName: buf.attachment.name,
+          fileSize: buf.attachment.size || 0,
+          progress: Math.round(buf.receivedChunks / buf.totalChunks * 100),
+          type: buf.attachment.type || 'document',
+          attachment: buf.attachment,
+        })
+      }
+    }
+    return result
   }
 
   /**
@@ -570,6 +716,9 @@ class FileService {
     const groupTransferId = payload.groupTransferId
     const senderMessageId = payload.senderMessageId
 
+    // DIAGNOSTIC: Log incoming file transfer
+    console.log(`[FileService] 📥 Incoming file: ${attachment.name}, size=${attachment.size}, binary=${binary}, chunks=${totalChunks}, from=${msg.from.slice(0, 16)}, transferId=${transferId.slice(0, 8)}`)
+
     // DEDUP: Ignore duplicate file:transfer for the same transferId
     if (this.receiveBuffers.has(transferId) || this.completedTransferIds.has(transferId)) {
       console.log('[FileService] Ignoring duplicate file:transfer:', transferId)
@@ -577,7 +726,10 @@ class FileService {
     }
 
     const contact = useContactStore.getState().getContact(msg.from)
-    if (contact?.relation === 'blocked') return
+    if (contact?.relation === 'blocked') {
+      console.log('[FileService] Blocked contact, ignoring file')
+      return
+    }
 
     // CRITICAL: For group file transfers, the conversationId IS the channelId.
     // Do NOT override it with a 1:1 derived conversation ID — that would put the
@@ -605,6 +757,26 @@ class FileService {
         senderMessageId,
       })
 
+      // COHÉRENCE CHUNKS: rejoue les chunks arrivés AVANT cette metadata — le
+      // canal fichier dédié préserve l'ordre, donc les orphelins sont déjà dans
+      // l'ordre d'émission et le reconstituent le buffer correctement.
+      const orphans = this.orphanChunks.get(transferId)
+      if (orphans && orphans.length > 0) {
+        this.orphanChunks.delete(transferId)
+        const rbuf = this.receiveBuffers.get(transferId)!
+        let replayed = 0
+        for (const o of orphans) {
+          if (o.from === msg.from && rbuf.receivedChunks < rbuf.totalChunks) {
+            rbuf.chunks.push(o.data)
+            rbuf.receivedChunks++
+            replayed++
+          }
+        }
+        console.log(`[FileService] Replayed ${replayed}/${orphans.length} early chunks for transfer ${transferId.slice(0, 8)}`)
+      }
+
+      console.log(`[FileService] ✅ Receive buffer created: transferId=${transferId.slice(0, 8)}, from=${msg.from.slice(0, 16)}, totalChunks=${totalChunks}, convId=${resolvedId.slice(0, 16)}`)
+
       // Create placeholder message so user sees "receiving..."
       const message: Message = {
         id: placeholderId,
@@ -628,9 +800,10 @@ class FileService {
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
         const blobId = await storageService.putBlob(bytes.buffer as ArrayBuffer)
         attachment.blobKey = blobId
-        if (attachment.type === 'image' || attachment.thumbnail) {
-          const blob = new Blob([bytes], { type: attachment.mimeType })
-          attachment.localUrl = URL.createObjectURL(blob)
+        // STORAGE SETTINGS (autoDownload): small inline files resolve inline for
+        // images; other types follow the auto-download toggles.
+        if (this.shouldAutoDownload(attachment.type, bytes.length, !!attachment.thumbnail)) {
+          attachment.localUrl = this.createLocalUrl(bytes, attachment.mimeType, blobId)
         }
       } catch (err) {
         console.warn('[FileService] Failed to store received blob:', err)
@@ -679,7 +852,29 @@ class FileService {
     // Map Noise → Ed25519 before looking up the buffer.
     const ed25519From = p2pService.getPeerPublicKey(from) ?? from
 
-    // Find the receive buffer for this sender
+    // DIAGNOSTIC: Log first few chunks to help debug file transfer issues
+    const chunkCount = Array.from(this.receiveBuffers.values()).reduce((sum, buf) => sum + buf.receivedChunks, 0)
+    if (chunkCount < 3) {
+      console.log(`[FileService] Binary chunk received from Noise=${from.slice(0, 16)}, Ed25519=${ed25519From.slice(0, 16)}, size=${payload.length}, expectMarker=${expectMarker}, buffers=${this.receiveBuffers.size}`)
+    }
+
+    // COHÉRENCE CHUNKS: parse le header [idLen][transferId][data] ajouté par les
+    // versions récentes. Route par (expéditeur, transferId) — plusieurs transferts
+    // simultanés d'un même pair ne s'entremêlent plus. Les chunks sans header
+    // valide (pairs plus anciens) tombent sur le routing historique par expéditeur.
+    const header = FileService.parseTransferChunkHeader(payload)
+    if (header) {
+      const buf = this.receiveBuffers.get(header.transferId)
+      if (buf && buf.from === ed25519From) {
+        this.appendChunkToBuffer(buf, header.transferId, header.data)
+        return
+      }
+      // Metadata pas encore arrivée (ordre inter-canaux Protomux non garanti).
+      this.pushOrphanChunk(ed25519From, header.transferId, header.data)
+      return
+    }
+
+    // Legacy: chunks sans header — premier buffer incomplet du sender
     let transferId: string | undefined
     for (const [id, buf] of this.receiveBuffers) {
       if (buf.from === ed25519From && buf.receivedChunks < buf.totalChunks) {
@@ -687,18 +882,98 @@ class FileService {
         break
       }
     }
-    if (!transferId) return
+    if (!transferId) {
+      // DIAGNOSTIC: Log why chunk was dropped
+      console.warn(`[FileService] ❌ No receive buffer found for Ed25519=${ed25519From.slice(0, 16)}. Buffers: ${Array.from(this.receiveBuffers.entries()).map(([id, buf]) => `${id.slice(0, 8)}:from=${buf.from.slice(0, 16)},chunks=${buf.receivedChunks}/${buf.totalChunks}`).join('; ') || 'none'}`)
+      return
+    }
 
     const buf = this.receiveBuffers.get(transferId)!
-    buf.chunks.push(new Uint8Array(payload))
+    this.appendChunkToBuffer(buf, transferId, payload)
+  }
+
+  /**
+   * COHÉRENCE CHUNKS: parse le header de chunk [idLen:1][transferId ascii][data].
+   * Retourne null si le payload ne porte pas un header valide (chunk legacy).
+   * Un identifiant generateId() est alphanumérique ; un faux positif exigerait
+   * un premier byte de fichier ∈ [8..64] suivi d'exactement idLen caractères
+   * alphanumériques — négligeable en pratique.
+   */
+  private static parseTransferChunkHeader(payload: Uint8Array): { transferId: string; data: Uint8Array } | null {
+    if (payload.length < 10) return null
+    const idLen = payload[0]
+    if (idLen < 8 || idLen > 64 || payload.length <= 1 + idLen) return null
+    for (let i = 1; i <= idLen; i++) {
+      const c = payload[i]
+      const isAlnum = (c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A) || c === 0x2D || c === 0x5F
+      if (!isAlnum) return null
+    }
+    return {
+      transferId: new TextDecoder().decode(payload.subarray(1, 1 + idLen)),
+      data: payload.subarray(1 + idLen),
+    }
+  }
+
+  /**
+   * COHÉRENCE CHUNKS: ajoute un chunk à un buffer de réception existant.
+   */
+  private appendChunkToBuffer(buf: { from: string; attachment: MessageAttachment; conversationId: string; totalChunks: number; receivedChunks: number; chunks: Uint8Array[]; placeholderMessageId?: string; groupTransferId?: string; senderMessageId?: string }, transferId: string, data: Uint8Array): void {
+    if (buf.receivedChunks >= buf.totalChunks) return // chunk en trop — transfert déjà complet
+    buf.chunks.push(new Uint8Array(data))
     buf.receivedChunks++
+
+    // DIAGNOSTIC: Log progress every 10 chunks
+    if (buf.receivedChunks % 10 === 0 || buf.receivedChunks === buf.totalChunks) {
+      console.log(`[FileService] Chunk progress: ${buf.receivedChunks}/${buf.totalChunks} for transfer ${transferId.slice(0, 8)}`)
+    }
+  }
+
+  /**
+   * COHÉRENCE CHUNKS: bufferise un chunk arrivé avant sa metadata. Purge après
+   * 60 s si la metadata n'arrive jamais (transfert abandonné).
+   */
+  private pushOrphanChunk(from: string, transferId: string, data: Uint8Array): void {
+    let list = this.orphanChunks.get(transferId)
+    if (!list) {
+      list = []
+      this.orphanChunks.set(transferId, list)
+      setTimeout(() => { this.orphanChunks.delete(transferId) }, 60_000)
+    }
+    list.push({ from, data: new Uint8Array(data), receivedAt: Date.now() })
+    if (list.length <= 2) {
+      console.log(`[FileService] Chunk arrived before metadata (transferId=${transferId.slice(0, 8)}) — buffered, waiting for file:transfer`)
+    }
+  }
+
+  /**
+   * STORAGE SETTINGS (autoDownload): decide whether a received attachment is
+   * materialized as a local blob URL immediately. Images (and anything with a
+   * thumbnail) always render inline; other types follow the per-type toggles
+   * and the maxSize threshold (MB).
+   */
+  private shouldAutoDownload(type: string, size: number, hasThumbnail: boolean): boolean {
+    if (type === 'image' || hasThumbnail) return true
+    const autoDl = useUIStore.getState().settings.storage.autoDownload
+    const maxBytes = (autoDl.maxSize ?? 50) * 1024 * 1024
+    if (size > maxBytes) return false
+    if (type === 'video') return autoDl.videos
+    if (type === 'audio' || type === 'voice') return autoDl.audio
+    if (type === 'document') return autoDl.documents
+    return false
   }
 
   private async handleFileComplete(msg: ProtocolMessage): Promise<void> {
     const { transferId } = msg.payload as { transferId: string }
-    
+
+    console.log(`[FileService] 📥 file:complete received for transferId=${transferId.slice(0, 8)}`)
+
     const buf = this.receiveBuffers.get(transferId)
-    if (!buf) return
+    if (!buf) {
+      console.warn(`[FileService] ❌ No buffer found for completed transfer ${transferId.slice(0, 8)}. Completed transfers: ${this.completedTransferIds.size}, Receive buffers: ${this.receiveBuffers.size}`)
+      return
+    }
+
+    console.log(`[FileService] ✅ Buffer found: received ${buf.receivedChunks}/${buf.totalChunks} chunks, total size: ${buf.chunks.reduce((sum, c) => sum + c.length, 0)} bytes`)
 
     // Reassemble all chunks into a single buffer
     let totalLen = 0
@@ -710,18 +985,24 @@ class FileService {
       offset += chunk.length
     }
 
+    // DIAGNOSTIC: Check if all chunks were received
+    if (buf.receivedChunks < buf.totalChunks) {
+      console.warn(`[FileService] ⚠️ Incomplete transfer! Received ${buf.receivedChunks}/${buf.totalChunks} chunks. Proceeding with partial data.`)
+    }
+
     // Store as blob
     try {
       console.log('[FileService] Storing received blob:', transferId, 'size:', assembled.length)
       const blobId = await storageService.putBlob(assembled.buffer as ArrayBuffer)
       buf.attachment.blobKey = blobId
-      console.log('[FileService] Received blob stored:', transferId, 'blobId:', blobId)
-      if (buf.attachment.type === 'image' || buf.attachment.thumbnail) {
-        const blob = new Blob([assembled], { type: buf.attachment.mimeType })
-        buf.attachment.localUrl = URL.createObjectURL(blob)
+      console.log('[FileService] ✅ Received blob stored:', transferId, 'blobId:', blobId)
+      // STORAGE SETTINGS (autoDownload): materialize the blob URL immediately
+      // for images (always inline) and for types the user auto-downloads.
+      if (this.shouldAutoDownload(buf.attachment.type, assembled.length, !!buf.attachment.thumbnail)) {
+        buf.attachment.localUrl = this.createLocalUrl(assembled, buf.attachment.mimeType, blobId)
       }
     } catch (err) {
-      console.warn('[FileService] Failed to store received blob:', transferId, err)
+      console.warn('[FileService] ❌ Failed to store received blob:', transferId, err)
     }
 
     // CRITICAL: Update the existing placeholder message instead of creating a new one.
@@ -819,22 +1100,30 @@ class FileService {
     return 'document'
   }
 
+  /**
+   * Miniature d'une image : le CADRE COMPLET, aux proportions de la photo.
+   *
+   * La miniature est persistée dans le message et c'est elle que la visionneuse
+   * affiche en premier, le temps de relire l'original. Son format historique —
+   * un carré 128×128 obtenu par recadrage centré (`drawImage` sur la plus petite
+   * dimension) — faisait donc apparaître un paysage amputé de ses deux côtés et
+   * un portrait privé du haut et du bas, avec la sensation que « l'image est
+   * rognée » dès l'ouverture. Le canevas suit désormais le ratio de la source,
+   * sans agrandissement (une petite photo reste à sa taille).
+   */
   private async generateThumbnail(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image()
       const url = URL.createObjectURL(file)
       img.onload = () => {
         const canvas = document.createElement('canvas')
-        const size = 128
-        canvas.width = size
-        canvas.height = size
+        const { w, h } = fitWithin(img.width, img.height, THUMBNAIL_MAX_SIDE)
+        canvas.width = w
+        canvas.height = h
         const ctx = canvas.getContext('2d')
         if (!ctx) { URL.revokeObjectURL(url); reject(new Error('No canvas context')); return }
-        const minDim = Math.min(img.width, img.height)
-        const sx = (img.width - minDim) / 2
-        const sy = (img.height - minDim) / 2
-        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
-        const thumbnail = canvas.toDataURL('image/jpeg', 0.7)
+        ctx.drawImage(img, 0, 0, w, h)
+        const thumbnail = canvas.toDataURL('image/jpeg', 0.72)
         URL.revokeObjectURL(url)
         resolve(thumbnail)
       }
@@ -4403,23 +4692,27 @@ class FileService {
   }
 
   /**
-   * Compress file based on current network conditions.
+   * Compress file based on user media settings and current network conditions.
+   * MEDIA SETTINGS: the user toggles (compressImages / compressVideos) are the
+   * master switch — when OFF the original file is sent untouched. When ON, the
+   * network heuristic picks the quality level. GIFs are never re-encoded
+   * (canvas flattens their animation) and audio keeps its original encoding.
    */
   async compressForNetwork(file: File): Promise<File> {
     const settings = this.getNetworkCompressionSettings()
+    const mediaPrefs = useUIStore.getState().settings.media
 
-    if (file.type.startsWith('image/') && settings.compressImages) {
+    if (
+      file.type.startsWith('image/') &&
+      file.type !== 'image/gif' &&
+      mediaPrefs.compressImages
+    ) {
       const result = await this.compressImage(file, settings.imageQuality)
       return result.file
     }
 
-    if (file.type.startsWith('video/') && settings.compressVideos) {
+    if (file.type.startsWith('video/') && mediaPrefs.compressVideos) {
       const result = await this.compressVideo(file, 'medium')
-      return result.file
-    }
-
-    if (file.type.startsWith('audio/')) {
-      const result = await this.compressAudio(file, settings.audioBitrate)
       return result.file
     }
 

@@ -5,6 +5,8 @@ import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useTranslation } from 'react-i18next'
 import { formatPublicKey } from '@/utils/id'
+import { presenceMeta } from '@/utils/presence'
+import { getCurrentLanguage } from '@/i18n/config'
 
 /**
  * ConversationInfoPanel — shows conversation details: avatar, name, encryption status, key.
@@ -59,19 +61,15 @@ export const ConversationInfoPanel: React.FC = () => {
       {/* Details */}
       <div className="space-y-3">
         <DetailRow label={t('contacts.publicKey')} value={conversation?.participantId ? formatPublicKey(conversation.participantId) : t('common.unknown')} />
-        <DetailRow label={t('settings.status')} value={contact?.status ? {
-          online: t('common.online'),
-          offline: t('common.offline'),
-          away: t('common.away'),
-          busy: t('common.busy'),
-          dnd: t('common.dnd'),
-          invisible: t('common.invisible'),
-        }[contact.status] ?? t('common.unknown') : t('common.unknown')} />
+        {/* Libellé commun à toute l'interface (src/utils/presence.ts) : cette table
+            affichait « Ne pas déranger » là où le reste de l'app dit « Occupé »
+            pour la même personne. */}
+        <DetailRow label={t('settings.status')} value={contact?.status ? t(presenceMeta(contact.status).labelKey) : t('common.unknown')} />
         {contact?.lastSeen && (
-          <DetailRow label={t('chat.lastSeen')} value={new Date(contact.lastSeen).toLocaleString()} />
+          <DetailRow label={t('chat.lastSeen')} value={new Date(contact.lastSeen).toLocaleString(getCurrentLanguage())} />
         )}
         {contact?.addedAt && (
-          <DetailRow label={t('common.added')} value={new Date(contact.addedAt).toLocaleDateString()} />
+          <DetailRow label={t('common.added')} value={new Date(contact.addedAt).toLocaleDateString(getCurrentLanguage())} />
         )}
         {contact?.verified && (
           <div className="flex items-center gap-2">

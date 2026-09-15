@@ -1,4 +1,5 @@
 import React from 'react'
+import i18n from '@/i18n/config'
 
 interface Props {
   children: React.ReactNode
@@ -48,22 +49,22 @@ export class ErrorBoundary extends React.Component<Props, State> {
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
             </svg>
           </div>
-          <h2 className="text-lg font-semibold mb-2">Something went wrong</h2>
+          <h2 className="text-lg font-semibold mb-2">{i18n.t('errors.title')}</h2>
           <p className="text-sm text-asgard-text-secondary text-center max-w-sm mb-4">
-            The interface crashed while rendering. Please reload the app or open the developer console for details.
+            {i18n.t('errors.description')}
           </p>
           <div className="flex gap-3">
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 text-sm rounded-lg bg-asgard-glacier text-asgard-deep-black font-medium hover:bg-asgard-glacier/90 transition-colors"
             >
-              Reload app
+              {i18n.t('errors.reloadApp')}
             </button>
             <button
               onClick={() => this.setState({ hasError: false, error: undefined })}
               className="px-4 py-2 text-sm rounded-lg text-asgard-text-secondary hover:bg-asgard-surface-alt transition-colors"
             >
-              Try again
+              {i18n.t('errors.tryAgain')}
             </button>
           </div>
           {this.state.error && (

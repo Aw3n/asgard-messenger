@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
+import { presenceMeta } from '@/utils/presence'
 import { Button } from './Button'
+import { Icon, type IconName } from './Icon'
 import type { UserStatus } from '@/types'
 
 type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
@@ -37,14 +39,10 @@ const sizes: Record<AvatarSize, { container: string; text: string; status: strin
   '2xl': { container: 'w-28 h-28', text: 'text-4xl', status: 'w-6 h-6 bottom-1 right-1 border-2' },
 }
 
-const statusColors: Record<UserStatus, string> = {
-  online: 'status-online',
-  away: 'status-away',
-  busy: 'status-busy',
-  offline: 'status-offline',
-  invisible: 'status-offline',
-  dnd: 'status-busy',
-}
+// La pastille d'un statut vient de src/utils/presence.ts : même source que les
+// sélecteurs de présence, donc une valeur ne peut plus être verte ici et rouge
+// là. `statusColors` répétait la règle ici sous une sixième forme.
+const statusColorClass = (status?: UserStatus | string): string => presenceMeta(status).dot
 
 const ringColors: Record<AvatarRingColor, string> = {
   default: 'ring-asgard-border',
@@ -54,11 +52,11 @@ const ringColors: Record<AvatarRingColor, string> = {
   away: 'ring-yellow-500',
 }
 
-const badgeIcons: Record<NonNullable<BadgeType>, string> = {
-  verified: '✓',
-  bot: '🤖',
-  admin: '★',
-  premium: '◆',
+const badgeIcons: Record<NonNullable<BadgeType>, IconName> = {
+  verified: 'check',
+  bot: 'bot',
+  admin: 'star',
+  premium: 'diamond',
 }
 
 const badgeColors: Record<NonNullable<BadgeType>, string> = {
@@ -247,7 +245,7 @@ export const Avatar: React.FC<AvatarProps> = ({
           className={cn(
             'absolute rounded-full border-asgard-surface',
             sizeConfig.status,
-            statusColors[status]
+            statusColorClass(status)
           )}
         />
       )}
@@ -261,7 +259,7 @@ export const Avatar: React.FC<AvatarProps> = ({
             badgeColors[badge]
           )}
         >
-          {badgeIcons[badge]}
+          <Icon name={badgeIcons[badge]} size={size === 'xs' || size === 'sm' ? 8 : 10} />
         </span>
       )}
 

@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Avatar } from '@/components/ui/Avatar'
+import { Icon } from '@/components/ui/Icon'
 import { useCallStore } from '@/stores/callStore'
+import { useContactStore } from '@/stores/contactStore'
+import { useGroupStore } from '@/stores/groupStore'
+import { useIdentityStore } from '@/stores/identityStore'
 import { callService } from '@/services/CallService'
 import { CallControls } from './CallControls'
 import { cn } from '@/utils/cn'
-
-// Available emojis for quick reactions — used for future emoji bar feature
-// const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '👏', '🔥']
 
 /**
  * CallView — Keet-inspired full-screen call interface.
@@ -20,10 +21,107 @@ import { cn } from '@/utils/cn'
  */
 import { useTranslation } from 'react-i18next'
 
+/**
+ * PERFECT QUALITY GROUP: one grid tile = one remote participant.
+ * Attaches that peer's dedicated decode canvas (CallService per-peer video
+ * state) into the DOM as soon as it exists — group media never touches the
+ * 1:1 receive canvas, so this tile is the only window onto that peer's video.
+ * The canvas is OWNED by CallService: we only borrow it for display and
+ * detach it on unmount, never destroy it.
+ */
+const PeerVideoTile: React.FC<{
+  peerId: string
+  name: string
+  avatar?: string
+}> = ({ peerId, name, avatar }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [hasVideo, setHasVideo] = useState(false)
+
+  useEffect(() => {
+    let lastCanvas: HTMLCanvasElement | null = null
+    const attach = () => {
+      const container = containerRef.current
+      if (!container) return
+      const canvas = callService.getPeerVideoCanvas(peerId)
+      if (canvas && canvas !== lastCanvas) {
+        while (container.firstChild) container.removeChild(container.firstChild)
+        canvas.style.width = '100%'
+        canvas.style.height = '100%'
+        canvas.style.objectFit = 'cover'
+        canvas.style.display = 'block'
+        container.appendChild(canvas)
+        lastCanvas = canvas
+        setHasVideo(true)
+      }
+    }
+    attach()
+    // The canvas is created lazily on the first decoded frame — poll for it
+    const interval = setInterval(attach, 300)
+    return () => {
+      clearInterval(interval)
+      // Detach only — the canvas belongs to CallService's per-peer decode state
+      if (lastCanvas?.parentElement) {
+        try { lastCanvas.parentElement.removeChild(lastCanvas) } catch {}
+      }
+      lastCanvas = null
+    }
+  }, [peerId])
+
+  return (
+    <div style={{
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: '12px',
+      background: '#0D0F16',
+    }}>
+      {/* Peer video canvas (attached imperatively above) */}
+      <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+
+      {/* Placeholder until the first frame is decoded */}
+      {!hasVideo && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Avatar src={avatar} name={name} publicKey={peerId} size="xl" status="online" showStatus />
+        </div>
+      )}
+
+      {/* Name badge */}
+      <div style={{
+        position: 'absolute',
+        left: '8px',
+        bottom: '8px',
+        padding: '3px 10px',
+        borderRadius: '8px',
+        background: 'rgba(0,0,0,0.55)',
+        fontSize: '12px',
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.9)',
+        maxWidth: 'calc(100% - 16px)',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        zIndex: 2,
+      }}>
+        {name}
+      </div>
+    </div>
+  )
+}
+
 export const CallView: React.FC = () => {
   const activeCall = useCallStore((s) => s.activeCall)
   const isMuted = useCallStore((s) => s.isMuted)
   const isCameraOff = useCallStore((s) => s.isCameraOff)
+  // PERFECT QUALITY GROUP: resolve participant names/avatars for the video grid
+  const contacts = useContactStore((s) => s.contacts)
+  const groups = useGroupStore((s) => s.groups)
+  const myPublicKey = useIdentityStore((s) => s.identity?.keyPair.publicKey)
+  const { t } = useTranslation()
   const [duration, setDuration] = useState(0)
   const [bandwidthQuality, setBandwidthQuality] = useState<'good' | 'medium' | 'poor'>('good')
   const [peerVideoReady, setPeerVideoReady] = useState(false)
@@ -33,9 +131,35 @@ export const CallView: React.FC = () => {
   // adaptive, so the badge reports what is actually running, not a constant.
   const [videoResolution, setVideoResolution] = useState('')
   const [audioCodec, setAudioCodec] = useState('PCM')
+  // COHÉRENCE STATS: consomme getCallQualityMetrics() — compteurs réels du
+  // pipeline (pertes audio/vidéo, underruns, gigue, tampon) qui restaient
+  // invisibles faute de consommateur UI. Panneau togglable depuis la top bar.
+  const [showStats, setShowStats] = useState(false)
+  const [callStats, setCallStats] = useState<ReturnType<typeof callService.getCallQualityMetrics> | null>(null)
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const peerAudioRef = useRef<HTMLAudioElement>(null)
   const peerCanvasContainerRef = useRef<HTMLDivElement>(null)
+
+  // PERFECT QUALITY GROUP: grid tiles for group video calls. Group media is
+  // decoded into per-peer canvases (CallService.peerVideoState) — the 1:1
+  // receive canvas is NOT used in mesh mode, so this grid is the only window
+  // onto remote video. On the receiver side the participant list includes
+  // ourselves (offer payload) — filter our own key out.
+  const peerTiles = useMemo(() => {
+    if (!activeCall?.isGroupCall || !activeCall.participants) return []
+    const group = activeCall.groupId ? groups[activeCall.groupId] : undefined
+    return activeCall.participants
+      .filter((pk) => pk !== myPublicKey)
+      .map((pk) => {
+        const contact = contacts[pk]
+        const member = group?.members.find((m) => m.publicKey === pk)
+        return {
+          peerId: pk,
+          name: member?.displayName || contact?.displayName || `${pk.slice(0, 10)}…`,
+          avatar: contact?.avatar || member?.avatar,
+        }
+      })
+  }, [activeCall?.isGroupCall, activeCall?.participants, activeCall?.groupId, contacts, groups, myPublicKey])
 
   // Duration timer effect
   useEffect(() => {
@@ -56,9 +180,12 @@ export const CallView: React.FC = () => {
       setVideoCodec(stats.codec)
       setVideoResolution(stats.resolution)
       setAudioCodec(callService.getAudioPipelineStats().codec)
+      if (showStats) {
+        setCallStats(callService.getCallQualityMetrics())
+      }
     }, 2000)
     return () => clearInterval(interval)
-  }, [activeCall?.status])
+  }, [activeCall?.status, showStats])
 
   // Attach local video stream
   useEffect(() => {
@@ -130,12 +257,31 @@ export const CallView: React.FC = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
+  const formatBandwidth = (bytesPerSec: number): string => {
+    if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`
+    if (bytesPerSec >= 1024) return `${(bytesPerSec / 1024).toFixed(1)} KB/s`
+    return `${bytesPerSec} B/s`
+  }
+
+  const statsRows: Array<[string, string]> | null = callStats ? [
+    [t('calls.statsDuration'), formatDuration(callStats.duration)],
+    [t('calls.statsBandwidth'), formatBandwidth(callStats.bandwidth)],
+    [t('calls.statsPacketLoss'), String(callStats.packetLoss)],
+    [t('calls.statsChunksDropped'), String(callStats.audioChunksDropped)],
+    [t('calls.statsUnderruns'), String(callStats.audioUnderruns)],
+    [t('calls.statsFramesLost'), String(callStats.framesLost)],
+    [t('calls.statsJitter'), `${callStats.jitter} ms`],
+    [t('calls.statsBufferDepth'), `${callStats.bufferDepthMs} ms`],
+  ] : null
+
   const isVideoCall = activeCall.type === 'video'
   const isConnected = activeCall.status === 'connected'
   const isOutgoing = activeCall.status === 'outgoing'
   const isConnecting = activeCall.status === 'connecting'
-
-  const { t } = useTranslation()
+  // PERFECT QUALITY GROUP: mesh video grid replaces the fullscreen 1:1 canvas
+  const isGroupVideoGrid = !!(activeCall.isGroupCall && isVideoCall && peerTiles.length > 0)
+  const gridCols = peerTiles.length <= 1 ? 1 : peerTiles.length <= 4 ? 2 : peerTiles.length <= 9 ? 3 : 4
+  const gridRows = Math.max(1, Math.ceil(peerTiles.length / gridCols))
 
   const statusText = isOutgoing ? t('calls.ringing') :
     isConnecting ? t('calls.connecting') :
@@ -163,8 +309,8 @@ export const CallView: React.FC = () => {
       {/* ── Hidden audio for peer ── */}
       <audio ref={peerAudioRef} autoPlay playsInline style={{ display: 'none' }} />
 
-      {/* ── LAYER: Peer video (fullscreen background) ── */}
-      {isVideoCall && (
+      {/* ── LAYER: Peer video (fullscreen background — 1:1 calls only) ── */}
+      {isVideoCall && !isGroupVideoGrid && (
         <div
           ref={peerCanvasContainerRef}
           style={{
@@ -174,6 +320,28 @@ export const CallView: React.FC = () => {
             transition: 'opacity 0.5s ease',
           }}
         />
+      )}
+
+      {/* ── LAYER: Group video grid (per-peer canvases) ── */}
+      {isGroupVideoGrid && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1,
+            display: 'grid',
+            gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
+            gridTemplateRows: `repeat(${gridRows}, 1fr)`,
+            gap: '8px',
+            // Keep tiles clear of the top bar / bottom controls overlays
+            padding: '64px 14px 140px',
+            boxSizing: 'border-box',
+          }}
+        >
+          {peerTiles.map((tile) => (
+            <PeerVideoTile key={tile.peerId} peerId={tile.peerId} name={tile.name} avatar={tile.avatar} />
+          ))}
+        </div>
       )}
 
       {/* ── TOP BAR ── */}
@@ -219,6 +387,11 @@ export const CallView: React.FC = () => {
             </p>
             <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
               {statusText}
+              {activeCall.isGroupCall && activeCall.participants && (
+                <span className="ml-2 text-xs inline-flex items-center gap-1">
+                  <Icon name="users" size={12} /> {t('calls.participantCount', { count: peerTiles.length + 1 })}
+                </span>
+              )}
               {isConnected && (
                 <span className={cn('ml-2 text-xs', qualityColor)}>
                   ● {bandwidthQuality === 'good' ? t('calls.excellent') : bandwidthQuality === 'medium' ? t('calls.medium') : t('calls.low')}
@@ -230,6 +403,30 @@ export const CallView: React.FC = () => {
 
         {/* Right: badges */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* COHÉRENCE STATS: panneau de statistiques — compteurs réels du pipeline */}
+          {isConnected && (
+            <button
+              onClick={() => {
+                // Rendu immédiat — sinon le panneau attendrait le premier tick (≤ 2 s)
+                if (!showStats) setCallStats(callService.getCallQualityMetrics())
+                setShowStats((v) => !v)
+              }}
+              aria-label={t('calls.statsTitle')}
+              title={t('calls.statsTitle')}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '28px', height: '28px', borderRadius: '20px',
+                background: showStats ? 'rgba(79,195,247,0.25)' : 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: showStats ? 'rgba(79,195,247,0.9)' : 'rgba(255,255,255,0.6)',
+                cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+              </svg>
+            </button>
+          )}
           <div style={{
             display: 'flex', alignItems: 'center', gap: '5px',
             padding: '4px 10px', borderRadius: '20px',
@@ -261,6 +458,35 @@ export const CallView: React.FC = () => {
         </div>
       </div>
 
+      {/* ── STATS PANEL: compteurs réels du pipeline média (togglable) ── */}
+      {showStats && statsRows && (
+        <div style={{
+          position: 'absolute',
+          top: '56px',
+          right: '16px',
+          zIndex: 20,
+          minWidth: '240px',
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: 'rgba(7,8,15,0.92)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+        }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.9)', margin: '0 0 8px' }}>
+            {t('calls.statsTitle')}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            {statsRows.map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>{label}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap' }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── CENTER: Avatar (audio call) or Video placeholder ── */}
       <div style={{
         flex: 1,
@@ -270,8 +496,9 @@ export const CallView: React.FC = () => {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Audio call or no video yet: show avatar */}
-        {(!isVideoCall || !peerVideoReady) && (
+        {/* Audio call or no video yet: show avatar (group grid tiles have
+            their own per-peer placeholders) */}
+        {(!isVideoCall || (!peerVideoReady && !isGroupVideoGrid)) && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             {/* Pulsing rings */}
             {(isOutgoing || isConnecting) && (
@@ -311,7 +538,12 @@ export const CallView: React.FC = () => {
                 {activeCall.peerName}
               </p>
               <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)' }}>
-                {isOutgoing ? `📞 ${t('calls.ringing')}` : isConnecting ? `🔄 ${t('calls.connecting')}` : isConnected ? `⏱ ${formatDuration(duration)}` : ''}
+                {isOutgoing || isConnecting || isConnected ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name={isOutgoing ? 'phone' : isConnecting ? 'refresh' : 'clock'} size={14} />
+                    {isOutgoing ? t('calls.ringing') : isConnecting ? t('calls.connecting') : formatDuration(duration)}
+                  </span>
+                ) : ''}
               </p>
             </div>
           </div>

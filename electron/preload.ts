@@ -10,6 +10,15 @@ import { contextBridge, ipcRenderer } from 'electron'
 export interface AsgardAPI {
   // Debug logging
   debugLog: (msg: string) => void
+  // Language sync (renderer → main, e.g. for the native tray menu)
+  setLanguage: (lang: string) => Promise<boolean>
+  // Firewall configuration
+  firewall: {
+    getStatus: () => Promise<'configured' | 'needs-admin' | 'not-configured'>
+    configure: () => Promise<boolean>
+    runAsAdmin: () => Promise<boolean>
+    check: () => Promise<boolean>
+  }
   // Window controls
   window: {
     minimize: () => void
@@ -66,7 +75,6 @@ export interface AsgardAPI {
     setPeerPriorized: (peerPublicKey: string, prioritized: boolean) => Promise<boolean>
     banPeer: (peerPublicKey: string, banStatus: boolean) => Promise<boolean>
     getBlockedPeers: () => Promise<string[]>
-    onPeerBan: () => void
     // STATUS: User online status management
     publishStatus: (status: 'online' | 'away' | 'offline' | 'dnd', statusMessage?: string) => Promise<boolean>
     getCurrentStatus: () => Promise<{ status: string; message?: string }>
@@ -99,6 +107,8 @@ export interface AsgardAPI {
     setLocalPublicKey: (publicKeyHex: string) => Promise<void>
     reidentifyAll: () => Promise<void>
     getStatus: () => Promise<NetworkStatusInfo>
+    /** Instantané PULL des pairs connectés — réconciliation d'état (cf. NetworkService#getLivePeers) */
+    getLivePeers: () => Promise<Array<PeerInfo & { channelReady: boolean }>>
   }
   // Storage
   storage: {
@@ -183,15 +193,6 @@ export interface AsgardAPI {
     createCore: (storage: unknown, opts?: Record<string, unknown>) => Promise<unknown>
     closeConversation: (conversationId: string, error?: Error) => Promise<void>
     waitForConversationReady: (conversationId: string) => Promise<void>
-    onConversationPeerAdd: (conversationId: string) => void
-    onConversationPeerRemove: (conversationId: string) => void
-    onConversationUpload: (conversationId: string) => void
-    onConversationDownload: (conversationId: string) => void
-    onConversationAppend: (conversationId: string) => void
-    onConversationTruncate: (conversationId: string) => void
-    onConversationRemoteContiguousLength: (conversationId: string) => void
-    onConversationClose: (conversationId: string) => void
-    onConversationReady: (conversationId: string) => void
     suspendStorage: () => Promise<boolean>
     resumeStorage: () => Promise<boolean>
     createDeterministicKeyPair: (name: string, namespace?: string) => Promise<{ publicKey: string; secretKey: string } | null>
@@ -227,6 +228,17 @@ export interface AsgardAPI {
     openExternal: (url: string) => void
     getTheme: () => Promise<'light' | 'dark' | 'system'>
     onThemeChange: (callback: (theme: 'light' | 'dark') => void) => () => void
+    // DEEP LINK: asgard://invite/… — pull au démarrage à froid
+    getPendingDeepLink: () => Promise<string | null>
+    // DEEP LINK: liens reçus pendant que l'app tourne
+    onDeepLink: (callback: (url: string) => void) => () => void
+    // PRIVACY SETTINGS (privacy.linkPreviews): métadonnées OG récupérées côté main
+    fetchLinkPreview: (url: string) => Promise<{
+      url: string
+      hostname: string
+      title: string | null
+      description: string | null
+    } | null>
   }
 }
 
@@ -240,6 +252,14 @@ function createListener<T = unknown>(channel: string, callback: (arg: T) => void
 contextBridge.exposeInMainWorld('asgard', {
   // Debug: send renderer logs to main process log file
   debugLog: (msg: string) => ipcRenderer.send('debug:log', msg),
+  // Language sync: main process keeps the native tray menu localized
+  setLanguage: (lang: string) => ipcRenderer.invoke('ui:setLanguage', lang),
+  firewall: {
+    getStatus: () => ipcRenderer.invoke('firewall:getStatus'),
+    configure: () => ipcRenderer.invoke('firewall:configure'),
+    runAsAdmin: () => ipcRenderer.invoke('firewall:runAsAdmin'),
+    check: () => ipcRenderer.invoke('firewall:check'),
+  },
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
@@ -299,7 +319,6 @@ contextBridge.exposeInMainWorld('asgard', {
     setPeerPriorized: (peerPublicKey: string, prioritized: boolean) => ipcRenderer.invoke('network:setPeerPriorized', peerPublicKey, prioritized),
     banPeer: (peerPublicKey: string, banStatus: boolean) => ipcRenderer.invoke('network:banPeer', peerPublicKey, banStatus),
     getBlockedPeers: () => ipcRenderer.invoke('network:getBlockedPeers'),
-    onPeerBan: () => ipcRenderer.send('network:onPeerBan'),
     // STATUS: User online status management
     publishStatus: (status: 'online' | 'away' | 'offline' | 'dnd', statusMessage?: string) =>
       ipcRenderer.invoke('network:publishStatus', status, statusMessage),
@@ -343,6 +362,7 @@ contextBridge.exposeInMainWorld('asgard', {
       ipcRenderer.invoke('network:setLocalPublicKey', publicKeyHex),
     reidentifyAll: () => ipcRenderer.invoke('network:reidentifyAll'),
     getStatus: () => ipcRenderer.invoke('network:status'),
+    getLivePeers: () => ipcRenderer.invoke('network:getLivePeers'),
   },
   storage: {
     getPath: () => ipcRenderer.invoke('storage:getPath'),
@@ -494,24 +514,6 @@ contextBridge.exposeInMainWorld('asgard', {
       ipcRenderer.invoke('storage:closeConversation', conversationId, error),
     waitForConversationReady: (conversationId: string) =>
       ipcRenderer.invoke('storage:waitForConversationReady', conversationId),
-    onConversationPeerAdd: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationPeerAdd', conversationId),
-    onConversationPeerRemove: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationPeerRemove', conversationId),
-    onConversationUpload: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationUpload', conversationId),
-    onConversationDownload: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationDownload', conversationId),
-    onConversationAppend: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationAppend', conversationId),
-    onConversationTruncate: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationTruncate', conversationId),
-    onConversationRemoteContiguousLength: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationRemoteContiguousLength', conversationId),
-    onConversationClose: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationClose', conversationId),
-    onConversationReady: (conversationId: string) =>
-      ipcRenderer.send('storage:onConversationReady', conversationId),
     suspendStorage: () => ipcRenderer.invoke('storage:suspendStorage'),
     resumeStorage: () => ipcRenderer.invoke('storage:resumeStorage'),
     createDeterministicKeyPair: (name: string, namespace?: string) =>
@@ -549,6 +551,10 @@ contextBridge.exposeInMainWorld('asgard', {
     getTheme: () => ipcRenderer.invoke('app:getTheme'),
     onThemeChange: (callback: (theme: 'light' | 'dark') => void) =>
       createListener('app:themeChange', callback),
+    getPendingDeepLink: () => ipcRenderer.invoke('app:getPendingDeepLink'),
+    onDeepLink: (callback: (url: string) => void) =>
+      createListener('app:deepLink', callback),
+    fetchLinkPreview: (url: string) => ipcRenderer.invoke('app:fetchLinkPreview', url),
   },
 } satisfies AsgardAPI)
 
@@ -600,6 +606,8 @@ interface DHTProfileData {
   status?: 'online' | 'away' | 'offline' | 'dnd'
   lastSeen?: number
   statusMessage?: string
+  /** Clé Ed25519 auto-déclarée — see src/types/electron.ts#DHTProfileData */
+  identityPk?: string
 }
 
 interface NotificationOptions {

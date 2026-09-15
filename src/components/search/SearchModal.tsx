@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSearch } from '@/hooks/useSearch'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/utils/cn'
+import { getCurrentLanguage } from '@/i18n/config'
 
 type SearchTab = 'all' | 'messages' | 'contacts' | 'groups'
 
@@ -177,15 +178,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             <div className="flex items-center gap-3 text-xxs text-asgard-text-muted">
               <span className="flex items-center gap-1">
                 <kbd className="bg-asgard-surface-alt px-1 py-0.5 rounded border border-asgard-border">↑↓</kbd>
-                Navigate
+                {t('search.navigate')}
               </span>
               <span className="flex items-center gap-1">
                 <kbd className="bg-asgard-surface-alt px-1 py-0.5 rounded border border-asgard-border">↵</kbd>
-                Open
+                {t('search.open')}
               </span>
             </div>
             <span className="text-xxs text-asgard-text-muted">
-              {query.trim() ? `${filteredResults.length} results` : ''}
+              {query.trim() ? t('search.resultsCount', { count: filteredResults.length }) : ''}
             </span>
           </div>
         </motion.div>
@@ -219,10 +220,10 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, onClick }) 
           <p className="text-sm font-medium text-asgard-text-primary truncate">
             {result.contact.displayName}
           </p>
-          <p className="text-xs text-asgard-text-muted truncate">Contact</p>
+          <p className="text-xs text-asgard-text-muted truncate">{t('search.contacts')}</p>
         </div>
         <span className="text-xxs text-asgard-text-muted bg-asgard-surface-alt px-2 py-0.5 rounded-full">
-          Contact
+          {t('search.contacts')}
         </span>
       </button>
     )
@@ -268,11 +269,11 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, onClick }) 
             {highlightText(result.highlight, result.message.content)}
           </p>
           <p className="text-xs text-asgard-text-muted">
-            {new Date(result.message.timestamp).toLocaleDateString()}
+            {new Date(result.message.timestamp).toLocaleDateString(getCurrentLanguage())}
           </p>
         </div>
         <span className="text-xxs text-asgard-text-muted bg-asgard-surface-alt px-2 py-0.5 rounded-full">
-          Message
+          {t('search.messages')}
         </span>
       </button>
     )
