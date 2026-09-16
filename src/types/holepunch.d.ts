@@ -245,7 +245,7 @@ declare module 'protomux' {
   //   channel.open() / channel.close() / channel.cork() / channel.uncork()
   //   message.send(data)
   interface ChannelMessage<T = unknown> {
-    send(data: T): void
+    send(data: T): boolean
   }
 
   interface ChannelOptions {

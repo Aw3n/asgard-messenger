@@ -115,7 +115,7 @@ declare module 'protomux' {
     close(): void
   }
   interface ProtomuxMessage {
-    send(data: unknown): void
+    send(data: unknown): boolean
   }
 }
 

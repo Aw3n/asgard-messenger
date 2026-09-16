@@ -186,12 +186,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           </span>
         </div>
       )}
-      {/* Hidden file input */}
+      {/* Hidden file input — every format, like drag-and-drop already allows */}
       <input
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
         onChange={handleFileChange}
         className="hidden"
       />

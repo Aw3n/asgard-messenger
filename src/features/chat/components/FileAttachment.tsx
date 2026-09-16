@@ -630,7 +630,13 @@ const VideoAttachment: React.FC<{
   // Note: browsers only honor autoplay when the video starts muted — with
   // muteByDefault off the user simply presses play (controls are shown).
   const mediaSettings = useUIStore((s) => s.settings.media)
-  if (!fileService.isLiveUrl(attachment.localUrl)) {
+  // Le classement « video » suit le conteneur, pas les codecs : un .avi ou un
+  // .wmv reçu intact reste indécodable pour Chromium. Sans repli, la bulle
+  // affichait un lecteur cassé ; la carte fichier propose alors de l'ouvrir
+  // avec le lecteur du système (le clic passe par l'URL locale).
+  const [undecodable, setUndecodable] = useState(false)
+  useEffect(() => { setUndecodable(false) }, [attachment.localUrl])
+  if (undecodable || !fileService.isLiveUrl(attachment.localUrl)) {
     // Lecteur vidéo jamais monté sur une URL morte (message restauré après un
     // redémarrage) : on garde la vignette « charger », l'effet de guérison du
     // parent remplace la référence périmée et ce bloc se re-rend de lui-même.
@@ -663,6 +669,7 @@ const VideoAttachment: React.FC<{
         muted={mediaSettings.muteByDefault}
         className="max-w-full rounded-xl"
         style={{ maxHeight: '240px' }}
+        onError={() => setUndecodable(true)}
         onContextMenu={(e) => e.preventDefault()}
       />
       {progress !== null && progress < 100 && (

@@ -105,9 +105,11 @@ export const ActiveTransfersWidget: React.FC = () => {
       }
     }
 
+    const unsubscribe = fileService.subscribeTransfers(updateTransfers)
     updateTransfers()
     const interval = setInterval(updateTransfers, 400)
     return () => {
+      unsubscribe()
       clearInterval(interval)
       prevProgressRef.current.clear()
     }

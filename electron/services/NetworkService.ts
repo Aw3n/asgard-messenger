@@ -1206,48 +1206,46 @@ export class NetworkService extends EventEmitter {
    * and independent backpressure. File transfers don't interfere with audio/video.
    *
    * Falls back to the media channel if the file channel is unavailable (older peer).
+   * Resolves only after SecretStream flushes its encrypted buffers and transport.
    */
   async sendFileData(peerId: string, data: Uint8Array): Promise<void> {
-    let peer = this.peers.get(peerId)
+    const noiseId = this.resolvePeerKey(peerId)
+    const peer = this.peers.get(noiseId)
     if (!peer) {
-      const noiseId = this.resolveNoisePeerId(peerId)
-      if (noiseId) {
-        peer = this.peers.get(noiseId)
-      }
+      throw new Error(`Peer ${peerId.slice(0, 16)} not found`)
     }
-    if (!peer) {
-      logMain(`[sendFile] ❌ peer not found: ${peerId.slice(0, 16)}`)
-      return
+    if (peer.socket.destroyed || peer.socket.destroying) {
+      throw new Error(`Socket closed for peer ${peerId.slice(0, 16)}`)
     }
 
-    // Use dedicated file channel (Protomux 'asgard-files')
+    const channels = this.peerChannels.get(noiseId)
+    const message = peer.sendFile ?? peer.sendMedia
+    const channel = peer.sendFile ? channels?.file : channels?.media
+    if (!message || !channel) {
+      throw new Error(`File transfer channel not available for peer ${peerId.slice(0, 16)}`)
+    }
+    // A closed Protomux channel also returns false from send(), but drops the data.
+    if (channel.closed) {
+      throw new Error(`File transfer channel closed for peer ${peerId.slice(0, 16)}`)
+    }
+
+    let buf: Buffer
     if (peer.sendFile) {
-      try {
-        peer.sendFile.send(Buffer.from(data))
-        this.trackBandwidth(data.length, 0)
-      } catch (err) {
-        logMain(`[sendFile] ❌ File channel send failed: ${err}`)
-      }
-      return
+      buf = Buffer.from(data)
+    } else {
+      // Preserve the media fallback framing used by older peers.
+      buf = Buffer.alloc(1 + data.length)
+      buf[0] = 0x04 // FILE_TRANSFER_MARKER
+      Buffer.from(data).copy(buf, 1)
     }
 
-    // FALLBACK: If file channel is not available, use media channel with 0x04 marker.
-    // The marker distinguishes file data from audio/video on the shared media channel.
-    if (peer.sendMedia) {
-      try {
-        const framed = Buffer.alloc(1 + data.length)
-        framed[0] = 0x04 // FILE_TRANSFER_MARKER
-        Buffer.from(data).copy(framed, 1)
-        peer.sendMedia.send(framed)
-        this.trackBandwidth(framed.length, 0)
-        logMain(`[sendFile] ⚠️ Fallback to media channel for ${peerId.slice(0, 16)}`)
-      } catch (err) {
-        logMain(`[sendFile] ❌ Media channel fallback send failed: ${err}`)
-      }
-      return
+    // send(false) on an open channel means backpressure, not failure.
+    // Even send(true) only queues the data: completion must wait for the flush.
+    message.send(buf)
+    if (!(await peer.socket.flush())) {
+      throw new Error(`File transfer flush failed for peer ${peerId.slice(0, 16)}`)
     }
-
-    logMain(`[sendFile] ❌ No channels available for peer: ${peerId.slice(0, 16)}`)
+    this.trackBandwidth(buf.length, 0)
   }
 
   /**
@@ -3055,7 +3053,7 @@ interface HyperswarmConstructor {
 }
 
 interface ProtomuxMessage {
-  send: (data: unknown) => void
+  send: (data: unknown) => boolean
 }
 
 interface CorestoreLike {
@@ -3070,6 +3068,8 @@ interface HypercoreLike {
 
 interface PeerSocket {
   write: (data: Buffer, cb?: (err: Error | null) => void) => boolean
+  // Hyperswarm sockets are SecretStreams: flush waits for encrypted data and transport.
+  flush: () => Promise<boolean>
   on: (event: string, handler: (...args: any[]) => void) => void // eslint-disable-line @typescript-eslint/no-explicit-any
   remotePublicKey?: Buffer
   // OPTIMIZATION: SecretStream properties for session identification and metrics
@@ -3080,7 +3080,8 @@ interface PeerSocket {
   setTimeout?: (ms: number) => void
   // HOLEPUNCH PATTERN: stream.destroy() for clean teardown on errors
   destroy?: () => void
-  // CONNECTIVITY: Check if stream is destroyed (from streamx)
+  // CONNECTIVITY: Check if stream is closing or destroyed (from streamx)
+  destroying?: boolean
   destroyed?: boolean
 }
 

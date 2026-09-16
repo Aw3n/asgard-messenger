@@ -40,6 +40,203 @@ export function fitWithin(width: number, height: number, maxSide: number): { w: 
 }
 
 /**
+ * Classification par extension.
+ *
+ * `File.type` est rempli par le système d'exploitation, pas par le navigateur :
+ * sur beaucoup de postes Windows/Linux il est vide pour .mkv, .avi, .flac,
+ * .heic ou .opus. Un type MIME absent classait donc toute vidéo et toute
+ * musique en « document » — côté destinataire, le blob était écrit sans type
+ * MIME et le lecteur natif n'était jamais monté, même pour un fichier
+ * parfaitement lisible. L'extension sert donc de repli, dans les deux sens.
+ *
+ * Deux extensions sont ambiguës et tranchées ici : `raw` désigne un flux PCM
+ * sans en-tête (un RAW photo porte une extension constructeur — .cr2, .arw,
+ * .nef…), et `ts` désigne MPEG-TS en vidéo, donc un fichier TypeScript est
+ * proposé comme vidéo jusqu'à ce que le lecteur échoue et laisse place à la
+ * carte fichier.
+ */
+const EXTENSION_TYPES: Record<string, MessageAttachment['type']> = {
+  jpg: 'image', jpeg: 'image', png: 'image', gif: 'image', webp: 'image', avif: 'image',
+  bmp: 'image', svg: 'image', heic: 'image', heif: 'image', tif: 'image', tiff: 'image',
+  ico: 'image', cr2: 'image', cr3: 'image', nef: 'image', dng: 'image', arw: 'image',
+  orf: 'image', rw2: 'image', raf: 'image', pef: 'image',
+  mp4: 'video', m4v: 'video', webm: 'video', mkv: 'video', mov: 'video', avi: 'video',
+  wmv: 'video', flv: 'video', mpg: 'video', mpeg: 'video', mpe: 'video', '3gp': 'video',
+  '3g2': 'video', ogv: 'video', ts: 'video', m2ts: 'video', mts: 'video', avchd: 'video',
+  divx: 'video', vob: 'video', asf: 'video',
+  mp3: 'audio', mp2: 'audio', wav: 'audio', aiff: 'audio', aif: 'audio', aifc: 'audio',
+  au: 'audio', snd: 'audio', raw: 'audio', pcm: 'audio', flac: 'audio', aac: 'audio',
+  adts: 'audio', ogg: 'audio', oga: 'audio', opus: 'audio', m4a: 'audio', m4b: 'audio',
+  mka: 'audio', alac: 'audio', wma: 'audio', amr: 'audio', awb: 'audio', ac3: 'audio',
+  eac3: 'audio', mid: 'audio', midi: 'audio', kar: 'audio', weba: 'audio', caf: 'audio',
+}
+
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+  webp: 'image/webp', avif: 'image/avif', bmp: 'image/bmp', svg: 'image/svg+xml',
+  heic: 'image/heic', heif: 'image/heif', tif: 'image/tiff', tiff: 'image/tiff',
+  ico: 'image/x-icon',
+  cr2: 'image/x-canon-cr2', cr3: 'image/x-canon-cr3', nef: 'image/x-nikon-nef',
+  dng: 'image/x-adobe-dng', arw: 'image/x-sony-arw', orf: 'image/x-olympus-orf',
+  rw2: 'image/x-panasonic-rw2', raf: 'image/x-fuji-raf', pef: 'image/x-pentax-pef',
+  mp4: 'video/mp4', m4v: 'video/x-m4v', webm: 'video/webm', mkv: 'video/x-matroska',
+  mov: 'video/quicktime', avi: 'video/x-msvideo', wmv: 'video/x-ms-wmv',
+  flv: 'video/x-flv', mpg: 'video/mpeg', mpeg: 'video/mpeg', '3gp': 'video/3gpp',
+  '3g2': 'video/3gpp2', ogv: 'video/ogg', ts: 'video/mp2t', m2ts: 'video/mp2t',
+  mts: 'video/mp2t', avchd: 'video/mp2t', vob: 'video/mpeg', mpe: 'video/mpeg',
+  asf: 'video/x-ms-asf', divx: 'video/x-divx',
+  mp3: 'audio/mpeg', mp2: 'audio/mp2', wav: 'audio/wav', flac: 'audio/flac',
+  aac: 'audio/aac', adts: 'audio/aac', au: 'audio/basic', snd: 'audio/basic',
+  raw: 'audio/L16', pcm: 'audio/L16', alac: 'audio/alac', wma: 'audio/x-ms-wma',
+  ac3: 'audio/ac3', eac3: 'audio/eac3', mka: 'audio/x-matroska', m4b: 'audio/mp4',
+  awb: 'audio/amr-wb', aifc: 'audio/aiff', kar: 'audio/midi',
+  ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/opus', m4a: 'audio/mp4',
+  aiff: 'audio/aiff', aif: 'audio/aiff', amr: 'audio/amr', mid: 'audio/midi',
+  midi: 'audio/midi', weba: 'audio/webm', caf: 'audio/x-caf',
+  pdf: 'application/pdf', zip: 'application/zip', rar: 'application/vnd.rar',
+  '7z': 'application/x-7z-compressed', gz: 'application/gzip', tgz: 'application/gzip',
+  tar: 'application/x-tar', tbz: 'application/x-bzip2', tbz2: 'application/x-bzip2',
+  bz2: 'application/x-bzip2', xz: 'application/x-xz', txz: 'application/x-xz',
+  lzma: 'application/x-lzma', z: 'application/x-compress',
+  lzh: 'application/x-lzh-compressed', iso: 'application/x-iso9660-image',
+  txt: 'text/plain', md: 'text/markdown', csv: 'text/csv', json: 'application/json',
+  xml: 'text/xml', html: 'text/html', htm: 'text/html', doc: 'application/msword',
+  odt: 'application/vnd.oasis.opendocument.text',
+  ods: 'application/vnd.oasis.opendocument.spreadsheet',
+  odp: 'application/vnd.oasis.opendocument.presentation',
+  rtf: 'application/rtf', tex: 'application/x-tex', latex: 'application/x-tex',
+  azw: 'application/vnd.amazon.ebook', azw3: 'application/x-mobipocket-ebook',
+  mobi: 'application/x-mobipocket-ebook',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  epub: 'application/epub+zip', apk: 'application/vnd.android.package-archive',
+}
+
+/** Extension minuscule, sans le point ('' si le nom n'en porte pas). */
+export function fileExtensionOf(name?: string): string {
+  if (!name) return ''
+  const base = name.slice(name.lastIndexOf('/') + 1)
+  const dot = base.lastIndexOf('.')
+  return dot > 0 ? base.slice(dot + 1).toLowerCase() : ''
+}
+
+/**
+ * Nature d'une pièce jointe : le type MIME d'abord, l'extension ensuite.
+ * Une extension connue l'emporte aussi sur un MIME générique
+ * (`application/octet-stream`), que le sélecteur de fichiers renvoie souvent.
+ */
+export function resolveAttachmentType(mimeType?: string, fileName?: string): MessageAttachment['type'] {
+  const mime = (mimeType ?? '').toLowerCase()
+  if (mime && mime !== 'application/octet-stream') {
+    if (mime.startsWith('image/')) return 'image'
+    if (mime.startsWith('video/')) return 'video'
+    if (mime.startsWith('audio/')) return 'audio'
+    // Un MIME déclaré et spécifique prime sur l'extension : un fichier renommé
+    // en .mp4 ne doit pas faire croire à une vidéo ce que le système identifie
+    // comme un PDF.
+    return 'document'
+  }
+  return EXTENSION_TYPES[fileExtensionOf(fileName)] ?? 'document'
+}
+
+/**
+ * Type MIME à enregistrer avec le blob : celui du système, sinon celui dicté
+ * par l'extension. Sans MIME, le `<video>`/`<img>` du destinataire ne décode
+ * rien alors que l'octet reçu est valide.
+ */
+export function resolveMimeType(mimeType?: string, fileName?: string): string {
+  const mime = (mimeType ?? '').toLowerCase()
+  if (mime && mime !== 'application/octet-stream') return mime
+  return EXTENSION_MIME_TYPES[fileExtensionOf(fileName)] ?? 'application/octet-stream'
+}
+
+/** Images dont le réencodage WebP détruirait le contenu (animation, vecteur). */
+const NON_RECODABLE_IMAGES = new Set(['image/gif', 'image/svg+xml'])
+
+/**
+ * Formats d'enregistrement vidéo, par ordre de préférence. `MediaRecorder`
+ * n'accepte que ce que le navigateur sait encoder : demander `vp9` à un
+ * Chromium sans VP9 ou à un Safari lève une exception synchrone, ce qui
+ * faisait échouer tout l'envoi avant le repli.
+ */
+const VIDEO_RECORDER_MIMES = [
+  'video/webm;codecs=vp9,opus',
+  'video/webm;codecs=vp8,opus',
+  'video/webm;codecs=vp9',
+  'video/webm;codecs=vp8',
+  'video/webm',
+]
+
+/** Format d'enregistrement réellement disponible ici ('' = aucun). */
+export function pickVideoRecorderMimeType(): string | null {
+  if (typeof MediaRecorder === 'undefined') return null
+  for (const candidate of VIDEO_RECORDER_MIMES) {
+    try {
+      if (MediaRecorder.isTypeSupported(candidate)) return candidate
+    } catch { /* implémentation sans isTypeSupported */ }
+  }
+  return null
+}
+
+/**
+ * Le réencodage vidéo est une lecture temps réel : il coûte la durée de la
+ * clip. Au-delà de ce budget, l'original part tel quel plutôt que de laisser
+ * le transfert à 0 %.
+ */
+export const VIDEO_COMPRESSION_BUDGET_MS = 45_000
+/** Délai accordé à la sonde de lisibilité (métadonnées seules). */
+export const MEDIA_PROBE_TIMEOUT_MS = 5_000
+/** En dessous de cette taille, réencoder ne change rien au transfert. */
+export const COMPRESSION_MIN_BYTES = 512 * 1024
+
+export interface MediaProbe {
+  decodable: boolean
+  /** Durée en secondes, ou 0 si le conteneur ne la publie pas. */
+  duration: number
+}
+
+/**
+ * Sonde de lisibilité : le navigateur sait-il décoder ce conteneur, et quelle
+ * est sa durée ? Un `.avi` dont on ignore le codec ne déclenche ni
+ * `loadedmetadata` ni `error` de façon fiable, d'où le délai explicite : sans
+ * lui, la chaîne d'envoi attendrait une réponse qui ne vient jamais.
+ */
+export function probeVideo(file: File, timeoutMs = MEDIA_PROBE_TIMEOUT_MS): Promise<MediaProbe | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    const url = URL.createObjectURL(file)
+    let done = false
+
+    const settle = (result: MediaProbe | null) => {
+      if (done) return
+      done = true
+      clearTimeout(timer)
+      video.onloadedmetadata = null
+      video.onerror = null
+      URL.revokeObjectURL(url)
+      video.removeAttribute('src')
+      video.load()
+      resolve(result)
+    }
+
+    const timer = setTimeout(() => settle(null), timeoutMs)
+
+    video.preload = 'metadata'
+    video.muted = true
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0
+      // Une trame sans dimensions lisibles n'est pas un signal exploitable.
+      settle({ decodable: video.videoWidth > 0 && video.videoHeight > 0, duration })
+    }
+    video.onerror = () => settle({ decodable: false, duration: 0 })
+    video.src = url
+  })
+}
+
+/**
  * FileService — handles file sending, receiving, and management.
  *
  * PERFORMANCE OPTIMIZATIONS (based on Holepunch Hyperblobs):
@@ -56,6 +253,7 @@ export function fitWithin(width: number, height: number, maxSide: number): { w: 
  */
 class FileService {
   private transfers: Map<string, FileTransfer> = new Map()
+  private transferListeners = new Set<() => void>()
   private receiveBuffers: Map<string, ReceiveBuffer> = new Map()
   // DEDUP: Track completed transferIds to ignore duplicate file:transfer messages
   private completedTransferIds = new Set<string>()
@@ -109,34 +307,39 @@ class FileService {
     conversationId: string,
     peerId: string
   ): Promise<MessageAttachment> {
-    // MEDIA SETTINGS (compressImages/compressVideos): compress before sending
-    // when the user enabled it — best-effort, the original is sent on failure.
-    const fileToSend = await this.compressForNetwork(file).catch(() => file)
-
     const transferId = generateId()
     const transfer: FileTransfer = {
       id: transferId,
-      fileName: fileToSend.name,
-      fileSize: fileToSend.size,
+      fileName: file.name,
+      fileSize: file.size,
       progress: 0,
       status: 'uploading',
-      type: this.getFileType(fileToSend.type),
+      type: this.getFileType(file.type, file.name),
     }
     this.transfers.set(transferId, transfer)
+    this.notifyTransfers()
 
     try {
+      // La compression est une optimisation, jamais une condition d'envoi :
+      // `compressForNetwork` ne rejette pas (voir sa doc) et rend le fichier
+      // d'origine dès qu'un maillon manque (codec inconnu, média indécodable,
+      // réencodage trop long ou sans gain). Elle peut durer la durée de lecture
+      // de la vidéo : l'entrée de transfert est déjà posée pour que le widget
+      // reste visible pendant cette phase.
+      const fileToSend = await this.compressForNetwork(file)
+      transfer.fileName = fileToSend.name
+      transfer.fileSize = fileToSend.size
+      transfer.type = this.getFileType(fileToSend.type, fileToSend.name)
+      this.notifyTransfers()
       const buffer = await fileToSend.arrayBuffer()
       const blobId = await storageService.putBlob(buffer)
-      // Transfer starts as uploading; will become complete after peer receives it.
-      transfer.status = 'uploading'
-      transfer.progress = 0
 
       const attachment: MessageAttachment = {
         id: generateId(),
         type: transfer.type,
         name: fileToSend.name,
         size: fileToSend.size,
-        mimeType: fileToSend.type || 'application/octet-stream',
+        mimeType: resolveMimeType(fileToSend.type, fileToSend.name),
         blobKey: blobId,
       }
 
@@ -157,7 +360,7 @@ class FileService {
         localUrl: undefined,
       }
 
-      if (file.size > BINARY_THRESHOLD) {
+      if (bytes.length > BINARY_THRESHOLD) {
         const totalChunks = Math.ceil(bytes.length / CHUNK_SIZE)
         await p2pService.sendMessage(peerId, 'file:transfer', {
           attachment: attachmentToSend,
@@ -165,13 +368,9 @@ class FileService {
           transferId,
           binary: true,
           totalChunks,
-        }).catch((err) => {
-          console.warn('[FileService] Failed to send file metadata:', err)
         })
 
-        // PERFORMANCE: Cork the Protomux channel to batch all chunks into one network write
-        await window.asgard.network.cork(peerId).catch(() => {})
-        
+        // Do not cork across awaited writes: their completion requires the mux to flush.
         // COHÉRENCE CHUNKS: chaque chunk est préfixé du transferId — la réception
         // route par (expéditeur, transferId) au lieu de « premier buffer incomplet
         // de ce pair », ce qui rend sûrs les transferts simultanés d'un même pair
@@ -180,7 +379,7 @@ class FileService {
         
         // PERFORMANCE: Sliding window pipeline — send WINDOW_SIZE chunks in parallel
         // instead of awaiting each chunk sequentially (4x faster for large files)
-        const pending: Promise<void>[] = []
+        const pending = new Set<Promise<void>>()
         let chunksSent = 0
         for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
           const chunk = bytes.slice(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
@@ -188,36 +387,19 @@ class FileService {
           framed[0] = idBytes.length
           framed.set(idBytes, 1)
           framed.set(chunk, 1 + idBytes.length)
-          // HOLEPUNCH PATTERN: Use dedicated file channel — no marker byte needed
           const chunkPromise = p2pService.sendFileData(peerId, framed)
-          pending.push(chunkPromise)
-
-          // Update progress as chunks complete
+          pending.add(chunkPromise)
           chunkPromise.then(() => {
+            pending.delete(chunkPromise)
             chunksSent++
             transfer.progress = Math.min(99, Math.round(chunksSent / totalChunks * 100))
-          }).catch(() => {})
+            this.notifyTransfers()
+          }, () => {})
 
-          // When window is full, wait for one to complete before adding more
-          if (pending.length >= WINDOW_SIZE) {
-            await Promise.race(pending)
-            // Remove resolved promises from the pending array
-            for (let i = pending.length - 1; i >= 0; i--) {
-              // Check if promise is resolved by racing with a resolved promise
-              const isResolved = await Promise.race([pending[i].then(() => true), Promise.resolve(false)])
-              if (isResolved) pending.splice(i, 1)
-            }
-          }
+          if (pending.size >= WINDOW_SIZE) await Promise.race(pending)
         }
-        // Wait for all remaining chunks
         await Promise.all(pending)
-        transfer.progress = 100
-        transfer.status = 'complete'
-
-        // Uncork: flush all buffered chunks in a single batch write
-        await window.asgard.network.uncork(peerId).catch(() => {})
-
-        await p2pService.sendMessage(peerId, 'file:complete', { transferId }).catch(() => {})
+        await p2pService.sendMessage(peerId, 'file:complete', { transferId })
       } else {
         let binary = ''
         for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
@@ -228,14 +410,12 @@ class FileService {
           conversationId,
           transferId,
           fileData: base64Data,
-        }).catch((err) => {
-          console.warn('[FileService] Failed to send file to peer:', err)
         })
 
-        await p2pService.sendMessage(peerId, 'file:complete', { transferId }).catch(() => {})
-        transfer.status = 'complete'
-        transfer.progress = 100
+        await p2pService.sendMessage(peerId, 'file:complete', { transferId })
       }
+      transfer.status = 'complete'
+      transfer.progress = 100
 
       // Create local message with the attachment
       const identity = useIdentityStore.getState().identity
@@ -263,12 +443,13 @@ class FileService {
         }
       }
 
-      this.transfers.delete(transferId)
       return attachment
     } catch (err) {
       transfer.status = 'error'
-      this.transfers.delete(transferId)
       throw err
+    } finally {
+      this.transfers.delete(transferId)
+      this.notifyTransfers()
     }
   }
 
@@ -386,10 +567,10 @@ class FileService {
 
     const attachment: MessageAttachment = {
       id: generateId(),
-      type: this.getFileType(file.type),
+      type: this.getFileType(file.type, file.name),
       name: file.name,
       size: file.size,
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: resolveMimeType(file.type, file.name),
       blobKey: blobId,
     }
 
@@ -414,12 +595,34 @@ class FileService {
     }
     this.groupTransfers.set(transferId, groupTransfer)
 
+    // Le widget de transfert global ne lit que `transfers` : sans entrée ici,
+    // l'envoi d'un fichier à un groupe restait invisible pendant toute la
+    // montée du blob, quel que soit son format.
+    const groupTransferEntry: FileTransfer = {
+      id: transferId,
+      fileName: file.name,
+      fileSize: file.size,
+      progress: 0,
+      status: 'uploading',
+      type: attachment.type,
+    }
+    this.transfers.set(transferId, groupTransferEntry)
+    this.notifyTransfers()
+
+    const reportPeerProgress = (peerId: string, progress: number) => {
+      groupTransfer.peerProgress.set(peerId, progress)
+      let sum = 0
+      for (const value of groupTransfer.peerProgress.values()) sum += value
+      groupTransferEntry.progress = Math.min(99, Math.round(sum / groupTransfer.totalPeers))
+      this.notifyTransfers()
+      onProgress?.(peerId, progress)
+    }
+
     // Send to all peers in parallel — pass fileMessageId so peers can use it in receipts
     const sendPromises = peerIds.map(async (peerId) => {
       try {
         await this.sendBlobToPeer(bytes, peerId, attachment, channelId, transferId, (progress) => {
-          groupTransfer.peerProgress.set(peerId, progress)
-          onProgress?.(peerId, progress)
+          reportPeerProgress(peerId, progress)
         }, fileMessageId)
         return { peerId, success: true }
       } catch (err) {
@@ -429,7 +632,16 @@ class FileService {
     })
 
     // Wait for all sends to complete
-    const results = await Promise.all(sendPromises)
+    let results: { peerId: string; success: boolean }[]
+    try {
+      results = await Promise.all(sendPromises)
+    } finally {
+      // Un envoi groupé qui échoue ne doit pas laisser le widget de transfert
+      // accroché à une progression fantôme.
+      this.transfers.delete(transferId)
+      this.groupTransfers.delete(transferId)
+      this.notifyTransfers()
+    }
     const successCount = results.filter(r => r.success).length
     const failedPeers = results.filter(r => !r.success).map(r => r.peerId)
 
@@ -477,10 +689,6 @@ class FileService {
     return attachment
   }
 
-  /**
-   * PERFORMANCE: Send a blob to a single peer with progress tracking.
-   * Uses cork/uncork for batch sending and sliding window for throughput.
-   */
   private async sendBlobToPeer(
     bytes: Uint8Array,
     peerId: string,
@@ -511,16 +719,10 @@ class FileService {
         totalChunks,
         groupTransferId,
         senderMessageId,
-      }).catch(() => {})
+      })
 
-      // Cork for batch sending
-      await window.asgard.network.cork(peerId).catch(() => {})
-
-      // COHÉRENCE CHUNKS: même header transferId que sendFile — voir sendFile.
       const idBytes = new TextEncoder().encode(transferId)
-
-      // Sliding window pipeline
-      const pending: Promise<void>[] = []
+      const pending = new Set<Promise<void>>()
       let chunksSent = 0
 
       for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
@@ -529,30 +731,20 @@ class FileService {
         framed[0] = idBytes.length
         framed.set(idBytes, 1)
         framed.set(chunk, 1 + idBytes.length)
-        // HOLEPUNCH PATTERN: Use dedicated file channel — no marker byte needed
         const chunkPromise = p2pService.sendFileData(peerId, framed)
-        pending.push(chunkPromise)
-
+        pending.add(chunkPromise)
         chunkPromise.then(() => {
+          pending.delete(chunkPromise)
           chunksSent++
           onProgress?.(Math.min(99, Math.round(chunksSent / totalChunks * 100)))
-        }).catch(() => {})
+        }, () => {})
 
-        if (pending.length >= WINDOW_SIZE) {
-          await Promise.race(pending)
-          for (let i = pending.length - 1; i >= 0; i--) {
-            const isResolved = await Promise.race([pending[i].then(() => true), Promise.resolve(false)])
-            if (isResolved) pending.splice(i, 1)
-          }
-        }
+        if (pending.size >= WINDOW_SIZE) await Promise.race(pending)
       }
 
       await Promise.all(pending)
+      await p2pService.sendMessage(peerId, 'file:complete', { transferId, groupTransferId })
       onProgress?.(100)
-
-      // Uncork to flush
-      await window.asgard.network.uncork(peerId).catch(() => {})
-      await p2pService.sendMessage(peerId, 'file:complete', { transferId, groupTransferId }).catch(() => {})
     } else {
       // Small file: inline base64
       let binary = ''
@@ -566,11 +758,20 @@ class FileService {
         fileData: base64Data,
         groupTransferId,
         senderMessageId,
-      }).catch(() => {})
+      })
 
       onProgress?.(100)
-      await p2pService.sendMessage(peerId, 'file:complete', { transferId, groupTransferId }).catch(() => {})
+      await p2pService.sendMessage(peerId, 'file:complete', { transferId, groupTransferId })
     }
+  }
+
+  subscribeTransfers(listener: () => void): () => void {
+    this.transferListeners.add(listener)
+    return () => { this.transferListeners.delete(listener) }
+  }
+
+  private notifyTransfers(): void {
+    for (const listener of this.transferListeners) listener()
   }
 
   getTransfers(): FileTransfer[] {
@@ -1093,11 +1294,8 @@ class FileService {
     store.incrementUnread(conversationId)
   }
 
-  private getFileType(mimeType: string): MessageAttachment['type'] {
-    if (mimeType.startsWith('image/')) return 'image'
-    if (mimeType.startsWith('video/')) return 'video'
-    if (mimeType.startsWith('audio/')) return 'audio'
-    return 'document'
+  private getFileType(mimeType: string | undefined, fileName?: string): MessageAttachment['type'] {
+    return resolveAttachmentType(mimeType, fileName)
   }
 
   /**
@@ -1759,78 +1957,144 @@ class FileService {
   // ─── Video Compression ──────────────────────────────────────────────────
 
   /**
-   * Compress a video file to WebM format.
-   * Uses MediaRecorder API for efficient compression.
+   * Ré-encoder une vidéo au format WebM (ou le conteneur que `MediaRecorder`
+   * sait produire ici) par lecture temps réel + capture du canevas.
+   *
+   * Trois pièges rendaient cette opération peu fiable, et le premier suffisait
+   * à produire un fichier vide ou muet :
+   * - `video.paused` est vrai tant que `play()` n'a pas abouti, aussi la boucle
+   *   de dessin arrêtait-elle l'enregistrement à la première image ; l'arrêt
+   *   est désormais commandé par `ended` (ou l'expiration du budget) avec une
+   *   garde unique ;
+   * - `canvas.captureStream()` ne porte que l'image : sans reprise de la piste
+   *   sonore à l'élément `<video>` lui-même, la vidéo compressée arrivait sans
+   *   son chez le destinataire ;
+   * - le format demandé doit être supporté par la machine, et chaque sortie
+   *   (URL objet, pistes, temporisateurs) doit être libérée même en cas
+   *   d'échec.
    */
-  async compressVideo(file: File, quality: 'low' | 'medium' | 'high' = 'medium'): Promise<{ file: File; ratio: number }> {
+  async compressVideo(
+    file: File,
+    quality: 'low' | 'medium' | 'high' = 'medium',
+    options: { mimeType?: string; timeoutMs?: number } = {}
+  ): Promise<{ file: File; ratio: number }> {
+    const mimeType = options.mimeType ?? pickVideoRecorderMimeType()
+    if (!mimeType) throw new Error('No supported video recording format')
+
     return new Promise((resolve, reject) => {
-      const video = document.createElement('video')
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
       if (!ctx) { reject(new Error('No canvas context')); return }
 
+      const video = document.createElement('video')
       const url = URL.createObjectURL(file)
-      video.src = url
-      video.muted = true
-
       const bitrateMap = { low: 500000, medium: 1500000, high: 3000000 }
-      const bitrate = bitrateMap[quality]
+      const timeoutMs = options.timeoutMs ?? VIDEO_COMPRESSION_BUDGET_MS
 
-      video.onloadedmetadata = () => {
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
+      let recorder: MediaRecorder | null = null
+      let canvasStream: MediaStream | null = null
+      let sourceStream: MediaStream | null = null
+      let frameHandle = 0
+      let stopHandle: ReturnType<typeof setTimeout> | undefined
+      let finished = false
 
-        const stream = canvas.captureStream(30) // 30fps
-        const recorder = new MediaRecorder(stream, {
-          mimeType: 'video/webm;codecs=vp9',
-          videoBitsPerSecond: bitrate,
-        })
-
-        const chunks: Blob[] = []
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) chunks.push(e.data)
-        }
-
-        recorder.onstop = () => {
-          URL.revokeObjectURL(url)
-          const blob = new Blob(chunks, { type: 'video/webm' })
-          const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.webm'), {
-            type: 'video/webm',
-          })
-          const ratio = compressedFile.size / file.size
-          resolve({ file: compressedFile, ratio })
-        }
-
-        recorder.onerror = () => {
-          URL.revokeObjectURL(url)
-          reject(new Error('Video compression failed'))
-        }
-
-        // Start playback and recording
-        video.play()
-        recorder.start()
-
-        // Draw video frames to canvas
-        const drawFrame = () => {
-          if (video.ended || video.paused) {
-            recorder.stop()
-            stream.getTracks().forEach((t) => t.stop())
-            return
-          }
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-          requestAnimationFrame(drawFrame)
-        }
-        drawFrame()
-
-        video.onended = () => {
-          setTimeout(() => recorder.stop(), 100)
+      const stopRecording = () => {
+        if (recorder && recorder.state !== 'inactive') {
+          try { recorder.stop() } catch { /* déjà arrêté */ }
         }
       }
-
-      video.onerror = () => {
+      const cleanup = () => {
+        clearTimeout(timeoutHandle)
+        if (stopHandle !== undefined) clearTimeout(stopHandle)
+        cancelAnimationFrame(frameHandle)
+        video.onloadedmetadata = null
+        video.onerror = null
+        video.onended = null
+        video.pause()
+        stopRecording()
+        video.removeAttribute('src')
+        video.load()
         URL.revokeObjectURL(url)
-        reject(new Error('Video load failed'))
+        for (const stream of [canvasStream, sourceStream]) {
+          stream?.getTracks().forEach((track) => track.stop())
+        }
       }
+      const fail = (message: string) => {
+        if (finished) return
+        finished = true
+        cleanup()
+        reject(new Error(message))
+      }
+      const timeoutHandle = setTimeout(() => fail(`Video compression exceeded ${timeoutMs}ms`), timeoutMs)
+
+      video.muted = true
+      video.playsInline = true
+      video.preload = 'auto'
+      video.onerror = () => fail('Video could not be decoded')
+      video.onloadedmetadata = () => {
+        try {
+          canvas.width = video.videoWidth || 640
+          canvas.height = video.videoHeight || 360
+          canvasStream = canvas.captureStream(30)
+
+          // La bande-son ne transite pas par le canevas : on la capte sur
+          // l'élément lui-même, sinon l'envoi arrive muet.
+          try {
+            const capturable = video as HTMLVideoElement & {
+              captureStream?: () => MediaStream
+              mozCaptureStream?: () => MediaStream
+            }
+            sourceStream = capturable.captureStream?.call(video)
+              ?? capturable.mozCaptureStream?.call(video)
+              ?? null
+            for (const track of sourceStream?.getAudioTracks() ?? []) canvasStream?.addTrack(track)
+          } catch { sourceStream = null }
+
+          recorder = new MediaRecorder(canvasStream, {
+            mimeType,
+            videoBitsPerSecond: bitrateMap[quality],
+          })
+        } catch (err) {
+          fail(`Video recorder unavailable: ${err instanceof Error ? err.message : err}`)
+          return
+        }
+
+        const rec = recorder
+        const chunks: Blob[] = []
+        rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
+        rec.onerror = () => fail('Video recording failed')
+        rec.onstop = () => {
+          if (finished) return
+          finished = true
+          cleanup()
+          const type = mimeType.split(';')[0].trim() || 'video/webm'
+          const ext = type.split('/')[1] ?? 'webm'
+          const out = new File([new Blob(chunks, { type })], file.name.replace(/\.[^.]+$/, `.${ext}`), { type })
+          resolve({ file: out, ratio: out.size / (file.size || 1) })
+        }
+
+        // `ended` prévenu avant la lecture : une clip courte peut se terminer
+        // avant que la promise de `play()` ne résolve.
+        video.onended = () => { stopHandle = setTimeout(stopRecording, 120) }
+
+        const drawFrame = () => {
+          if (finished) return
+          if (video.ended) { stopRecording(); return }
+          // Une frame blanche pendant la pause initiale fausserait le rendu.
+          if (!video.paused && !video.seeking) ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+          frameHandle = requestAnimationFrame(drawFrame)
+        }
+
+        void video.play().then(
+          () => {
+            if (finished) return
+            try { rec.start() } catch (err) { fail(`Video recording could not start: ${err}`); return }
+            drawFrame()
+          },
+          () => fail('Video playback blocked')
+        )
+      }
+      video.src = url
     })
   }
 
@@ -4692,31 +4956,74 @@ class FileService {
   }
 
   /**
-   * Compress file based on user media settings and current network conditions.
-   * MEDIA SETTINGS: the user toggles (compressImages / compressVideos) are the
-   * master switch — when OFF the original file is sent untouched. When ON, the
-   * network heuristic picks the quality level. GIFs are never re-encoded
-   * (canvas flattens their animation) and audio keeps its original encoding.
+   * Compression préalable à l'envoi, d'après les réglages média de
+   * l'utilisateur et l'état du réseau. Ne rejette JAMAIS : un fichier qu'on ne
+   * sait pas réencoder s'envoie tel quel.
+   *
+   * Les garde-fous sont là parce que `File.type` vient du système
+   * d'exploitation et vaut souvent `''` (mkv, avi, flac, heic…), et que le
+   * réencodage vidéo est une lecture temps réel : sans budget, une vidéo
+   * indécodable ou trop longue bloquerait le transfert indéfiniment, ce que
+   * l'utilisateur lit comme « le widget de transfert est resté à 0 % ».
+   *
+   * - images : réencodage WebP, sauf GIF (le canevas aplanit l'animation) et
+   *   SVG (vectoriel ; le re-déverser en trame le rogne) ;
+   * - vidéos : uniquement si le navigateur sait les décoder, qu'un format
+   *   d'enregistrement est disponible, et que la durée tient dans le budget ;
+   * - audio et documents : jamais réencodés — il n'existe pas de transcodeur
+   *   sans perte dans le navigateur, et une conversion ratée serait pire
+   *   qu'un envoi brut.
    */
   async compressForNetwork(file: File): Promise<File> {
-    const settings = this.getNetworkCompressionSettings()
-    const mediaPrefs = useUIStore.getState().settings.media
+    try {
+      const mediaPrefs = useUIStore.getState().settings.media
+      const kind = resolveAttachmentType(file.type, file.name)
+      // Un fichier déjà petit se transfère en une trame : le réencoder ne
+      // ferait que coûter du temps et de la qualité.
+      if (file.size < COMPRESSION_MIN_BYTES) return file
 
-    if (
-      file.type.startsWith('image/') &&
-      file.type !== 'image/gif' &&
-      mediaPrefs.compressImages
-    ) {
-      const result = await this.compressImage(file, settings.imageQuality)
-      return result.file
+      if (kind === 'image' && mediaPrefs.compressImages && !NON_RECODABLE_IMAGES.has(resolveMimeType(file.type, file.name))) {
+        return await this.compressOrOriginal(
+          file,
+          () => this.compressImage(file, this.getNetworkCompressionSettings().imageQuality).then((r) => r.file)
+        )
+      }
+
+      if (kind === 'video' && mediaPrefs.compressVideos) {
+        const mimeType = pickVideoRecorderMimeType()
+        if (!mimeType) return file
+        // Le réencodage se fait en lecture temps réel : une clip plus longue
+        // que le budget n'est même pas engagée.
+        const probe = await probeVideo(file, MEDIA_PROBE_TIMEOUT_MS)
+        if (!probe?.decodable || !probe.duration) return file
+        const playbackMs = probe.duration * 1000
+        if (playbackMs > VIDEO_COMPRESSION_BUDGET_MS) return file
+        return await this.compressOrOriginal(
+          file,
+          () => this.compressVideo(file, 'medium', {
+            mimeType,
+            // Marge de 60 % sur la durée de lecture : le décodage et la capture
+            // du canevas ne sont pas instantanés.
+            timeoutMs: Math.round(playbackMs * 1.6) + 5000,
+          }).then((r) => r.file)
+        )
+      }
+
+      return file
+    } catch (err) {
+      console.warn('[FileService] Pre-send compression skipped:', err)
+      return file
     }
+  }
 
-    if (file.type.startsWith('video/') && mediaPrefs.compressVideos) {
-      const result = await this.compressVideo(file, 'medium')
-      return result.file
-    }
-
-    return file
+  /** Garde commun : on ne remplace l'original que s'il y a un vrai gain. */
+  private async compressOrOriginal(
+    file: File,
+    compress: () => Promise<File>
+  ): Promise<File> {
+    const compressed = await compress()
+    if (!compressed || compressed.size === 0 || compressed.size >= file.size) return file
+    return compressed
   }
 
   // ─── File Deletion & Access Control ────────────────────────────────────────

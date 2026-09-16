@@ -183,9 +183,10 @@ export const ChatView: React.FC = () => {
         await fileService.sendFiles(files, dataId, conversation.participantId)
       } catch (err) {
         console.error('[ChatView] Failed to send files:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('settings.transferFailed') })
       }
     },
-    [dataId, conversation]
+    [dataId, conversation, t]
   )
 
   if (!conversationId || !conversation) {
