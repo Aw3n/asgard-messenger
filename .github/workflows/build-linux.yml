@@ -5,15 +5,7 @@ on:
 
 jobs:
   linux:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-22.04
-            arch: x64
-          - runner: ubuntu-22.04-arm
-            arch: arm64
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -25,21 +17,25 @@ jobs:
       - name: Install Linux packaging deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm fakeroot dpkg libfuse2
+          sudo apt-get install -y rpm fakeroot dpkg libfuse2 libarchive-tools
 
-      # Native Holepunch addons (sodium-native, udx-native, …) must be
-      # compiled on Linux; a Windows-built tree will not run.
+      # Les addons Holepunch (sodium-native, udx-native, …) embarquent leurs
+      # prebuilds pour toutes les plateformes (linux-x64, linux-arm64, darwin,
+      # win32) et se sélectionnent à l'exécution : la machine qui emballe
+      # n'a aucune incidence sur l'arch du paquet, d'où un seul runner.
       # npm install (pas ci) car le lockfile est régénéré après mise à jour des deps.
       - run: npm install
 
       - run: npm run build:icons
       - run: npm run build
 
-      - run: npx electron-builder --linux --${{ matrix.arch }} --publish never
+      # Pas de --x64/--arm64 : les archs sont celles déclarées dans build.linux.target
+      # de package.json (x64 + arm64, pacman en x64 seulement).
+      - run: npx electron-builder --linux --publish never
 
       - uses: actions/upload-artifact@v4
         with:
-          name: asgard-linux-${{ matrix.arch }}
+          name: asgard-linux
           path: |
             release/*.AppImage
             release/*.deb
