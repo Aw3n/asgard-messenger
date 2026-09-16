@@ -42,7 +42,7 @@ const mockAsgardAPI = {
     requestPermission: vi.fn().mockResolvedValue(true),
   },
   app: {
-    getVersion: vi.fn().mockResolvedValue('1.0.0'),
+    getVersion: vi.fn().mockResolvedValue('1.0.1'),
     getPlatform: vi.fn().mockReturnValue('win32'),
     openExternal: vi.fn(),
     getTheme: vi.fn().mockResolvedValue('dark'),

@@ -2,7 +2,7 @@
 
 > No servers. No accounts. No surveillance. Pure peer-to-peer messaging secured by cryptography.
 
-![Asgard](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
+![Asgard](https://img.shields.io/badge/version-1.0.1-blue?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-0078d4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-100%25-3178c6?style=flat-square)

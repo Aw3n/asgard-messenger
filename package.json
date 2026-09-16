@@ -1,6 +1,6 @@
 {
   "name": "asgard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Asgard - Decentralized P2P Messenger powered by Pear Runtime",
   "main": "dist/electron/main.js",
   "homepage": "https://github.com/asgard-team/asgard",
