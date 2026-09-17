@@ -438,6 +438,9 @@ export const SAME = {
     'settings.appName',
     'messageInput.emoji',
     'settings.kbPerSecond',
+    // Métrique de téléphonie : « jitter » s'emploie tel quel dans la
+    // quasi-totalité des langues ; seul le français porte « Gigue ».
+    'calls.statsJitter',
   ],
   nl: [
     'calls.openChat', 'calls.camera', 'calls.cameraLoading',
@@ -465,6 +468,8 @@ export const SAME = {
     'settings.transfer_uploading', 'settings.videos',
     'settings.downloads', 'settings.appVersion', 'settings.firewall',
     'settings.peers',
+    // « Pause » est aussi le mot allemand d'un lecteur média.
+    'chat.pauseAudio',
   ],
   it: [
     'calls.openChat', 'calls.camera', 'calls.cameraLoading',
@@ -498,6 +503,9 @@ export const SAME = {
     'settings.transfer_uploading', 'settings.appVersion',
     'settings.audioQuality_medium', 'settings.videoQuality_medium',
     'settings.firewall', 'settings.peers', 'settings.stopTest',
+    // Deux termes que le danois écrit tels quels : « Pause » (lecteur média)
+    // et « Download » (le substantif d'un téléchargement).
+    'chat.pauseAudio', 'lightbox.download',
   ],
   fi: ['calls.openChat', 'settings.media'],
   sv: [
@@ -514,8 +522,9 @@ export const SAME = {
   ],
   et: ['common.admin', 'settings.filter'],
   hu: ['common.admin', 'panels.info', 'settings.peer'],
-  lv: ['common.admin', 'panels.info', 'settings.audio', 'settings.fileType_audio'],
-  lt: ['panels.info'],
+  // « Keet / Pear ID » : deux noms de marques et un sigle qui s'écrit ID ici.
+  lv: ['common.admin', 'panels.info', 'settings.audio', 'settings.fileType_audio', 'contacts.keetId'],
+  lt: ['panels.info', 'contacts.keetId'],
   mt: [
     'calls.openChat', 'chat.links', 'common.admin', 'common.offline',
     'common.online', 'common.onlineCount', 'common.progress',
@@ -536,6 +545,8 @@ export const SAME = {
     'calls.openChat', 'common.offline', 'common.online',
     'common.onlineCount', 'groups.online', 'groups.onlineMembers',
     'panels.info', 'settings.filter', 'settings.firewall',
+    // Terme technique employé tel quel dans les panneaux d'appel.
+    'calls.statsBufferDepth',
   ],
   sl: [
     'common.moderator', 'panels.info', 'settings.filter',
@@ -545,6 +556,8 @@ export const SAME = {
     'calls.openChat', 'common.offline', 'common.online',
     'common.onlineCount', 'groups.online', 'groups.onlineMembers',
     'panels.info', 'settings.chat', 'settings.peer', 'settings.firewall',
+    // Comme en slovaque : le terme technique passe tel quel.
+    'calls.statsBufferDepth',
   ],
   ro: [
     'calls.participantCount', 'common.moderator', 'common.offline',
