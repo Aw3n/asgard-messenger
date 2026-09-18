@@ -30,6 +30,17 @@ interface PendingMessage {
   attempts: number
 }
 
+/** Queued reaction for retry when the peer was unreachable at toggle time */
+interface PendingReaction {
+  messageId: string
+  conversationId: string
+  emoji: string
+  action: 'add' | 'remove'
+  peerId: string
+  createdAt: number
+  attempts: number
+}
+
 /** Search result for full-text message search */
 export interface SearchResult {
   message: Message
@@ -117,6 +128,8 @@ class ChatService {
   private idleCheckInterval: ReturnType<typeof setInterval> | null = null
   // OFFLINE QUEUE: Messages queued for delivery when peer is offline
   private pendingMessages: Map<string, PendingMessage[]> = new Map() // peerId → queue
+  // Réactions émises alors que le pair était injoignable — remises à la reconnexion
+  private pendingReactions: Set<PendingReaction> = new Set()
   // Peers connected before we learned their Ed25519 key; flushed on peer:identified
   private pendingConnectedPeers: Set<string> = new Set()
   // Presence received before Hyperbee contacts were restored
@@ -127,6 +140,8 @@ class ChatService {
   private lastPresenceStatus: Map<string, UserStatus> = new Map()
   private static readonly MAX_PENDING_PER_PEER = 500
   private static readonly MAX_PENDING_AGE = 7 * 24 * 60 * 60 * 1000 // 7 days
+  private static readonly MAX_PENDING_REACTIONS = 200
+  private static readonly REACTION_MAX_ATTEMPTS = 3
 
   static getInstance(): ChatService {
     if (!ChatService.instance) {
@@ -309,13 +324,22 @@ class ChatService {
           }
         }
       }
-      if (!message) return
+      if (!message) {
+        const dropLog = `[ChatService] !!! chat:reaction from ${msg.from?.slice(0, 16)} dropped: message ${messageId?.slice(0, 8)} not found in any loaded conversation`
+        console.warn(dropLog)
+        try { window.asgard.debugLog(dropLog) } catch {}
+        return
+      }
 
       if (action === 'add') {
         store.addReaction(messageId, actualConvId, emoji, msg.from)
       } else {
         store.removeReaction(messageId, actualConvId, emoji, msg.from)
       }
+
+      // Sans cette écriture, la réaction reçue n'existe qu'en mémoire et meurt au redémarrage.
+      const updated = useMessageStore.getState().getMessage(messageId, actualConvId)
+      if (updated) storageService.saveMessage(actualConvId, updated).catch(() => {})
     })
 
     // Handle read receipts (DM)
@@ -583,6 +607,8 @@ class ChatService {
           this.peerLastActivity.set(ed25519Key, Date.now())
         }
         this.flushPendingMessages(ed25519Key).catch(() => {})
+        // REACTION RETRY: Flush emoji reactions emitted while this peer was unreachable.
+        this.flushPendingReactions(ed25519Key).catch(() => {})
         // RECEIPT RETRY: Flush any pending read/delivery receipts for this peer.
         this.flushPendingReceipts(ed25519Key).catch(() => {})
         // GROUP OFFLINE QUEUE: Flush any pending group messages for this peer.
@@ -747,6 +773,7 @@ class ChatService {
     }
 
     this.flushPendingMessages(data.publicKey).catch(() => {})
+    this.flushPendingReactions(data.publicKey).catch(() => {})
 
     // CRITICAL FIX: Flush any pending presence updates for this peer.
     // If the peer sent presence:update before we identified them (e.g. during
@@ -1233,8 +1260,8 @@ class ChatService {
   }
 
   /**
-   * Toggle a reaction on a message.
-   * PERFORMANCE: Optimistic UI update first, then fire-and-forget network send.
+   * Toggle a reaction on a message: optimistic UI update, persisted locally, and
+   * queued for retry when the peer is unreachable.
    */
   async toggleReaction(messageId: string, conversationId: string, emoji: string, peerId: string): Promise<void> {
     const identity = useIdentityStore.getState().identity
@@ -1266,13 +1293,71 @@ class ChatService {
       useMessageStore.getState().addReaction(messageId, conversationId, emoji, identity.keyPair.publicKey)
     }
 
-    // Fire-and-forget network send (non-blocking, unsigned — see UNSIGNED_TYPES)
-    p2pService.sendMessage(peerId, 'chat:reaction', {
+    const payload: ReactionPayload = {
       messageId,
       conversationId,
       emoji,
       action: hasReacted ? 'remove' : 'add',
-    }).catch(() => {}) // Silently fail — reaction is already in UI
+    }
+
+    // Sans cette écriture, la réaction de l'émetteur ne survit qu'à la session en cours.
+    const persisted = useMessageStore.getState().getMessage(messageId, conversationId)
+    if (persisted) storageService.saveMessage(conversationId, persisted).catch(() => {})
+
+    try {
+      await p2pService.sendMessage(peerId, 'chat:reaction', payload)
+    } catch (err) {
+      const errMsg = `[ChatService] chat:reaction send FAILED to ${peerId.slice(0, 16)}: ${err instanceof Error ? err.message : String(err)}`
+      console.warn(errMsg)
+      try { window.asgard.debugLog(errMsg) } catch {}
+      this.queueReaction({ ...payload, peerId, createdAt: Date.now(), attempts: 0 })
+    }
+  }
+
+  /**
+   * Mettre une réaction en file pour remise ultérieure (pair injoignable).
+   */
+  private queueReaction(pending: PendingReaction): void {
+    if (this.pendingReactions.size >= ChatService.MAX_PENDING_REACTIONS) {
+      const oldest = this.pendingReactions.values().next().value
+      if (oldest) this.pendingReactions.delete(oldest)
+    }
+    this.pendingReactions.add(pending)
+    console.log(`[ChatService] Reaction queued for offline delivery to ${pending.peerId.slice(0, 16)} (queue: ${this.pendingReactions.size})`)
+  }
+
+  /**
+   * Remettre les réactions en attente quand un pair revient en ligne.
+   */
+  async flushPendingReactions(peerId: string): Promise<void> {
+    const now = Date.now()
+    for (const pending of this.pendingReactions) {
+      if (pending.peerId !== peerId) continue
+
+      if (now - pending.createdAt > ChatService.MAX_PENDING_AGE) {
+        this.pendingReactions.delete(pending)
+        continue
+      }
+
+      try {
+        await p2pService.sendMessage(peerId, 'chat:reaction', {
+          messageId: pending.messageId,
+          conversationId: pending.conversationId,
+          emoji: pending.emoji,
+          action: pending.action,
+        })
+        this.pendingReactions.delete(pending)
+        console.log(`[ChatService] Pending reaction delivered to ${peerId.slice(0, 16)}`)
+      } catch (err) {
+        pending.attempts++
+        if (pending.attempts >= ChatService.REACTION_MAX_ATTEMPTS) {
+          this.pendingReactions.delete(pending)
+          const errMsg = `[ChatService] Pending reaction abandoned after ${pending.attempts} attempts: ${err instanceof Error ? err.message : String(err)}`
+          console.warn(errMsg)
+          try { window.asgard.debugLog(errMsg) } catch {}
+        }
+      }
+    }
   }
 
   /**

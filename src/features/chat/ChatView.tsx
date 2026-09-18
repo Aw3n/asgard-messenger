@@ -349,7 +349,11 @@ export const ChatView: React.FC = () => {
                 }}
                 onReaction={(msg, emoji) => {
                   if (conversation.participantId && dataId) {
-                    chatService.toggleReaction(msg.id, dataId, emoji, conversation.participantId)
+                    chatService.toggleReaction(msg.id, dataId, emoji, conversation.participantId).catch((err) => {
+                      console.warn('[ChatView] toggleReaction failed:', err)
+                    })
+                  } else {
+                    console.warn('[ChatView] Reaction ignored: conversation has no participantId')
                   }
                 }}
                 onForward={(msg) => setForwardMessage(msg)}

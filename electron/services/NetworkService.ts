@@ -1046,6 +1046,16 @@ export class NetworkService extends EventEmitter {
     }
     logMain(`[NetworkService] 📤 SEND to ${peerId.slice(0, 16)} | type=${sentMsgType} | size=${buf.length} | state=${JSON.stringify(channelState)}`)
     
+    // Un canal Protomux fermé conserve ses message handles et retourne false de
+    // send() en avalant la trame : sans ce garde, le « ✅ SEND SUCCESS » ci-dessous
+    // mentait et l'émetteur ne pouvait ni persister ni remettre en file.
+    if (peer.socket.destroyed || peer.socket.destroying) {
+      throw new Error(`Socket closed for peer ${peerId.slice(0, 16)}`)
+    }
+    if (this.peerChannels.get(this.resolvePeerKey(peerId))?.main?.closed) {
+      throw new Error(`Protomux channel closed for peer ${peerId.slice(0, 16)}`)
+    }
+
     try {
       peer.sendMessage.send(buf)
       this.trackBandwidth(buf.length, 0)
