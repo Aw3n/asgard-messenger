@@ -99,9 +99,10 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   // CRITICAL: all hooks must run before any early return.
   useEffect(() => {
     const checkProgress = () => {
-      // Check send transfers
-      const transfers = fileService.getTransfers()
-      const transfer = transfers.find((entry) => entry.fileName === attachment.name)
+      // Match by transfer ID, never by file name: two distinct files can share
+      // a name, and name matching made every older bubble with that name
+      // mirror the current transfer's progress.
+      const transfer = attachment.transferId ? fileService.getTransfer(attachment.transferId) : undefined
       if (transfer && transfer.status === 'uploading') {
         setProgress(transfer.progress)
         return
@@ -109,8 +110,10 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
 
       // Check receive progress via active receive buffer
       if (!attachment.localUrl && !attachment.blobKey && conversationId) {
-        const receiveProgress = fileService.getReceiveProgress(conversationId)
-        if (receiveProgress && receiveProgress.fileName === attachment.name) {
+        const receiveProgress = attachment.transferId
+          ? fileService.getReceiveProgressByTransfer(attachment.transferId)
+          : fileService.getReceiveProgress(conversationId)
+        if (receiveProgress && (!attachment.transferId || receiveProgress.fileName === attachment.name)) {
           setProgress(receiveProgress.progress)
         } else {
           // Still waiting for data — show indeterminate progress
@@ -119,16 +122,19 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         return
       }
 
-      // If we had progress before but now it's gone, clear it
-      if (progress !== null && !transfer) {
-        setProgress(null)
+      // If we had progress before but now it's gone, clear it. Functional
+      // update: the interval closure captures the `progress` of the render
+      // that mounted it, so reading it directly here never sees the value
+      // published by a later tick and the bar would stay stuck mid-transfer.
+      if (!transfer) {
+        setProgress((current) => (current === null ? current : null))
       }
     }
 
     checkProgress()
     progressInterval.current = setInterval(checkProgress, 300)
     return () => clearInterval(progressInterval.current)
-  }, [attachment.name, attachment.localUrl, attachment.blobKey, conversationId])
+  }, [attachment.transferId, attachment.name, attachment.localUrl, attachment.blobKey, conversationId])
 
   const handleClick = async () => {
     const live = fileService.isLiveUrl(attachment.localUrl) ? (attachment.localUrl as string) : null

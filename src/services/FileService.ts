@@ -341,6 +341,7 @@ class FileService {
         size: fileToSend.size,
         mimeType: resolveMimeType(fileToSend.type, fileToSend.name),
         blobKey: blobId,
+        transferId,
       }
 
       if (transfer.type === 'image') {
@@ -572,6 +573,7 @@ class FileService {
       size: file.size,
       mimeType: resolveMimeType(file.type, file.name),
       blobKey: blobId,
+      transferId,
     }
 
     // Generate thumbnail for images
@@ -798,6 +800,18 @@ class FileService {
   }
 
   /**
+   * Get receive progress of one specific transfer, by its transfer ID.
+   */
+  getReceiveProgressByTransfer(transferId: string): { fileName: string; progress: number } | null {
+    const buf = this.receiveBuffers.get(transferId)
+    if (!buf || buf.totalChunks <= 0) return null
+    return {
+      fileName: buf.attachment.name,
+      progress: Math.round(buf.receivedChunks / buf.totalChunks * 100),
+    }
+  }
+
+  /**
    * Get all active receive buffers (used by ActiveTransfersWidget).
    * Returns summary data for each in-progress receive transfer.
    */
@@ -945,6 +959,10 @@ class FileService {
       // ── Binary transfer: set up receive buffer ──
       // Create placeholder message ID so we can update it later
       const placeholderId = generateId()
+
+      // The placeholder bubble ties its progress to this ID: matching by file
+      // name instead made two same-named files mirror each other's progress.
+      attachment.transferId = transferId
 
       this.receiveBuffers.set(transferId, {
         from: msg.from,

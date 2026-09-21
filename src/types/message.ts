@@ -52,6 +52,8 @@ export interface MessageAttachment {
   height?: number
   /** SHA-256 hash for integrity verification */
   checksum?: string
+  /** ID of the in-flight transfer (send entry or receive buffer) this attachment belongs to */
+  transferId?: string
   /** Whether the file was compressed before sending */
   compressed?: boolean
   /** Original size before compression */

@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
+import { FileAttachment } from '@/features/chat/components/FileAttachment'
 import { fileService } from '@/services/FileService'
 import { p2pService } from '@/services/P2PService'
 import { storageService } from '@/services/StorageService'
@@ -180,5 +181,46 @@ describe('widget de transfert vidéo', () => {
     const view = render(<ActiveTransfersWidget />)
     view.unmount()
     expect(unsubscribe).toHaveBeenCalledOnce()
+  })
+})
+
+describe('bulle de pièce jointe homonyme', () => {
+  it('n’affiche la progression que sur la bulle du transfert en cours', async () => {
+    const chunks: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
+      const chunk = deferred<void>()
+      chunks.push(chunk)
+      return chunk.promise
+    })
+    let sending!: ReturnType<typeof fileService.sendFile>
+    act(() => { sending = fileService.sendFile(video('setup.exe'), 'conversation', 'peer') })
+    const liveId = fileService.getTransfers()[0].id
+
+    const active: MessageAttachment = {
+      id: 'att-live', type: 'document', name: 'setup.exe', size: 222,
+      mimeType: 'application/octet-stream', blobKey: 'blob-live', transferId: liveId,
+    }
+    // Transfert passé, même nom mais autre contenu : aucun transfert actif ne
+    // doit plus se refléter dans cette bulle.
+    const older: MessageAttachment = {
+      id: 'att-old', type: 'document', name: 'setup.exe', size: 111,
+      mimeType: 'application/octet-stream', blobKey: 'blob-old', transferId: 'transfert-terminé',
+    }
+    render(
+      <>
+        <FileAttachment attachment={older} isOwn />
+        <FileAttachment attachment={active} isOwn />
+      </>
+    )
+
+    expect(screen.getByText('222 B — 0%')).toBeInTheDocument()
+    expect(screen.getByText('111 B')).toBeInTheDocument()
+    expect(screen.queryByText('111 B — 0%')).not.toBeInTheDocument()
+
+    vi.mocked(p2pService.sendFileData).mockResolvedValue(undefined)
+    for (const chunk of chunks) chunk.resolve()
+    await act(async () => { await sending })
+    await waitFor(() => expect(screen.queryByText('222 B — 0%')).not.toBeInTheDocument())
+    expect(screen.getByText('222 B')).toBeInTheDocument()
   })
 })
