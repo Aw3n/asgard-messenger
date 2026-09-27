@@ -18,7 +18,7 @@ import { chatService } from '@/services/ChatService'
 import { p2pService } from '@/services/P2PService'
 import { cryptoService } from '@/services/CryptoService'
 import { callService } from '@/services/CallService'
-import { fileService } from '@/services/FileService'
+import { fileService, PeerUnreachableError } from '@/services/FileService'
 import { RightPanel } from '@/components/panels/RightPanel'
 import { presenceMeta, isLivePresence } from '@/utils/presence'
 import type { Message } from '@/types'
@@ -183,7 +183,11 @@ export const ChatView: React.FC = () => {
         await fileService.sendFiles(files, dataId, conversation.participantId)
       } catch (err) {
         console.error('[ChatView] Failed to send files:', err)
-        useUIStore.getState().addToast({ type: 'error', title: t('settings.transferFailed') })
+        useUIStore.getState().addToast({
+          type: 'error',
+          title: t('settings.transferFailed'),
+          message: err instanceof PeerUnreachableError ? t('common.offline') : undefined,
+        })
       }
     },
     [dataId, conversation, t]

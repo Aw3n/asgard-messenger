@@ -551,6 +551,33 @@ class P2PService extends EventEmitter {
   }
 
   /**
+   * Le pair a-t-il une connexion chiffrée ouverte maintenant ?
+   *
+   * `NetworkService.send()` lève `Peer … not found` dès qu'aucune connexion
+   * n'existe : aucun envoi ne peut donc aboutir sans connexion établie. La
+   * réponse est synchrone pour qu'un appelant puisse renoncer AVANT d'entamer
+   * un travail coûteux (ré-encodage vidéo, écriture du blob sur disque).
+   */
+  isPeerConnected(ed25519PeerId: string): boolean {
+    const noisePeerId = this.ed25519ToNoiseMap.get(ed25519PeerId) ?? ed25519PeerId
+    const peers = useNetworkStore.getState().peers
+    return Object.values(peers).some((p) => p.connected && p.id === noisePeerId)
+  }
+
+  /**
+   * Provoque une composition vers le pair puis attend que la connexion s'ouvre.
+   * Renseigne au passage `ed25519ToNoiseMap`, sans quoi `sendMessage` retombe
+   * sur la clé Ed25519 brute et échoue même une fois le pair connecté.
+   */
+  async dialPeer(ed25519PeerId: string, timeoutMs: number): Promise<boolean> {
+    const noisePeerId = await window.asgard.network.deriveNoisePublicKey(ed25519PeerId)
+    if (!noisePeerId) return false
+    this.ed25519ToNoiseMap.set(ed25519PeerId, noisePeerId)
+    await window.asgard.network.connectToContact(noisePeerId, true)
+    return await window.asgard.network.waitForPeer(noisePeerId, timeoutMs)
+  }
+
+  /**
    * Stop attempting direct connections to a known peer.
    */
   async leavePeer(noisePublicKeyHex: string): Promise<void> {

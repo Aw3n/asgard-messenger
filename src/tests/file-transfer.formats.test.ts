@@ -370,6 +370,7 @@ describe('envoi d’un fichier sans type MIME', () => {
     vi.spyOn(storageService, 'putBlob').mockResolvedValue('blob-key')
     vi.spyOn(p2pService, 'sendMessage').mockResolvedValue(undefined)
     vi.spyOn(p2pService, 'sendFileData').mockResolvedValue(undefined)
+    vi.spyOn(p2pService, 'isPeerConnected').mockReturnValue(true)
   })
 
   it('publie le type et le MIME déduits de l’extension au pair', async () => {

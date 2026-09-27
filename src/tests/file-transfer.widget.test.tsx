@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
 import { FileAttachment } from '@/features/chat/components/FileAttachment'
-import { fileService } from '@/services/FileService'
+import { fileService, PeerUnreachableError, SEND_DIAL_TIMEOUT_MS } from '@/services/FileService'
 import { p2pService } from '@/services/P2PService'
 import { storageService } from '@/services/StorageService'
 import type { MessageAttachment } from '@/types'
@@ -32,6 +32,7 @@ beforeEach(() => {
   vi.spyOn(storageService, 'putBlob').mockResolvedValue('test-blob')
   vi.spyOn(p2pService, 'sendMessage').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'sendFileData').mockResolvedValue(undefined)
+  vi.spyOn(p2pService, 'isPeerConnected').mockReturnValue(true)
 })
 
 afterEach(() => {
@@ -222,5 +223,31 @@ describe('bulle de pièce jointe homonyme', () => {
     await act(async () => { await sending })
     await waitFor(() => expect(screen.queryByText('222 B — 0%')).not.toBeInTheDocument())
     expect(screen.getByText('222 B')).toBeInTheDocument()
+  })
+})
+
+describe('destinataire injoignable', () => {
+  it('renonce avant la compression et n’écrit aucun blob', async () => {
+    vi.mocked(p2pService.isPeerConnected).mockReturnValue(false)
+    vi.spyOn(p2pService, 'dialPeer').mockResolvedValue(false)
+
+    await expect(fileService.sendFile(video(), 'conversation', 'peer'))
+      .rejects.toBeInstanceOf(PeerUnreachableError)
+
+    expect(p2pService.dialPeer).toHaveBeenCalledWith('peer', SEND_DIAL_TIMEOUT_MS)
+    expect(fileService.compressForNetwork).not.toHaveBeenCalled()
+    expect(storageService.putBlob).not.toHaveBeenCalled()
+    expect(p2pService.sendMessage).not.toHaveBeenCalled()
+    expect(fileService.getTransfers()).toEqual([])
+  })
+
+  it('poursuit l’envoi quand la composition aboutit', async () => {
+    vi.mocked(p2pService.isPeerConnected).mockReturnValue(false)
+    vi.spyOn(p2pService, 'dialPeer').mockResolvedValue(true)
+
+    await fileService.sendFile(video(), 'conversation', 'peer')
+
+    expect(storageService.putBlob).toHaveBeenCalledOnce()
+    expect(p2pService.sendMessage).toHaveBeenCalledWith('peer', 'file:transfer', expect.anything())
   })
 })

@@ -191,6 +191,19 @@ export const VIDEO_COMPRESSION_BUDGET_MS = 45_000
 export const MEDIA_PROBE_TIMEOUT_MS = 5_000
 /** En dessous de cette taille, réencoder ne change rien au transfert. */
 export const COMPRESSION_MIN_BYTES = 512 * 1024
+/** Attente d'une composition fraîche avant de déclarer le destinataire injoignable. */
+export const SEND_DIAL_TIMEOUT_MS = 8_000
+
+/**
+ * Le destinataire n'a aucune connexion ouverte. Permet à l'appelant d'afficher
+ * « contact hors ligne » plutôt qu'un échec de transfert générique.
+ */
+export class PeerUnreachableError extends Error {
+  constructor(readonly peerId: string) {
+    super(`Peer unreachable: ${peerId.slice(0, 16)}`)
+    this.name = 'PeerUnreachableError'
+  }
+}
 
 export interface MediaProbe {
   decodable: boolean
@@ -307,6 +320,16 @@ class FileService {
     conversationId: string,
     peerId: string
   ): Promise<MessageAttachment> {
+    // Pré-contrôle placé AVANT l'entrée de transfert : `network:send` échoue
+    // sans connexion ouverte, et le travail qui suit coûte la durée de lecture
+    // de la vidéo en ré-encodage plus l'écriture du blob sur disque. Le lancer
+    // pour un destinataire injoignable laissait le widget figé à « 0 % »
+    // pendant tout ce temps, sans jamais expliquer l'échec.
+    if (!p2pService.isPeerConnected(peerId)) {
+      const dialed = await p2pService.dialPeer(peerId, SEND_DIAL_TIMEOUT_MS)
+      if (!dialed) throw new PeerUnreachableError(peerId)
+    }
+
     const transferId = generateId()
     const transfer: FileTransfer = {
       id: transferId,
