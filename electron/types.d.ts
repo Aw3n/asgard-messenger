@@ -4,7 +4,7 @@ declare module 'hyperswarm' {
   export default class Hyperswarm {
     constructor(opts?: {
       maxPeers?: number
-      // CONFORMITÉ HOLEPUNCH (hyperswarm 4.17.1, index.js:315) : le firewall
+      // CONFORMITÉ HOLEPUNCH (hyperswarm 4.17.2, index.js:316) : le firewall
       // reçoit (remotePublicKey, remoteHandshakePayload) — deux arguments.
       firewall?: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => boolean
       keyPair?: { publicKey: Buffer; secretKey: Buffer }

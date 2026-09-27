@@ -8,7 +8,7 @@ declare module 'hyperswarm' {
 
   interface HyperswarmOptions {
     maxPeers?: number
-    // CONFORMITÉ HOLEPUNCH (hyperswarm 4.17.1, index.js:315) : le firewall
+    // CONFORMITÉ HOLEPUNCH (hyperswarm 4.17.2, index.js:316) : le firewall
     // reçoit (remotePublicKey, remoteHandshakePayload) — pas la seule clé.
     firewall?: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => boolean
     dht?: any
@@ -171,11 +171,11 @@ declare module 'corestore' {
     constructor(storage: string | any, opts?: any)
     readonly key: Buffer
     readonly discoveryKey: Buffer
-    // CONFORMITÉ HOLEPUNCH (corestore 7.12.5, index.js:560) : get() prend un
+    // CONFORMITÉ HOLEPUNCH (corestore 7.12.6, index.js:560) : get() prend un
     // OBJET d'options — une string/Buffer brute est interprétée comme une KEY
     // (pas un nom d'alias). Le pattern nommé est get({ name: '...' }).
     get(opts: { name?: string; key?: Buffer; discoveryKey?: Buffer; valueEncoding?: any; [k: string]: any }): any
-    // CONFORMITÉ HOLEPUNCH (corestore 7.12.5, index.js:477) : signature
+    // CONFORMITÉ HOLEPUNCH (corestore 7.12.6, index.js:477) : signature
     // replicate(isInitiator, opts) — le pattern officiel sur socket Hyperswarm
     // est store.replicate(socket) (isStream → réutilise le mux du socket).
     replicate(isInitiator: any, opts?: any): any

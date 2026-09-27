@@ -61,7 +61,7 @@ describe('Corestore replication over Hyperswarm (Holepunch network simulation)',
 
   // NOTE: This integration test requires compatible versions of corestore/hyperbee/hyperswarm
   // and a proper network environment. Skipped in unit test context.
-  // CONFORMITÉ HOLEPUNCH (corestore 7.12.5 + hyperbee 2.27.3) : le constructeur
+  // CONFORMITÉ HOLEPUNCH (corestore 7.12.6 + hyperbee 2.27.3) : le constructeur
   // Hyperbee est (core, opts) — pas (store, name, opts). Le pattern officiel de
   // réplication sur socket Hyperswarm est store.replicate(socket) directement dans
   // le handler 'connection' (isStream → réutilise le mux Protomux du socket) —
