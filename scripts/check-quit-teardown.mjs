@@ -26,6 +26,10 @@
  *       garde un force-exit.
  *   R4  le drain de la file est enveloppé à la création du swarm : le plantage
  *       ne dépend plus du chemin par lequel l'app s'arrête.
+ *   R5  une garde 'error' est posée sur le socket AVANT le câblage de la
+ *       connexion : `handleConnection` n'attache son propre handler qu'en fin
+ *       de parcours, et un socket resté sans écouteur tue le process principal
+ *       au premier ECONNRESET.
  *
  * Utilisation : node scripts/check-quit-teardown.mjs [--root <dir>]
  * `--root` pointe une autre racine de projet, le temps de vérifier sur une
@@ -158,6 +162,24 @@ if (netSrc) {
     failures.push(`${NETWORK} : le blindage ne remet pas _drainingQueue à false — l'essaimage se figerait après un drain raté`)
   } else {
     notes.push(`R4 ${at(NETWORK, netSrc, harden)} blindage du drain à la création, garde d'entrée rétablie`)
+  }
+}
+
+// ── R5 — garde 'error' posée avant le câblage de la connexion ───────────────
+if (netSrc) {
+  const wired = netSrc.indexOf("this.swarm.on('connection'")
+  const guarded = netSrc.indexOf("conn.on('error'", wired)
+  const handled = netSrc.indexOf('this.handleConnection(conn, info)', wired)
+  if (wired < 0) {
+    failures.push(`${NETWORK} : aucun branchement sur l'événement « connection » du swarm`)
+  } else if (guarded < 0 || handled < 0) {
+    failures.push(`${NETWORK} : le handler « connection » doit poser une garde 'error' puis appeler handleConnection()`)
+  } else if (guarded > handled) {
+    failures.push(`${at(NETWORK, netSrc, guarded)} : garde 'error' posée après handleConnection() — un socket rejeté par le câblage resterait sans écouteur`)
+  } else if (!/this\.handleConnection\(conn, info\)\.catch\(/.test(netSrc)) {
+    failures.push(`${NETWORK} : handleConnection() n'est pas rattrapé — un échec de câblage deviendrait un rejet non géré`)
+  } else {
+    notes.push(`R5 ${at(NETWORK, netSrc, guarded)} garde 'error' avant le câblage, rejet de handleConnection rattrapé`)
   }
 }
 

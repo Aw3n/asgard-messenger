@@ -351,7 +351,19 @@ export class NetworkService extends EventEmitter {
       this.swarm.on('connection', (conn: PeerSocket, info: PeerInfo) => {
         const peerId = info.publicKey.toString('hex')
         logMain(`[NetworkService] === PEER CONNECTED === ${peerId.slice(0, 32)} | localPublicKey set: ${!!this.localPublicKey}`)
-        this.handleConnection(conn, info)
+        // GARDE posée avant tout le reste. `handleConnection` n'attache son
+        // propre handler 'error' qu'à la fin d'un long câblage (Protomux,
+        // corestore, trois canaux) : si une étape lève avant, le socket reste
+        // sans écouteur et le prochain ECONNRESET remonte en
+        // « Emitted 'error' event on NoiseSecretStream instance » — exception
+        // non rattrapée qui tue le process principal. Reproduit en local avec
+        // deux nœuds Hyperswarm qui se détruisent pendant un échange.
+        conn.on('error', (err: Error) => {
+          logMain(`[NetworkService] socket error (garde) | peer=${peerId.slice(0, 16)} | ${err.message}`)
+        })
+        this.handleConnection(conn, info).catch((err: unknown) => {
+          logMain(`[NetworkService] handleConnection a échoué | peer=${peerId.slice(0, 16)} | ${err instanceof Error ? err.message : String(err)}`)
+        })
       })
 
       // PERFORMANCE: Listen for swarm updates to push status to UI
@@ -1860,7 +1872,7 @@ export class NetworkService extends EventEmitter {
    *
    * Hyperswarm draine sa file de pairs à connecter depuis les handlers `close`
    * de chaque stream chiffré (`_connectDone` → `_attemptClientConnections`,
-   * hyperswarm/index.js:276-307). Or pendant tout le teardown les connexions
+   * hyperswarm/index.js:277-308). Or pendant tout le teardown les connexions
    * meurent une à une (on a coupé nos keep-alive, le pair cesse de répondre) :
    * la boucle `while (this._queue.length && this._shouldConnect())` peut alors
    * sortir un `peerInfo` null et lever
@@ -1884,13 +1896,13 @@ export class NetworkService extends EventEmitter {
    * BLINDAGE INDÉPENDANT DU CHEMIN DE FERMETURE — à poser à la création du swarm.
    *
    * `quiesceSwarm()` gèle la machine à re-connexion, mais seulement si notre
-   * teardown s'exécute. La file interne d'hyperswarm 4.17.1 peut, elle, être
+   * teardown s'exécute. La file interne d'hyperswarm 4.17.2 peut, elle, être
    * incohérente pendant toute la vie du swarm : `ShuffledPriorityQueue.head()`
    * (shuffled-priority-queue/index.js:19) tire un élément AU HASARD dans le seau
    * de priorité, et un trou laissé dans ce tableau par un `remove()` compte
    * toujours dans `length` (l.11). Le `while (this._queue.length &&
-   * this._shouldConnect())` d'hyperswarm/index.js:300 entre alors en boucle sur
-   * un `shift()` qui rend null, et l'écriture `peerInfo.queued = false` (l.302)
+   * this._shouldConnect())` d'hyperswarm/index.js:301 entre alors en boucle sur
+   * un `shift()` qui rend null, et l'écriture `peerInfo.queued = false` (l.303)
    * tue le process principal.
    *
    * Remplacer la méthode sur NOTRE instance est le seul point dont nous sommes
@@ -3037,7 +3049,7 @@ interface HyperswarmInstance {
   resume: () => Promise<void>
   connections: Set<unknown>
   connecting: number
-  // Hyperswarm index.js:623 — `suspend()` pose ce drapeau avant de détruire ses
+  // Hyperswarm index.js:627 — `suspend()` pose ce drapeau avant de détruire ses
   // streams, et `_attemptClientConnections()` y coupe court. Notre teardown en a
   // besoin pour la même raison (cf. quiesceSwarm()).
   suspended: boolean
@@ -3054,7 +3066,7 @@ interface HyperswarmInstance {
 interface HyperswarmConstructor {
   new (options?: {
     maxPeers?: number
-    // Per Hyperswarm source (index.js:315): _firewall(remotePublicKey, payload) est
+    // Per Hyperswarm source (index.js:316): _firewall(remotePublicKey, payload) est
     // appelé avec le payload du handshake comme second argument.
     firewall?: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => boolean
     seed?: Buffer
