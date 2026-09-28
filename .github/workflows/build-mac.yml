@@ -19,9 +19,9 @@ jobs:
             arch: arm64
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -63,7 +63,10 @@ jobs:
           echo "contrôle de $asar"
           node scripts/verify-build-labels.mjs --asar "$asar"
 
-      - uses: actions/upload-artifact@v4
+      # `archive: false` (nouveauté v7) est à proscrire ici : il n'accepte qu'un
+      # seul fichier et ferait échouer l'étape, les globs ci-dessous en résolvent
+      # deux par architecture (dmg + zip). On reste sur le dépôt zippé par défaut.
+      - uses: actions/upload-artifact@v7
         with:
           name: asgard-mac-${{ matrix.arch }}
           path: |
