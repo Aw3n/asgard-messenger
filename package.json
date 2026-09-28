@@ -168,7 +168,8 @@
       "createStartMenuShortcut": true,
       "license": "LICENSE.txt",
       "include": "build/nsis/installer.nsh",
-      "allowElevation": true
+      "allowElevation": true,
+      "artifactName": "${productName}_Setup_${version}.${ext}"
     },
     "linux": {
       "icon": "assets/icons",
