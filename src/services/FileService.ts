@@ -405,24 +405,31 @@ class FileService {
         // instead of awaiting each chunk sequentially (4x faster for large files)
         const pending = new Set<Promise<void>>()
         let chunksSent = 0
-        for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
+        let chunkError: unknown = null
+        for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
           const chunk = bytes.slice(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
           const framed = new Uint8Array(1 + idBytes.length + chunk.length)
           framed[0] = idBytes.length
           framed.set(idBytes, 1)
           framed.set(chunk, 1 + idBytes.length)
-          const chunkPromise = p2pService.sendFileData(peerId, framed)
-          pending.add(chunkPromise)
-          chunkPromise.then(() => {
-            pending.delete(chunkPromise)
+          const tracked: Promise<void> = p2pService.sendFileData(peerId, framed).then(() => {
+            pending.delete(tracked)
             chunksSent++
             transfer.progress = Math.min(99, Math.round(chunksSent / totalChunks * 100))
             this.notifyTransfers()
-          }, () => {})
+          }, (err: unknown) => {
+            pending.delete(tracked)
+            if (chunkError === null) chunkError = err
+          })
+          pending.add(tracked)
 
           if (pending.size >= WINDOW_SIZE) await Promise.race(pending)
         }
         await Promise.all(pending)
+        // Un chunk qui échoue en dehors de la fenêtre courante du Promise.race
+        // était auparavant oublié : all() résolvait et file:complete annonçait au
+        // pair un fichier entier, qui assemblait alors un binaire tronqué.
+        if (chunkError !== null) throw chunkError
         await p2pService.sendMessage(peerId, 'file:complete', { transferId })
       } else {
         let binary = ''
@@ -749,25 +756,31 @@ class FileService {
       const idBytes = new TextEncoder().encode(transferId)
       const pending = new Set<Promise<void>>()
       let chunksSent = 0
+      let chunkError: unknown = null
 
-      for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
+      for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
         const chunk = bytes.slice(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
         const framed = new Uint8Array(1 + idBytes.length + chunk.length)
         framed[0] = idBytes.length
         framed.set(idBytes, 1)
         framed.set(chunk, 1 + idBytes.length)
-        const chunkPromise = p2pService.sendFileData(peerId, framed)
-        pending.add(chunkPromise)
-        chunkPromise.then(() => {
-          pending.delete(chunkPromise)
+        const tracked: Promise<void> = p2pService.sendFileData(peerId, framed).then(() => {
+          pending.delete(tracked)
           chunksSent++
           onProgress?.(Math.min(99, Math.round(chunksSent / totalChunks * 100)))
-        }, () => {})
+        }, (err: unknown) => {
+          pending.delete(tracked)
+          if (chunkError === null) chunkError = err
+        })
+        pending.add(tracked)
 
         if (pending.size >= WINDOW_SIZE) await Promise.race(pending)
       }
 
       await Promise.all(pending)
+      // Même garde que sendFile : sans elle un chunk perdu hors fenêtre laissait
+      // annoncer file:complete, donc un pair du groupe assemblait un fichier tronqué.
+      if (chunkError !== null) throw chunkError
       await p2pService.sendMessage(peerId, 'file:complete', { transferId, groupTransferId })
       onProgress?.(100)
     } else {

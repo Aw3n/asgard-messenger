@@ -117,6 +117,32 @@ describe('widget de transfert vidéo', () => {
     expect(fileService.getTransfers()).toEqual([])
   })
 
+  it('n’annonce jamais file:complete quand un chunk échoue hors de la fenêtre de course', async () => {
+    const chunks: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
+      const chunk = deferred<void>()
+      chunks.push(chunk)
+      return chunk.promise
+    })
+    const sending = fileService.sendFile(video('tronquee.mp4', 9), 'conversation', 'peer')
+    await waitFor(() => expect(chunks).toHaveLength(4))
+
+    // Le chunk 0 gagne la course, le chunk 2 échoue dans le même lot : sa perte
+    // n'est plus visible depuis Promise.race, c'était exactement le cas silencieux
+    // où le pair recevait un binaire tronqué annoncé comme complet.
+    await act(async () => {
+      chunks[0].resolve()
+      chunks[2].reject(new Error('pair parti'))
+    })
+    expect(chunks).toHaveLength(4)
+
+    const failed = expect(sending).rejects.toThrow('pair parti')
+    await act(async () => { chunks[1].resolve(); chunks[3].resolve(); await failed })
+
+    expect(p2pService.sendMessage).not.toHaveBeenCalledWith('peer', 'file:complete', expect.anything())
+    expect(fileService.getTransfers()).toEqual([])
+  })
+
   it('ne laisse aucun transfert fantôme après une erreur de stockage ou de métadonnées', async () => {
     vi.mocked(storageService.putBlob).mockRejectedValueOnce(new Error('disque'))
     await expect(fileService.sendFile(video(), 'conversation', 'peer')).rejects.toThrow('disque')
