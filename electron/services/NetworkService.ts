@@ -1698,7 +1698,10 @@ export class NetworkService extends EventEmitter {
    */
   async connectToPeer(remotePublicKey: string | Buffer): Promise<boolean> {
     const dht = (this.swarm as unknown as { dht?: {
-      connect: (remotePublicKey: string | Buffer, opts?: { keyPair?: { publicKey: Buffer; secretKey: Buffer } }) => { on: (event: string, handler: () => void) => void }
+      connect: (remotePublicKey: string | Buffer, opts?: { keyPair?: { publicKey: Buffer; secretKey: Buffer } }) => {
+        on: (event: string, handler: (err?: Error) => void) => void
+        destroy: () => void
+      }
     } }).dht
 
     if (!dht || typeof dht.connect !== 'function') {
@@ -1708,14 +1711,30 @@ export class NetworkService extends EventEmitter {
     try {
       const keyPair = (this.swarm as unknown as { keyPair?: { publicKey: Buffer; secretKey: Buffer } }).keyPair
       const socket = dht.connect(remotePublicKey, keyPair ? { keyPair } : undefined)
-      
-      return new Promise((resolve) => {
+
+      return await new Promise<boolean>((resolve) => {
+        let settled = false
+        let timer: ReturnType<typeof setTimeout> | undefined
+        const finish = (ok: boolean) => {
+          if (settled) return
+          settled = true
+          if (timer) clearTimeout(timer)
+          // Même garde que R5 : un socket DHT qui n'a pas abouti doit être détruit,
+          // sinon il fuit et un ECONNRESET tardif remonte en 'error' sans auditeur.
+          if (!ok) socket.destroy()
+          resolve(ok)
+        }
         socket.on('open', () => {
           console.log('[NetworkService] Direct peer connection established')
-          resolve(true)
+          finish(true)
         })
+        socket.on('error', (err?: Error) => {
+          logMain(`[NetworkService] Direct peer connection error | ${err?.message ?? 'inconnue'}`)
+          finish(false)
+        })
+        socket.on('close', () => finish(false))
         // Timeout after 10 seconds
-        setTimeout(() => resolve(false), 10000)
+        timer = setTimeout(() => finish(false), 10000)
       })
     } catch (err) {
       console.error('[NetworkService] Direct peer connection failed:', err)
