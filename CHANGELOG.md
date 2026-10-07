@@ -143,35 +143,40 @@ dont deux touchaient l'intégrité des données échangées.
 
 ### Artefacts
 
-Générés depuis `f58838b`. Les empreintes sont des SHA-256.
+Générés depuis `88d96f8`. Les empreintes sont des SHA-256.
+
+Les conteneurs ne sont pas reproductibles bit à bit — une même source
+régénérée donne des `.exe`, `.deb`, `.AppImage`, `.dmg` et `.zip` dont la
+taille varie de quelques octets. L'`app.asar` qu'ils embarquent, lui, l'est :
+c'est sur lui que porte la vérification de contenu ci-dessous.
 
 **Windows** — installeur NSIS x64 + arm64, portable x64 :
 
 | Fichier | Octets | SHA-256 |
 |---|---|---|
-| `Asgard_Setup_1.0.1.exe` | 286 109 792 | `795e91bbb09dab42688a3b4bedbed6511f84399ab92b6fc14b5e87b416996e7e` |
-| `Asgard_1.0.1.exe` | 141 136 665 | `959b71c072a38cac1432d5f2f83d9841042bdc2af33ab1a1f27df255a54b9323` |
+| `Asgard_Setup_1.0.1.exe` | 286 109 790 | `51597220aaa96622afd367d4dccfd22337aed41bbe5177678f6d23e5a3f92ac2` |
+| `Asgard_1.0.1.exe` | 141 136 664 | `a1b3316a06c5683b0bd1d99c40f8d09895a7e4e61c6b7276c7e81126797d651b` |
 
 **Linux** :
 
 | Fichier | Octets | SHA-256 |
 |---|---|---|
-| `Asgard-1.0.1-linux-x86_64.AppImage` | 199 507 413 | `22da0e4bf0ff33d874fbc00ddb0a799a2bd71eaabd3551f25f8065d3d8929505` |
-| `Asgard-1.0.1-linux-arm64.AppImage` | 199 824 228 | `15dedcf4d25db86e9477663947cef806d0a8e028ddf5e59406482e95fd508457` |
-| `Asgard-1.0.1-linux-amd64.deb` | 113 548 910 | `1d85f3c50fa8c4f4d36ea3e4a9171a7004e27a6f0b7736eef07b315a37ffabfd` |
-| `Asgard-1.0.1-linux-arm64.deb` | 108 782 050 | `bc6efbeb89c327c3705e3aa201ccf45767b750518f537af7f262e9c1c9e0e90e` |
-| `Asgard-1.0.1-linux-x64.pacman` | 113 590 576 | `169c114d7ec04106cc0d91914789a446e0ae476465d3de6b0e9b503abf3b9ece` |
-| `Asgard-1.0.1-linux-x64.tar.gz` | 186 694 786 | `1503c72696c45fde84f6e3a46d76a5e7dfee7aacd7e64c1669a7d178ac2b7205` |
-| `Asgard-1.0.1-linux-arm64.tar.gz` | 186 683 373 | `0a657b73831a1fd1960f236bb1f531f160b7bab13c21e416d684c7c749f40080` |
+| `Asgard-1.0.1-linux-x86_64.AppImage` | 199 507 436 | `a3a542ad40fd6e94d3ab445e9294a22aa9062cb6fbbfbdb8d810b53a6e5d2a26` |
+| `Asgard-1.0.1-linux-arm64.AppImage` | 199 824 246 | `ae80e40ebf97f80b039e0ebf7cb5c28ede9b7491222268cb11544fb0808d30c1` |
+| `Asgard-1.0.1-linux-amd64.deb` | 113 574 158 | `baabd3eb5a2ba26bb275b000ee69cd0f3f6b0550b57fc112b044ce1f47819e8f` |
+| `Asgard-1.0.1-linux-arm64.deb` | 108 688 190 | `f6d7fad22f0cbcdf032f6efaa037ba84e2410bebd6ad19e54c9b1c079bc612a5` |
+| `Asgard-1.0.1-linux-x64.pacman` | 113 541 596 | `6d1d7e77b6468604c5aba98664fee935acad724b9b33b5852dd981245ceb93ba` |
+| `Asgard-1.0.1-linux-x64.tar.gz` | 186 695 099 | `0f837a3f266141b8c0439cc12e6b648ef6dcf5aee8e82f2f3d74c8da2d75890a` |
+| `Asgard-1.0.1-linux-arm64.tar.gz` | 186 683 884 | `39b9002b329b1c3a04560972f463e917db38c0c5833065e5de824e3522d6b96a` |
 
 **macOS** — non signés, `CSC_IDENTITY_AUTO_DISCOVERY: false` :
 
 | Fichier | Octets | SHA-256 |
 |---|---|---|
-| `Asgard-1.0.1.dmg` (x64) | 194 421 836 | `f90678e2f1fe8e8f71ad0d29dcc642e19270ba5cd991278303a9bb724b5fb4d8` |
-| `Asgard-1.0.1-mac.zip` (x64) | 185 694 152 | `886a56acf18e700eeb372d88a342fd67e99673b770ccdbceed955bd8375a6cb6` |
-| `Asgard-1.0.1-arm64.dmg` | 188 413 590 | `34bd9ebd536e07cb4812126aa86c043e13b7eabb410d5e5a07fefead8ecf7265` |
-| `Asgard-1.0.1-arm64-mac.zip` | 179 639 138 | `769d79f934daffd4b1e453b731323d20973faba854a59c2729b35ea82839ec01` |
+| `Asgard-1.0.1.dmg` (x64) | 194 422 153 | `89455b289b4b6ff786803058c52196e269c4e9c094636fa4e821e1ed464da07d` |
+| `Asgard-1.0.1-mac.zip` (x64) | 185 694 152 | `87a7fb7c4f2cb61b67018fcd1b2d16655703e0e14a34ce461beaf2308b7b68ff` |
+| `Asgard-1.0.1-arm64.dmg` | 188 417 901 | `02672e9bc58cf0266ff9069c0d3a5fb2542a5b8ea6b6980156a218b12c34630f` |
+| `Asgard-1.0.1-arm64-mac.zip` | 179 639 138 | `f5c4f751cfd19d23a0940d6acab1e9cda105e95654743eaed508dca13266e011` |
 
 L'`app.asar` des paquets Linux et macOS est byte-identique
 (`15ebd20f95579dde…`, 71 007 127 octets) ; celui des paquets Windows en diffère
@@ -180,7 +185,9 @@ précompilés par plateforme. Les six asar contrôlés — Windows x64 et arm64,
 `.deb` amd64 et arm64, `.zip` macOS x64 et arm64 — contiennent la garde R5, la
 garde `connectToPeer`, le bundle renderer `index-Bj_vR7Ii.js` et les trois sites
 du correctif de portée du widget (`conversationId` dans `getActiveReceives`,
-dans `sendFile` et dans l'entrée multicast).
+dans `sendFile` et dans l'entrée multicast). Les quatre asar Linux et macOS sont
+en outre byte-identiques à ceux de la génération `f58838b`, ce qui établit que
+le commit de documentation n'a rien changé au contenu livré.
 
 ### Vérification
 
