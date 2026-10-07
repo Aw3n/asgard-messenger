@@ -338,6 +338,7 @@ class FileService {
       progress: 0,
       status: 'uploading',
       type: this.getFileType(file.type, file.name),
+      conversationId,
     }
     this.transfers.set(transferId, transfer)
     this.notifyTransfers()
@@ -637,6 +638,7 @@ class FileService {
       progress: 0,
       status: 'uploading',
       type: attachment.type,
+      conversationId: channelId,
     }
     this.transfers.set(transferId, groupTransferEntry)
     this.notifyTransfers()
@@ -857,6 +859,7 @@ class FileService {
     fileSize: number
     progress: number
     type: string
+    conversationId: string
     attachment: MessageAttachment
   }> {
     const result: Array<{
@@ -865,6 +868,7 @@ class FileService {
       fileSize: number
       progress: number
       type: string
+      conversationId: string
       attachment: MessageAttachment
     }> = []
     for (const [id, buf] of this.receiveBuffers.entries()) {
@@ -875,6 +879,7 @@ class FileService {
           fileSize: buf.attachment.size || 0,
           progress: Math.round(buf.receivedChunks / buf.totalChunks * 100),
           type: buf.attachment.type || 'document',
+          conversationId: buf.conversationId,
           attachment: buf.attachment,
         })
       }
@@ -6322,6 +6327,9 @@ interface FileTransfer {
   progress: number
   status: 'uploading' | 'downloading' | 'complete' | 'error'
   type: MessageAttachment['type']
+  // Conversation d'origine : le widget est monté par conversation, sans ce
+  // champ un envoi vers B s'affichait aussi dans la fenêtre de C.
+  conversationId: string
 }
 
 interface ReceiveBuffer {

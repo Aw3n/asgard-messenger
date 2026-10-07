@@ -379,7 +379,7 @@ export const ChatView: React.FC = () => {
 
       {/* Active file transfers widget */}
       <AnimatePresence>
-        <ActiveTransfersWidget />
+        <ActiveTransfersWidget conversationId={dataId} />
       </AnimatePresence>
 
       {/* Message input */}

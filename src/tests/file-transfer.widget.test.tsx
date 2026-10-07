@@ -143,6 +143,31 @@ describe('widget de transfert vidéo', () => {
     expect(fileService.getTransfers()).toEqual([])
   })
 
+  it('n’affiche que les transferts de la conversation montée', async () => {
+    const chunks: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
+      const chunk = deferred<void>()
+      chunks.push(chunk)
+      return chunk.promise
+    })
+    const versB = fileService.sendFile(video('vers-b.mp4', 2), 'conversation-b', 'peer-b')
+    const versC = fileService.sendFile(video('vers-c.mp4', 2), 'conversation-c', 'peer-c')
+    await waitFor(() => expect(chunks).toHaveLength(4))
+
+    const view = render(<ActiveTransfersWidget conversationId="conversation-b" />)
+    await waitFor(() => expect(screen.getByText('vers-b.mp4')).toBeInTheDocument())
+    expect(screen.queryByText('vers-c.mp4')).not.toBeInTheDocument()
+
+    view.rerender(<ActiveTransfersWidget conversationId="conversation-c" />)
+    await waitFor(() => expect(screen.getByText('vers-c.mp4')).toBeInTheDocument())
+    expect(screen.queryByText('vers-b.mp4')).not.toBeInTheDocument()
+
+    view.unmount()
+    for (const chunk of chunks) chunk.resolve()
+    await versB
+    await versC
+  })
+
   it('ne laisse aucun transfert fantôme après une erreur de stockage ou de métadonnées', async () => {
     vi.mocked(storageService.putBlob).mockRejectedValueOnce(new Error('disque'))
     await expect(fileService.sendFile(video(), 'conversation', 'peer')).rejects.toThrow('disque')
@@ -165,6 +190,7 @@ describe('widget de transfert vidéo', () => {
   it('préserve les réceptions et le repliage du widget', async () => {
     vi.spyOn(fileService, 'getActiveReceives').mockReturnValue([{
       transferId: 'incoming', fileName: 'recue.mp4', fileSize: 1024, progress: 50, type: 'video',
+      conversationId: 'conversation',
       attachment: { id: 'incoming-attachment', name: 'recue.mp4', size: 1024, type: 'video', mimeType: 'video/mp4' },
     }])
     render(<ActiveTransfersWidget />)

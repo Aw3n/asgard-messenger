@@ -10,6 +10,7 @@ import { MemberList } from './MemberList'
 import { GroupSettings } from './GroupSettings'
 import { MessageBubble } from '@/features/chat/components/MessageBubble'
 import { MessageInput } from '@/features/chat/components/MessageInput'
+import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
 import { callService } from '@/services/CallService'
 import { groupService } from '@/services/GroupService'
 import { useTranslation } from 'react-i18next'
@@ -173,6 +174,11 @@ export const GroupView: React.FC = () => {
             />
           )}
         </div>
+
+        {/* Transferts de fichiers actifs de ce canal */}
+        <AnimatePresence>
+          <ActiveTransfersWidget conversationId={channelId} />
+        </AnimatePresence>
 
         {/* Message input */}
         <MessageInput

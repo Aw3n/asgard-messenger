@@ -26,7 +26,7 @@ interface TransferInfo {
   startedAt: number
 }
 
-export const ActiveTransfersWidget: React.FC = () => {
+export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ conversationId }) => {
   const { t } = useTranslation()
   const [transfers, setTransfers] = useState<TransferInfo[]>([])
   const [isExpanded, setIsExpanded] = useState(true)
@@ -37,10 +37,16 @@ export const ActiveTransfersWidget: React.FC = () => {
       const activeTransfers = fileService.getTransfers()
       const now = Date.now()
 
+      // Le widget est monté DANS une conversation : sans ce filtre, un envoi
+      // vers un pair s'affichait aussi dans la fenêtre d'un autre pair, les
+      // deux instances lisant la même liste globale.
+      const belongs = (id: string) => conversationId === undefined || id === conversationId
+
       // le paramètre s'appelait `t` : il masquait la fonction de traduction du
       // composant, donc aucun libellé n'aurait pu être traduit dans ce corps
       const mapped: TransferInfo[] = activeTransfers
         .filter(transfer => transfer.status === 'uploading' || transfer.status === 'downloading')
+        .filter(transfer => belongs(transfer.conversationId))
         .map(transfer => {
           // Calculate speed based on progress delta
           const prev = prevProgressRef.current.get(transfer.id)
@@ -69,6 +75,7 @@ export const ActiveTransfersWidget: React.FC = () => {
       // Also check receive buffers for incoming transfers
       const activeReceives = fileService.getActiveReceives()
       for (const recv of activeReceives) {
+        if (!belongs(recv.conversationId)) continue
         const progress = recv.progress
         const prev = prevProgressRef.current.get(recv.transferId)
         let speed = 0
@@ -113,7 +120,7 @@ export const ActiveTransfersWidget: React.FC = () => {
       clearInterval(interval)
       prevProgressRef.current.clear()
     }
-  }, [])
+  }, [conversationId])
 
   if (transfers.length === 0) return null
 
