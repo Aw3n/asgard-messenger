@@ -46,7 +46,7 @@ export interface AsgardAPI {
     sendBatch: (peerId: string, dataArray: Uint8Array[]) => Promise<void>
     sendMedia: (peerId: string, data: Uint8Array) => Promise<void>
     sendMediaBatch: (peerId: string, chunks: Uint8Array[]) => Promise<void>
-    sendFileData: (peerId: string, data: Uint8Array) => Promise<void>
+    sendFileDataBatch: (peerId: string, chunks: Uint8Array[]) => Promise<void>
     isPeerConnected: (peerId: string) => Promise<boolean>
     waitForPeer: (peerId: string, timeoutMs?: number) => Promise<boolean>
     cork: (peerId: string) => Promise<void>
@@ -285,7 +285,7 @@ contextBridge.exposeInMainWorld('asgard', {
     sendBatch: (peerId: string, dataArray: Uint8Array[]) => ipcRenderer.invoke('network:sendBatch', peerId, dataArray),
     sendMedia: (peerId: string, data: Uint8Array) => ipcRenderer.invoke('network:sendMedia', peerId, data),
     sendMediaBatch: (peerId: string, chunks: Uint8Array[]) => ipcRenderer.invoke('network:sendMediaBatch', peerId, chunks),
-    sendFileData: (peerId: string, data: Uint8Array) => ipcRenderer.invoke('network:sendFileData', peerId, data),
+    sendFileDataBatch: (peerId: string, chunks: Uint8Array[]) => ipcRenderer.invoke('network:sendFileDataBatch', peerId, chunks),
     isPeerConnected: (peerId: string) => ipcRenderer.invoke('network:isPeerConnected', peerId),
     waitForPeer: (peerId: string, timeoutMs?: number) => ipcRenderer.invoke('network:waitForPeer', peerId, timeoutMs),
     cork: (peerId: string) => ipcRenderer.invoke('network:cork', peerId),

@@ -37,7 +37,7 @@ export interface AsgardElectronAPI {
     sendBatch: (peerId: string, dataArray: Uint8Array[]) => Promise<void>
     sendMedia: (peerId: string, data: Uint8Array) => Promise<void>
     sendMediaBatch: (peerId: string, chunks: Uint8Array[]) => Promise<void>
-    sendFileData: (peerId: string, data: Uint8Array) => Promise<void>
+    sendFileDataBatch: (peerId: string, chunks: Uint8Array[]) => Promise<void>
     isPeerConnected: (peerId: string) => Promise<boolean>
     waitForPeer: (peerId: string, timeoutMs?: number) => Promise<boolean>
     cork: (peerId: string) => Promise<void>

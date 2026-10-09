@@ -438,14 +438,15 @@ class P2PService extends EventEmitter {
   }
 
   /**
-   * HOLEPUNCH PATTERN: Send raw file transfer data via the dedicated 'asgard-files' Protomux channel.
-   * Each protocol type gets its own channel for isolation and independent backpressure.
-   * File transfers don't interfere with audio/video during active calls.
+   * HOLEPUNCH PATTERN: Send a batch of raw file transfer chunks via the dedicated
+   * 'asgard-files' Protomux channel. Each protocol type gets its own channel for
+   * isolation and independent backpressure, so transfers don't interfere with
+   * audio/video during active calls.
    */
-  async sendFileData(peerId: string, data: Uint8Array): Promise<void> {
+  async sendFileDataBatch(peerId: string, chunks: Uint8Array[]): Promise<void> {
     // CRITICAL: Translate Ed25519 public key to Hyperswarm Noise peer ID.
     const noisePeerId = this.ed25519ToNoiseMap.get(peerId) ?? peerId
-    await window.asgard.network.sendFileData(noisePeerId, data)
+    await window.asgard.network.sendFileDataBatch(noisePeerId, chunks)
   }
 
   /**

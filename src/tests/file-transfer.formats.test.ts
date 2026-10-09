@@ -369,7 +369,7 @@ describe('envoi d’un fichier sans type MIME', () => {
     vi.spyOn(fileService, 'compressForNetwork').mockImplementation(async (file) => file)
     vi.spyOn(storageService, 'putBlob').mockResolvedValue('blob-key')
     vi.spyOn(p2pService, 'sendMessage').mockResolvedValue(undefined)
-    vi.spyOn(p2pService, 'sendFileData').mockResolvedValue(undefined)
+    vi.spyOn(p2pService, 'sendFileDataBatch').mockResolvedValue(undefined)
     vi.spyOn(p2pService, 'isPeerConnected').mockReturnValue(true)
   })
 

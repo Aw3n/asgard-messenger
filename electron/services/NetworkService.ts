@@ -1223,14 +1223,20 @@ export class NetworkService extends EventEmitter {
   }
 
   /**
-   * Send file transfer data to a specific peer via the dedicated 'asgard-files' Protomux channel.
+   * Send one batch of file chunks over the dedicated 'asgard-files' Protomux channel.
    * HOLEPUNCH PATTERN: Each protocol type gets its own Protomux channel for isolation
    * and independent backpressure. File transfers don't interfere with audio/video.
+   *
+   * The batch is framed by a single cork/uncork pair and the transport is flushed
+   * exactly once for all of it. Flushing per chunk meant one awaited round trip to
+   * the kernel every 256 Ko, which is what capped throughput on fast links.
    *
    * Falls back to the media channel if the file channel is unavailable (older peer).
    * Resolves only after SecretStream flushes its encrypted buffers and transport.
    */
-  async sendFileData(peerId: string, data: Uint8Array): Promise<void> {
+  async sendFileDataBatch(peerId: string, chunks: Uint8Array[]): Promise<void> {
+    if (chunks.length === 0) return
+
     const noiseId = this.resolvePeerKey(peerId)
     const peer = this.peers.get(noiseId)
     if (!peer) {
@@ -1251,23 +1257,41 @@ export class NetworkService extends EventEmitter {
       throw new Error(`File transfer channel closed for peer ${peerId.slice(0, 16)}`)
     }
 
-    let buf: Buffer
-    if (peer.sendFile) {
-      buf = Buffer.from(data)
-    } else {
+    const framed = chunks.map(data => {
+      // Le tampon arrivé d'IPC est une copie déjà isolée : l'envelopper plutôt que
+      // le recopier supprime un memcpy de 256 Ko par chunk. Aucun appelant ne
+      // réutilise ni ne mute le tableau envoyé ici.
+      const raw = Buffer.isBuffer(data)
+        ? data
+        : Buffer.from(data.buffer, data.byteOffset, data.byteLength)
+      if (peer.sendFile) return raw
       // Preserve the media fallback framing used by older peers.
-      buf = Buffer.alloc(1 + data.length)
-      buf[0] = 0x04 // FILE_TRANSFER_MARKER
-      Buffer.from(data).copy(buf, 1)
+      const marked = Buffer.alloc(1 + raw.length)
+      marked[0] = 0x04 // FILE_TRANSFER_MARKER
+      raw.copy(marked, 1)
+      return marked
+    })
+
+    // Le cork n'encadre que des envois synchrones : une écriture attendue à
+    // l'intérieur ne se terminerait jamais, son vidage étant précisément ce que
+    // déclenche l'uncork.
+    let batchBytes = 0
+    channel.cork?.()
+    try {
+      for (const buf of framed) {
+        // send(false) on an open channel means backpressure, not failure.
+        // Even send(true) only queues the data: completion must wait for the flush.
+        message.send(buf)
+        batchBytes += buf.length
+      }
+    } finally {
+      channel.uncork?.()
     }
 
-    // send(false) on an open channel means backpressure, not failure.
-    // Even send(true) only queues the data: completion must wait for the flush.
-    message.send(buf)
     if (!(await peer.socket.flush())) {
       throw new Error(`File transfer flush failed for peer ${peerId.slice(0, 16)}`)
     }
-    this.trackBandwidth(buf.length, 0)
+    this.trackBandwidth(batchBytes, 0)
   }
 
   /**

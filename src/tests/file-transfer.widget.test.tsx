@@ -32,7 +32,7 @@ beforeEach(() => {
   vi.spyOn(fileService, 'compressForNetwork').mockImplementation(async file => file)
   vi.spyOn(storageService, 'putBlob').mockResolvedValue('test-blob')
   vi.spyOn(p2pService, 'sendMessage').mockResolvedValue(undefined)
-  vi.spyOn(p2pService, 'sendFileData').mockResolvedValue(undefined)
+  vi.spyOn(p2pService, 'sendFileDataBatch').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'isPeerConnected').mockReturnValue(true)
 })
 
@@ -47,7 +47,7 @@ describe('widget de transfert vidéo', () => {
     const chunk = deferred<void>()
     const completion = deferred<void>()
     vi.mocked(fileService.compressForNetwork).mockReturnValue(compression.promise)
-    vi.mocked(p2pService.sendFileData).mockReturnValue(chunk.promise)
+    vi.mocked(p2pService.sendFileDataBatch).mockReturnValue(chunk.promise)
     vi.mocked(p2pService.sendMessage).mockImplementation(async (_peer, type) => {
       if (type === 'file:complete') await completion.promise
     })
@@ -58,11 +58,11 @@ describe('widget de transfert vidéo', () => {
     expect(screen.getByText('video.mp4')).toBeInTheDocument()
     expect(screen.getByText('chat.sendingFile')).toBeInTheDocument()
     expect(fileService.getTransfers()[0].progress).toBe(0)
-    expect(p2pService.sendFileData).not.toHaveBeenCalled()
+    expect(p2pService.sendFileDataBatch).not.toHaveBeenCalled()
 
     await act(async () => { compression.resolve(video('video.webm')) })
     expect(screen.getByText('video.webm')).toBeInTheDocument()
-    expect(p2pService.sendFileData).toHaveBeenCalledTimes(1)
+    expect(p2pService.sendFileDataBatch).toHaveBeenCalledTimes(1)
     expect(p2pService.sendMessage).not.toHaveBeenCalledWith('peer', 'file:complete', expect.anything())
 
     await act(async () => { chunk.resolve() })
@@ -73,32 +73,36 @@ describe('widget de transfert vidéo', () => {
     expect(fileService.getTransfers()).toEqual([])
   })
 
-  it('borne les chunks en vol à quatre même après les premières résolutions', async () => {
-    const chunks: ReturnType<typeof deferred<void>>[] = []
-    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
-      const chunk = deferred<void>()
-      chunks.push(chunk)
-      return chunk.promise
+  it('groupe quatre chunks par lot et n’en laisse voler que deux', async () => {
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    const sizes: number[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation((_peer, chunks) => {
+      sizes.push(chunks.length)
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
     })
     const sending = fileService.sendFile(video('longue.mp4', 9), 'conversation', 'peer')
-    await waitFor(() => expect(chunks).toHaveLength(4))
-    chunks[0].resolve()
-    await waitFor(() => expect(chunks).toHaveLength(5))
-    expect(fileService.getTransfers()[0].progress).toBe(11)
-    chunks[1].resolve()
-    await waitFor(() => expect(chunks).toHaveLength(6))
+
+    // Neuf chunks ne coûtent plus neuf aller-retours : quatre puis quatre, et la
+    // boucle attend que l'un des deux se vide avant d'en cadre un troisième.
+    await waitFor(() => expect(batches).toHaveLength(2))
+    expect(sizes).toEqual([4, 4])
+    batches[0].resolve()
+    await waitFor(() => expect(batches).toHaveLength(3))
+    expect(sizes[2]).toBe(1)
+    expect(fileService.getTransfers()[0].progress).toBe(44)
     expect(p2pService.sendMessage).not.toHaveBeenCalledWith('peer', 'file:complete', expect.anything())
-    vi.mocked(p2pService.sendFileData).mockResolvedValue(undefined)
-    for (const chunk of chunks) chunk.resolve()
+    for (const batch of batches) batch.resolve()
     await sending
-    expect(p2pService.sendFileData).toHaveBeenCalledTimes(9)
+    expect(p2pService.sendFileDataBatch).toHaveBeenCalledTimes(3)
     expect(fileService.getTransfers()).toEqual([])
   })
 
   it('retire uniquement le transfert échoué et conserve l’autre vidéo active', async () => {
     const first = deferred<void>()
     const second = deferred<void>()
-    vi.mocked(p2pService.sendFileData)
+    vi.mocked(p2pService.sendFileDataBatch)
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise)
     render(<ActiveTransfersWidget />)
@@ -118,42 +122,45 @@ describe('widget de transfert vidéo', () => {
     expect(fileService.getTransfers()).toEqual([])
   })
 
-  it('n’annonce jamais file:complete quand un chunk échoue hors de la fenêtre de course', async () => {
-    const chunks: ReturnType<typeof deferred<void>>[] = []
-    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
-      const chunk = deferred<void>()
-      chunks.push(chunk)
-      return chunk.promise
+  it('n’annonce jamais file:complete quand un lot échoue hors de la fenêtre de course', async () => {
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation(() => {
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
     })
-    const sending = fileService.sendFile(video('tronquee.mp4', 9), 'conversation', 'peer')
-    await waitFor(() => expect(chunks).toHaveLength(4))
+    // Douze chunks par lots de quatre : trois lots si tout se vide.
+    const sending = fileService.sendFile(video('tronquee.mp4', 12), 'conversation', 'peer')
+    await waitFor(() => expect(batches).toHaveLength(2))
 
-    // Le chunk 0 gagne la course, le chunk 2 échoue dans le même lot : sa perte
+    // Le lot 0 gagne la course et le lot 1 échoue au même instant : sa perte
     // n'est plus visible depuis Promise.race, c'était exactement le cas silencieux
     // où le pair recevait un binaire tronqué annoncé comme complet.
-    await act(async () => {
-      chunks[0].resolve()
-      chunks[2].reject(new Error('pair parti'))
-    })
-    expect(chunks).toHaveLength(4)
-
+    // La faute doit être attendue avant que le lot ne rejette : sinon la
+    // promesse de l'envoi rejette un tick avant l'écouteur et Vitest la signale.
     const failed = expect(sending).rejects.toThrow('pair parti')
-    await act(async () => { chunks[1].resolve(); chunks[3].resolve(); await failed })
+    await act(async () => {
+      batches[0].resolve()
+      batches[1].reject(new Error('pair parti'))
+    })
+    // L'émission s'arrête sur la première faute : le troisième lot n'est jamais cadré.
+    expect(batches).toHaveLength(2)
+    await failed
 
     expect(p2pService.sendMessage).not.toHaveBeenCalledWith('peer', 'file:complete', expect.anything())
     expect(fileService.getTransfers()).toEqual([])
   })
 
   it('n’affiche que les transferts de la conversation montée', async () => {
-    const chunks: ReturnType<typeof deferred<void>>[] = []
-    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
-      const chunk = deferred<void>()
-      chunks.push(chunk)
-      return chunk.promise
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation(() => {
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
     })
     const versB = fileService.sendFile(video('vers-b.mp4', 2), 'conversation-b', 'peer-b')
     const versC = fileService.sendFile(video('vers-c.mp4', 2), 'conversation-c', 'peer-c')
-    await waitFor(() => expect(chunks).toHaveLength(4))
+    await waitFor(() => expect(batches).toHaveLength(2))
 
     const view = render(<ActiveTransfersWidget conversationId="conversation-b" />)
     await waitFor(() => expect(screen.getByText('vers-b.mp4')).toBeInTheDocument())
@@ -164,7 +171,7 @@ describe('widget de transfert vidéo', () => {
     expect(screen.queryByText('vers-b.mp4')).not.toBeInTheDocument()
 
     view.unmount()
-    for (const chunk of chunks) chunk.resolve()
+    for (const batch of batches) batch.resolve()
     await versB
     await versC
   })
@@ -176,7 +183,7 @@ describe('widget de transfert vidéo', () => {
     vi.mocked(p2pService.sendMessage).mockRejectedValueOnce(new Error('metadata'))
     await expect(fileService.sendFile(video(), 'conversation', 'peer')).rejects.toThrow('metadata')
     expect(fileService.getTransfers()).toEqual([])
-    expect(p2pService.sendFileData).not.toHaveBeenCalled()
+    expect(p2pService.sendFileDataBatch).not.toHaveBeenCalled()
   })
 
   it('choisit le mode inline à partir de la taille après compression', async () => {
@@ -184,7 +191,7 @@ describe('widget de transfert vidéo', () => {
     Object.defineProperty(compressed, 'arrayBuffer', { value: async () => new ArrayBuffer(5) })
     vi.mocked(fileService.compressForNetwork).mockResolvedValue(compressed)
     await fileService.sendFile(video(), 'conversation', 'peer')
-    expect(p2pService.sendFileData).not.toHaveBeenCalled()
+    expect(p2pService.sendFileDataBatch).not.toHaveBeenCalled()
     expect(p2pService.sendMessage).toHaveBeenCalledWith('peer', 'file:transfer', expect.objectContaining({ fileData: expect.any(String) }))
   })
 
@@ -203,12 +210,14 @@ describe('widget de transfert vidéo', () => {
     expect(screen.getByText('recue.mp4')).toBeInTheDocument()
   })
 
-  it('conserve une fenêtre bornée pour les envois groupés utilisant le même transport', async () => {
-    const chunks: ReturnType<typeof deferred<void>>[] = []
-    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
-      const chunk = deferred<void>()
-      chunks.push(chunk)
-      return chunk.promise
+  it('borne la fenêtre des envois groupés sur le même chemin par lot', async () => {
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    const sizes: number[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation((_peer, chunks) => {
+      sizes.push(chunks.length)
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
     })
     const progress = vi.fn()
     const bytes = new Uint8Array(9 * 256 * 1024)
@@ -217,15 +226,15 @@ describe('widget de transfert vidéo', () => {
       sendBlobToPeer: (bytes: Uint8Array, peer: string, attachment: MessageAttachment, channel: string, group: string, onProgress: (value: number) => void) => Promise<void>
     }
     const sending = sender.sendBlobToPeer(bytes, 'peer', attachment, 'channel', 'group', progress)
-    await waitFor(() => expect(chunks).toHaveLength(4))
-    chunks[0].resolve()
-    await waitFor(() => expect(chunks).toHaveLength(5))
-    expect(progress).toHaveBeenLastCalledWith(11)
+    await waitFor(() => expect(batches).toHaveLength(2))
+    expect(sizes).toEqual([4, 4])
+    batches[0].resolve()
+    await waitFor(() => expect(batches).toHaveLength(3))
+    expect(progress).toHaveBeenLastCalledWith(44)
     expect(progress).not.toHaveBeenCalledWith(100)
-    vi.mocked(p2pService.sendFileData).mockResolvedValue(undefined)
-    for (const chunk of chunks) chunk.resolve()
+    for (const batch of batches) batch.resolve()
     await sending
-    expect(p2pService.sendFileData).toHaveBeenCalledTimes(9)
+    expect(p2pService.sendFileDataBatch).toHaveBeenCalledTimes(3)
     expect(progress).toHaveBeenLastCalledWith(100)
   })
 
@@ -240,11 +249,11 @@ describe('widget de transfert vidéo', () => {
 
 describe('bulle de pièce jointe homonyme', () => {
   it('n’affiche la progression que sur la bulle du transfert en cours', async () => {
-    const chunks: ReturnType<typeof deferred<void>>[] = []
-    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
-      const chunk = deferred<void>()
-      chunks.push(chunk)
-      return chunk.promise
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation(() => {
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
     })
     let sending!: ReturnType<typeof fileService.sendFile>
     act(() => { sending = fileService.sendFile(video('setup.exe'), 'conversation', 'peer') })
@@ -271,8 +280,8 @@ describe('bulle de pièce jointe homonyme', () => {
     expect(screen.getByText('111 B')).toBeInTheDocument()
     expect(screen.queryByText('111 B — 0%')).not.toBeInTheDocument()
 
-    vi.mocked(p2pService.sendFileData).mockResolvedValue(undefined)
-    for (const chunk of chunks) chunk.resolve()
+    vi.mocked(p2pService.sendFileDataBatch).mockResolvedValue(undefined)
+    for (const batch of batches) batch.resolve()
     await act(async () => { await sending })
     await waitFor(() => expect(screen.queryByText('222 B — 0%')).not.toBeInTheDocument())
     expect(screen.getByText('222 B')).toBeInTheDocument()
@@ -306,26 +315,27 @@ describe('destinataire injoignable', () => {
 })
 
 describe('coalescence des notifications de transfert', () => {
-  it('n’émet pas une notification par chunk pendant un envoi', async () => {
-    const chunks: ReturnType<typeof deferred<void>>[] = []
-    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
-      const chunk = deferred<void>()
-      chunks.push(chunk)
-      return chunk.promise
+  it('n’émet pas une notification par lot pendant un envoi', async () => {
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation(() => {
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
     })
     const listener = vi.fn()
     const unsubscribe = fileService.subscribeTransfers(listener)
-    const sending = fileService.sendFile(video('gros.mp4', 9), 'conversation', 'peer')
-    await waitFor(() => expect(chunks).toHaveLength(4))
+    // Quarante chunks par lots de quatre : dix notifications de progression brutes.
+    const sending = fileService.sendFile(video('gros.mp4', 40), 'conversation', 'peer')
+    await waitFor(() => expect(batches).toHaveLength(2))
 
     listener.mockClear()
-    vi.mocked(p2pService.sendFileData).mockResolvedValue(undefined)
-    for (const chunk of chunks) chunk.resolve()
+    vi.mocked(p2pService.sendFileDataBatch).mockResolvedValue(undefined)
+    for (const batch of batches) batch.resolve()
     await act(async () => { await sending })
     unsubscribe()
 
-    // Neuf chunks aboutissent plus la transition terminale : sans coalescence le
-    // compteur dépasserait 10, et chaque appel recalculait toute la liste des
+    // Dix lots mènent l'envoi plus la transition terminale : sans coalescence le
+    // compteur dépasserait 11, et chaque appel recalculait toute la liste des
     // transferts dans chaque widget monté.
     expect(listener.mock.calls.length).toBeLessThanOrEqual(3)
     expect(fileService.getTransfers()).toEqual([])

@@ -14,8 +14,12 @@ import type { ProtocolMessage } from '@/types'
 const CHUNK_SIZE = 256 * 1024
 /** Threshold above which we use binary transfer instead of inline: 100KB */
 const BINARY_THRESHOLD = 100 * 1024
-/** Number of chunks to send in parallel via sliding window */
-const WINDOW_SIZE = 4
+/** Number of chunks carried by one batch: a batch costs a single IPC round trip
+ *  and a single transport flush, so this is the amortisation factor. */
+const CHUNKS_PER_BATCH = 4
+/** Batches allowed in flight. Two keeps the pipeline full — the next batch is
+ *  framed while the previous one drains — without growing the queue unbounded. */
+const BATCHES_IN_FLIGHT = 2
 /** Marker byte prepended to binary file-transfer chunks on the shared media channel */
 const FILE_TRANSFER_MARKER = 0x04
 /** Block size for Hyperblobs storage — kept for future Hyperblobs integration */
@@ -323,6 +327,70 @@ class FileService {
     })
   }
 
+  /**
+   * Émet un fichier binaire par lots sur le canal dédié.
+   *
+   * COHÉRENCE CHUNKS : chaque chunk est préfixé du transferId — la réception route
+   * par (expéditeur, transferId) au lieu de « premier buffer incomplet de ce pair »,
+   * ce qui rend sûrs les transferts simultanés d'un même pair et tolère l'arrivée
+   * des chunks avant la metadata (canaux séparés).
+   *
+   * VITESSE : un lot de CHUNKS_PER_BATCH chunks ne coûte qu'un aller-retour IPC et
+   * qu'un seul vidage du transport, là où l'ancienne boucle payait les deux par
+   * chunk de 256 Ko. BATCHES_IN_FLIGHT lots restent en vol pour que la construction
+   * du suivant se poursuive pendant que le précédent se vide.
+   *
+   * INTÉGRITÉ : la première faute est mémorisée, l'émission s'arrête et la promesse
+   * est rejetée. Sans cette garde, un lot perdu hors de la fenêtre observée par
+   * Promise.race laissait file:complete annoncer au pair un fichier tronqué.
+   */
+  private async sendFramedChunks(
+    peerId: string,
+    bytes: Uint8Array,
+    transferId: string,
+    totalChunks: number,
+    onProgress: (percent: number) => void,
+  ): Promise<void> {
+    const idBytes = new TextEncoder().encode(transferId)
+    const pending = new Set<Promise<void>>()
+    let chunksSent = 0
+    let chunkError: unknown = null
+    let batch: Uint8Array[] = []
+
+    const submit = (framed: Uint8Array[]) => {
+      const tracked: Promise<void> = p2pService.sendFileDataBatch(peerId, framed).then(() => {
+        pending.delete(tracked)
+        chunksSent += framed.length
+        onProgress(Math.min(99, Math.round(chunksSent / totalChunks * 100)))
+      }, (err: unknown) => {
+        pending.delete(tracked)
+        if (chunkError === null) chunkError = err
+      })
+      pending.add(tracked)
+    }
+
+    for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
+      // subarray, pas slice : une vue sur le fichier plutôt qu'une copie. Le
+      // chunk n'est copié qu'une fois, dans `framed`.
+      const chunk = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
+      const framed = new Uint8Array(1 + idBytes.length + chunk.length)
+      framed[0] = idBytes.length
+      framed.set(idBytes, 1)
+      framed.set(chunk, 1 + idBytes.length)
+      batch.push(framed)
+
+      const lastChunk = offset + CHUNK_SIZE >= bytes.length
+      if (batch.length < CHUNKS_PER_BATCH && !lastChunk) continue
+
+      submit(batch)
+      batch = []
+      if (pending.size >= BATCHES_IN_FLIGHT) await Promise.race(pending)
+    }
+
+    await Promise.all(pending)
+    if (chunkError !== null) throw chunkError
+  }
+
   async sendFile(
     file: File,
     conversationId: string,
@@ -404,43 +472,10 @@ class FileService {
         })
 
         // Do not cork across awaited writes: their completion requires the mux to flush.
-        // COHÉRENCE CHUNKS: chaque chunk est préfixé du transferId — la réception
-        // route par (expéditeur, transferId) au lieu de « premier buffer incomplet
-        // de ce pair », ce qui rend sûrs les transferts simultanés d'un même pair
-        // et tolère l'arrivée des chunks avant la metadata (canaux séparés).
-        const idBytes = new TextEncoder().encode(transferId)
-        
-        // PERFORMANCE: Sliding window pipeline — send WINDOW_SIZE chunks in parallel
-        // instead of awaiting each chunk sequentially (4x faster for large files)
-        const pending = new Set<Promise<void>>()
-        let chunksSent = 0
-        let chunkError: unknown = null
-        for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
-          // subarray, pas slice : une vue sur le fichier plutôt qu'une copie. Le
-          // chunk n'est copié qu'une fois, dans `framed`.
-          const chunk = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
-          const framed = new Uint8Array(1 + idBytes.length + chunk.length)
-          framed[0] = idBytes.length
-          framed.set(idBytes, 1)
-          framed.set(chunk, 1 + idBytes.length)
-          const tracked: Promise<void> = p2pService.sendFileData(peerId, framed).then(() => {
-            pending.delete(tracked)
-            chunksSent++
-            transfer.progress = Math.min(99, Math.round(chunksSent / totalChunks * 100))
-            this.notifyTransfers()
-          }, (err: unknown) => {
-            pending.delete(tracked)
-            if (chunkError === null) chunkError = err
-          })
-          pending.add(tracked)
-
-          if (pending.size >= WINDOW_SIZE) await Promise.race(pending)
-        }
-        await Promise.all(pending)
-        // Un chunk qui échoue en dehors de la fenêtre courante du Promise.race
-        // était auparavant oublié : all() résolvait et file:complete annonçait au
-        // pair un fichier entier, qui assemblait alors un binaire tronqué.
-        if (chunkError !== null) throw chunkError
+        await this.sendFramedChunks(peerId, bytes, transferId, totalChunks, percent => {
+          transfer.progress = percent
+          this.notifyTransfers()
+        })
         await p2pService.sendMessage(peerId, 'file:complete', { transferId })
       } else {
         let binary = ''
@@ -765,35 +800,10 @@ class FileService {
         senderMessageId,
       })
 
-      const idBytes = new TextEncoder().encode(transferId)
-      const pending = new Set<Promise<void>>()
-      let chunksSent = 0
-      let chunkError: unknown = null
-
-      for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
-        // subarray, pas slice : même raison que dans sendFile.
-        const chunk = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
-        const framed = new Uint8Array(1 + idBytes.length + chunk.length)
-        framed[0] = idBytes.length
-        framed.set(idBytes, 1)
-        framed.set(chunk, 1 + idBytes.length)
-        const tracked: Promise<void> = p2pService.sendFileData(peerId, framed).then(() => {
-          pending.delete(tracked)
-          chunksSent++
-          onProgress?.(Math.min(99, Math.round(chunksSent / totalChunks * 100)))
-        }, (err: unknown) => {
-          pending.delete(tracked)
-          if (chunkError === null) chunkError = err
-        })
-        pending.add(tracked)
-
-        if (pending.size >= WINDOW_SIZE) await Promise.race(pending)
-      }
-
-      await Promise.all(pending)
-      // Même garde que sendFile : sans elle un chunk perdu hors fenêtre laissait
-      // annoncer file:complete, donc un pair du groupe assemblait un fichier tronqué.
-      if (chunkError !== null) throw chunkError
+      // Même garantie d'intégrité que sendFile, désormais portée par le chemin
+      // par lot partagé : un lot en erreur stoppe l'émission et file:complete
+      // n'est pas envoyé, donc aucun pair du groupe n'assemble un fichier tronqué.
+      await this.sendFramedChunks(peerId, bytes, transferId, totalChunks, percent => onProgress?.(percent))
       await p2pService.sendMessage(peerId, 'file:complete', { transferId, groupTransferId })
       onProgress?.(100)
     } else {

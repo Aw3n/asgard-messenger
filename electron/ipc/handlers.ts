@@ -358,9 +358,10 @@ function setupNetworkHandlers(win: BrowserWindow): void {
     return await networkService.sendMediaBatch(peerId, chunks)
   })
 
-  // HOLEPUNCH PATTERN: Dedicated file transfer channel for isolation from media
-  ipcMain.handle('network:sendFileData', async (_event, peerId: string, data: Uint8Array) => {
-    return await networkService.sendFileData(peerId, data)
+  // HOLEPUNCH PATTERN: Dedicated file transfer channel for isolation from media.
+  // One IPC round trip and one transport flush per batch, not per chunk.
+  ipcMain.handle('network:sendFileDataBatch', async (_event, peerId: string, chunks: Uint8Array[]) => {
+    return await networkService.sendFileDataBatch(peerId, chunks)
   })
 
   // PERFORMANCE: Batch send — cork, send all messages, uncork in a single IPC call.
