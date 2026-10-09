@@ -6,6 +6,7 @@ import { fileService, PeerUnreachableError, SEND_DIAL_TIMEOUT_MS } from '@/servi
 import { p2pService } from '@/services/P2PService'
 import { storageService } from '@/services/StorageService'
 import type { MessageAttachment } from '@/types'
+import type { ProtocolMessage } from '@/types/network'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
@@ -301,5 +302,66 @@ describe('destinataire injoignable', () => {
 
     expect(storageService.putBlob).toHaveBeenCalledOnce()
     expect(p2pService.sendMessage).toHaveBeenCalledWith('peer', 'file:transfer', expect.anything())
+  })
+})
+
+describe('coalescence des notifications de transfert', () => {
+  it('n’émet pas une notification par chunk pendant un envoi', async () => {
+    const chunks: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileData).mockImplementation(() => {
+      const chunk = deferred<void>()
+      chunks.push(chunk)
+      return chunk.promise
+    })
+    const listener = vi.fn()
+    const unsubscribe = fileService.subscribeTransfers(listener)
+    const sending = fileService.sendFile(video('gros.mp4', 9), 'conversation', 'peer')
+    await waitFor(() => expect(chunks).toHaveLength(4))
+
+    listener.mockClear()
+    vi.mocked(p2pService.sendFileData).mockResolvedValue(undefined)
+    for (const chunk of chunks) chunk.resolve()
+    await act(async () => { await sending })
+    unsubscribe()
+
+    // Neuf chunks aboutissent plus la transition terminale : sans coalescence le
+    // compteur dépasserait 10, et chaque appel recalculait toute la liste des
+    // transferts dans chaque widget monté.
+    expect(listener.mock.calls.length).toBeLessThanOrEqual(3)
+    expect(fileService.getTransfers()).toEqual([])
+  })
+
+  it('notifie la progression d’une réception, qui restait muette', async () => {
+    fileService.initialize()
+    const listener = vi.fn()
+    const unsubscribe = fileService.subscribeTransfers(listener)
+    const from = 'pair-de-bruit'
+    const transferId = 'recu-notifie'
+    const idBytes = new TextEncoder().encode(transferId)
+    const frame = (payload: Uint8Array): Uint8Array => {
+      const out = new Uint8Array(1 + idBytes.length + payload.length)
+      out[0] = idBytes.length
+      out.set(idBytes, 1)
+      out.set(payload, 1 + idBytes.length)
+      return out
+    }
+
+    const msg = {
+      id: 'm1', from, to: 'self', type: 'file:transfer', timestamp: Date.now(),
+      payload: {
+        attachment: { id: 'att-recue', type: 'video', name: 'recue.mp4', size: 512, mimeType: 'video/mp4' },
+        conversationId: 'conversation', transferId, binary: true, totalChunks: 2,
+      },
+    } as unknown as ProtocolMessage
+    p2pService.emit('message:file:transfer', msg)
+    await waitFor(() => expect(fileService.getActiveReceives()).toHaveLength(1))
+
+    listener.mockClear()
+    p2pService.emit('file:data', { from, data: frame(new Uint8Array(256)) })
+
+    expect(fileService.getActiveReceives()[0].progress).toBe(50)
+    // La notification est différée d'au plus l'intervalle de coalescence.
+    await waitFor(() => expect(listener).toHaveBeenCalled(), { timeout: 1000 })
+    unsubscribe()
   })
 })

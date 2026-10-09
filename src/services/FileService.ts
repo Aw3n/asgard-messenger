@@ -265,6 +265,14 @@ export function probeVideo(file: File, timeoutMs = MEDIA_PROBE_TIMEOUT_MS): Prom
  * - Per-peer progress tracking for group transfers
  */
 class FileService {
+  // VITESSE : les abonnés recalculent toute la liste des transferts à chaque
+  // notification. À raison d'un chunk de 256 Ko, un envoi de 1 Go à 5 pairs
+  // produisait 20 000 recalculs — la progression est donc coalescée, les
+  // transitions d'état restant immédiates.
+  private static readonly NOTIFY_INTERVAL_MS = 100
+  private notifyTimer: ReturnType<typeof setTimeout> | undefined
+  private lastNotifyAt = 0
+  private loggedReceiveChunks = 0
   private transfers: Map<string, FileTransfer> = new Map()
   private transferListeners = new Set<() => void>()
   private receiveBuffers: Map<string, ReceiveBuffer> = new Map()
@@ -341,7 +349,7 @@ class FileService {
       conversationId,
     }
     this.transfers.set(transferId, transfer)
-    this.notifyTransfers()
+    this.notifyTransfersNow()
 
     try {
       // La compression est une optimisation, jamais une condition d'envoi :
@@ -354,7 +362,7 @@ class FileService {
       transfer.fileName = fileToSend.name
       transfer.fileSize = fileToSend.size
       transfer.type = this.getFileType(fileToSend.type, fileToSend.name)
-      this.notifyTransfers()
+      this.notifyTransfersNow()
       const buffer = await fileToSend.arrayBuffer()
       const blobId = await storageService.putBlob(buffer)
 
@@ -408,7 +416,9 @@ class FileService {
         let chunksSent = 0
         let chunkError: unknown = null
         for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
-          const chunk = bytes.slice(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
+          // subarray, pas slice : une vue sur le fichier plutôt qu'une copie. Le
+          // chunk n'est copié qu'une fois, dans `framed`.
+          const chunk = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
           const framed = new Uint8Array(1 + idBytes.length + chunk.length)
           framed[0] = idBytes.length
           framed.set(idBytes, 1)
@@ -481,7 +491,7 @@ class FileService {
       throw err
     } finally {
       this.transfers.delete(transferId)
-      this.notifyTransfers()
+      this.notifyTransfersNow()
     }
   }
 
@@ -641,7 +651,7 @@ class FileService {
       conversationId: channelId,
     }
     this.transfers.set(transferId, groupTransferEntry)
-    this.notifyTransfers()
+    this.notifyTransfersNow()
 
     const reportPeerProgress = (peerId: string, progress: number) => {
       groupTransfer.peerProgress.set(peerId, progress)
@@ -674,7 +684,7 @@ class FileService {
       // accroché à une progression fantôme.
       this.transfers.delete(transferId)
       this.groupTransfers.delete(transferId)
-      this.notifyTransfers()
+      this.notifyTransfersNow()
     }
     const successCount = results.filter(r => r.success).length
     const failedPeers = results.filter(r => !r.success).map(r => r.peerId)
@@ -761,7 +771,8 @@ class FileService {
       let chunkError: unknown = null
 
       for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
-        const chunk = bytes.slice(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
+        // subarray, pas slice : même raison que dans sendFile.
+        const chunk = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
         const framed = new Uint8Array(1 + idBytes.length + chunk.length)
         framed[0] = idBytes.length
         framed.set(idBytes, 1)
@@ -810,7 +821,35 @@ class FileService {
     return () => { this.transferListeners.delete(listener) }
   }
 
+  /**
+   * Notifie les abonnés au rythme de progression. Coalescé : un appel par chunk
+   * faisait recalculer toute la liste à chaque widget monté, ce qui saturait la
+   * boucle d'événements qui pilote justement l'envoi.
+   */
   private notifyTransfers(): void {
+    const wait = FileService.NOTIFY_INTERVAL_MS - (Date.now() - this.lastNotifyAt)
+    if (wait <= 0) {
+      this.notifyTransfersNow()
+      return
+    }
+    if (this.notifyTimer !== undefined) return
+    this.notifyTimer = setTimeout(() => {
+      this.notifyTimer = undefined
+      this.notifyTransfersNow()
+    }, wait)
+  }
+
+  /**
+   * Notification immédiate, pour les transitions d'état : un transfert créé,
+   * terminé, en erreur ou retiré de la liste doit être visible sans délai, et
+   * une notification différée encore en attente n'a plus d'objet.
+   */
+  private notifyTransfersNow(): void {
+    if (this.notifyTimer !== undefined) {
+      clearTimeout(this.notifyTimer)
+      this.notifyTimer = undefined
+    }
+    this.lastNotifyAt = Date.now()
     for (const listener of this.transferListeners) listener()
   }
 
@@ -1112,11 +1151,14 @@ class FileService {
     // Map Noise → Ed25519 before looking up the buffer.
     const ed25519From = p2pService.getPeerPublicKey(from) ?? from
 
-    // DIAGNOSTIC: Log first few chunks to help debug file transfer issues
-    const chunkCount = Array.from(this.receiveBuffers.values()).reduce((sum, buf) => sum + buf.receivedChunks, 0)
-    if (chunkCount < 3) {
+    // VITESSE : ce diagnostic recalculait la somme des chunks sur tous les
+    // receiveBuffers à chaque chunk reçu, uniquement pour savoir s'il fallait
+    // journaliser. Un compteur d'instance donne le même renseignement sans
+    // allocation sur le chemin chaud.
+    if (this.loggedReceiveChunks < 3) {
       console.log(`[FileService] Binary chunk received from Noise=${from.slice(0, 16)}, Ed25519=${ed25519From.slice(0, 16)}, size=${payload.length}, expectMarker=${expectMarker}, buffers=${this.receiveBuffers.size}`)
     }
+    this.loggedReceiveChunks++
 
     // COHÉRENCE CHUNKS: parse le header [idLen][transferId][data] ajouté par les
     // versions récentes. Route par (expéditeur, transferId) — plusieurs transferts
@@ -1182,10 +1224,18 @@ class FileService {
     buf.chunks.push(new Uint8Array(data))
     buf.receivedChunks++
 
-    // DIAGNOSTIC: Log progress every 10 chunks
-    if (buf.receivedChunks % 10 === 0 || buf.receivedChunks === buf.totalChunks) {
+    // VITESSE : environ 20 points de journalisation par transfert quelle que soit
+    // sa taille — « tous les 10 chunks » en produisait 400 pour 100 Mo, chacun
+    // traversant la console.
+    const logEvery = Math.max(10, Math.floor(buf.totalChunks / 20))
+    if (buf.receivedChunks % logEvery === 0 || buf.receivedChunks === buf.totalChunks) {
       console.log(`[FileService] Chunk progress: ${buf.receivedChunks}/${buf.totalChunks} for transfer ${transferId.slice(0, 8)}`)
     }
+
+    // Sans cette notification la progression d'une réception ne s'affichait que
+    // si un autre événement déclenchait notifyTransfers : le widget restait figé
+    // sur sa valeur initiale pendant toute la réception.
+    this.notifyTransfers()
   }
 
   /**
