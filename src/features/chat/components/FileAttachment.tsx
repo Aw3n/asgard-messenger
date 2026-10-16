@@ -36,6 +36,9 @@ function toLightboxItem(att: MessageAttachment): LightboxItem {
     id: att.id,
     src: live ?? att.thumbnail ?? '',
     alt: att.name,
+    // La bande de vignettes de la visionneuse réutilise la miniature du
+    // message telle quelle : pas de re-téléchargement pour un aperçu 44 px.
+    thumb: att.thumbnail,
     // A thumbnail alone cannot be zoomed usefully — the original is still missing.
     preview: !live,
     loadFull: async () => {

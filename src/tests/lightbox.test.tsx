@@ -17,9 +17,19 @@
  * viewer looked like it was cropping the image.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import i18n from '@/i18n/config'
 import { ImageLightbox, type LightboxItem } from '@/features/chat/components/ImageLightbox'
+
+/**
+ * jsdom n'expose pas toujours PointerEvent : un substitut minimal dérivé de
+ * MouseEvent suffit au balayage (clientX/clientY/button), le pointerId absent
+ * étant comparé à lui-même.
+ */
+if (typeof window.PointerEvent === 'undefined') {
+  class PointerEventShim extends MouseEvent {}
+  window.PointerEvent = PointerEventShim as unknown as typeof PointerEvent
+}
 
 const THUMB = 'data:image/png;base64,thumb'
 const FULL = 'data:image/png;base64,full'
@@ -37,6 +47,9 @@ const stageOf = () => {
   const img = screen.getByAltText('photo.png')
   return img.parentElement as HTMLElement
 }
+
+/** Conteneur plein écran : c'est lui qui porte les gestes (balayage, fond). */
+const containerOf = () => stageOf().parentElement as HTMLElement
 
 const imgOf = () => screen.getByAltText('photo.png') as HTMLImageElement
 
@@ -183,5 +196,58 @@ describe('ImageLightbox', () => {
 
     unmount()
     expect(document.body.style.overflow).toBe('')
+  })
+
+  it('navigue directement par la bande de vignettes, absente pour une photo isolée', async () => {
+    const items = [item({ id: 'a' }), item({ id: 'b' }), item({ id: 'c' })]
+    const { unmount } = render(<ImageLightbox items={items} onClose={vi.fn()} />)
+    const strip = screen.getByTestId('lightbox-filmstrip')
+    const thumbs = within(strip).getAllByRole('button')
+    expect(thumbs).toHaveLength(3)
+
+    fireEvent.click(thumbs[2])
+    await waitFor(() => expect(screen.getByText('3 / 3')).toBeInTheDocument())
+
+    unmount()
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    expect(screen.queryByTestId('lightbox-filmstrip')).toBeNull()
+  })
+
+  it('change de photo par balayage horizontal, sans fermer la visionneuse au relâchement', async () => {
+    const items = [item({ id: 'a' }), item({ id: 'b' }), item({ id: 'c' })]
+    const onClose = vi.fn()
+    render(<ImageLightbox items={items} startIndex={1} onClose={onClose} />)
+    const container = containerOf()
+
+    fireEvent.pointerDown(container, { button: 0, pointerId: 1, clientX: 300, clientY: 200 })
+    fireEvent.pointerMove(container, { pointerId: 1, clientX: 100, clientY: 205 })
+    fireEvent.pointerUp(container, { pointerId: 1, clientX: 100, clientY: 205 })
+    await waitFor(() => expect(screen.getByText('3 / 3')).toBeInTheDocument())
+
+    // Le clic de relâchement du balayage ne doit pas être relu comme un clic de fond.
+    fireEvent.click(container)
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('change de photo avec une molette horizontale quand la photo n’est pas zoomée', async () => {
+    const items = [item({ id: 'a' }), item({ id: 'b' }), item({ id: 'c' })]
+    render(<ImageLightbox items={items} onClose={vi.fn()} />)
+
+    act(() => {
+      fireEvent.wheel(stageOf(), { deltaX: 120, deltaY: 0 })
+    })
+    await waitFor(() => expect(screen.getByText('2 / 3')).toBeInTheDocument())
+  })
+
+  it('gèle la navigation pendant un zoom : la bande disparaît, les flèches s’effacent', () => {
+    render(<ImageLightbox items={[item({ id: 'a' }), item({ id: 'b' })]} onClose={vi.fn()} />)
+    expect(screen.getByTestId('lightbox-filmstrip')).toBeInTheDocument()
+
+    act(() => {
+      fireEvent.wheel(stageOf(), { deltaY: -120, clientX: 10, clientY: 10 })
+    })
+    expect(screen.queryByTestId('lightbox-filmstrip')).toBeNull()
+    const prev = screen.getByLabelText(label('lightbox.previous'), { selector: 'button' })
+    expect(prev.className).toContain('pointer-events-none')
   })
 })

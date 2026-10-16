@@ -11,6 +11,8 @@ export interface LightboxItem {
   id: string
   src: string
   alt?: string
+  /** Miniature dédiée à la bande de navigation (repli sur `src` si absente). */
+  thumb?: string
   /** Fetch the original attachment (object URL). Return null when unavailable. */
   loadFull?: () => Promise<string | null>
   /** true when `src` is only a thumbnail — the original must be fetched to zoom usefully */
@@ -56,6 +58,10 @@ const CHROME_SIDE_PX = 60
 const CHROME_GAP_PX = 6
 /** Two taps closer than this count as a double tap (touch has no dblclick). */
 const DOUBLE_TAP_MS = 320
+/** Balayage horizontal (doigt) ou cumul de molette horizontale qui change de photo. */
+const SWIPE_THRESHOLD_PX = 80
+/** Deux changements de photo à la molette ne peuvent pas être plus rapprochés. */
+const WHEEL_NAV_COOLDOWN_MS = 400
 
 /**
  * ImageLightbox — full-screen photo viewer.
@@ -108,10 +114,20 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const lastTapAt = useRef(0)
   /** Source pour laquelle la récupération par `loadFull` a déjà été tentée. */
   const recoveredFor = useRef<string | null>(null)
+  /** Balayage horizontal de navigation (photo non zoomée uniquement). */
+  const swipe = useRef<{ id: number; sx: number; sy: number; active: boolean } | null>(null)
+  const [swipeDx, setSwipeDx] = useState(0)
+  /** Un balayage qui a navigué ne doit pas être relu comme un clic de fermeture. */
+  const suppressBackdropClick = useRef(false)
+  const wheelNav = useRef({ acc: 0, at: 0 })
+  const stripRef = useRef<HTMLDivElement>(null)
+  const thumbRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   const current = useMemo(() => items[Math.min(index, items.length - 1)], [items, index])
   const displaySrc = fullUrl ?? current?.src ?? ''
   const showingOriginal = !!fullUrl || (current ? !current.preview : true)
+  /** Un zoom en cours gèle la navigation : bande, flèches et flèches clavier. */
+  const isZoomed = view.scale > MIN_SCALE + 0.02
 
   // Keep the latest values reachable from listeners registered once.
   const stateRef = useRef({ view, index, items })
@@ -215,15 +231,25 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   // ── Gallery navigation ─────────────────────────────────────────────────────
 
-  const goRelative = useCallback((delta: number) => {
+  /**
+   * Va directement à une photo donnée. Retaper la vignette courante ne
+   * réinitialise rien : le geste ne produit d'effet que s'il change d'image.
+   */
+  const goTo = useCallback((target: number) => {
     const { index: i, items: list } = stateRef.current
     if (list.length < 2) return
+    const next = ((target % list.length) + list.length) % list.length
+    if (next === i) return
     setView({ scale: 1, x: 0, y: 0 })
     setFullUrl(null)
     setFullFailed(false)
     setLoaded(false)
-    setIndex((i + delta + list.length) % list.length)
+    setIndex(next)
   }, [])
+
+  const goRelative = useCallback((delta: number) => {
+    goTo(stateRef.current.index + delta)
+  }, [goTo])
 
   // ── Pointer drag to pan ────────────────────────────────────────────────────
 
@@ -233,24 +259,53 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0 || fingers.current > 1) return
-    if (stateRef.current.view.scale <= MIN_SCALE + 0.001) return
+    // Le clic qui suit un balayage de navigation ne doit pas fermer la visionneuse.
+    suppressBackdropClick.current = false
+    if (stateRef.current.view.scale <= MIN_SCALE + 0.001) {
+      // Photo non zoomée : le glisser horizontal sert à changer de photo.
+      if (stateRef.current.items.length > 1) {
+        e.currentTarget.setPointerCapture?.(e.pointerId)
+        swipe.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, active: false }
+      }
+      return
+    }
     e.currentTarget.setPointerCapture?.(e.pointerId)
     drag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: stateRef.current.view.x, oy: stateRef.current.view.y }
     setDragging(true)
   }, [])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
+    const s = swipe.current
+    if (s && s.id === e.pointerId) {
+      const dx = e.clientX - s.sx
+      const dy = e.clientY - s.sy
+      // Le geste ne devient un balayage qu'une fois clairement horizontal :
+      // un appui qui bouge à peine reste un clic (bascule des bandeaux).
+      if (!s.active && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) s.active = true
+      if (s.active) setSwipeDx(dx)
+      return
+    }
     const d = drag.current
     if (!d || d.id !== e.pointerId) return
     setView((v) => clampView({ ...v, x: d.ox + (e.clientX - d.sx), y: d.oy + (e.clientY - d.sy) }))
   }, [clampView])
 
   const endDrag = useCallback((e: React.PointerEvent) => {
+    const s = swipe.current
+    if (s && s.id === e.pointerId) {
+      swipe.current = null
+      setSwipeDx(0)
+      if (s.active) {
+        suppressBackdropClick.current = true
+        const dx = e.clientX - s.sx
+        if (Math.abs(dx) >= SWIPE_THRESHOLD_PX) goRelative(dx < 0 ? 1 : -1)
+      }
+    }
     if (drag.current && drag.current.id === e.pointerId) {
       drag.current = null
       setDragging(false)
     }
-  }, [])
+  }, [goRelative])
 
   // ── Pinch to zoom (two fingers, anchored on their midpoint) ────────────────
 
@@ -268,6 +323,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     fingers.current = e.touches.length
     if (e.touches.length === 2) {
       drag.current = null
+      swipe.current = null
+      setSwipeDx(0)
       setDragging(false)
       const { dist, cx, cy } = touchPair(e)
       pinch.current = { dist, cx, cy, start: stateRef.current.view }
@@ -309,13 +366,37 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       e.stopPropagation()
+      const { view: v, items: list } = stateRef.current
+      /*
+        Geste horizontal (molette inclinée, trackpad) sur une photo non zoomée :
+        on change de photo. Le pincement trackpad arrive lui aussi avec du
+        deltaX — ctrlKey le distingue — et un zoom en cours garde la priorité,
+        la navigation étant gelée tant que l'utilisateur examine un détail.
+      */
+      if (
+        !e.ctrlKey
+        && v.scale <= MIN_SCALE + 0.001
+        && list.length > 1
+        && Math.abs(e.deltaX) > Math.abs(e.deltaY)
+      ) {
+        const nav = wheelNav.current
+        const now = Date.now()
+        nav.acc += e.deltaX
+        if (Math.abs(nav.acc) >= SWIPE_THRESHOLD_PX && now - nav.at > WHEEL_NAV_COOLDOWN_MS) {
+          goRelative(nav.acc > 0 ? 1 : -1)
+          nav.acc = 0
+          nav.at = now
+        }
+        return
+      }
+      wheelNav.current.acc = 0
       // Trackpad pinch arrives as ctrlKey+wheel: use a gentler, linear factor.
       const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : e.deltaMode === 1 ? 0.05 : 0.0018))
       zoomBy(factor, e.clientX, e.clientY)
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [zoomBy])
+  }, [goRelative, zoomBy])
 
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement)
@@ -343,13 +424,24 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         case '0': fitToWindow(); return
         case '1': showActualSize(); return
         case 'f': case 'F': void toggleFullscreen(); return
+        // Au zoom, la navigation est gelée : les flèches déplacent la vue.
         case 'ArrowRight':
-          if (stateRef.current.items.length > 1) goRelative(1)
-          else zoomBy(1.3)
+          if (stateRef.current.view.scale > MIN_SCALE + 0.02) {
+            setView((v) => clampView({ ...v, x: v.x - 60 }))
+          } else if (stateRef.current.items.length > 1) {
+            goRelative(1)
+          } else {
+            zoomBy(1.3)
+          }
           return
         case 'ArrowLeft':
-          if (stateRef.current.items.length > 1) goRelative(-1)
-          else zoomBy(1 / 1.3)
+          if (stateRef.current.view.scale > MIN_SCALE + 0.02) {
+            setView((v) => clampView({ ...v, x: v.x + 60 }))
+          } else if (stateRef.current.items.length > 1) {
+            goRelative(-1)
+          } else {
+            zoomBy(1 / 1.3)
+          }
           return
       }
       // Vertical arrows pan: horizontal ones are taken by the gallery, and
@@ -409,7 +501,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     measureChrome()
     const id = requestAnimationFrame(() => setView((v) => clampView(v)))
     return () => cancelAnimationFrame(id)
-  }, [chromeVisible, isFullscreen, insets, measureChrome, clampView])
+  }, [chromeVisible, isFullscreen, isZoomed, insets, measureChrome, clampView])
 
   // Freeze the page behind and hand focus to the dialog.
   useEffect(() => {
@@ -433,6 +525,23 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     setChromeVisible(true)
     recoveredFor.current = null
   }, [index, current?.id])
+
+  /*
+    La vignette affichée reste centrée dans la bande, y compris après un saut
+    aux flèches ou un dézoom (la bande réapparaît alors, encore scrollée sur
+    l'ancienne position).
+  */
+  useEffect(() => {
+    const strip = stripRef.current
+    const thumb = thumbRefs.current[index]
+    if (!strip || !thumb) return
+    const target = thumb.offsetLeft - (strip.clientWidth - thumb.offsetWidth) / 2
+    try {
+      strip.scrollTo({ left: target, behavior: 'smooth' })
+    } catch {
+      strip.scrollLeft = target
+    }
+  }, [index, isZoomed])
 
   // Original resolution: fetched as soon as the visible item is only a preview.
 
@@ -531,7 +640,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   }, [clampView, clampScale])
 
   const zoomPercentage = Math.round(view.scale * 100)
-  const isZoomed = view.scale > MIN_SCALE + 0.02
   const toolBtn = 'h-8 min-w-8 px-1.5 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs text-white/85'
 
   if (!displaySrc) return null
@@ -615,6 +723,12 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         onPointerCancel={endDrag}
         onPointerLeave={endDrag}
         onClick={(e) => {
+          // Un balayage qui vient de changer de photo ne doit pas être relu
+          // comme un clic de fermeture sur le fond.
+          if (suppressBackdropClick.current) {
+            suppressBackdropClick.current = false
+            return
+          }
           // Backdrop only: clicking the picture must never close the viewer,
           // that is how a user reaches for the zoom. The stage is
           // `pointer-events-none`, so an empty click lands on the container; the
@@ -662,6 +776,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               right: insets.side,
               top: chromeVisible ? insets.top : 0,
               bottom: chromeVisible ? insets.bottom : 0,
+              // Le balayage horizontal emmène la scène avec le doigt : la photo
+              // ne saute pas d'un coup vers la suivante.
+              transform: swipeDx !== 0 ? `translateX(${swipeDx}px)` : undefined,
+              transition: swipeDx === 0 ? 'transform 200ms cubic-bezier(.2,.7,.3,1)' : 'none',
             }}
           >
             <img
@@ -712,7 +830,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
             <button
               ref={arrowRef}
               onClick={(e) => { e.stopPropagation(); goRelative(-1) }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-colors"
+              className={`absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-all duration-200 ${isZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
               title={t('lightbox.previous')}
               aria-label={t('lightbox.previous')}
             >
@@ -720,7 +838,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); goRelative(1) }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-colors"
+              className={`absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-all duration-200 ${isZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
               title={t('lightbox.next')}
               aria-label={t('lightbox.next')}
             >
@@ -730,26 +848,56 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         )}
       </div>
 
-      {/* ── Bottom bar ── */}
+      {/* ── Bottom bar: filmstrip over the hint line ── */}
       <div
         ref={bottomBarRef}
-        className={`absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-200 ${chromeVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center gap-1 px-4 pt-2 pb-3 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-200 ${chromeVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {srcFailed ? (
-          <p className="text-xs text-amber-300/80">{t('lightbox.loadFailed')}</p>
-        ) : loadingFull ? (
-          <p className="text-xs text-white/60 flex items-center gap-2">
-            <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
-            {t('lightbox.loadingOriginal')}
-          </p>
-        ) : !showingOriginal ? (
-          <p className="text-xs text-amber-300/80">
-            {fullFailed ? t('lightbox.loadFailed') : t('lightbox.previewOnly')}
-          </p>
-        ) : (
-          <p className="text-xs text-white/45">{isZoomed ? t('lightbox.dragToPan') : t('lightbox.scrollZoom')}</p>
+        {gallery && !isZoomed && (
+          /*
+            Bande de vignettes : un aperçu direct de toute la galerie, la photo
+            affichée restant centrée. Elle s'efface au zoom — navigation gelée
+            tant que l'utilisateur examine un détail.
+          */
+          <div
+            ref={stripRef}
+            data-testid="lightbox-filmstrip"
+            aria-label={t('lightbox.thumbnails')}
+            className="flex items-center gap-2 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {items.map((it, i) => (
+              <button
+                key={it.id}
+                ref={(el) => { thumbRefs.current[i] = el }}
+                onClick={() => goTo(i)}
+                aria-label={it.alt ?? `${i + 1}`}
+                aria-current={i === index}
+                className={`shrink-0 w-11 h-11 rounded-lg overflow-hidden border border-white/15 transition-all duration-150 ${i === index ? 'ring-2 ring-white opacity-100' : 'opacity-55 hover:opacity-90'}`}
+              >
+                <img src={it.thumb ?? it.src} alt="" className="w-full h-full object-cover" draggable={false} />
+              </button>
+            ))}
+          </div>
         )}
+        <div className="min-h-[16px] flex items-center justify-center">
+          {srcFailed ? (
+            <p className="text-xs text-amber-300/80">{t('lightbox.loadFailed')}</p>
+          ) : loadingFull ? (
+            <p className="text-xs text-white/60 flex items-center gap-2">
+              <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
+              {t('lightbox.loadingOriginal')}
+            </p>
+          ) : !showingOriginal ? (
+            <p className="text-xs text-amber-300/80">
+              {fullFailed ? t('lightbox.loadFailed') : t('lightbox.previewOnly')}
+            </p>
+          ) : (
+            <p className="text-xs text-white/45">
+              {isZoomed ? t('lightbox.dragToPan') : gallery ? t('lightbox.swipeHint') : t('lightbox.scrollZoom')}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Loading spinner while the picture itself is decoding */}
