@@ -13,6 +13,7 @@ const KEYS = [
   'lightbox.loadingOriginal', 'lightbox.previewOnly', 'lightbox.loadFailed',
   'lightbox.scrollZoom', 'lightbox.dragToPan',
   'lightbox.imageUnavailable', 'lightbox.retry',
+  'lightbox.thumbnails', 'lightbox.swipeHint',
 ]
 
 // Dérive aussi la liste des clés réellement employées par la visionneuse : une

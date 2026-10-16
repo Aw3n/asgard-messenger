@@ -840,6 +840,12 @@ export const translations = {
       "chat.playAudio": "Écouter",
       "chat.pauseAudio": "Pause",
       "chat.audioPosition": "Position de lecture",
+      "lightbox.thumbnails": "Vignettes",
+      "lightbox.swipeHint": "Balayez pour changer de photo",
+      "calls.expandCall": "Agrandir l'appel",
+      "calls.exitVideoFullscreen": "Quitter le plein écran",
+      "calls.missedCallBody": "Appel manqué de {{name}}",
+      "calls.callBack": "Rappeler",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1683,6 +1689,12 @@ export const translations = {
       "chat.playAudio": "Afspelen",
       "chat.pauseAudio": "Pauze",
       "chat.audioPosition": "Afspeelpositie",
+      "lightbox.thumbnails": "Miniaturen",
+      "lightbox.swipeHint": "Veeg om van foto te wisselen",
+      "calls.expandCall": "Oproep vergroten",
+      "calls.exitVideoFullscreen": "Volledig scherm verlaten",
+      "calls.missedCallBody": "Gemiste oproep van {{name}}",
+      "calls.callBack": "Terugbellen",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2526,6 +2538,12 @@ export const translations = {
       "chat.playAudio": "Abspielen",
       "chat.pauseAudio": "Pause",
       "chat.audioPosition": "Wiedergabeposition",
+      "lightbox.thumbnails": "Miniaturansichten",
+      "lightbox.swipeHint": "Wischen zum Wechseln des Fotos",
+      "calls.expandCall": "Anruf vergrößern",
+      "calls.exitVideoFullscreen": "Vollbild beenden",
+      "calls.missedCallBody": "Verpasster Anruf von {{name}}",
+      "calls.callBack": "Zurückrufen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3369,6 +3387,12 @@ export const translations = {
       "chat.playAudio": "Riproduci",
       "chat.pauseAudio": "Pausa",
       "chat.audioPosition": "Posizione di riproduzione",
+      "lightbox.thumbnails": "Miniature",
+      "lightbox.swipeHint": "Scorri per cambiare foto",
+      "calls.expandCall": "Espandi chiamata",
+      "calls.exitVideoFullscreen": "Esci dallo schermo intero",
+      "calls.missedCallBody": "Chiamata persa da {{name}}",
+      "calls.callBack": "Richiama",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4212,6 +4236,12 @@ export const translations = {
       "chat.playAudio": "Reproducir",
       "chat.pauseAudio": "Pausa",
       "chat.audioPosition": "Posición de reproducción",
+      "lightbox.thumbnails": "Miniaturas",
+      "lightbox.swipeHint": "Desliza para cambiar de foto",
+      "calls.expandCall": "Ampliar llamada",
+      "calls.exitVideoFullscreen": "Salir de pantalla completa",
+      "calls.missedCallBody": "Llamada perdida de {{name}}",
+      "calls.callBack": "Devolver llamada",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5056,6 +5086,12 @@ export const translations = {
       "chat.playAudio": "Reproduzir",
       "chat.pauseAudio": "Pausa",
       "chat.audioPosition": "Posição de reprodução",
+      "lightbox.thumbnails": "Miniaturas",
+      "lightbox.swipeHint": "Deslize para mudar de foto",
+      "calls.expandCall": "Ampliar chamada",
+      "calls.exitVideoFullscreen": "Sair do ecrã inteiro",
+      "calls.missedCallBody": "Chamada perdida de {{name}}",
+      "calls.callBack": "Ligar de volta",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -5900,6 +5936,12 @@ export const translations = {
       "chat.playAudio": "Αναπαραγωγή",
       "chat.pauseAudio": "Παύση",
       "chat.audioPosition": "Θέση αναπαραγωγής",
+      "lightbox.thumbnails": "Μικρογραφίες",
+      "lightbox.swipeHint": "Σύρετε για εναλλαγή φωτογραφίας",
+      "calls.expandCall": "Μεγέθυνση κλήσης",
+      "calls.exitVideoFullscreen": "Έξοδος από πλήρη οθόνη",
+      "calls.missedCallBody": "Αναπάντητη κλήση από {{name}}",
+      "calls.callBack": "Επανάκληση",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6744,6 +6786,12 @@ export const translations = {
       "chat.playAudio": "Afspil",
       "chat.pauseAudio": "Pause",
       "chat.audioPosition": "Afspilningsposition",
+      "lightbox.thumbnails": "Miniaturebilleder",
+      "lightbox.swipeHint": "Stryg for at skifte foto",
+      "calls.expandCall": "Udvid opkald",
+      "calls.exitVideoFullscreen": "Afslut fuld skærm",
+      "calls.missedCallBody": "Ubesvaret opkald fra {{name}}",
+      "calls.callBack": "Ring tilbage",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7588,6 +7636,12 @@ export const translations = {
       "chat.playAudio": "Toista",
       "chat.pauseAudio": "Tauko",
       "chat.audioPosition": "Toistokohta",
+      "lightbox.thumbnails": "Pikkukuvat",
+      "lightbox.swipeHint": "Pyyhkäise vaihtaaksesi kuvaa",
+      "calls.expandCall": "Laajenna puhelu",
+      "calls.exitVideoFullscreen": "Poistu koko näytöstä",
+      "calls.missedCallBody": "Vastaamaton puhelu: {{name}}",
+      "calls.callBack": "Soita takaisin",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8432,6 +8486,12 @@ export const translations = {
       "chat.playAudio": "Spela upp",
       "chat.pauseAudio": "Paus",
       "chat.audioPosition": "Uppspelningsposition",
+      "lightbox.thumbnails": "Miniatyrbilder",
+      "lightbox.swipeHint": "Svep för att byta foto",
+      "calls.expandCall": "Expandera samtal",
+      "calls.exitVideoFullscreen": "Avsluta helskärm",
+      "calls.missedCallBody": "Missat samtal från {{name}}",
+      "calls.callBack": "Ring tillbaka",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9276,6 +9336,12 @@ export const translations = {
       "chat.playAudio": "Reproduciraj",
       "chat.pauseAudio": "Pauza",
       "chat.audioPosition": "Pozicija reprodukcije",
+      "lightbox.thumbnails": "Minijature",
+      "lightbox.swipeHint": "Povucite za promjenu fotografije",
+      "calls.expandCall": "Proširi poziv",
+      "calls.exitVideoFullscreen": "Izađi iz punog zaslona",
+      "calls.missedCallBody": "Propušteni poziv od {{name}}",
+      "calls.callBack": "Uzvrati poziv",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10120,6 +10186,12 @@ export const translations = {
       "chat.playAudio": "Esita",
       "chat.pauseAudio": "Paus",
       "chat.audioPosition": "Esitamise koht",
+      "lightbox.thumbnails": "Pisipildid",
+      "lightbox.swipeHint": "Pühkimine foto vahetamiseks",
+      "calls.expandCall": "Laienda kõne",
+      "calls.exitVideoFullscreen": "Välju täisekraanilt",
+      "calls.missedCallBody": "Vastamata kõne: {{name}}",
+      "calls.callBack": "Helista tagasi",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -10964,6 +11036,12 @@ export const translations = {
       "chat.playAudio": "Lejátszás",
       "chat.pauseAudio": "Szünet",
       "chat.audioPosition": "Lejátszási pozíció",
+      "lightbox.thumbnails": "Bélyegképek",
+      "lightbox.swipeHint": "Húzza a fotóváltáshoz",
+      "calls.expandCall": "Hívás nagyítása",
+      "calls.exitVideoFullscreen": "Kilépés a teljes képernyőből",
+      "calls.missedCallBody": "Nem fogadott hívás: {{name}}",
+      "calls.callBack": "Visszahívás",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -11808,6 +11886,12 @@ export const translations = {
       "chat.playAudio": "Atskaņot",
       "chat.pauseAudio": "Pauze",
       "chat.audioPosition": "Atskaņošanas pozīcija",
+      "lightbox.thumbnails": "Sīktēli",
+      "lightbox.swipeHint": "Velciet, lai pārslēgtu fotoattēlu",
+      "calls.expandCall": "Izvērst zvanu",
+      "calls.exitVideoFullscreen": "Iziet no pilnekrāna",
+      "calls.missedCallBody": "Neatbildēts zvans no {{name}}",
+      "calls.callBack": "Zvanīt atpakaļ",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -12652,6 +12736,12 @@ export const translations = {
       "chat.playAudio": "Atkurti",
       "chat.pauseAudio": "Pauzė",
       "chat.audioPosition": "Atkūrimo pozicija",
+      "lightbox.thumbnails": "Miniatiūros",
+      "lightbox.swipeHint": "Perbraukite, kad pakeistumėte nuotrauką",
+      "calls.expandCall": "Išplėsti skambutį",
+      "calls.exitVideoFullscreen": "Išeiti iš viso ekrano",
+      "calls.missedCallBody": "Praleistas skambutis nuo {{name}}",
+      "calls.callBack": "Perskambinti",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13496,6 +13586,12 @@ export const translations = {
       "chat.playAudio": "Ħaddem",
       "chat.pauseAudio": "Pawża",
       "chat.audioPosition": "Pożizzjoni tar-riproduzzjoni",
+      "lightbox.thumbnails": "Miniaturi",
+      "lightbox.swipeHint": "Skrollja biex tbiddel ir-ritratt",
+      "calls.expandCall": "Kabbar is-sejħa",
+      "calls.exitVideoFullscreen": "Oħrog mill-iskrin sħiħ",
+      "calls.missedCallBody": "Sejħa mitlufa minn {{name}}",
+      "calls.callBack": "Ċempel lura",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14340,6 +14436,12 @@ export const translations = {
       "chat.playAudio": "Odtwórz",
       "chat.pauseAudio": "Wstrzymaj",
       "chat.audioPosition": "Pozycja odtwarzania",
+      "lightbox.thumbnails": "Miniatury",
+      "lightbox.swipeHint": "Przesuń, aby zmienić zdjęcie",
+      "calls.expandCall": "Powiększ połączenie",
+      "calls.exitVideoFullscreen": "Opuść pełny ekran",
+      "calls.missedCallBody": "Nieodebrane połączenie od {{name}}",
+      "calls.callBack": "Oddzwoń",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15184,6 +15286,12 @@ export const translations = {
       "chat.playAudio": "Prehrať",
       "chat.pauseAudio": "Pauza",
       "chat.audioPosition": "Pozícia prehrávania",
+      "lightbox.thumbnails": "Miniatúry",
+      "lightbox.swipeHint": "Potiahnutím zmeníte fotografiu",
+      "calls.expandCall": "Rozbaliť hovor",
+      "calls.exitVideoFullscreen": "Ukončiť celú obrazovku",
+      "calls.missedCallBody": "Zmeškaný hovor od {{name}}",
+      "calls.callBack": "Zavolať späť",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16028,6 +16136,12 @@ export const translations = {
       "chat.playAudio": "Predvajaj",
       "chat.pauseAudio": "Pavza",
       "chat.audioPosition": "Položaj predvajanja",
+      "lightbox.thumbnails": "Sličice",
+      "lightbox.swipeHint": "Povlecite za zamenjavo fotografije",
+      "calls.expandCall": "Razširi klic",
+      "calls.exitVideoFullscreen": "Zapri celozaslonski način",
+      "calls.missedCallBody": "Zgrešen klic od {{name}}",
+      "calls.callBack": "Pokliči nazaj",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -16872,6 +16986,12 @@ export const translations = {
       "chat.playAudio": "Přehrát",
       "chat.pauseAudio": "Pozastavit",
       "chat.audioPosition": "Pozice přehrávání",
+      "lightbox.thumbnails": "Miniatury",
+      "lightbox.swipeHint": "Přejeďte pro změnu fotografie",
+      "calls.expandCall": "Rozbalit hovor",
+      "calls.exitVideoFullscreen": "Ukončit celou obrazovku",
+      "calls.missedCallBody": "Zmeškaný hovor od {{name}}",
+      "calls.callBack": "Zavolat zpět",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -17716,6 +17836,12 @@ export const translations = {
       "chat.playAudio": "Възпроизвеждане",
       "chat.pauseAudio": "Пауза",
       "chat.audioPosition": "Позиция на възпроизвеждане",
+      "lightbox.thumbnails": "Миниатюри",
+      "lightbox.swipeHint": "Плъзнете за смяна на снимката",
+      "calls.expandCall": "Разгъване на разговора",
+      "calls.exitVideoFullscreen": "Изход от цял екран",
+      "calls.missedCallBody": "Пропуснато обаждане от {{name}}",
+      "calls.callBack": "Обратно обаждане",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -18560,6 +18686,12 @@ export const translations = {
       "chat.playAudio": "Seinn",
       "chat.pauseAudio": "Sos",
       "chat.audioPosition": "Suíomh seinn",
+      "lightbox.thumbnails": "Mionsamhlacha",
+      "lightbox.swipeHint": "Sveip chun grianghraf a athrú",
+      "calls.expandCall": "Leathnaigh an glao",
+      "calls.exitVideoFullscreen": "Fág an scáileán iomlán",
+      "calls.missedCallBody": "Glao caillte ó {{name}}",
+      "calls.callBack": "Cuir glao ar ais",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -19404,6 +19536,12 @@ export const translations = {
       "chat.playAudio": "Redă",
       "chat.pauseAudio": "Pauză",
       "chat.audioPosition": "Poziția redării",
+      "lightbox.thumbnails": "Miniaturi",
+      "lightbox.swipeHint": "Glisează pentru a schimba fotografia",
+      "calls.expandCall": "Extinde apelul",
+      "calls.exitVideoFullscreen": "Ieși din ecranul complet",
+      "calls.missedCallBody": "Apel pierdut de la {{name}}",
+      "calls.callBack": "Sună înapoi",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20257,6 +20395,12 @@ export const translations = {
       "chat.playAudio": "Play",
       "chat.pauseAudio": "Pause",
       "chat.audioPosition": "Playback position",
+      "lightbox.thumbnails": "Thumbnails",
+      "lightbox.swipeHint": "Swipe to switch photo",
+      "calls.expandCall": "Expand call",
+      "calls.exitVideoFullscreen": "Exit fullscreen",
+      "calls.missedCallBody": "Missed call from {{name}}",
+      "calls.callBack": "Call back",
     }
   },
 
@@ -21102,6 +21246,12 @@ export const translations = {
       "chat.playAudio": "Відтворити",
       "chat.pauseAudio": "Пауза",
       "chat.audioPosition": "Позиція відтворення",
+      "lightbox.thumbnails": "Мініатюри",
+      "lightbox.swipeHint": "Проведіть, щоб змінити фото",
+      "calls.expandCall": "Розгорнути виклик",
+      "calls.exitVideoFullscreen": "Вийти з повноекранного режиму",
+      "calls.missedCallBody": "Пропущений виклик від {{name}}",
+      "calls.callBack": "Передзвонити",
     }
   },
 }
