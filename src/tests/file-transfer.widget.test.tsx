@@ -6,6 +6,8 @@ import { fileService, PeerUnreachableError, SEND_DIAL_TIMEOUT_MS, TransferCancel
 import { p2pService } from '@/services/P2PService'
 import { storageService } from '@/services/StorageService'
 import { useMessageStore } from '@/stores/messageStore'
+import { useUIStore } from '@/stores/uiStore'
+import { translations } from '@/i18n/translations'
 import type { MessageAttachment } from '@/types'
 import type { ProtocolMessage } from '@/types/network'
 
@@ -32,9 +34,17 @@ beforeEach(() => {
   vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
   vi.spyOn(fileService, 'compressForNetwork').mockImplementation(async file => file)
   vi.spyOn(storageService, 'putBlob').mockResolvedValue('test-blob')
+  vi.spyOn(storageService, 'saveMessage').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'sendMessage').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'sendFileDataBatch').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'isPeerConnected').mockReturnValue(true)
+  // initialize() est appelé par plusieurs cas et empile ses handlers sur le
+  // singleton eventemitter3 : sans purge, un chunk émis serait traité N fois et
+  // le buffer se complèterait à tort. En production p2pService.destroy() purge
+  // tout au changement d'identité — on rétablit le même état ici.
+  for (const event of ['message:file:transfer', 'message:file:complete', 'message:file:cancel', 'file:data', 'media:data']) {
+    p2pService.removeAllListeners(event)
+  }
 })
 
 afterEach(() => {
@@ -525,5 +535,90 @@ describe('annulation des transferts', () => {
 
     await act(async () => { batches[0].resolve() })
     await cancelled
+  })
+})
+
+describe('réception incomplète', () => {
+  const from = 'pair-tronque'
+  const conversationId = 'conversation'
+
+  function frameFor(transferId: string, payload: Uint8Array): Uint8Array {
+    const idBytes = new TextEncoder().encode(transferId)
+    const out = new Uint8Array(1 + idBytes.length + payload.length)
+    out[0] = idBytes.length
+    out.set(idBytes, 1)
+    out.set(payload, 1 + idBytes.length)
+    return out
+  }
+
+  function announce(transferId: string, name: string, totalChunks: number) {
+    p2pService.emit('message:file:transfer', {
+      id: `m-${transferId}`, from, to: 'self', type: 'file:transfer', timestamp: Date.now(),
+      payload: {
+        attachment: { id: `att-${transferId}`, type: 'document', name, size: totalChunks * 256 * 1024, mimeType: 'application/octet-stream' },
+        conversationId, transferId, binary: true, totalChunks,
+      },
+    } as unknown as ProtocolMessage)
+  }
+
+  function complete(transferId: string) {
+    p2pService.emit('message:file:complete', {
+      id: `c-${transferId}`, from, to: 'self', type: 'file:complete', timestamp: Date.now(),
+      payload: { transferId },
+    } as unknown as ProtocolMessage)
+  }
+
+  const messageNamed = (name: string) =>
+    useMessageStore.getState().messages[conversationId]?.find((m) => m.attachments?.some((a) => a.name === name))
+
+  it('jette les données tronquées et marque la bulle en échec au lieu de livrer un fichier corrompu', async () => {
+    fileService.initialize()
+    const name = 'tronquee.bin'
+    const transferId = 'recu-incomplet'
+    const hasReceive = () => fileService.getActiveReceives().some((recv) => recv.transferId === transferId)
+
+    announce(transferId, name, 2)
+    await waitFor(() => expect(hasReceive()).toBe(true))
+
+    // Un seul des deux chunks arrive : le tampon restera incomplet.
+    p2pService.emit('file:data', { from, data: frameFor(transferId, new Uint8Array(256)) })
+    await waitFor(() => expect(fileService.getActiveReceives().find((r) => r.transferId === transferId)?.progress).toBe(50))
+
+    complete(transferId)
+
+    await waitFor(() => expect(hasReceive()).toBe(false))
+    // Aucun blob : le partiel n'est jamais matérialisé.
+    expect(storageService.putBlob).not.toHaveBeenCalled()
+    const message = messageNamed(name)
+    expect(message?.status).toBe('failed')
+    expect(message?.attachments?.[0]?.failed).toBe(true)
+    expect(message?.attachments?.[0]?.blobKey).toBeUndefined()
+    // L'utilisateur est prévenu avec la chaîne traduite, pas la clé brute.
+    const toasts = useUIStore.getState().toasts
+    expect(toasts.some((toast) => toast.title === translations.fr.translation['chat.downloadFailed'])).toBe(true)
+    expect(toasts.some((toast) => toast.title === 'chat.downloadFailed')).toBe(false)
+  })
+
+  it('livre le fichier quand tous les chunks sont arrivés, sans écraser l’id de la bulle', async () => {
+    fileService.initialize()
+    const name = 'intacte.bin'
+    const transferId = 'recu-complet'
+    const hasReceive = () => fileService.getActiveReceives().some((recv) => recv.transferId === transferId)
+
+    announce(transferId, name, 2)
+    await waitFor(() => expect(hasReceive()).toBe(true))
+    const placeholderId = messageNamed(name)?.id
+    expect(placeholderId).toBeDefined()
+
+    p2pService.emit('file:data', { from, data: frameFor(transferId, new Uint8Array(256)) })
+    p2pService.emit('file:data', { from, data: frameFor(transferId, new Uint8Array(256)) })
+    complete(transferId)
+
+    await waitFor(() => expect(messageNamed(name)?.status).toBe('delivered'))
+    // L'id du message reste celui de la bulle : la suppression s'appuie dessus
+    // pour retrouver la ligne en base (l'id de la pièce jointe l'écrasait).
+    const delivered = useMessageStore.getState().messages[conversationId]?.find((m) => m.id === placeholderId)
+    expect(delivered?.attachments?.[0]?.blobKey).toBe('test-blob')
+    expect(delivered?.attachments?.[0]?.failed).toBeUndefined()
   })
 })

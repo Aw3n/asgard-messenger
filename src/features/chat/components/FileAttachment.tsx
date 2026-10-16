@@ -102,6 +102,12 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   // CRITICAL: all hooks must run before any early return.
   useEffect(() => {
     const checkProgress = () => {
+      // Réception abandonnée (fichier incomplet jeté) : ni barre ni « Réception… ».
+      if (attachment.failed) {
+        setProgress(null)
+        return
+      }
+
       // Match by transfer ID, never by file name: two distinct files can share
       // a name, and name matching made every older bubble with that name
       // mirror the current transfer's progress.
@@ -137,7 +143,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
     checkProgress()
     progressInterval.current = setInterval(checkProgress, 300)
     return () => clearInterval(progressInterval.current)
-  }, [attachment.transferId, attachment.name, attachment.localUrl, attachment.blobKey, conversationId])
+  }, [attachment.transferId, attachment.name, attachment.localUrl, attachment.blobKey, attachment.failed, conversationId])
 
   const handleClick = async () => {
     const live = fileService.isLiveUrl(attachment.localUrl) ? (attachment.localUrl as string) : null
@@ -661,8 +667,15 @@ const VideoAttachment: React.FC<{
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-asgard-text-primary truncate">{attachment.name}</p>
-          <p className="text-xs text-asgard-text-muted">{formatSize(attachment.size)}</p>
+          <p className={cn('text-xs', attachment.failed ? 'text-asgard-busy' : 'text-asgard-text-muted')}>
+            {attachment.failed ? t('chat.downloadFailed') : formatSize(attachment.size)}
+          </p>
         </div>
+        {attachment.failed && (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy flex-shrink-0">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+        )}
         {loading && <div className="w-4 h-4 border-2 border-asgard-glacier border-t-transparent rounded-full animate-spin" />}
       </button>
     )
@@ -903,8 +916,10 @@ const DocumentAttachment: React.FC<{
         </div>
         <div className="flex-1 min-w-0 text-left">
           <p className="text-sm text-asgard-text-primary truncate">{attachment.name}</p>
-          <p className="text-xs text-asgard-text-muted">
-            {isIndeterminate
+          <p className={cn('text-xs', attachment.failed ? 'text-asgard-busy' : 'text-asgard-text-muted')}>
+            {attachment.failed
+              ? t('chat.downloadFailed')
+              : isIndeterminate
               ? `${formatSize(attachment.size)} — ${t('chat.receiving')}`
               : isTransferring
               ? `${formatSize(attachment.size)} — ${progress}%`
@@ -917,6 +932,11 @@ const DocumentAttachment: React.FC<{
           )}
         </div>
         {loading && <div className="w-4 h-4 border-2 border-asgard-glacier border-t-transparent rounded-full animate-spin flex-shrink-0" />}
+        {attachment.failed && (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy flex-shrink-0">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+        )}
         {error && (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy flex-shrink-0">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>

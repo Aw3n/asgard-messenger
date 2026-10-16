@@ -7,6 +7,7 @@ import { useContactStore } from '@/stores/contactStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { generateId } from '@/utils/id'
+import i18n from '@/i18n/config'
 import type { MessageAttachment, Message } from '@/types'
 import type { ProtocolMessage } from '@/types'
 
@@ -1364,9 +1365,40 @@ class FileService {
       offset += chunk.length
     }
 
-    // DIAGNOSTIC: Check if all chunks were received
+    // INTÉGRITÉ: des chunks manquants signifient des données tronquées. Le
+    // fichier ne doit jamais être matérialisé ni présenté comme complet —
+    // l'utilisateur l'ouvrirait sans comprendre pourquoi il est corrompu. On
+    // jette le partiel et on marque la réception en échec.
     if (buf.receivedChunks < buf.totalChunks) {
-      console.warn(`[FileService] ⚠️ Incomplete transfer! Received ${buf.receivedChunks}/${buf.totalChunks} chunks. Proceeding with partial data.`)
+      console.error(`[FileService] ❌ Transfert incomplet ${transferId.slice(0, 8)} : ${buf.receivedChunks}/${buf.totalChunks} chunks reçus — données partielles jetées`)
+      this.receiveBuffers.delete(transferId)
+      this.orphanChunks.delete(transferId)
+      this.completedTransferIds.add(transferId)
+      buf.attachment.failed = true
+      if (buf.placeholderMessageId) {
+        const store = useMessageStore.getState()
+        store.updateMessageAttachment(buf.placeholderMessageId, buf.conversationId, { status: 'failed' })
+        // Persister l'échec : sans cela la bulle disparaîtrait au redémarrage
+        // alors que l'utilisateur attend encore son fichier.
+        storageService.saveMessage(buf.conversationId, {
+          id: buf.placeholderMessageId,
+          conversationId: buf.conversationId,
+          senderId: buf.from,
+          type: buf.attachment.type === 'image' ? 'image' : 'file',
+          content: buf.attachment.name,
+          timestamp: Date.now(),
+          status: 'failed',
+          attachments: [buf.attachment],
+        } as Message).catch(console.error)
+      }
+      useUIStore.getState().addToast({
+        type: 'error',
+        title: i18n.t('chat.downloadFailed'),
+        message: buf.attachment.name,
+        duration: 8000,
+      })
+      this.notifyTransfersNow()
+      return
     }
 
     // Store as blob
@@ -1389,10 +1421,11 @@ class FileService {
     if (buf.placeholderMessageId) {
       const store = useMessageStore.getState()
       console.log('[FileService] Updating message attachment:', buf.placeholderMessageId, 'blobKey:', buf.attachment.blobKey)
-      store.updateMessageAttachment(buf.placeholderMessageId, buf.conversationId, {
-        ...buf.attachment,
-        status: 'delivered',
-      })
+      // L'attachement de la bulle est le même objet (muté en place pour
+      // blobKey/localUrl) : recopier ses champs ici écrasait l'id du message
+      // par celui de la pièce jointe et faisait diverger l'état mémoire de la
+      // base (la suppression ne retrouvait plus la ligne).
+      store.updateMessageAttachment(buf.placeholderMessageId, buf.conversationId, { status: 'delivered' })
       storageService.saveMessage(buf.conversationId, {
         id: buf.placeholderMessageId,
         conversationId: buf.conversationId,
