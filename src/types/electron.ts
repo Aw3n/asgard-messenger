@@ -231,6 +231,9 @@ export interface AsgardElectronAPI {
     getPendingDeepLink: () => Promise<string | null>
     // DEEP LINK: liens reçus pendant que l'app tourne
     onDeepLink: (callback: (url: string) => void) => () => void
+    // APPEL ENTRANT: fait clignoter l'icône de la barre des tâches (le verrou
+    // de remise à zéro est posé côté renderer, au moment de la réponse).
+    flashFrame: (flag: boolean) => void
     // PRIVACY SETTINGS (privacy.linkPreviews): métadonnées OG récupérées côté main
     fetchLinkPreview: (url: string) => Promise<{
       url: string

@@ -232,6 +232,8 @@ export interface AsgardAPI {
     getPendingDeepLink: () => Promise<string | null>
     // DEEP LINK: liens reçus pendant que l'app tourne
     onDeepLink: (callback: (url: string) => void) => () => void
+    // APPEL ENTRANT: clignotement de l'icône de la barre des tâches
+    flashFrame: (flag: boolean) => void
     // PRIVACY SETTINGS (privacy.linkPreviews): métadonnées OG récupérées côté main
     fetchLinkPreview: (url: string) => Promise<{
       url: string
@@ -554,6 +556,7 @@ contextBridge.exposeInMainWorld('asgard', {
     getPendingDeepLink: () => ipcRenderer.invoke('app:getPendingDeepLink'),
     onDeepLink: (callback: (url: string) => void) =>
       createListener('app:deepLink', callback),
+    flashFrame: (flag: boolean) => ipcRenderer.send('window:flash-frame', flag),
     fetchLinkPreview: (url: string) => ipcRenderer.invoke('app:fetchLinkPreview', url),
   },
 } satisfies AsgardAPI)

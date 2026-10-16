@@ -165,6 +165,14 @@ function setupWindowHandlers(win: BrowserWindow, tray?: AsgardTray): void {
     win.close()
   })
 
+  // APPEL ENTRANT: clignotement de l'icône de la barre des tâches tant que la
+  // fenêtre n'a pas l'attention. Le renderer déclenche (appel reçu) et coupe
+  // (réponse, refus, expiration) — le main ne fait que relayer à la fenêtre
+  // émettrice, pour rester correct si plusieurs fenêtres existent.
+  ipcMain.on('window:flash-frame', (event, flag: unknown) => {
+    BrowserWindow.fromWebContents(event.sender)?.flashFrame(flag === true)
+  })
+
   ipcMain.handle('window:isMaximized', () => win.isMaximized())
 
   // Language sync: renderer → main. Localizes the native tray menu

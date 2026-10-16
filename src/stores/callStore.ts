@@ -83,6 +83,10 @@ interface CallState {
   isLocalVideoFullscreen: boolean
   /** Peer video fullscreen mode */
   isPeerVideoFullscreen: boolean
+  /** Appel réduit : le plein écran disparaît, l'appel continue en carte flottante */
+  isCallMinimized: boolean
+  /** Groupe : pair dont la vidéo occupe l'écran (null = grille) */
+  peerVideoFullscreenId: string | null
   /** Manual video quality override */
   videoQuality: VideoQuality
   /** In-call chat messages */
@@ -111,6 +115,8 @@ interface CallState {
   togglePrivateMode: () => void
   toggleLocalVideoFullscreen: () => void
   togglePeerVideoFullscreen: () => void
+  setCallMinimized: (minimized: boolean) => void
+  setPeerVideoFullscreenId: (peerId: string | null) => void
   setVideoQuality: (quality: VideoQuality) => void
   /** In-call chat */
   addCallChatMessage: (message: CallChatMessage) => void
@@ -138,6 +144,8 @@ export const useCallStore = create<CallState>()(
     isPrivateMode: false,
     isLocalVideoFullscreen: false,
     isPeerVideoFullscreen: false,
+    isCallMinimized: false,
+    peerVideoFullscreenId: null,
     videoQuality: 'auto' as VideoQuality,
     callChatMessages: [],
     callReactions: [],
@@ -230,6 +238,8 @@ export const useCallStore = create<CallState>()(
         s.callReactions = []
         s.showCallChat = false
         s.isPeerVideoFullscreen = false
+        s.isCallMinimized = false
+        s.peerVideoFullscreenId = null
       })
     },
 
@@ -312,6 +322,8 @@ export const useCallStore = create<CallState>()(
     togglePrivateMode: () => set((s) => { s.isPrivateMode = !s.isPrivateMode }),
     toggleLocalVideoFullscreen: () => set((s) => { s.isLocalVideoFullscreen = !s.isLocalVideoFullscreen }),
     togglePeerVideoFullscreen: () => set((s) => { s.isPeerVideoFullscreen = !s.isPeerVideoFullscreen }),
+    setCallMinimized: (minimized) => set((s) => { s.isCallMinimized = minimized }),
+    setPeerVideoFullscreenId: (peerId) => set((s) => { s.peerVideoFullscreenId = peerId }),
     setVideoQuality: (quality) => set((s) => { s.videoQuality = quality }),
 
     addCallChatMessage: (message) => set((s) => {

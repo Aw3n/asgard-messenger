@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Icon } from '@/components/ui/Icon'
 import { useCallStore } from '@/stores/callStore'
@@ -7,6 +8,7 @@ import { useContactStore } from '@/stores/contactStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { callService } from '@/services/CallService'
+import { cryptoService } from '@/services/CryptoService'
 import { CallControls } from './CallControls'
 import { cn } from '@/utils/cn'
 
@@ -21,6 +23,10 @@ import { cn } from '@/utils/cn'
  */
 import { useTranslation } from 'react-i18next'
 
+/** Carte d'appel réduite : dimensions de référence, confinement du glisser. */
+const MINI_CARD_W = 300
+const MINI_CARD_H = 70
+
 /**
  * PERFECT QUALITY GROUP: one grid tile = one remote participant.
  * Attaches that peer's dedicated decode canvas (CallService per-peer video
@@ -33,7 +39,11 @@ const PeerVideoTile: React.FC<{
   peerId: string
   name: string
   avatar?: string
-}> = ({ peerId, name, avatar }) => {
+  /** Clic sur la tuile : agrandir ce pair (ou revenir à la grille en plein écran) */
+  onClick?: () => void
+  /** La tuile occupe tout son parent (vue plein écran d'un pair) */
+  fill?: boolean
+}> = ({ peerId, name, avatar, onClick, fill }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [hasVideo, setHasVideo] = useState(false)
 
@@ -68,12 +78,18 @@ const PeerVideoTile: React.FC<{
   }, [peerId])
 
   return (
-    <div style={{
-      position: 'relative',
-      overflow: 'hidden',
-      borderRadius: '12px',
-      background: '#0D0F16',
-    }}>
+    <div
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      style={{
+        position: fill ? 'absolute' : 'relative',
+        inset: fill ? 0 : undefined,
+        overflow: 'hidden',
+        borderRadius: fill ? 0 : '12px',
+        background: '#0D0F16',
+        cursor: onClick ? 'pointer' : undefined,
+      }}
+    >
       {/* Peer video canvas (attached imperatively above) */}
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 
@@ -122,6 +138,12 @@ export const CallView: React.FC = () => {
   const groups = useGroupStore((s) => s.groups)
   const myPublicKey = useIdentityStore((s) => s.identity?.keyPair.publicKey)
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const isCallMinimized = useCallStore((s) => s.isCallMinimized)
+  const setCallMinimized = useCallStore((s) => s.setCallMinimized)
+  const peerVideoFullscreenId = useCallStore((s) => s.peerVideoFullscreenId)
+  const setPeerVideoFullscreenId = useCallStore((s) => s.setPeerVideoFullscreenId)
+  const endCall = useCallStore((s) => s.endCall)
   const [duration, setDuration] = useState(0)
   const [bandwidthQuality, setBandwidthQuality] = useState<'good' | 'medium' | 'poor'>('good')
   const [peerVideoReady, setPeerVideoReady] = useState(false)
@@ -160,6 +182,58 @@ export const CallView: React.FC = () => {
         }
       })
   }, [activeCall?.isGroupCall, activeCall?.participants, activeCall?.groupId, contacts, groups, myPublicKey])
+
+  // ── Appel réduit : carte flottante déplaçable, média toujours actif ────────
+  const [miniPos, setMiniPos] = useState(() => ({
+    x: Math.max(12, window.innerWidth - MINI_CARD_W - 24),
+    y: Math.max(12, window.innerHeight - MINI_CARD_H - 96),
+  }))
+  const miniDrag = useRef<{ id: number; sx: number; sy: number; ox: number; oy: number } | null>(null)
+
+  const onMiniPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    // Les boutons de la carte gardent leur clic : seul le fond se déplace.
+    if ((e.target as HTMLElement).closest('button')) return
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    miniDrag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: miniPos.x, oy: miniPos.y }
+  }, [miniPos.x, miniPos.y])
+
+  const onMiniPointerMove = useCallback((e: React.PointerEvent) => {
+    const d = miniDrag.current
+    if (!d || d.id !== e.pointerId) return
+    setMiniPos({
+      x: Math.min(Math.max(8, d.ox + e.clientX - d.sx), Math.max(8, window.innerWidth - MINI_CARD_W - 8)),
+      y: Math.min(Math.max(8, d.oy + e.clientY - d.sy), Math.max(8, window.innerHeight - MINI_CARD_H - 8)),
+    })
+  }, [])
+
+  const onMiniPointerUp = useCallback(() => { miniDrag.current = null }, [])
+
+  // Le plein écran d'un pair se quitte aussi au clavier (Échap).
+  useEffect(() => {
+    if (!peerVideoFullscreenId) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPeerVideoFullscreenId(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [peerVideoFullscreenId, setPeerVideoFullscreenId])
+
+  /**
+   * Le bouton « Chat » réduit l'appel et ouvre la conversation — il n'arrêtait
+   * jusqu'ici l'appel entier, sous une étiquette qui promettait le contraire.
+   * L'itinéraire suit la même dérivation d'identifiant que la messagerie.
+   */
+  const openChat = useCallback(() => {
+    if (!activeCall) return
+    if (activeCall.isGroupCall) {
+      setCallMinimized(true)
+      navigate(`/groups/${activeCall.groupId ?? activeCall.peerId}`)
+      return
+    }
+    const me = useIdentityStore.getState().identity?.keyPair.publicKey
+    if (!me) return
+    setCallMinimized(true)
+    navigate(`/conversations/${cryptoService.deriveConversationId(me, activeCall.peerId)}`)
+  }, [activeCall, navigate, setCallMinimized])
 
   // Duration timer effect
   useEffect(() => {
@@ -280,6 +354,9 @@ export const CallView: React.FC = () => {
   const isConnecting = activeCall.status === 'connecting'
   // PERFECT QUALITY GROUP: mesh video grid replaces the fullscreen 1:1 canvas
   const isGroupVideoGrid = !!(activeCall.isGroupCall && isVideoCall && peerTiles.length > 0)
+  const fullscreenPeer = peerVideoFullscreenId
+    ? peerTiles.find((tile) => tile.peerId === peerVideoFullscreenId) ?? null
+    : null
   const gridCols = peerTiles.length <= 1 ? 1 : peerTiles.length <= 4 ? 2 : peerTiles.length <= 9 ? 3 : 4
   const gridRows = Math.max(1, Math.ceil(peerTiles.length / gridCols))
 
@@ -289,6 +366,97 @@ export const CallView: React.FC = () => {
 
   const qualityColor = bandwidthQuality === 'good' ? 'text-green-400' :
     bandwidthQuality === 'medium' ? 'text-yellow-400' : 'text-red-400'
+
+  // ── Appel réduit : l'appel continue dans une carte flottante au-dessus de la
+  //    discussion ouverte. L'audio du pair reste monté — réduit n'est pas coupé. ──
+  if (isCallMinimized) {
+    const miniBtn: React.CSSProperties = {
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      width: '30px', height: '30px', borderRadius: '9999px',
+      border: '1px solid rgba(255,255,255,0.12)',
+      cursor: 'pointer', flexShrink: 0,
+    }
+    return (
+      <>
+        <audio ref={peerAudioRef} autoPlay playsInline style={{ display: 'none' }} />
+        <div
+          data-testid="call-mini-card"
+          onPointerDown={onMiniPointerDown}
+          onPointerMove={onMiniPointerMove}
+          onPointerUp={onMiniPointerUp}
+          onPointerCancel={onMiniPointerUp}
+          style={{
+            position: 'fixed',
+            left: miniPos.x,
+            top: miniPos.y,
+            zIndex: 45,
+            width: MINI_CARD_W,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 12px',
+            borderRadius: '14px',
+            background: 'rgba(7,8,15,0.95)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
+            cursor: 'grab',
+            userSelect: 'none',
+            touchAction: 'none',
+          }}
+        >
+          <Avatar src={activeCall.peerAvatar} name={activeCall.peerName} publicKey={activeCall.peerId} size="sm" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {activeCall.peerName}
+            </p>
+            <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>
+              {isConnected ? formatDuration(duration) : statusText}
+            </p>
+          </div>
+          <button
+            onClick={() => callService.toggleMute()}
+            aria-label={isMuted ? t('calls.unmute') : t('calls.mute')}
+            title={isMuted ? t('calls.unmute') : t('calls.mute')}
+            style={{
+              ...miniBtn,
+              background: isMuted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)',
+              color: isMuted ? '#f87171' : 'rgba(255,255,255,0.75)',
+            }}
+          >
+            {isMuted ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l6 6zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.76-.48 2.51-.98L19.73 21 21 19.73 4.27 3z" />
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={() => setCallMinimized(false)}
+            aria-label={t('calls.expandCall')}
+            title={t('calls.expandCall')}
+            style={{ ...miniBtn, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.75)' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => { callService.endCall(); endCall() }}
+            aria-label={t('calls.endCall')}
+            title={t('calls.endCall')}
+            style={{ ...miniBtn, background: 'rgba(239,68,68,0.85)', color: 'white', border: 'none' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 9c-1.6 0-3.07.27-4.44.76L5.03 7.23C7.03 5.86 9.42 5 12 5c2.58 0 4.97.86 6.97 2.23l-2.53 2.53C15.07 9.27 13.6 9 12 9zm0 6c-1.12 0-2.16-.29-3.08-.79l-2.56 2.56C8.12 17.82 10 18.5 12 18.5s3.88-.68 5.64-1.73l-2.56-2.56c-.92.5-1.96.79-3.08.79z" />
+            </svg>
+          </button>
+        </div>
+      </>
+    )
+  }
 
   return (
     <motion.div
@@ -338,9 +506,48 @@ export const CallView: React.FC = () => {
             boxSizing: 'border-box',
           }}
         >
-          {peerTiles.map((tile) => (
-            <PeerVideoTile key={tile.peerId} peerId={tile.peerId} name={tile.name} avatar={tile.avatar} />
+          {peerTiles.map((tile) => tile.peerId === peerVideoFullscreenId ? null : (
+            /* La tuile du pair agrandi n'est pas rendue dans la grille : deux
+               tuiles se disputeraient le même canvas, qui ne peut vivre que
+               dans un seul parent. */
+            <PeerVideoTile
+              key={tile.peerId}
+              peerId={tile.peerId}
+              name={tile.name}
+              avatar={tile.avatar}
+              onClick={() => setPeerVideoFullscreenId(tile.peerId)}
+            />
           ))}
+        </div>
+      )}
+
+      {/* ── LAYER: Pair en plein écran (clic sur une tuile, Échap pour revenir) ── */}
+      {isGroupVideoGrid && fullscreenPeer && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#000' }}>
+          <PeerVideoTile
+            peerId={fullscreenPeer.peerId}
+            name={fullscreenPeer.name}
+            avatar={fullscreenPeer.avatar}
+            fill
+            onClick={() => setPeerVideoFullscreenId(null)}
+          />
+          <button
+            onClick={() => setPeerVideoFullscreenId(null)}
+            aria-label={t('calls.exitVideoFullscreen')}
+            title={`${t('calls.exitVideoFullscreen')} · Esc`}
+            style={{
+              position: 'absolute', top: '64px', right: '16px', zIndex: 7,
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '6px 12px', borderRadius: '10px',
+              background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.15)',
+              color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: '12px', fontWeight: 500,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+            </svg>
+            {t('calls.exitVideoFullscreen')}
+          </button>
         </div>
       )}
 
@@ -358,7 +565,8 @@ export const CallView: React.FC = () => {
         {/* Left: back button + peer info */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
-            onClick={() => callService.endCall()}
+            onClick={openChat}
+            title={t('calls.openChat')}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '6px 12px', borderRadius: '10px',

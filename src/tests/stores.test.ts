@@ -227,6 +227,8 @@ describe('CallStore', () => {
       isMuted: false,
       isCameraOff: false,
       isScreenSharing: false,
+      isCallMinimized: false,
+      peerVideoFullscreenId: null,
     })
   })
 
@@ -286,6 +288,20 @@ describe('CallStore', () => {
     expect(useCallStore.getState().history).toHaveLength(1)
     expect(useCallStore.getState().history[0].status).toBe('ended')
     expect(useCallStore.getState().history[0].duration).toBeDefined()
+  })
+
+  it('réinitialise le mode réduit et le plein écran vidéo à la fin d’un appel', () => {
+    useCallStore.getState().startCall('peer-5', 'Eve', 'video')
+    useCallStore.getState().setCallMinimized(true)
+    useCallStore.getState().setPeerVideoFullscreenId('peer-5')
+    expect(useCallStore.getState().isCallMinimized).toBe(true)
+    expect(useCallStore.getState().peerVideoFullscreenId).toBe('peer-5')
+
+    useCallStore.getState().endCall()
+
+    // Un appel suivant ne doit pas rouvrir reduit/plein écran sur l'état du précédent.
+    expect(useCallStore.getState().isCallMinimized).toBe(false)
+    expect(useCallStore.getState().peerVideoFullscreenId).toBeNull()
   })
 
   it('toggles media controls', () => {

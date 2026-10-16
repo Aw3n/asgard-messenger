@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { mediaDeviceService } from './MediaDeviceService'
 import { ringtoneService } from './RingtoneService'
 import { toNetworkStatus } from '@/utils/presence'
+import i18n from '@/i18n/config'
 import type { CallRecord, CallType } from '@/stores/callStore'
 
 /**
@@ -353,11 +354,23 @@ class CallService {
       // Start ringtone for incoming call
       ringtoneService.startRingtone()
 
+      // Attention système quand la fenêtre n'a pas le focus : sans cela, un
+      // appel entrant pendant qu'on travaille ailleurs n'existait qu'en son
+      // (l'overlay et la sonnerie ne se voient pas depuis une autre fenêtre).
+      if (!document.hasFocus()) {
+        window.asgard?.app?.flashFrame(true)
+        const body = isGroupCall
+          ? `${i18n.t('calls.groupCall')}${groupName ? ` · ${groupName}` : ''}`
+          : i18n.t(type === 'video' ? 'calls.incomingVideoCall' : 'calls.incomingAudioCall')
+        window.asgard?.notifications?.show(call.peerName, body)
+      }
+
       // PERFORMANCE: Auto-timeout incoming call after 30s — mark as missed
       if (this._incomingTimeout) clearTimeout(this._incomingTimeout)
       this._incomingTimeout = setTimeout(() => {
         console.log('[CallService] ⏰ Incoming call timed out after 30s — marking as missed')
         ringtoneService.stopRingtone()
+        window.asgard?.app?.flashFrame(false)
         // Send call:reject to let the caller know we didn't answer
         p2pService.sendMessage(msg.from, 'call:reject', {}).catch(() => {})
         useCallStore.getState().endIncomingCall()
@@ -393,6 +406,7 @@ class CallService {
       useCallStore.getState().setCallStatus('connected')
       // Stop ringtone and play connect beep
       ringtoneService.stopRingtone()
+      window.asgard?.app?.flashFrame(false)
       ringtoneService.playBeep(800, 150)
 
       // Release any existing local media tracks before acquiring new ones
@@ -447,6 +461,7 @@ class CallService {
     // Listen for call rejection
     p2pService.on('message:call:reject', (msg) => {
       ringtoneService.stopRingtone()
+      window.asgard?.app?.flashFrame(false)
       // Cancel incoming call timeout — peer rejected, no need for timeout
       if (this._incomingTimeout) {
         clearTimeout(this._incomingTimeout)
@@ -481,6 +496,7 @@ class CallService {
     // Listen for call end
     p2pService.on('message:call:end', (msg) => {
       ringtoneService.stopRingtone()
+      window.asgard?.app?.flashFrame(false)
       // Cancel incoming call timeout — call is ending, no need for timeout
       if (this._incomingTimeout) {
         clearTimeout(this._incomingTimeout)
@@ -743,6 +759,7 @@ class CallService {
 
     // Stop ringtone immediately when user accepts
     ringtoneService.stopRingtone()
+    window.asgard?.app?.flashFrame(false)
 
     // CRITICAL: Cancel the incoming call auto-timeout — the call is being answered.
     // Without this, the 30s timeout fires during the call, sending call:reject
@@ -854,6 +871,7 @@ class CallService {
 
     // Stop ringtone when user rejects
     ringtoneService.stopRingtone()
+    window.asgard?.app?.flashFrame(false)
 
     // Cancel incoming call timeout — call is being rejected, not timed out
     if (this._incomingTimeout) {
@@ -896,6 +914,7 @@ class CallService {
 
     // Stop ringtone in case it's still playing (shouldn't be, but safety)
     ringtoneService.stopRingtone()
+    window.asgard?.app?.flashFrame(false)
 
     this.stopMedia()
 
@@ -1650,11 +1669,11 @@ class CallService {
   private showMissedCallNotification(call: CallRecord): void {
     useUIStore.getState().addToast({
       type: 'warning',
-      title: 'Appel manqué',
-      message: `${call.peerName} a essayé de vous appeler (${call.type === 'video' ? 'vidéo' : 'audio'})`,
+      title: i18n.t('calls.missedCall'),
+      message: i18n.t('calls.missedCallBody', { name: call.peerName }),
       duration: 8000,
       action: {
-        label: 'Rappeler',
+        label: i18n.t('calls.callBack'),
         onClick: () => {
           this.startCall(call.peerId, call.peerName, call.type, call.peerAvatar)
         },
