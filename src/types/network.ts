@@ -80,6 +80,7 @@ export type ProtocolMessageType =
   | 'file:transfer'
   | 'file:chunk'
   | 'file:complete'
+  | 'file:cancel'
   | 'reaction:emoji'
   | 'contact:remove'
   | 'message:ephemeral'

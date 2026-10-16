@@ -18,7 +18,7 @@ import { chatService } from '@/services/ChatService'
 import { p2pService } from '@/services/P2PService'
 import { cryptoService } from '@/services/CryptoService'
 import { callService } from '@/services/CallService'
-import { fileService, PeerUnreachableError } from '@/services/FileService'
+import { fileService, PeerUnreachableError, TransferCancelledError } from '@/services/FileService'
 import { RightPanel } from '@/components/panels/RightPanel'
 import { presenceMeta, isLivePresence } from '@/utils/presence'
 import type { Message } from '@/types'
@@ -182,6 +182,9 @@ export const ChatView: React.FC = () => {
       try {
         await fileService.sendFiles(files, dataId, conversation.participantId)
       } catch (err) {
+        // Annulation volontaire : un toast « échec » pour un geste que
+        // l'utilisateur vient de faire serait trompeur.
+        if (err instanceof TransferCancelledError) return
         console.error('[ChatView] Failed to send files:', err)
         useUIStore.getState().addToast({
           type: 'error',

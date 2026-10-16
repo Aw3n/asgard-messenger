@@ -209,6 +209,18 @@ export class PeerUnreachableError extends Error {
   }
 }
 
+/**
+ * Transfert interrompu parce que l'utilisateur (ou le pair) l'a annulé.
+ * Distingue une annulation volontaire d'un échec : l'appelant n'affiche pas
+ * de toast d'erreur pour un geste que l'utilisateur vient lui-même de faire.
+ */
+export class TransferCancelledError extends Error {
+  constructor(readonly transferId: string) {
+    super(`Transfer cancelled: ${transferId.slice(0, 8)}`)
+    this.name = 'TransferCancelledError'
+  }
+}
+
 export interface MediaProbe {
   decodable: boolean
   /** Durée en secondes, ou 0 si le conteneur ne la publie pas. */
@@ -315,6 +327,13 @@ class FileService {
       this.handleFileComplete(msg)
     })
 
+    // ANNULATION CROISÉE: le pair a annulé un transfert en cours — soit il
+    // refusait notre envoi, soit il abandonne sa réception. Sans ce message,
+    // chaque côté gardait son état fantôme (bulle « réception… », progression).
+    p2pService.on('message:file:cancel', (msg: ProtocolMessage) => {
+      this.handleRemoteCancel(msg)
+    })
+
     // HOLEPUNCH PATTERN: Dedicated 'asgard-files' Protomux channel for file transfers.
     // No marker byte needed — the channel itself distinguishes file data from media.
     p2pService.on('file:data', (data: { from: string; data: Uint8Array }) => {
@@ -350,7 +369,11 @@ class FileService {
     transferId: string,
     totalChunks: number,
     onProgress: (percent: number) => void,
+    cancelKey?: string,
   ): Promise<void> {
+    // Un envoi de groupe forge un transferId par pair : le tombstone posé par
+    // « annuler » porte l'id de groupe, d'où cette clé de garde distincte.
+    const guardKey = cancelKey ?? transferId
     const idBytes = new TextEncoder().encode(transferId)
     const pending = new Set<Promise<void>>()
     let chunksSent = 0
@@ -369,7 +392,10 @@ class FileService {
       pending.add(tracked)
     }
 
-    for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
+    // ANNULATION: la condition s'évalue à chaque itération — un transfert
+    // annulé pendant l'émission s'arrête au lot suivant au lieu d'aller
+    // jusqu'au bout du fichier.
+    for (let offset = 0; offset < bytes.length && chunkError === null && !this.isTransferCancelled(guardKey); offset += CHUNK_SIZE) {
       // subarray, pas slice : une vue sur le fichier plutôt qu'une copie. Le
       // chunk n'est copié qu'une fois, dans `framed`.
       const chunk = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
@@ -388,6 +414,9 @@ class FileService {
     }
 
     await Promise.all(pending)
+    // Les lots déjà soumis se terminent, mais un transfert annulé ne doit pas
+    // continuer : sendFile renonce donc à file:complete et signale l'annulation.
+    if (this.isTransferCancelled(guardKey)) throw new TransferCancelledError(guardKey)
     if (chunkError !== null) throw chunkError
   }
 
@@ -415,6 +444,7 @@ class FileService {
       status: 'uploading',
       type: this.getFileType(file.type, file.name),
       conversationId,
+      peerId,
     }
     this.transfers.set(transferId, transfer)
     this.notifyTransfersNow()
@@ -452,6 +482,11 @@ class FileService {
       }
 
       const bytes = new Uint8Array(buffer)
+
+      // Annulation pendant la compression — la phase la plus longue pour une
+      // vidéo : inutile d'émettre la moindre metadata. Le chemin inline n'a pas
+      // de boucle de chunks pour observer le tombstone, d'où ce contrôle ici.
+      if (this.isTransferCancelled(transferId)) throw new TransferCancelledError(transferId)
 
       // NEVER send our local blobKey/localUrl to the peer — they will store the
       // file locally and assign their own blobKey after reception.
@@ -526,6 +561,9 @@ class FileService {
       throw err
     } finally {
       this.transfers.delete(transferId)
+      // La boucle d'émission a déroulé son tombstone (observer puis jeter), ou
+      // le transfert s'est terminé sans annulation : plus rien à retenir.
+      this.clearCancelledTransfer(transferId)
       this.notifyTransfersNow()
     }
   }
@@ -721,6 +759,14 @@ class FileService {
       this.groupTransfers.delete(transferId)
       this.notifyTransfersNow()
     }
+
+    // Annulation pendant l'émission : le message local « échec » serait
+    // trompeur — un geste de l'utilisateur n'est pas un échec.
+    if (this.isTransferCancelled(transferId)) {
+      this.clearCancelledTransfer(transferId)
+      throw new TransferCancelledError(transferId)
+    }
+
     const successCount = results.filter(r => r.success).length
     const failedPeers = results.filter(r => !r.success).map(r => r.peerId)
 
@@ -779,6 +825,13 @@ class FileService {
   ): Promise<void> {
     const transferId = generateId()
 
+    // Annulation du groupe : inutile d'ouvrir un envoi pour un transfert déjà
+    // annulé — ce contrôle couvre aussi le chemin inline, qui n'a pas de boucle
+    // de chunks pour observer le tombstone.
+    if (this.isTransferCancelled(groupTransferId)) {
+      throw new TransferCancelledError(groupTransferId)
+    }
+
     // NEVER send our local blobKey/localUrl to the peer.
     const attachmentToSend: MessageAttachment = {
       ...attachment,
@@ -803,7 +856,8 @@ class FileService {
       // Même garantie d'intégrité que sendFile, désormais portée par le chemin
       // par lot partagé : un lot en erreur stoppe l'émission et file:complete
       // n'est pas envoyé, donc aucun pair du groupe n'assemble un fichier tronqué.
-      await this.sendFramedChunks(peerId, bytes, transferId, totalChunks, percent => onProgress?.(percent))
+      // La garde d'annulation porte l'id de groupe, seul connu du widget.
+      await this.sendFramedChunks(peerId, bytes, transferId, totalChunks, percent => onProgress?.(percent), groupTransferId)
       await p2pService.sendMessage(peerId, 'file:complete', { transferId, groupTransferId })
       onProgress?.(100)
     } else {
@@ -1024,8 +1078,10 @@ class FileService {
     // DIAGNOSTIC: Log incoming file transfer
     console.log(`[FileService] 📥 Incoming file: ${attachment.name}, size=${attachment.size}, binary=${binary}, chunks=${totalChunks}, from=${msg.from.slice(0, 16)}, transferId=${transferId.slice(0, 8)}`)
 
-    // DEDUP: Ignore duplicate file:transfer for the same transferId
-    if (this.receiveBuffers.has(transferId) || this.completedTransferIds.has(transferId)) {
+    // DEDUP: Ignore duplicate file:transfer for the same transferId.
+    // Un transfert annulé (tombstone) est ignoré comme un doublon : sa metadata
+    // ne doit pas ressusciter un buffer que l'utilisateur vient de retirer.
+    if (this.receiveBuffers.has(transferId) || this.completedTransferIds.has(transferId) || this.isTransferCancelled(transferId)) {
       console.log('[FileService] Ignoring duplicate file:transfer:', transferId)
       return
     }
@@ -1181,6 +1237,9 @@ class FileService {
         this.appendChunkToBuffer(buf, header.transferId, header.data)
         return
       }
+      // Transfert annulé : les lots encore en vol chez l'expéditeur (le
+      // file:cancel n'est pas encore arrivé) ne doivent pas recréer d'orphelins.
+      if (this.isTransferCancelled(header.transferId)) return
       // Metadata pas encore arrivée (ordre inter-canaux Protomux non garanti).
       this.pushOrphanChunk(ed25519From, header.transferId, header.data)
       return
@@ -1657,17 +1716,100 @@ class FileService {
   private cancelledTransfers: Set<string> = new Set()
 
   /**
-   * Cancel an ongoing transfer.
+   * Annule un transfert, dans les deux sens.
+   *
+   * Émetteur : la boucle d'émission s'arrête au lot suivant (le tombstone que
+   * `sendFramedChunks` observe) et le destinataire est prévenu par file:cancel —
+   * sans ce message il gardait à vie son buffer partiel et sa bulle
+   * « réception… ». Récepteur : le buffer partiel et la bulle sont retirés, et
+   * l'expéditeur apprend l'annulation par le même message.
    */
   cancelTransfer(transferId: string): void {
-    this.cancelledTransfers.add(transferId)
     const transfer = this.transfers.get(transferId)
     if (transfer) {
-      transfer.status = 'error'
+      this.cancelledTransfers.add(transferId)
       this.transfers.delete(transferId)
+      this.notifyTransfersNow()
+      if (transfer.peerId) {
+        p2pService.sendMessage(transfer.peerId, 'file:cancel', { transferId }).catch((err) => {
+          console.warn('[FileService] Failed to send file:cancel:', err)
+        })
+      } else {
+        // Groupe : chaque pair a reçu un id wire distinct, inconnu d'ici — l'id
+        // de groupe est la seule clé partagée, le destinataire retrouve son
+        // buffer par elle.
+        const groupTransfer = this.groupTransfers.get(transferId)
+        for (const peerId of groupTransfer?.peerProgress.keys() ?? []) {
+          p2pService.sendMessage(peerId, 'file:cancel', { transferId, groupTransferId: transferId }).catch((err) => {
+            console.warn('[FileService] Failed to send file:cancel:', err)
+          })
+        }
+      }
+      return
     }
-    // Also cancel any pending chunks
+
+    const buf = this.receiveBuffers.get(transferId)
+    if (!buf) return
+    this.tombstoneCancelled(transferId)
+    this.dropReceiveBuffer(transferId)
+    p2pService.sendMessage(buf.from, 'file:cancel', { transferId, groupTransferId: buf.groupTransferId }).catch((err) => {
+      console.warn('[FileService] Failed to send file:cancel:', err)
+    })
+  }
+
+  /**
+   * file:cancel reçu : le pair a annulé.
+   * — il refusait notre envoi : arrêter la boucle d'émission (tombstone) ;
+   * — il abandonne sa réception : retirer buffer, orphelins et bulle.
+   */
+  private handleRemoteCancel(msg: ProtocolMessage): void {
+    const { transferId, groupTransferId } = msg.payload as { transferId: string; groupTransferId?: string }
+
+    if (this.transfers.has(transferId)) {
+      this.cancelledTransfers.add(transferId)
+      this.transfers.delete(transferId)
+      this.notifyTransfersNow()
+      return
+    }
+
+    if (this.receiveBuffers.has(transferId)) {
+      this.tombstoneCancelled(transferId)
+      this.dropReceiveBuffer(transferId)
+      return
+    }
+
+    // Groupe : l'annulation porte l'id de groupe, seul connu des deux côtés —
+    // retrouver les buffers de réception par lui.
+    if (groupTransferId) {
+      for (const id of [...this.receiveBuffers.keys()]) {
+        if (this.receiveBuffers.get(id)?.groupTransferId === groupTransferId) {
+          this.tombstoneCancelled(id)
+          this.dropReceiveBuffer(id)
+        }
+      }
+    }
+  }
+
+  /**
+   * Tombstone d'annulation : les chunks déjà en vol (lots en cours chez
+   * l'expéditeur) ne doivent ni recréer d'orphelins ni ressusciter un buffer
+   * via la metadata. Le délai couvre le round-trip du file:cancel.
+   */
+  private tombstoneCancelled(transferId: string): void {
+    this.cancelledTransfers.add(transferId)
+    setTimeout(() => this.clearCancelledTransfer(transferId), 60_000)
+  }
+
+  /** Retire un buffer de réception partiel, sa bulle « réception… » et ses orphelins. */
+  private dropReceiveBuffer(transferId: string): void {
+    const buf = this.receiveBuffers.get(transferId)
+    if (!buf) return
     this.receiveBuffers.delete(transferId)
+    this.orphanChunks.delete(transferId)
+    if (buf.placeholderMessageId) {
+      useMessageStore.getState().removeMessage(buf.placeholderMessageId)
+    }
+    this.notifyTransfersNow()
   }
 
   /**
@@ -6390,6 +6532,9 @@ interface FileTransfer {
   // Conversation d'origine : le widget est monté par conversation, sans ce
   // champ un envoi vers B s'affichait aussi dans la fenêtre de C.
   conversationId: string
+  // Destinataire d'un envoi 1:1, absent d'un envoi de groupe (fan-out) :
+  // « annuler » s'en sert pour prévenir le pair par file:cancel.
+  peerId?: string
 }
 
 interface ReceiveBuffer {

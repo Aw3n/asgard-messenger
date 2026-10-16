@@ -280,8 +280,10 @@ const TransferItem: React.FC<{ transfer: TransferInfo }> = ({ transfer }) => {
           <p className="text-xs text-asgard-text-primary truncate font-medium">
             {transfer.fileName}
           </p>
-          <span className="text-xxs text-asgard-text-muted flex-shrink-0">
-            {formatBytes(transfer.fileSize)}
+          {/* Transféré / total (pattern Signal) : la seule taille finale ne dit
+              pas où en est le transfert, la barre seule ne dit pas combien. */}
+          <span className="text-xxs text-asgard-text-muted flex-shrink-0 tabular-nums">
+            {formatBytes(transfer.transferredBytes)} / {formatBytes(transfer.fileSize)}
           </span>
         </div>
 
@@ -329,6 +331,19 @@ const TransferItem: React.FC<{ transfer: TransferInfo }> = ({ transfer }) => {
           </span>
         </div>
       </div>
+
+      {/* Action par item : annuler le transfert, dans les deux sens. Côté
+          récepteur comme côté émetteur, le pair est prévenu (file:cancel). */}
+      <button
+        onClick={() => fileService.cancelTransfer(transfer.id)}
+        className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-asgard-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+        aria-label={t('common.cancel')}
+        title={t('common.cancel')}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
     </motion.div>
   )
 }
