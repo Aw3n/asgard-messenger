@@ -112,12 +112,12 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
       }
     }
 
+    // FileService coalesce déjà ses notifications à 100 ms pendant un
+    // transfert : un intervalle séparé ne faisait que recalculer la même liste.
     const unsubscribe = fileService.subscribeTransfers(updateTransfers)
     updateTransfers()
-    const interval = setInterval(updateTransfers, 400)
     return () => {
       unsubscribe()
-      clearInterval(interval)
       prevProgressRef.current.clear()
     }
   }, [conversationId])

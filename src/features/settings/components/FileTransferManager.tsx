@@ -22,9 +22,10 @@ export const FileTransferManager: React.FC<{ onClose?: () => void }> = ({ onClos
   const [filter, setFilter] = useState<'all' | 'uploading' | 'downloading' | 'complete' | 'error'>('all')
 
   useEffect(() => {
+    // FileService notifie déjà les changements (coalescés à 100 ms) : cet
+    // intervalle de 500 ms ne faisait que relire le même état.
     loadTransfers()
-    const interval = setInterval(loadTransfers, 500)
-    return () => clearInterval(interval)
+    return fileService.subscribeTransfers(loadTransfers)
   }, [])
 
   const loadTransfers = () => {
