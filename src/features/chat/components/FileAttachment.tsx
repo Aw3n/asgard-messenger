@@ -68,7 +68,6 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
    * notifiable — la liste des fichiers rend des pièces jointes hors conversation.
    */
   const [resolvedVersion, setResolvedVersion] = useState(0)
-  const progressInterval = useRef<ReturnType<typeof setInterval>>()
 
   const deleteFileAttachment = useMessageStore((s) => s.deleteFileAttachment)
   const setAttachmentLocalUrl = useMessageStore((s) => s.setAttachmentLocalUrl)
@@ -98,16 +97,29 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
     return () => { cancelled = true }
   }, [attachment.id, attachment.type, attachment.blobKey, attachment.localUrl, attachment.deleted, messageId, conversationId, setAttachmentLocalUrl])
 
-  // Poll transfer progress for both send and receive
+  // Progress is pulled from FileService when it changes, not polled: the
+  // service already coalesces its notifications, so one subscription per
+  // bubble replaces a 300 ms timer that kept ticking for history attachments
+  // long after their transfer was over. A settled file — a stored blob or a
+  // live URL — has nothing to watch and subscribes to nothing.
   // CRITICAL: all hooks must run before any early return.
   useEffect(() => {
-    const checkProgress = () => {
-      // Réception abandonnée (fichier incomplet jeté) : ni barre ni « Réception… ».
-      if (attachment.failed) {
-        setProgress(null)
-        return
-      }
+    // Réception abandonnée (fichier incomplet jeté) : ni barre ni « Réception… ».
+    if (attachment.failed || attachment.deleted) {
+      setProgress(null)
+      return
+    }
 
+    const receivesPending = !attachment.localUrl && !attachment.blobKey && Boolean(conversationId)
+    const uploading = attachment.transferId
+      ? fileService.getTransfer(attachment.transferId)?.status === 'uploading'
+      : false
+    if (!receivesPending && !uploading) {
+      setProgress(null)
+      return
+    }
+
+    const updateProgress = () => {
       // Match by transfer ID, never by file name: two distinct files can share
       // a name, and name matching made every older bubble with that name
       // mirror the current transfer's progress.
@@ -117,11 +129,10 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         return
       }
 
-      // Check receive progress via active receive buffer
-      if (!attachment.localUrl && !attachment.blobKey && conversationId) {
+      if (receivesPending) {
         const receiveProgress = attachment.transferId
           ? fileService.getReceiveProgressByTransfer(attachment.transferId)
-          : fileService.getReceiveProgress(conversationId)
+          : fileService.getReceiveProgress(conversationId as string)
         if (receiveProgress && (!attachment.transferId || receiveProgress.fileName === attachment.name)) {
           setProgress(receiveProgress.progress)
         } else {
@@ -131,19 +142,13 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         return
       }
 
-      // If we had progress before but now it's gone, clear it. Functional
-      // update: the interval closure captures the `progress` of the render
-      // that mounted it, so reading it directly here never sees the value
-      // published by a later tick and the bar would stay stuck mid-transfer.
-      if (!transfer) {
-        setProgress((current) => (current === null ? current : null))
-      }
+      // The upload ended while this bubble was watching: drop the bar.
+      setProgress((current) => (current === null ? current : null))
     }
 
-    checkProgress()
-    progressInterval.current = setInterval(checkProgress, 300)
-    return () => clearInterval(progressInterval.current)
-  }, [attachment.transferId, attachment.name, attachment.localUrl, attachment.blobKey, attachment.failed, conversationId])
+    updateProgress()
+    return fileService.subscribeTransfers(updateProgress)
+  }, [attachment.transferId, attachment.name, attachment.localUrl, attachment.blobKey, attachment.failed, attachment.deleted, conversationId])
 
   /**
    * Ouvre la pièce jointe dans l'application système. `window.open('blob:…')`
@@ -922,13 +927,19 @@ const DocumentAttachment: React.FC<{
   const ext = attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'
   const isTransferring = progress !== null && progress !== 100
   const isIndeterminate = progress !== null && progress < 0
+  const showSave = Boolean(attachment.blobKey) && !loading && !isTransferring
 
   return (
-    <div className="flex flex-col gap-1.5 max-w-[280px]">
+    // Le bouton d'enregistrement est un frère, pas un descendant : un <button>
+    // dans un <button> est invalide et le clic sur l'un déclenche l'autre.
+    <div className="relative flex flex-col gap-1.5 max-w-[280px]">
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={onClick}
-        className="flex items-center gap-3 bg-asgard-surface-alt rounded-xl px-3 py-2.5 hover:bg-asgard-surface-alt transition-colors"
+        className={cn(
+          'flex items-center gap-3 bg-asgard-surface-alt rounded-xl px-3 py-2.5 hover:bg-asgard-surface-alt transition-colors',
+          showSave && 'pr-12'
+        )}
       >
         <div className="w-10 h-10 rounded-lg bg-asgard-nordic/20 flex items-center justify-center flex-shrink-0">
           <span className="text-xs font-bold text-asgard-glacier">{ext}</span>
@@ -961,10 +972,12 @@ const DocumentAttachment: React.FC<{
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
           </svg>
         )}
-        {attachment.blobKey && !loading && !isTransferring && (
-          <SaveButton onClick={onSave} />
-        )}
       </motion.button>
+      {showSave && (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <SaveButton onClick={onSave} />
+        </div>
+      )}
     </div>
   )
 }
