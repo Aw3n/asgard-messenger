@@ -435,6 +435,15 @@ const App: React.FC = () => {
         })())
       }
 
+      // Groupes existants : leurs topics de découverte ne vivaient que le temps
+      // d'une session. Sans ce re-join, les membres qui ne sont pas aussi des
+      // contacts 1:1 ne pouvaient pas se retrouver après un redémarrage.
+      topicPromises.push(
+        groupService.joinAllGroupTopics().catch((err) => {
+          console.warn('[App] Failed to join group discovery topics:', err)
+        })
+      )
+
       await Promise.allSettled(topicPromises)
       if (allContacts.length > 0) {
         console.log('[App] Joined Hyperswarm topics for', allContacts.length, 'contacts (parallel)')
@@ -451,6 +460,8 @@ const App: React.FC = () => {
 
       // Broadcast initial presence to all connected peers
       chatService.broadcastPresence().catch(console.error)
+      // Groupes : annonce immédiate plutôt qu'au premier tick de 30 s.
+      groupService.announcePresenceNow()
 
       // ── PHASE 4: Delayed re-identify + presence broadcast (multi-pass) ──
       // OPTIMIZATION: Three fast passes instead of one slow pass.

@@ -5,10 +5,12 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest'
 import { chatService } from '@/services/ChatService'
 import { p2pService } from '@/services/P2PService'
+import { groupService } from '@/services/GroupService'
 import { storageService } from '@/services/StorageService'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useNetworkStore } from '@/stores/networkStore'
+import { useGroupStore } from '@/stores/groupStore'
 import type { Contact, ProtocolMessage } from '@/types'
 
 const ME = 'a'.repeat(64)
@@ -41,6 +43,7 @@ function dispatch(type: string, payload: unknown, from: string): void {
 
 beforeAll(() => {
   chatService.initialize()
+  groupService.initialize()
 })
 
 beforeEach(() => {
@@ -54,6 +57,7 @@ beforeEach(() => {
   })
   useContactStore.setState({ contacts: {}, searchQuery: '' })
   useNetworkStore.setState({ peers: {} })
+  useGroupStore.setState({ groups: {}, groupPresence: {} })
   vi.spyOn(storageService, 'saveContact').mockResolvedValue(undefined)
 })
 
@@ -161,5 +165,57 @@ describe('ChatService.probeContact — découverte immédiate', () => {
 
     await vi.waitFor(() => expect(window.asgard.network.connectToContact).toHaveBeenCalledTimes(1))
     expect(window.asgard.network.connectToContact).toHaveBeenCalledWith('c'.repeat(64), true)
+  })
+})
+
+describe('GroupService — découverte et présence après redémarrage', () => {
+  function newGroup(name: string) {
+    return useGroupStore.getState().createGroup({
+      name,
+      ownerId: ME,
+      ownerDisplayName: 'Moi',
+    })
+  }
+
+  it('rejoint le topic de chaque groupe qui a une clé d’invitation', async () => {
+    const withKey = newGroup('Avec clé')
+    useGroupStore.getState().generateInviteKey(withKey.id)
+    newGroup('Sans clé')
+    const joinTopic = vi.spyOn(p2pService, 'joinTopic').mockResolvedValue(undefined)
+
+    await groupService.joinAllGroupTopics()
+
+    expect(joinTopic).toHaveBeenCalledTimes(1)
+    joinTopic.mockRestore()
+  })
+
+  it('envoie notre présence au pair identifié qui partage un groupe, à lui seul', async () => {
+    const peer = newPeer()
+    const group = newGroup('Commun')
+    useGroupStore.getState().addMember(group.id, {
+      publicKey: peer,
+      displayName: 'Pair',
+      role: 'member',
+      joinedAt: Date.now(),
+      canPost: true,
+    })
+    const other = newGroup('Autre')
+    useGroupStore.getState().addMember(other.id, {
+      publicKey: newPeer(),
+      displayName: 'Autre',
+      role: 'member',
+      joinedAt: Date.now(),
+      canPost: true,
+    })
+    const send = vi.spyOn(p2pService, 'sendMessage').mockResolvedValue(undefined)
+
+    p2pService.emit('peer:identified', { peerId: 'noise', publicKey: peer })
+
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1))
+    const [target, type, payload] = send.mock.calls[0]
+    expect(target).toBe(peer)
+    expect(type).toBe('group:presence')
+    expect((payload as { groupId: string }).groupId).toBe(group.id)
+    send.mockRestore()
   })
 })

@@ -66,6 +66,13 @@ class GroupService {
     if (this.initialized) return
     this.initialized = true
 
+    // PRESENCE: un pair identifié après notre dernière annonce ne verrait notre
+    // statut de groupe qu'au prochain cycle forcé (90 s). On le lui envoie
+    // immédiatement, sans rebroadcaster à tout le groupe.
+    p2pService.on('peer:identified', (data: { publicKey: string }) => {
+      this.announcePresenceToPeer(data.publicKey).catch(() => {})
+    })
+
     // Listen for group invitations
     p2pService.on('message:group:invite', (msg: ProtocolMessage) => {
       this.handleGroupInvite(msg)
@@ -138,6 +145,30 @@ class GroupService {
       // Members who haven't sent presence in 2 minutes are marked offline.
       useGroupStore.getState().cleanupStalePresence()
     }, GroupService.HEARTBEAT_INTERVAL_MS)
+  }
+
+  /**
+   * Rejoint le topic de découverte de chaque groupe déjà présent localement.
+   * Sans cela, après un redémarrage, seuls les groupes créés, rejoints ou
+   * ouverts dans la session courante étaient annoncés : un membre qui n'est
+   * pas aussi un contact 1:1 restait introuvable jusqu'à la prochaine action.
+   */
+  async joinAllGroupTopics(): Promise<void> {
+    const groups = useGroupStore.getState().getAllGroups().filter((g) => !!g.inviteKey)
+    if (groups.length === 0) return
+    const results = await Promise.allSettled(groups.map(async (group) => {
+      const topic = await cryptoService.deriveGroupTopic(group.inviteKey!)
+      await p2pService.joinTopic(topic)
+    }))
+    for (const r of results) {
+      if (r.status === 'rejected') console.warn('[GroupService] Failed to join a group topic:', r.reason)
+    }
+    console.log('[GroupService] Joined discovery topics for', groups.length, 'groups')
+  }
+
+  /** Annonce immédiatement notre présence aux groupes déjà connectés. */
+  announcePresenceNow(): void {
+    this.announcePresenceToAllGroups().catch(() => {})
   }
 
   /**
@@ -730,29 +761,52 @@ class GroupService {
    * @param withAvatar - If true, also push our avatar via binary media channel
    */
   async announceGroupPresence(groupId: string, withAvatar: boolean = false): Promise<void> {
-    const identity = useIdentityStore.getState().identity
-    if (!identity) return
-
-    const status: string = this.outgoingPresence()
+    const payload = this.groupPresencePayload(groupId)
+    if (!payload) return
 
     const memberKeys = this.getGroupMemberKeys(groupId)
-    await p2pService.broadcastToPeers(memberKeys, 'group:presence', {
+    await p2pService.broadcastToPeers(memberKeys, 'group:presence', payload).catch(console.error)
+
+    // PERFORMANCE: Send our profile avatar to each group member via binary media channel.
+    // Only when withAvatar is true (avatar changed or initial connection).
+    // Avoids sending 3.8MB every 5s heartbeat.
+    if (withAvatar) {
+      const avatar = useIdentityStore.getState().identity?.profile.avatar
+      if (avatar) {
+        for (const memberKey of memberKeys) {
+          this.sendMemberAvatarViaMedia(memberKey, groupId, avatar).catch(() => {})
+        }
+      }
+    }
+  }
+
+  /** Payload d'annonce de présence, partagé par le broadcast et l'envoi ciblé. */
+  private groupPresencePayload(groupId: string): Record<string, unknown> | null {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return null
+    return {
       groupId,
       publicKey: identity.keyPair.publicKey,
       displayName: identity.profile.displayName,
       avatar: undefined, // PERFORMANCE: Never include avatar in signed messages (3.8MB)
       hasAvatar: !!identity.profile.avatar, // Flag for UI placeholder
-      status,
+      status: this.outgoingPresence(),
       customStatus: identity.profile.customStatus,
       timestamp: Date.now(),
-    }).catch(console.error)
+    }
+  }
 
-    // PERFORMANCE: Send our profile avatar to each group member via binary media channel.
-    // Only when withAvatar is true (avatar changed or initial connection).
-    // Avoids sending 3.8MB every 5s heartbeat.
-    if (withAvatar && identity.profile.avatar) {
-      for (const memberKey of memberKeys) {
-        this.sendMemberAvatarViaMedia(memberKey, groupId, identity.profile.avatar).catch(() => {})
+  /** Envoie notre présence de groupe au seul pair qui vient de se connecter. */
+  private async announcePresenceToPeer(peerPublicKey: string): Promise<void> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return
+    for (const group of useGroupStore.getState().getAllGroups()) {
+      const iAmMember = group.members.some((m) => m.publicKey === identity.keyPair.publicKey)
+      const peerIsMember = group.members.some((m) => m.publicKey === peerPublicKey)
+      if (!iAmMember || !peerIsMember) continue
+      const payload = this.groupPresencePayload(group.id)
+      if (payload) {
+        p2pService.sendMessage(peerPublicKey, 'group:presence', payload).catch(() => {})
       }
     }
   }
