@@ -855,6 +855,12 @@ export const translations = {
       "contacts.replyToConfirm": "Répondez dans la conversation pour confirmer l'ajout.",
       "contacts.requestSent": "Demande envoyée — l'ajout sera confirmé à sa première réponse.",
       "contacts.pendingBadge": "En attente",
+      "groups.inviteAction": "Inviter",
+      "groups.inviting": "Envoi…",
+      "groups.inviteSent": "Invitation envoyée à {{name}}",
+      "groups.invitationSent": "Invité",
+      "groups.inviteFailed": "Échec de l'envoi de l'invitation",
+      "groups.noContactsToInvite": "Aucun contact à inviter",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1713,6 +1719,12 @@ export const translations = {
       "contacts.replyToConfirm": "Antwoord in het gesprek om het contact te bevestigen.",
       "contacts.requestSent": "Verzoek verzonden — het contact wordt bevestigd bij het eerste antwoord.",
       "contacts.pendingBadge": "In afwachting",
+      "groups.inviteAction": "Uitnodigen",
+      "groups.inviting": "Versturen…",
+      "groups.inviteSent": "Uitnodiging verzonden naar {{name}}",
+      "groups.invitationSent": "Uitgenodigd",
+      "groups.inviteFailed": "Verzenden van de uitnodiging mislukt",
+      "groups.noContactsToInvite": "Geen contacten om uit te nodigen",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2571,6 +2583,12 @@ export const translations = {
       "contacts.replyToConfirm": "Antworten Sie im Gespräch, um den Kontakt zu bestätigen.",
       "contacts.requestSent": "Anfrage gesendet — der Kontakt wird mit der ersten Antwort bestätigt.",
       "contacts.pendingBadge": "Ausstehend",
+      "groups.inviteAction": "Einladen",
+      "groups.inviting": "Wird gesendet…",
+      "groups.inviteSent": "Einladung an {{name}} gesendet",
+      "groups.invitationSent": "Eingeladen",
+      "groups.inviteFailed": "Einladung konnte nicht gesendet werden",
+      "groups.noContactsToInvite": "Keine Kontakte zum Einladen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3429,6 +3447,12 @@ export const translations = {
       "contacts.replyToConfirm": "Rispondi nella conversazione per confermare il contatto.",
       "contacts.requestSent": "Richiesta inviata — il contatto sarà confermato alla prima risposta.",
       "contacts.pendingBadge": "In attesa",
+      "groups.inviteAction": "Invita",
+      "groups.inviting": "Invio…",
+      "groups.inviteSent": "Invito inviato a {{name}}",
+      "groups.invitationSent": "Invitato",
+      "groups.inviteFailed": "Invio dell'invito non riuscito",
+      "groups.noContactsToInvite": "Nessun contatto da invitare",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4287,6 +4311,12 @@ export const translations = {
       "contacts.replyToConfirm": "Responde en la conversación para confirmar el contacto.",
       "contacts.requestSent": "Solicitud enviada: el contacto se confirmará con su primera respuesta.",
       "contacts.pendingBadge": "Pendiente",
+      "groups.inviteAction": "Invitar",
+      "groups.inviting": "Enviando…",
+      "groups.inviteSent": "Invitación enviada a {{name}}",
+      "groups.invitationSent": "Invitado",
+      "groups.inviteFailed": "No se pudo enviar la invitación",
+      "groups.noContactsToInvite": "No hay contactos para invitar",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5146,6 +5176,12 @@ export const translations = {
       "contacts.replyToConfirm": "Responda na conversa para confirmar o contacto.",
       "contacts.requestSent": "Pedido enviado — o contacto será confirmado na primeira resposta.",
       "contacts.pendingBadge": "Pendente",
+      "groups.inviteAction": "Convidar",
+      "groups.inviting": "A enviar…",
+      "groups.inviteSent": "Convite enviado a {{name}}",
+      "groups.invitationSent": "Convidado",
+      "groups.inviteFailed": "Falha ao enviar o convite",
+      "groups.noContactsToInvite": "Nenhum contacto para convidar",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6005,6 +6041,12 @@ export const translations = {
       "contacts.replyToConfirm": "Απαντήστε στη συνομιλία για να επιβεβαιώσετε την επαφή.",
       "contacts.requestSent": "Το αίτημα στάλθηκε — η επαφή θα επιβεβαιωθεί με την πρώτη απάντηση.",
       "contacts.pendingBadge": "Σε αναμονή",
+      "groups.inviteAction": "Πρόσκληση",
+      "groups.inviting": "Αποστολή…",
+      "groups.inviteSent": "Η πρόσκληση στάλθηκε σε {{name}}",
+      "groups.invitationSent": "Προσκλήθηκε",
+      "groups.inviteFailed": "Αποτυχία αποστολής της πρόσκλησης",
+      "groups.noContactsToInvite": "Δεν υπάρχουν επαφές για πρόσκληση",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6864,6 +6906,12 @@ export const translations = {
       "contacts.replyToConfirm": "Svar i samtalen for at bekræfte kontakten.",
       "contacts.requestSent": "Anmodning sendt — kontakten bekræftes ved det første svar.",
       "contacts.pendingBadge": "Afventer",
+      "groups.inviteAction": "Inviter",
+      "groups.inviting": "Sender…",
+      "groups.inviteSent": "Invitation sendt til {{name}}",
+      "groups.invitationSent": "Inviteret",
+      "groups.inviteFailed": "Kunne ikke sende invitationen",
+      "groups.noContactsToInvite": "Ingen kontakter at invitere",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7723,6 +7771,12 @@ export const translations = {
       "contacts.replyToConfirm": "Vastaa keskustelussa vahvistaaksesi yhteystiedon.",
       "contacts.requestSent": "Pyyntö lähetetty — yhteystieto vahvistetaan ensimmäisellä vastauksella.",
       "contacts.pendingBadge": "Odottaa",
+      "groups.inviteAction": "Kutsu",
+      "groups.inviting": "Lähetetään…",
+      "groups.inviteSent": "Kutsu lähetetty: {{name}}",
+      "groups.invitationSent": "Kutsuttu",
+      "groups.inviteFailed": "Kutsun lähetys epäonnistui",
+      "groups.noContactsToInvite": "Ei kutsuttavia yhteystietoja",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8582,6 +8636,12 @@ export const translations = {
       "contacts.replyToConfirm": "Svara i konversationen för att bekräfta kontakten.",
       "contacts.requestSent": "Förfrågan skickad — kontakten bekräftas vid första svaret.",
       "contacts.pendingBadge": "Väntar",
+      "groups.inviteAction": "Bjud in",
+      "groups.inviting": "Skickar…",
+      "groups.inviteSent": "Inbjudan skickad till {{name}}",
+      "groups.invitationSent": "Inbjuden",
+      "groups.inviteFailed": "Det gick inte att skicka inbjudan",
+      "groups.noContactsToInvite": "Inga kontakter att bjuda in",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9441,6 +9501,12 @@ export const translations = {
       "contacts.replyToConfirm": "Odgovorite u razgovoru kako biste potvrdili kontakt.",
       "contacts.requestSent": "Zahtjev poslan — kontakt će biti potvrđen prvim odgovorom.",
       "contacts.pendingBadge": "Na čekanju",
+      "groups.inviteAction": "Pozovi",
+      "groups.inviting": "Slanje…",
+      "groups.inviteSent": "Pozivnica poslana korisniku {{name}}",
+      "groups.invitationSent": "Pozvan",
+      "groups.inviteFailed": "Slanje pozivnice nije uspjelo",
+      "groups.noContactsToInvite": "Nema kontakata za pozivanje",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10300,6 +10366,12 @@ export const translations = {
       "contacts.replyToConfirm": "Kinnitage kontakt, vastates vestluses.",
       "contacts.requestSent": "Taotlus saadetud — kontakt kinnitatakse esimese vastusega.",
       "contacts.pendingBadge": "Ootel",
+      "groups.inviteAction": "Kutsu",
+      "groups.inviting": "Saatmine…",
+      "groups.inviteSent": "Kutse saadetud: {{name}}",
+      "groups.invitationSent": "Kutsutud",
+      "groups.inviteFailed": "Kutse saatmine ebaõnnestus",
+      "groups.noContactsToInvite": "Pole kontakte, keda kutsuda",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11159,6 +11231,12 @@ export const translations = {
       "contacts.replyToConfirm": "Válaszoljon a beszélgetésben a névjegy megerősítéséhez.",
       "contacts.requestSent": "Kérés elküldve — a névjegy az első válasszal erősödik meg.",
       "contacts.pendingBadge": "Függőben",
+      "groups.inviteAction": "Meghívás",
+      "groups.inviting": "Küldés…",
+      "groups.inviteSent": "Meghívó elküldve: {{name}}",
+      "groups.invitationSent": "Meghívva",
+      "groups.inviteFailed": "Nem sikerült elküldeni a meghívót",
+      "groups.noContactsToInvite": "Nincs meghívható névjegy",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12018,6 +12096,12 @@ export const translations = {
       "contacts.replyToConfirm": "Atbildiet sarunā, lai apstiprinātu kontaktu.",
       "contacts.requestSent": "Pieprasījums nosūtīts — kontakts tiks apstiprināts ar pirmo atbildi.",
       "contacts.pendingBadge": "Gaida",
+      "groups.inviteAction": "Uzaicināt",
+      "groups.inviting": "Sūta…",
+      "groups.inviteSent": "Uzaicinājums nosūtīts: {{name}}",
+      "groups.invitationSent": "Uzaicināts",
+      "groups.inviteFailed": "Neizdevās nosūtīt uzaicinājumu",
+      "groups.noContactsToInvite": "Nav kontaktu, ko uzaicināt",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -12877,6 +12961,12 @@ export const translations = {
       "contacts.replyToConfirm": "Atsakykite pokalbyje, kad patvirtintumėte kontaktą.",
       "contacts.requestSent": "Užklausa išsiųsta — kontaktas bus patvirtintas pirmuoju atsakymu.",
       "contacts.pendingBadge": "Laukiama",
+      "groups.inviteAction": "Pakviesti",
+      "groups.inviting": "Siunčiama…",
+      "groups.inviteSent": "Kvietimas išsiųstas: {{name}}",
+      "groups.invitationSent": "Pakviestas",
+      "groups.inviteFailed": "Nepavyko išsiųsti kvietimo",
+      "groups.noContactsToInvite": "Nėra kontaktų, kuriuos pakviesti",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13736,6 +13826,12 @@ export const translations = {
       "contacts.replyToConfirm": "Wieġeb fil-konversazzjoni biex tikkonferma l-kuntatt.",
       "contacts.requestSent": "Talba mibgħuta — il-kuntatt jiġi kkonfermat fl-ewwel tweġiba.",
       "contacts.pendingBadge": "Pendenti",
+      "groups.inviteAction": "Stieden",
+      "groups.inviting": "Qed jintbagħat…",
+      "groups.inviteSent": "Stedina mibgħuta lil {{name}}",
+      "groups.invitationSent": "Mistieden",
+      "groups.inviteFailed": "Ma rnexxielniex nibagħtu l-istedina",
+      "groups.noContactsToInvite": "L-ebda kuntatt biex tistieden",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14595,6 +14691,12 @@ export const translations = {
       "contacts.replyToConfirm": "Odpowiedz w rozmowie, aby potwierdzić kontakt.",
       "contacts.requestSent": "Zaproszenie wysłane — kontakt zostanie potwierdzony przy pierwszej odpowiedzi.",
       "contacts.pendingBadge": "Oczekuje",
+      "groups.inviteAction": "Zaproś",
+      "groups.inviting": "Wysyłanie…",
+      "groups.inviteSent": "Zaproszenie wysłane do {{name}}",
+      "groups.invitationSent": "Zaproszono",
+      "groups.inviteFailed": "Nie udało się wysłać zaproszenia",
+      "groups.noContactsToInvite": "Brak kontaktów do zaproszenia",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15454,6 +15556,12 @@ export const translations = {
       "contacts.replyToConfirm": "Odpovedzte v konverzácii, aby potvrdiť kontakt.",
       "contacts.requestSent": "Žiadosť odoslaná — kontakt sa potvrdí pri prvej odpovedi.",
       "contacts.pendingBadge": "Čaká sa",
+      "groups.inviteAction": "Pozvať",
+      "groups.inviting": "Odosiela sa…",
+      "groups.inviteSent": "Pozvánka odoslaná používateľovi {{name}}",
+      "groups.invitationSent": "Pozvaný",
+      "groups.inviteFailed": "Pozvánku sa nepodarilo odoslať",
+      "groups.noContactsToInvite": "Žiadne kontakty na pozvanie",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16313,6 +16421,12 @@ export const translations = {
       "contacts.replyToConfirm": "Odgovorite v pogovoru, da potrdite stik.",
       "contacts.requestSent": "Zahteva poslana — stik bo potrjen ob prvem odgovoru.",
       "contacts.pendingBadge": "V čakanju",
+      "groups.inviteAction": "Povabi",
+      "groups.inviting": "Pošiljanje…",
+      "groups.inviteSent": "Povabilo poslano: {{name}}",
+      "groups.invitationSent": "Povabljen",
+      "groups.inviteFailed": "Povabila ni bilo mogoče poslati",
+      "groups.noContactsToInvite": "Ni stikov za povabilo",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17172,6 +17286,12 @@ export const translations = {
       "contacts.replyToConfirm": "Odpovězte v konverzaci, abyste potvrdili kontakt.",
       "contacts.requestSent": "Žádost odeslána — kontakt bude potvrzen první odpovědí.",
       "contacts.pendingBadge": "Čeká na potvrzení",
+      "groups.inviteAction": "Pozvat",
+      "groups.inviting": "Odesílání…",
+      "groups.inviteSent": "Pozvánka odeslána uživateli {{name}}",
+      "groups.invitationSent": "Pozván",
+      "groups.inviteFailed": "Pozvánku se nepodařilo odeslat",
+      "groups.noContactsToInvite": "Žádné kontakty k pozvání",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18031,6 +18151,12 @@ export const translations = {
       "contacts.replyToConfirm": "Отговорете в разговора, за да потвърдите контакта.",
       "contacts.requestSent": "Заявката е изпратена — контактът ще бъде потвърден при първия отговор.",
       "contacts.pendingBadge": "Чака",
+      "groups.inviteAction": "Покани",
+      "groups.inviting": "Изпращане…",
+      "groups.inviteSent": "Поканата е изпратена на {{name}}",
+      "groups.invitationSent": "Поканен",
+      "groups.inviteFailed": "Поканата не можа да бъде изпратена",
+      "groups.noContactsToInvite": "Няма контакти за поканване",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -18890,6 +19016,12 @@ export const translations = {
       "contacts.replyToConfirm": "Freagair sa chomhrá chun an teagmhálaí a dheimhniú.",
       "contacts.requestSent": "Iarratas seolta — deimhneofar an teagmhálaí ar an gcéad fhreagra.",
       "contacts.pendingBadge": "Ag feitheamh",
+      "groups.inviteAction": "Tabhair cuireadh",
+      "groups.inviting": "Á sheoladh…",
+      "groups.inviteSent": "Cuireadh seolta chuig {{name}}",
+      "groups.invitationSent": "Cuireadh seolta",
+      "groups.inviteFailed": "Theip ar sheoladh an chuireadh",
+      "groups.noContactsToInvite": "Níl aon teagmhálaithe le tabhairt cuireadh dóibh",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -19749,6 +19881,12 @@ export const translations = {
       "contacts.replyToConfirm": "Răspundeți în conversație pentru a confirma contactul.",
       "contacts.requestSent": "Cerere trimisă — contactul va fi confirmat la primul răspuns.",
       "contacts.pendingBadge": "În așteptare",
+      "groups.inviteAction": "Invită",
+      "groups.inviting": "Se trimite…",
+      "groups.inviteSent": "Invitație trimisă către {{name}}",
+      "groups.invitationSent": "Invitat",
+      "groups.inviteFailed": "Trimiterea invitației a eșuat",
+      "groups.noContactsToInvite": "Niciun contact de invitat",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20617,6 +20755,12 @@ export const translations = {
       "contacts.replyToConfirm": "Reply in the conversation to confirm the contact.",
       "contacts.requestSent": "Request sent — the contact will be confirmed on their first reply.",
       "contacts.pendingBadge": "Pending",
+      "groups.inviteAction": "Invite",
+      "groups.inviting": "Sending…",
+      "groups.inviteSent": "Invitation sent to {{name}}",
+      "groups.invitationSent": "Invited",
+      "groups.inviteFailed": "Failed to send the invitation",
+      "groups.noContactsToInvite": "No contacts to invite",
     }
   },
 
@@ -21477,6 +21621,12 @@ export const translations = {
       "contacts.replyToConfirm": "Дайте відповідь у розмові, щоб підтвердити контакт.",
       "contacts.requestSent": "Запит надіслано — контакт буде підтверджено першою відповіддю.",
       "contacts.pendingBadge": "Очікує",
+      "groups.inviteAction": "Запросити",
+      "groups.inviting": "Надсилання…",
+      "groups.inviteSent": "Запрошення надіслано: {{name}}",
+      "groups.invitationSent": "Запрошено",
+      "groups.inviteFailed": "Не вдалося надіслати запрошення",
+      "groups.noContactsToInvite": "Немає контактів для запрошення",
     }
   },
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useGroupStore } from '@/stores/groupStore'
 import { useConversationStore } from '@/stores/conversationStore'
+import { useContactStore } from '@/stores/contactStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { groupService } from '@/services/GroupService'
@@ -74,6 +75,16 @@ export const GroupSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
           <InviteSection groupId={activeGroup.id} inviteKey={activeGroup.inviteKey} />
         </div>
 
+        {/* Invite a contact - admin only */}
+        {isAdmin && (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-asgard-text-secondary mb-2">
+              {t('groups.inviteMembers')}
+            </h4>
+            <InviteContactsSection groupId={activeGroup.id} />
+          </div>
+        )}
+
         {/* Broadcast mode - admin only */}
         {isAdmin && (
           <BroadcastToggle groupId={activeGroup.id} />
@@ -133,6 +144,78 @@ const InviteSection: React.FC<{ groupId: string; inviteKey?: string }> = ({
       <Button variant="secondary" size="sm" onClick={handleCopy}>
         {copied ? t('common.copied') : t('groups.copyInviteKey')}
       </Button>
+    </div>
+  )
+}
+
+// ─── Invite Contacts ───────────────────────────────────────────────────────────
+
+const InviteContactsSection: React.FC<{ groupId: string }> = ({ groupId }) => {
+  const { t } = useTranslation()
+  const contacts = useContactStore((s) => s.contacts)
+  const group = useGroupStore((s) => s.getGroup(groupId))
+  const addToast = useUIStore((s) => s.addToast)
+  const [pendingKey, setPendingKey] = useState<string | null>(null)
+  const [invited, setInvited] = useState<string[]>([])
+
+  const memberKeys = new Set(group?.members.map((member) => member.publicKey) ?? [])
+  const candidates = Object.values(contacts)
+    .filter((contact) => contact.relation === 'contact' || contact.relation === 'favorite')
+    .filter((contact) => !memberKeys.has(contact.publicKey))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName))
+
+  const handleInvite = async (publicKey: string, displayName: string) => {
+    setPendingKey(publicKey)
+    try {
+      await groupService.inviteMember(groupId, publicKey)
+      setInvited((current) => [...current, publicKey])
+      addToast({ type: 'success', title: t('groups.inviteSent', { name: displayName }) })
+    } catch {
+      addToast({ type: 'error', title: t('groups.inviteFailed') })
+    } finally {
+      setPendingKey(null)
+    }
+  }
+
+  if (candidates.length === 0) {
+    return <p className="text-xs text-asgard-text-muted">{t('groups.noContactsToInvite')}</p>
+  }
+
+  return (
+    <div className="space-y-1 max-h-56 overflow-y-auto">
+      {candidates.map((contact) => {
+        const isInvited = invited.includes(contact.publicKey)
+        const isPending = pendingKey === contact.publicKey
+
+        return (
+          <div
+            key={contact.publicKey}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-asgard-surface-alt transition-colors"
+          >
+            <Avatar
+              src={contact.avatar}
+              name={contact.displayName}
+              publicKey={contact.publicKey}
+              size="sm"
+            />
+            <p className="flex-1 min-w-0 text-sm font-medium text-asgard-text-primary truncate">
+              {contact.displayName}
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isPending || isInvited}
+              onClick={() => handleInvite(contact.publicKey, contact.displayName)}
+            >
+              {isInvited
+                ? t('groups.invitationSent')
+                : isPending
+                  ? t('groups.inviting')
+                  : t('groups.inviteAction')}
+            </Button>
+          </div>
+        )
+      })}
     </div>
   )
 }

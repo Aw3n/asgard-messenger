@@ -10,6 +10,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { fileService } from './FileService'
 import { storageService } from './StorageService'
 import { generateId } from '@/utils/id'
+import { buildGroupInvitePayload, groupFromInvite } from '@/utils/groupInvite'
 import { toNetworkStatus, fromNetworkStatus, GROUP_PRESENCE_TIMEOUT, type NetworkStatus } from '@/utils/presence'
 
 /**
@@ -329,17 +330,24 @@ class GroupService {
       throw new Error('Group is full')
     }
 
-    // Send invitation (PERFORMANCE: avatar is sent separately via binary media channel)
-    await p2pService.sendMessage(contactPublicKey, 'group:invite', {
-      action: 'invite',
-      groupId: group.id,
-      groupName: group.name,
-      groupDescription: group.description,
-      hasAvatar: !!group.avatar,
-      inviteKey: group.inviteKey,
-      inviterPublicKey: identity.keyPair.publicKey,
-      inviterDisplayName: identity.profile.displayName,
-    })
+    // A group persisted before invite keys existed can still be shared: mint
+    // the key here, otherwise the joiner has no topic to discover the others.
+    let inviteKey = group.inviteKey
+    if (!inviteKey) {
+      inviteKey = useGroupStore.getState().generateInviteKey(group.id)
+      cryptoService.deriveGroupTopic(inviteKey)
+        .then((topic) => p2pService.joinTopic(topic).catch(() => {}))
+        .catch(() => {})
+    }
+
+    // FULL SNAPSHOT: members and channels travel with the invite so the joiner
+    // shares the same channel ids. Without them it invented its own « general »
+    // channel and every message it sent was stored under an id nobody read.
+    // PERFORMANCE: the avatar is still sent separately via the media channel.
+    await p2pService.sendMessage(contactPublicKey, 'group:invite', buildGroupInvitePayload(
+      { ...group, inviteKey },
+      { publicKey: identity.keyPair.publicKey, displayName: identity.profile.displayName },
+    ))
 
     // PERFORMANCE: Send group avatar via binary media channel (not in signed message)
     if (group.avatar) {
@@ -1033,55 +1041,54 @@ class GroupService {
     const action = payload.action as string
 
     if (action === 'invite') {
-      // We received an invitation — add the group locally
-      const identity = useIdentityStore.getState().identity
-      if (!identity) return
+      this.acceptGroupInvite(payload, msg.from).catch(console.error)
+    } else if (action === 'request') {
+      // Someone wants to join via invite key — verify and send group data
+      this.handleJoinRequest(msg.from, payload).catch(console.error)
+    }
+  }
 
-      const newMember: GroupMember = {
-        publicKey: identity.keyPair.publicKey,
-        displayName: identity.profile.displayName,
-        role: 'member',
-        joinedAt: Date.now(),
-        canPost: true,
-      }
+  /**
+   * Applied on the invitee's side: rebuild the group from the snapshot, join
+   * its discovery topic, then introduce ourselves to every member. The old
+   * handler only kept the name and a homemade channel id, and never told the
+   * inviter we had joined.
+   */
+  private async acceptGroupInvite(
+    payload: Record<string, unknown>,
+    senderPublicKey: string,
+  ): Promise<void> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return
 
-      const group: Group = {
-        id: payload.groupId as string,
-        name: payload.groupName as string,
-        description: payload.groupDescription as string | undefined,
-        avatar: undefined, // PERFORMANCE: Avatar arrives via binary media channel (hasAvatar flag indicates one exists)
-        members: [newMember],
-        channels: [{
-          id: generateId(),
-          groupId: payload.groupId as string,
-          name: 'general',
-          type: 'text',
-          position: 0,
-          permissions: {
-            send: ['owner', 'admin', 'moderator', 'member'],
-            read: ['owner', 'admin', 'moderator', 'member', 'guest'],
-            manage: ['owner', 'admin'],
-          },
-          unreadCount: 0,
-        }],
-        activeChannelId: undefined,
-        createdAt: Date.now(),
-        ownerId: payload.inviterPublicKey as string,
-        isPublic: false,
-        maxMembers: 100,
-        inviteKey: payload.inviteKey as string,
-      }
+    const incoming = groupFromInvite(payload, {
+      publicKey: identity.keyPair.publicKey,
+      displayName: identity.profile.displayName,
+    })
+    if (!incoming) {
+      console.warn('[GroupService] Ignoring malformed group invite')
+      return
+    }
 
-      useGroupStore.getState().joinGroup(group)
+    // The snapshot is only as trustworthy as its bearer: an invite must come
+    // from someone the payload itself lists as a member of that group.
+    if (!incoming.members.some((member) => member.publicKey === senderPublicKey)) {
+      console.warn('[GroupService] Ignoring group invite from a peer absent from the roster')
+      return
+    }
 
-      // HYPERSWARM: Join the group's discovery topic so we can find other members
-      if (group.inviteKey) {
-        cryptoService.deriveGroupTopic(group.inviteKey)
-          .then((topic) => p2pService.joinTopic(topic).catch(() => {}))
-          .catch(() => {})
-      }
+    const existing = useGroupStore.getState().getGroup(incoming.id)
+    const alreadyMember = existing?.members.some(
+      (member) => member.publicKey === identity.keyPair.publicKey,
+    ) ?? false
+    // A repeated invite must not roll the local group back to the snapshot:
+    // local state holds role changes and channel edits made since the invite.
+    const group = existing && alreadyMember ? existing : incoming
+    if (group === incoming) {
+      useGroupStore.getState().joinGroup(incoming)
+    }
 
-      // Create a conversation entry
+    if (!useConversationStore.getState().getConversation(group.id)) {
       useConversationStore.getState().addConversation({
         id: group.id,
         type: 'group',
@@ -1093,15 +1100,35 @@ class GroupService {
         createdAt: group.createdAt,
         updatedAt: group.createdAt,
       })
-
-      // PRESENCE: Announce our presence to existing group members immediately.
-      // Per Holepunch/Keet pattern: new members should announce themselves so
-      // existing members see their status right away.
-      this.announceGroupPresence(group.id, true).catch(() => {})
-    } else if (action === 'request') {
-      // Someone wants to join via invite key — verify and send group data
-      this.handleJoinRequest(msg.from, payload).catch(console.error)
     }
+
+    // HYPERSWARM: Join the group's discovery topic so we can find other members
+    if (group.inviteKey) {
+      cryptoService.deriveGroupTopic(group.inviteKey)
+        .then((topic) => p2pService.joinTopic(topic).catch(() => {}))
+        .catch(() => {})
+    }
+
+    // JOIN NOTICE: members apply addMember idempotently, so re-sending this on
+    // a duplicate invite is harmless — and it is the only way the inviter's
+    // roster learns about us.
+    const selfMember = group.members.find(
+      (member) => member.publicKey === identity.keyPair.publicKey,
+    )
+    if (selfMember) {
+      const memberKeys = this.getGroupMemberKeys(group.id)
+      if (memberKeys.length > 0) {
+        await p2pService.broadcastToPeers(memberKeys, 'group:update', {
+          action: 'member:joined',
+          groupId: group.id,
+          member: selfMember,
+        }).catch(() => {})
+      }
+    }
+
+    // PRESENCE: Announce our presence to existing group members immediately
+    // so they see our status right away (and receive our avatar).
+    this.announceGroupPresence(group.id, true).catch(() => {})
   }
 
   /**
@@ -1134,17 +1161,17 @@ class GroupService {
 
     useGroupStore.getState().addMember(group.id, newMember)
 
-    // Send the full group data back (PERFORMANCE: avatar sent via binary media channel)
-    await p2pService.sendMessage(requesterPeerId, 'group:invite', {
-      action: 'invite',
-      groupId: group.id,
-      groupName: group.name,
-      groupDescription: group.description,
-      hasAvatar: !!group.avatar,
-      inviteKey: group.inviteKey,
-      inviterPublicKey: useIdentityStore.getState().identity?.keyPair.publicKey,
-      inviterDisplayName: useIdentityStore.getState().identity?.profile.displayName,
-    })
+    // Send the full group data back (PERFORMANCE: avatar sent via binary media
+    // channel). Re-read the group: addMember wrote a fresh state object, and
+    // the snapshot must include the requester we just added.
+    const identity = useIdentityStore.getState().identity
+    const current = useGroupStore.getState().getGroup(group.id) ?? group
+    if (identity) {
+      await p2pService.sendMessage(requesterPeerId, 'group:invite', buildGroupInvitePayload(
+        current,
+        { publicKey: identity.keyPair.publicKey, displayName: identity.profile.displayName },
+      ))
+    }
 
     // PERFORMANCE: Send group avatar via binary media channel
     if (group.avatar) {
@@ -1188,8 +1215,11 @@ class GroupService {
       }
 
       case 'member:joined': {
-        const member = payload.member as GroupMember
-        store.addMember(groupId, member)
+        const member = payload.member as GroupMember | undefined
+        if (!member || typeof member.publicKey !== 'string' || !member.publicKey) break
+        // A join never grants a role: promotions go through member:role, which
+        // only admins send. Otherwise a peer could self-announce as owner.
+        store.addMember(groupId, { ...member, role: 'member' })
         break
       }
 
@@ -1268,6 +1298,21 @@ class GroupService {
 
     const isMember = group.members.some((m) => m.publicKey === message.senderId)
     if (!isMember) return
+
+    // LEGACY INVITES: a joiner used to invent its own « general » channel id.
+    // Its first group message then referenced a channel missing from this
+    // client and stayed invisible for ever. With a single local channel we can
+    // safely re-key it to the id the rest of the group uses.
+    if (!group.channels.some((channel) => channel.id === channelId) && group.channels.length === 1) {
+      const previous = group.channels[0]
+      useGroupStore.getState().updateGroup(groupId, {
+        channels: [{ ...previous, id: channelId, groupId, unreadCount: 0, pinnedMessageIds: [] }],
+        activeChannelId: channelId,
+      })
+      if (useGroupStore.getState().activeChannelId === previous.id) {
+        useGroupStore.getState().setActiveChannel(channelId)
+      }
+    }
 
     // Add message to the store — include groupId for routing and tracking
     useMessageStore.getState().addMessage({
