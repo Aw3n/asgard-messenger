@@ -15,51 +15,69 @@ export interface SearchResult {
   highlight: string
 }
 
+/** Laisse le temps de finir un mot avant d'interroger Hyperbee (IPC par conversation). */
+const STORAGE_SEARCH_DEBOUNCE_MS = 250
+const MAX_IN_MEMORY_MESSAGE_RESULTS = 20
+const STORAGE_RESULTS_PER_CONVERSATION = 5
+
 /**
  * useSearch — multi-source search hook for contacts, messages, and groups.
- * OPTIMIZATION: Also searches Hyperbee storage for messages not loaded in memory.
+ * Also searches Hyperbee storage for messages not loaded in memory, debounced
+ * and cancelled so a slow reply for an old query never overwrites the current one.
  */
 export function useSearch(query: string) {
   const contacts = useContactStore((s) => Object.values(s.contacts))
   const conversations = useConversationStore((s) => s.conversations)
   const groups = useGroupStore((s) => s.groups)
-  const getMessages = useMessageStore((s) => s.getMessages)
-  // OPTIMIZATION: Store results from Hyperbee deep search
+  // Abonnement réactif : un message reçu pendant la frappe doit apparaître
+  // dans les résultats, pas seulement au prochain changement de requête.
+  const messagesByConversation = useMessageStore((s) => s.messages)
   const [storageMessages, setStorageMessages] = useState<Message[]>([])
 
-  // Deep search in Hyperbee storage when query changes
+  // Identité stable des conversations : évite de relancer la recherche à
+  // chaque mise à jour d'aperçu ou de compteur non lu.
+  const conversationIdsKey = Object.keys(conversations).join('|')
+
   useEffect(() => {
-    if (!query.trim() || !window.asgard?.storage?.searchMessages) {
+    const q = query.toLowerCase().trim()
+    if (!q || !window.asgard?.storage?.searchMessages) {
       setStorageMessages([])
       return
     }
 
-    const q = query.toLowerCase().trim()
-    const allResults: Message[] = []
-    const convIds = Object.keys(conversations)
+    const convIds = conversationIdsKey ? conversationIdsKey.split('|') : []
+    let cancelled = false
 
-    // Search each conversation in Hyperbee storage
-    const searchPromises = convIds.map(async (convId) => {
-      try {
-        const results = await window.asgard.storage.searchMessages(convId, q, 5)
-        return results as unknown as Message[]
-      } catch {
-        return []
-      }
-    })
+    const timer = setTimeout(() => {
+      const searchPromises = convIds.map(async (convId) => {
+        try {
+          return (await window.asgard.storage.searchMessages(
+            convId,
+            q,
+            STORAGE_RESULTS_PER_CONVERSATION
+          )) as unknown as Message[]
+        } catch {
+          return []
+        }
+      })
 
-    Promise.all(searchPromises).then((results) => {
-      for (const msgs of results) {
-        for (const msg of msgs) {
-          // Avoid duplicates with in-memory messages
-          if (!allResults.find((m) => m.id === msg.id)) {
-            allResults.push(msg)
+      void Promise.all(searchPromises).then((results) => {
+        if (cancelled) return
+        const byId = new Map<string, Message>()
+        for (const msgs of results) {
+          for (const msg of msgs) {
+            if (!byId.has(msg.id)) byId.set(msg.id, msg)
           }
         }
-      }
-      setStorageMessages(allResults)
-    }).catch(() => {})
-  }, [query, conversations])
+        setStorageMessages(Array.from(byId.values()))
+      })
+    }, STORAGE_SEARCH_DEBOUNCE_MS)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [query, conversationIdsKey])
 
   const results = useMemo<SearchResult[]>(() => {
     if (!query.trim()) return []
@@ -97,23 +115,24 @@ export function useSearch(query: string) {
 
     // Search messages (in-memory)
     const inMemoryMsgIds = new Set<string>()
+    let messageCount = 0
     for (const conv of Object.values(conversations)) {
-      const messages = getMessages(conv.id)
+      if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+      const messages = messagesByConversation[conv.id] ?? []
       for (const msg of messages) {
-        if (!msg.deleted && msg.content.toLowerCase().includes(q)) {
-          results.push({
-            type: 'message',
-            message: msg,
-            highlight: msg.content.slice(0, 100),
-          })
-          inMemoryMsgIds.add(msg.id)
-        }
-        // Limit in-memory message results
-        if (results.filter((r) => r.type === 'message').length >= 20) break
+        if (msg.deleted || !msg.content?.toLowerCase().includes(q)) continue
+        results.push({
+          type: 'message',
+          message: msg,
+          highlight: msg.content.slice(0, 100),
+        })
+        inMemoryMsgIds.add(msg.id)
+        messageCount++
+        if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
       }
     }
 
-    // OPTIMIZATION: Add messages found in Hyperbee storage (deep search)
+    // Add messages found in Hyperbee storage (deep search), sans doublon
     for (const msg of storageMessages) {
       if (!msg.deleted && !inMemoryMsgIds.has(msg.id) && msg.content?.toLowerCase().includes(q)) {
         results.push({
@@ -125,7 +144,7 @@ export function useSearch(query: string) {
     }
 
     return results.slice(0, 50)
-  }, [query, contacts, groups, conversations, getMessages, storageMessages])
+  }, [query, contacts, groups, conversations, messagesByConversation, storageMessages])
 
   const contactResults = useMemo(() => results.filter((r) => r.type === 'contact'), [results])
   const messageResults = useMemo(() => results.filter((r) => r.type === 'message'), [results])

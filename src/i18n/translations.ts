@@ -846,6 +846,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Quitter le plein écran",
       "calls.missedCallBody": "Appel manqué de {{name}}",
       "calls.callBack": "Rappeler",
+      "chat.messageQueued": "En attente d'envoi — le contact est hors ligne, le message partira à sa reconnexion.",
+      "chat.messageNotDelivered": "Message non délivré",
+      "chat.fileTypeBlocked": "Par sécurité, ce type de fichier ne peut pas être ouvert directement. Utilisez « Enregistrer sous ».",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1695,6 +1698,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Volledig scherm verlaten",
       "calls.missedCallBody": "Gemiste oproep van {{name}}",
       "calls.callBack": "Terugbellen",
+      "chat.messageQueued": "In wachtrij — wordt verzonden zodra het contact weer online is.",
+      "chat.messageNotDelivered": "Bericht niet bezorgd",
+      "chat.fileTypeBlocked": "Uit veiligheid kan dit bestandstype niet rechtstreeks worden geopend. Gebruik ‘Opslaan als’.",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2544,6 +2550,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Vollbild beenden",
       "calls.missedCallBody": "Verpasster Anruf von {{name}}",
       "calls.callBack": "Zurückrufen",
+      "chat.messageQueued": "In Warteschlange – wird gesendet, sobald der Kontakt wieder online ist.",
+      "chat.messageNotDelivered": "Nachricht nicht zugestellt",
+      "chat.fileTypeBlocked": "Aus Sicherheitsgründen kann dieser Dateityp nicht direkt geöffnet werden. Verwenden Sie „Speichern unter“.",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3393,6 +3402,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Esci dallo schermo intero",
       "calls.missedCallBody": "Chiamata persa da {{name}}",
       "calls.callBack": "Richiama",
+      "chat.messageQueued": "In coda — verrà inviato quando il contatto sarà di nuovo online.",
+      "chat.messageNotDelivered": "Messaggio non consegnato",
+      "chat.fileTypeBlocked": "Per sicurezza, questo tipo di file non può essere aperto direttamente. Usa «Salva con nome».",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4242,6 +4254,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Salir de pantalla completa",
       "calls.missedCallBody": "Llamada perdida de {{name}}",
       "calls.callBack": "Devolver llamada",
+      "chat.messageQueued": "En cola: se enviará cuando el contacto vuelva a estar en línea.",
+      "chat.messageNotDelivered": "Mensaje no entregado",
+      "chat.fileTypeBlocked": "Por seguridad, este tipo de archivo no se puede abrir directamente. Usa «Guardar como».",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5092,6 +5107,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Sair do ecrã inteiro",
       "calls.missedCallBody": "Chamada perdida de {{name}}",
       "calls.callBack": "Ligar de volta",
+      "chat.messageQueued": "Em fila — será enviado quando o contacto voltar a estar online.",
+      "chat.messageNotDelivered": "Mensagem não entregue",
+      "chat.fileTypeBlocked": "Por segurança, este tipo de ficheiro não pode ser aberto diretamente. Use «Guardar como».",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -5942,6 +5960,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Έξοδος από πλήρη οθόνη",
       "calls.missedCallBody": "Αναπάντητη κλήση από {{name}}",
       "calls.callBack": "Επανάκληση",
+      "chat.messageQueued": "Σε αναμονή — θα σταλεί όταν η επαφή επανέλθει σε σύνδεση.",
+      "chat.messageNotDelivered": "Το μήνυμα δεν παραδόθηκε",
+      "chat.fileTypeBlocked": "Για ασφάλεια, αυτός ο τύπος αρχείου δεν μπορεί να ανοίξει απευθείας. Χρησιμοποιήστε «Αποθήκευση ως».",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6792,6 +6813,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Afslut fuld skærm",
       "calls.missedCallBody": "Ubesvaret opkald fra {{name}}",
       "calls.callBack": "Ring tilbage",
+      "chat.messageQueued": "I kø — sendes, når kontakten er online igen.",
+      "chat.messageNotDelivered": "Beskeden blev ikke leveret",
+      "chat.fileTypeBlocked": "Af sikkerhedshensyn kan denne filtype ikke åbnes direkte. Brug »Gem som«.",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7642,6 +7666,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Poistu koko näytöstä",
       "calls.missedCallBody": "Vastaamaton puhelu: {{name}}",
       "calls.callBack": "Soita takaisin",
+      "chat.messageQueued": "Jonossa — lähetetään, kun yhteyshenkilö on taas paikalla.",
+      "chat.messageNotDelivered": "Viestiä ei toimitettu",
+      "chat.fileTypeBlocked": "Turvallisuussyistä tätä tiedostotyyppiä ei voi avata suoraan. Käytä Tallenna nimellä.",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8492,6 +8519,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Avsluta helskärm",
       "calls.missedCallBody": "Missat samtal från {{name}}",
       "calls.callBack": "Ring tillbaka",
+      "chat.messageQueued": "I kö — skickas när kontakten är online igen.",
+      "chat.messageNotDelivered": "Meddelandet levererades inte",
+      "chat.fileTypeBlocked": "Av säkerhetsskäl kan den här filtypen inte öppnas direkt. Använd »Spara som».",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9342,6 +9372,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Izađi iz punog zaslona",
       "calls.missedCallBody": "Propušteni poziv od {{name}}",
       "calls.callBack": "Uzvrati poziv",
+      "chat.messageQueued": "U redu čekanja — poslat će se kad kontakt ponovno bude na mreži.",
+      "chat.messageNotDelivered": "Poruka nije dostavljena",
+      "chat.fileTypeBlocked": "Iz sigurnosnih razloga ova vrsta datoteke ne može se izravno otvoriti. Upotrijebite „Spremi kao”.",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10192,6 +10225,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Välju täisekraanilt",
       "calls.missedCallBody": "Vastamata kõne: {{name}}",
       "calls.callBack": "Helista tagasi",
+      "chat.messageQueued": "Järjekorras — saadetakse, kui kontakt on jälle võrgus.",
+      "chat.messageNotDelivered": "Sõnumit ei toimetatud",
+      "chat.fileTypeBlocked": "Turvalisuse huvides ei saa seda failitüüpi otse avada. Kasutage „Salvesta kui”.",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11042,6 +11078,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Kilépés a teljes képernyőből",
       "calls.missedCallBody": "Nem fogadott hívás: {{name}}",
       "calls.callBack": "Visszahívás",
+      "chat.messageQueued": "Várólistán — elküldésre kerül, amikor a kapcsolat újra online lesz.",
+      "chat.messageNotDelivered": "Az üzenet nem kézbesíthető",
+      "chat.fileTypeBlocked": "Biztonsági okokból ez a fájltípus nem nyitható meg közvetlenül. Használja a „Mentés másként” lehetőséget.",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -11892,6 +11931,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Iziet no pilnekrāna",
       "calls.missedCallBody": "Neatbildēts zvans no {{name}}",
       "calls.callBack": "Zvanīt atpakaļ",
+      "chat.messageQueued": "Rindā — tiks nosūtīts, kad kontakts būs atkal tiešsaistē.",
+      "chat.messageNotDelivered": "Ziņa nav piegādāta",
+      "chat.fileTypeBlocked": "Drošības dēļ šo faila tipu nevar atvērt tieši. Izmantojiet “Saglabāt kā”.",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -12742,6 +12784,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Išeiti iš viso ekrano",
       "calls.missedCallBody": "Praleistas skambutis nuo {{name}}",
       "calls.callBack": "Perskambinti",
+      "chat.messageQueued": "Eilėje — bus išsiųsta, kai kontaktas vėl bus prisijungęs.",
+      "chat.messageNotDelivered": "Žinutė nepristatyta",
+      "chat.fileTypeBlocked": "Saugumo sumetimais šio tipo failo negalima atidaryti tiesiogiai. Naudokite „Išsaugoti kaip“.",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13592,6 +13637,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Oħrog mill-iskrin sħiħ",
       "calls.missedCallBody": "Sejħa mitlufa minn {{name}}",
       "calls.callBack": "Ċempel lura",
+      "chat.messageQueued": "Fil-kju — tintbagħat meta l-kuntatt jerġa' jkun online.",
+      "chat.messageNotDelivered": "Il-messaġġ ma nwassalx",
+      "chat.fileTypeBlocked": "Għas-sigurtà, dan it-tip ta' fajl ma jistax jinfetaħ direttament. Uża “Issejvja bħala”.",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14442,6 +14490,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Opuść pełny ekran",
       "calls.missedCallBody": "Nieodebrane połączenie od {{name}}",
       "calls.callBack": "Oddzwoń",
+      "chat.messageQueued": "W kolejce — zostanie wysłana, gdy kontakt znów będzie online.",
+      "chat.messageNotDelivered": "Wiadomość nie została dostarczona",
+      "chat.fileTypeBlocked": "Ze względów bezpieczeństwa tego typu pliku nie można otworzyć bezpośrednio. Użyj „Zapisz jako”.",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15292,6 +15343,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Ukončiť celú obrazovku",
       "calls.missedCallBody": "Zmeškaný hovor od {{name}}",
       "calls.callBack": "Zavolať späť",
+      "chat.messageQueued": "V poradí — odošle sa, keď bude kontakt opäť online.",
+      "chat.messageNotDelivered": "Správa nebola doručená",
+      "chat.fileTypeBlocked": "Z bezpečnostných dôvodov tento typ súboru nemožno otvoriť priamo. Použite „Uložiť ako“.",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16142,6 +16196,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Zapri celozaslonski način",
       "calls.missedCallBody": "Zgrešen klic od {{name}}",
       "calls.callBack": "Pokliči nazaj",
+      "chat.messageQueued": "V čakalni vrsti — poslano bo, ko bo stik spet na spletu.",
+      "chat.messageNotDelivered": "Sporočilo ni bilo dostavljeno",
+      "chat.fileTypeBlocked": "Zaradi varnosti te vrste datoteke ni mogoče odpreti neposredno. Uporabite »Shrani kot«.",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -16992,6 +17049,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Ukončit celou obrazovku",
       "calls.missedCallBody": "Zmeškaný hovor od {{name}}",
       "calls.callBack": "Zavolat zpět",
+      "chat.messageQueued": "Ve frontě — odešle se, až bude kontakt znovu online.",
+      "chat.messageNotDelivered": "Zpráva nebyla doručena",
+      "chat.fileTypeBlocked": "Z bezpečnostních důvodů nelze tento typ souboru otevřít přímo. Použijte „Uložit jako“.",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -17842,6 +17902,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Изход от цял екран",
       "calls.missedCallBody": "Пропуснато обаждане от {{name}}",
       "calls.callBack": "Обратно обаждане",
+      "chat.messageQueued": "В опашка — ще се изпрати, когато контактът отново е онлайн.",
+      "chat.messageNotDelivered": "Съобщението не е доставено",
+      "chat.fileTypeBlocked": "От съображения за сигурност този тип файл не може да се отвори директно. Използвайте „Запази като“.",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -18692,6 +18755,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Fág an scáileán iomlán",
       "calls.missedCallBody": "Glao caillte ó {{name}}",
       "calls.callBack": "Cuir glao ar ais",
+      "chat.messageQueued": "Sa scuaine — seolfar nuair a bheidh an teagmhálaí ar líne arís.",
+      "chat.messageNotDelivered": "Níor seachadadh an teachtaireacht",
+      "chat.fileTypeBlocked": "Ar mhaithe le sábháilteacht, ní féidir an cineál comhaid seo a oscailt go díreach. Úsáid “Sábháil mar”.",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -19542,6 +19608,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Ieși din ecranul complet",
       "calls.missedCallBody": "Apel pierdut de la {{name}}",
       "calls.callBack": "Sună înapoi",
+      "chat.messageQueued": "În coadă — se va trimite când contactul va fi din nou online.",
+      "chat.messageNotDelivered": "Mesajul nu a fost livrat",
+      "chat.fileTypeBlocked": "Din motive de siguranță, acest tip de fișier nu poate fi deschis direct. Folosiți „Salvează ca”.",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20401,6 +20470,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Exit fullscreen",
       "calls.missedCallBody": "Missed call from {{name}}",
       "calls.callBack": "Call back",
+      "chat.messageQueued": "Queued — will send when the contact is back online.",
+      "chat.messageNotDelivered": "Message not delivered",
+      "chat.fileTypeBlocked": "For safety, this file type cannot be opened directly. Use “Save as” instead.",
     }
   },
 
@@ -21252,6 +21324,9 @@ export const translations = {
       "calls.exitVideoFullscreen": "Вийти з повноекранного режиму",
       "calls.missedCallBody": "Пропущений виклик від {{name}}",
       "calls.callBack": "Передзвонити",
+      "chat.messageQueued": "У черзі — надішлеться, коли контакт знову буде онлайн.",
+      "chat.messageNotDelivered": "Повідомлення не доставлено",
+      "chat.fileTypeBlocked": "З міркувань безпеки цей тип файлу не можна відкрити напряму. Скористайтеся «Зберегти як».",
     }
   },
 }

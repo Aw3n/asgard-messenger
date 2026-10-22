@@ -22,13 +22,15 @@ import {
 
 /** Queued message for offline delivery retry */
 interface PendingMessage {
-  id: string
-  outgoing: OutgoingMessage
+  message: Message
   conversationId: string
   peerId: string
   createdAt: number
   attempts: number
 }
+
+/** Résultat d'un envoi : parti sur le réseau, ou mis en file d'attente */
+export type SendOutcome = 'sent' | 'queued'
 
 /** Queued reaction for retry when the peer was unreachable at toggle time */
 interface PendingReaction {
@@ -140,6 +142,8 @@ class ChatService {
   private lastPresenceStatus: Map<string, UserStatus> = new Map()
   private static readonly MAX_PENDING_PER_PEER = 500
   private static readonly MAX_PENDING_AGE = 7 * 24 * 60 * 60 * 1000 // 7 days
+  /** Nombre de renvois avant de marquer un message définitivement « failed » */
+  private static readonly MAX_SEND_ATTEMPTS = 3
   private static readonly MAX_PENDING_REACTIONS = 200
   private static readonly REACTION_MAX_ATTEMPTS = 3
 
@@ -883,75 +887,68 @@ class ChatService {
    * Uses a deterministic conversationId derived from both peers' public keys
    * (via the discovery topic hash), ensuring both parties use the same ID.
    */
-  async sendMessage(outgoing: OutgoingMessage, _conversationId: string, peerId: string): Promise<void> {
+  async sendMessage(outgoing: OutgoingMessage, _conversationId: string, peerId: string): Promise<SendOutcome> {
     const identity = useIdentityStore.getState().identity
     if (!identity) throw new Error('No identity')
 
     console.log('[ChatService] === SEND MESSAGE to peer:', peerId.slice(0, 32), '| type:', outgoing.type)
     try { window.asgard.debugLog('[ChatService] === SEND MESSAGE to peer: ' + peerId.slice(0, 32)) } catch {}
 
+    // Derive deterministic conversationId from both peers' public keys
+    const resolvedId = cryptoService.deriveConversationId(identity.keyPair.publicKey, peerId)
+    const signedMessage = await this.buildSignedMessage(outgoing, resolvedId, identity.keyPair.publicKey)
+
     try {
-      // Derive deterministic conversationId from both peers' public keys
-      const resolvedId = cryptoService.deriveConversationId(identity.keyPair.publicKey, peerId)
-      console.log('[ChatService] Step 1: conversationId derived:', resolvedId.slice(0, 16))
+      // PERFORMANCE: sendRawMessage() saute la signature Ed25519 du P2P — le
+      // payload est déjà signé ci-dessus (~5-20 ms gagnés par message).
+      await p2pService.sendRawMessage(peerId, 'chat:message', signedMessage)
+      useMessageStore.getState().updateStatus(signedMessage.id, resolvedId, 'sent')
+      storageService.saveMessage(resolvedId, signedMessage).catch(console.error)
+      this.ensureConversation(resolvedId, peerId, signedMessage)
+      console.log('[ChatService] Message sent:', signedMessage.id)
+      return 'sent'
+    } catch (err) {
+      const errMsg = `[ChatService] sendMessage network failure: ${err instanceof Error ? err.message : String(err)}`
+      console.error(errMsg)
+      try { window.asgard.debugLog(errMsg) } catch {}
 
-      // PERFORMANCE: Store message and sign in parallel (independent operations)
-      console.log('[ChatService] Step 2: Calling messageStore.sendMessage...')
-      const [message] = await Promise.all([
-        useMessageStore.getState().sendMessage(
-          { ...outgoing, conversationId: resolvedId },
-          identity.keyPair.publicKey
-        ),
-      ])
-      console.log('[ChatService] Step 3: messageStore.sendMessage completed, message.id:', message.id)
+      // Hors ligne : on garde le message signé en file, il sera renvoyé à la
+      // reconnexion. Le statut reste « sending » (horloge) tant que les
+      // tentatives ne sont pas épuisées.
+      this.queueMessage(signedMessage, resolvedId, peerId)
+      useMessageStore.getState().updateStatus(signedMessage.id, resolvedId, 'sending')
+      return 'queued'
+    }
+  }
 
-      // Sign the message (Ed25519 — ~5-20ms)
-      console.log('[ChatService] Step 4: Calling cryptoService.sign...')
+  /**
+   * Crée le message local puis le signe. Le message signé est réutilisé tel
+   * quel par les renvois : re-passer par messageStore.sendMessage créerait un
+   * doublon dans la conversation à chaque tentative.
+   */
+  private async buildSignedMessage(
+    outgoing: OutgoingMessage,
+    conversationId: string,
+    senderId: string
+  ): Promise<Message> {
+    const message = await useMessageStore.getState().sendMessage(
+      { ...outgoing, conversationId },
+      senderId
+    )
+    try {
       const signature = await cryptoService.sign({
         id: message.id,
         content: message.content,
         timestamp: message.timestamp,
         senderId: message.senderId,
       })
-      console.log('[ChatService] Step 5: cryptoService.sign completed, signature length:', signature.length)
-
-      const signedMessage: Message = { ...message, signature }
-
-      // PERFORMANCE: Update UI immediately (optimistic) before network send
-      useMessageStore.getState().updateStatus(message.id, resolvedId, 'sent')
-
-      // PERFORMANCE: Use sendRawMessage() to skip redundant Ed25519 signing in P2P layer.
-      // The message payload is already signed above — no need to sign again.
-      // This saves ~5-20ms per message.
-      console.log('[ChatService] Step 6: Calling p2pService.sendRawMessage...')
-      const sendPromise = p2pService.sendRawMessage(peerId, 'chat:message', signedMessage)
-
-      // Fire-and-forget: persist to Hyperbee storage + ensure conversation (don't await)
-      storageService.saveMessage(resolvedId, signedMessage).catch(console.error)
-      this.ensureConversation(resolvedId, peerId, signedMessage)
-
-      // Await network send last — UI is already updated
-      await sendPromise
-      console.log('[ChatService] Message sent:', message.id)
+      return { ...message, signature }
     } catch (err) {
-      const errMsg = `[ChatService] sendMessage ERROR: ${err instanceof Error ? err.message : String(err)}\n${err instanceof Error && err.stack ? err.stack : ''}`
-      console.error(errMsg)
-      try { window.asgard.debugLog(errMsg) } catch {}
-      
-      // OFFLINE QUEUE: Queue message for retry when peer comes back online
-      const resolvedId = cryptoService.deriveConversationId(
-        useIdentityStore.getState().identity!.keyPair.publicKey,
-        peerId
-      )
-      this.queueMessage(outgoing, resolvedId, peerId)
-      // Mark as 'sending' (pending) in UI instead of 'failed'
-      const msgs = useMessageStore.getState().messages[resolvedId]
-      if (msgs && msgs.length > 0) {
-        const lastMsg = msgs[msgs.length - 1]
-        if (lastMsg.senderId === useIdentityStore.getState().identity?.keyPair.publicKey) {
-          useMessageStore.getState().updateStatus(lastMsg.id, resolvedId, 'sending')
-        }
-      }
+      // Erreur locale (signature) : rien à réessayer sur le réseau.
+      // On laisse un échec visible au lieu d'un spinner éternel.
+      console.error('[ChatService] buildSignedMessage failure:', err)
+      useMessageStore.getState().updateStatus(message.id, conversationId, 'failed')
+      throw err
     }
   }
 
@@ -961,25 +958,38 @@ class ChatService {
    * Queue a message for later delivery when peer is offline.
    * Messages are stored in memory and flushed when peer reconnects.
    */
-  private queueMessage(outgoing: OutgoingMessage, conversationId: string, peerId: string): void {
+  private queueMessage(message: Message, conversationId: string, peerId: string): void {
     const queue = this.pendingMessages.get(peerId) ?? []
-    
-    // Enforce max queue size per peer
+
+    // Un renvoi ne doit jamais empiler deux fois le même message.
+    if (queue.some((pending) => pending.message.id === message.id)) return
+
+    // Enforce max queue size per peer — le plus ancien écarté doit être
+    // visible comme échec, pas disparaître silencieusement.
     if (queue.length >= ChatService.MAX_PENDING_PER_PEER) {
-      queue.shift() // Remove oldest
+      const dropped = queue.shift()
+      if (dropped) {
+        useMessageStore.getState().updateStatus(dropped.message.id, dropped.conversationId, 'failed')
+        console.warn(`[ChatService] Offline queue full — message ${dropped.message.id} marked failed`)
+      }
     }
-    
+
     queue.push({
-      id: generateId(),
-      outgoing,
+      message,
       conversationId,
       peerId,
       createdAt: Date.now(),
       attempts: 0,
     })
-    
+
     this.pendingMessages.set(peerId, queue)
     console.log(`[ChatService] Message queued for offline delivery to ${peerId.slice(0, 16)} (queue: ${queue.length})`)
+  }
+
+  /** Marque définitivement un message en file comme non délivré. */
+  private markPendingFailed(pending: PendingMessage, reason: string): void {
+    useMessageStore.getState().updateStatus(pending.message.id, pending.conversationId, 'failed')
+    console.warn(`[ChatService] Pending message ${pending.message.id} failed (${reason}, attempts: ${pending.attempts})`)
   }
 
   /**
@@ -989,49 +999,37 @@ class ChatService {
   async flushPendingMessages(peerId: string): Promise<void> {
     const queue = this.pendingMessages.get(peerId)
     if (!queue || queue.length === 0) return
-    
+
     console.log(`[ChatService] Flushing ${queue.length} pending messages for peer ${peerId.slice(0, 16)}`)
-    
-    const now = Date.now()
-    const toRemove: number[] = []
-    
-    for (let i = 0; i < queue.length; i++) {
-      const pending = queue[i]
-      
-      // Skip expired messages (older than MAX_PENDING_AGE)
-      if (now - pending.createdAt > ChatService.MAX_PENDING_AGE) {
-        toRemove.push(i)
+
+    const survivors: PendingMessage[] = []
+
+    for (const pending of queue) {
+      // Expiré : échec explicite (l'ancien code le retirait sans statut).
+      if (Date.now() - pending.createdAt > ChatService.MAX_PENDING_AGE) {
+        this.markPendingFailed(pending, 'expired')
         continue
       }
-      
+
       try {
+        await p2pService.sendRawMessage(peerId, 'chat:message', pending.message)
+        useMessageStore.getState().updateStatus(pending.message.id, pending.conversationId, 'sent')
+        storageService.saveMessage(pending.conversationId, pending.message).catch(console.error)
+        console.log(`[ChatService] Pending message sent successfully (attempt ${pending.attempts + 1})`)
+      } catch (err) {
         pending.attempts++
-        await this.sendMessage(pending.outgoing, pending.conversationId, peerId)
-        toRemove.push(i)
-        console.log(`[ChatService] Pending message sent successfully (attempt ${pending.attempts})`)
-      } catch {
-        // Failed again — keep in queue for next retry
-        if (pending.attempts >= 3) {
-          // Mark as failed after 3 retry attempts
-          const msgs = useMessageStore.getState().messages[pending.conversationId]
-          if (msgs) {
-            const msg = msgs.find(m => m.content === pending.outgoing.content && m.status === 'sending')
-            if (msg) {
-              useMessageStore.getState().updateStatus(msg.id, pending.conversationId, 'failed')
-            }
-          }
-          toRemove.push(i)
-          console.warn(`[ChatService] Pending message failed after ${pending.attempts} attempts, marked as failed`)
+        if (pending.attempts >= ChatService.MAX_SEND_ATTEMPTS) {
+          this.markPendingFailed(pending, err instanceof Error ? err.message : 'send failed')
+        } else {
+          survivors.push(pending)
         }
       }
     }
-    
-    // Remove sent/expired messages from queue (reverse order to preserve indices)
-    const updatedQueue = queue.filter((_, i) => !toRemove.includes(i))
-    if (updatedQueue.length === 0) {
+
+    if (survivors.length === 0) {
       this.pendingMessages.delete(peerId)
     } else {
-      this.pendingMessages.set(peerId, updatedQueue)
+      this.pendingMessages.set(peerId, survivors)
     }
   }
 

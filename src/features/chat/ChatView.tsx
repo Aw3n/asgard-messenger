@@ -143,7 +143,7 @@ export const ChatView: React.FC = () => {
     async (content: string) => {
       if (!dataId || !conversation?.participantId) return
       try {
-        await chatService.sendMessage(
+        const outcome = await chatService.sendMessage(
           { conversationId: dataId, type: 'text', content, replyTo: replyTo?.id },
           dataId,
           conversation.participantId
@@ -151,12 +151,19 @@ export const ChatView: React.FC = () => {
         // Ensure typing indicator is cleared on the peer after sending
         chatService.sendTyping(dataId, conversation.participantId, false).catch(() => {})
         setReplyTo(undefined)
+        if (outcome === 'queued') {
+          useUIStore.getState().addToast({
+            type: 'warning',
+            title: t('chat.messageQueued'),
+            duration: 5000,
+          })
+        }
       } catch (err) {
         console.error('[ChatView] handleSend error:', err)
         try { window.asgard.debugLog('[ChatView] handleSend error: ' + (err instanceof Error ? err.message : String(err))) } catch {}
       }
     },
-    [dataId, conversation, replyTo]
+    [dataId, conversation, replyTo, t]
   )
 
   const handleTyping = useCallback(
