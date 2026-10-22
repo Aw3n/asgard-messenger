@@ -45,6 +45,15 @@ export class NetworkService extends EventEmitter {
   private bandwidthWindow: { up: number[]; down: number[]; timestamps: number[] } = { up: [], down: [], timestamps: [] }
   private static readonly BANDWIDTH_WINDOW_MS = 3000 // 3s sliding window
   private initialized = false
+  // DÉMARRAGE NON BLOQUANT : `setSeed()` rend la main dès que le swarm est
+  // construit et câblé. Le bootstrap DHT (~6 s mesurées) et `swarm.listen()`
+  // continuent en tâche de fond ; les dials émis entre-temps sont traités par
+  // hyperdht, mais un lookup sans nœud échoue aussitôt, donc ils sont rejoués
+  // une fois le réseau utilisable. Les topics, eux, attendent cette porte : un
+  // premier refresh qui échoue n'est reprogrammé qu'après 10 min.
+  private dhtReady = false
+  private networkReadyPromise: Promise<void> | null = null
+  private earlyDials: Map<string, boolean> = new Map() // Noise pk hex → priorité demandée
   // FERMETURE : true dès que destroy() est appelé. Les timers périodiques ne
   // doivent plus rien pousser vers l'UI : la BrowserWindow est déjà détruite à
   // ce moment-là, et un `webContents.send` sur un objet détruit lève une
@@ -356,27 +365,6 @@ export class NetworkService extends EventEmitter {
         configuredDht.on('network-change', handleNetworkChange)
       }
 
-      // CRITICAL: Wait for DHT to be fully bootstrapped before proceeding.
-      // Per dht-rpc docs: "await node.fullyBootstrapped() — Wait for the node to be fully bootstrapped etc."
-      // This ensures the routing table is populated before we try to publish/fetch.
-      logMain('[NetworkService] ⏳ Waiting for DHT to fully bootstrap...')
-      try {
-        await dht.fullyBootstrapped()
-        logMain(`[NetworkService] ✅ DHT FULLY BOOTSTRAPPED | host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'} | firewalled=${dht.firewalled ?? 'unknown'} | ephemeral=${dht.ephemeral ?? 'unknown'} | nodes=${dht.toArray?.()?.length ?? '?'}`)
-      } catch (bootstrapErr) {
-        logMain(`[NetworkService] ❌ DHT BOOTSTRAP FAILED: ${bootstrapErr instanceof Error ? bootstrapErr.message : String(bootstrapErr)}`)
-      }
-
-      // CRITICAL: Start the DHT server before any topic joins.
-      // Hyperswarm auto-calls listen() when the first topic is joined as
-      // server, but explicit ensures inbound connections are ready early.
-      try {
-        await (this.swarm as unknown as { listen: () => Promise<void> }).listen()
-        logMain(`[NetworkService] ✅ Swarm listening | DHT host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'}`)
-      } catch (err) {
-        logMain(`[NetworkService] ❌ swarm.listen() failed: ${err instanceof Error ? err.message : String(err)}`)
-      }
-
       // Handle new peer connections
       this.swarm.on('connection', (conn: PeerSocket, info: PeerInfo) => {
         const peerId = info.publicKey.toString('hex')
@@ -420,6 +408,10 @@ export class NetworkService extends EventEmitter {
       this.scoreUpdateInterval = setInterval(() => {
         this.updatePeerScores()
       }, NetworkService.SCORE_UPDATE_INTERVAL_MS)
+
+      // Bootstrap + listen hors du chemin de setSeed() : le renderer peut
+      // dialer immédiatement au lieu d'attendre ~7 s.
+      this.startNetworkReadiness(dht, this.swarm)
     } catch (err) {
       console.error('[NetworkService] Failed to initialize:', err)
       // Une tentative ratée peut avoir créé un swarm partiel : on le referme
@@ -439,6 +431,65 @@ export class NetworkService extends EventEmitter {
       }
       throw err
     }
+  }
+
+  /**
+   * Poursuit bootstrap + listen hors du chemin de `setSeed()`. Les échecs
+   * restent non fatals comme avant (loggés) ; la porte est toujours franchie
+   * pour ne pas immobiliser `join()` indéfiniment.
+   */
+  private startNetworkReadiness(dht: HyperDHTInstance, swarm: HyperswarmInstance): void {
+    const ready = (async () => {
+      // CRITICAL: Wait for DHT to be fully bootstrapped before announcing topics.
+      // Per dht-rpc docs: "await node.fullyBootstrapped() — Wait for the node to be fully bootstrapped etc."
+      logMain('[NetworkService] ⏳ Waiting for DHT to fully bootstrap...')
+      try {
+        await dht.fullyBootstrapped()
+        logMain(`[NetworkService] ✅ DHT FULLY BOOTSTRAPPED | host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'} | firewalled=${dht.firewalled ?? 'unknown'} | ephemeral=${dht.ephemeral ?? 'unknown'} | nodes=${dht.toArray?.()?.length ?? '?'}`)
+      } catch (bootstrapErr) {
+        logMain(`[NetworkService] ❌ DHT BOOTSTRAP FAILED: ${bootstrapErr instanceof Error ? bootstrapErr.message : String(bootstrapErr)}`)
+      }
+
+      // CRITICAL: Start the DHT server before any topic joins.
+      // Hyperswarm auto-calls listen() when the first topic is joined as
+      // server, but explicit ensures inbound connections are ready early.
+      try {
+        await (swarm as unknown as { listen: () => Promise<void> }).listen()
+        logMain(`[NetworkService] ✅ Swarm listening | DHT host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'}`)
+      } catch (err) {
+        logMain(`[NetworkService] ❌ swarm.listen() failed: ${err instanceof Error ? err.message : String(err)}`)
+      }
+
+      this.dhtReady = true
+      if (this.swarm === swarm && !this.shuttingDown) this.replayEarlyDials()
+    })()
+    // Aucun rejet ne doit échapper : la promesse est aussi attendue par join().
+    this.networkReadyPromise = ready.catch((err: unknown) => {
+      logMain(`[NetworkService] ❌ network readiness failed: ${err instanceof Error ? err.message : String(err)}`)
+      this.dhtReady = true
+    })
+  }
+
+  private waitForNetworkReady(): Promise<void> {
+    return this.networkReadyPromise ?? Promise.resolve()
+  }
+
+  /**
+   * Les dials émis pendant le bootstrap ont pu échouer faute de nœuds dans la
+   * table de routage. Hyperswarm plafonne à 5 tentatives par pair : on les
+   * rejoue une fois le réseau utilisable, priorité conservée.
+   */
+  private replayEarlyDials(): void {
+    if (this.earlyDials.size === 0) return
+    const dials = this.earlyDials
+    this.earlyDials = new Map()
+    let replayed = 0
+    for (const [noiseKey, prioritized] of dials) {
+      if (!this.swarm) break
+      this.connectToContact(noiseKey, prioritized)
+      replayed++
+    }
+    console.log(`[NetworkService] 🔁 Replayed ${replayed} early dial(s) after DHT readiness`)
   }
 
   /**
@@ -842,6 +893,11 @@ export class NetworkService extends EventEmitter {
       await this.waitForInit()
     }
     if (!this.swarm) throw new Error('Swarm not initialized')
+    // Le bootstrap tourne en tâche de fond depuis le démarrage non bloquant.
+    // Rejoindre un topic avant qu'il soit terminé ferait échouer sa première
+    // annonce, et PeerDiscovery ne reprogramme un refresh qu'après 10 min.
+    await this.waitForNetworkReady()
+    if (!this.swarm) throw new Error('Swarm not initialized')
 
     if (this.topics.has(topicHex)) return
 
@@ -943,6 +999,12 @@ export class NetworkService extends EventEmitter {
       console.warn('[NetworkService] joinPeer: swarm not initialized')
       return
     }
+    if (!this.dhtReady) {
+      this.earlyDials.set(
+        noisePublicKeyHex,
+        this.earlyDials.get(noisePublicKeyHex) ?? false,
+      )
+    }
     const keyBuffer = Buffer.from(noisePublicKeyHex, 'hex')
     console.log('[NetworkService] joinPeer: calling swarm.joinPeer for', noisePublicKeyHex.slice(0, 16) + '...')
     this.swarm.joinPeer(keyBuffer)
@@ -965,6 +1027,12 @@ export class NetworkService extends EventEmitter {
    */
   connectToContact(noisePublicKeyHex: string, prioritized: boolean = false): void {
     if (!this.swarm) return
+    if (!this.dhtReady) {
+      this.earlyDials.set(
+        noisePublicKeyHex,
+        prioritized || (this.earlyDials.get(noisePublicKeyHex) ?? false),
+      )
+    }
     const keyBuffer = Buffer.from(noisePublicKeyHex, 'hex')
 
     // Reset reconnect attempts for this peer
@@ -2165,6 +2233,9 @@ export class NetworkService extends EventEmitter {
     }
     this.peers.clear()
     this.topics.clear()
+    this.dhtReady = false
+    this.networkReadyPromise = null
+    this.earlyDials.clear()
     this.profileCache.clear()
     this.profileMissAt.clear()
     this.reconnectAttempts.clear()
