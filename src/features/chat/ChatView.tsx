@@ -139,15 +139,6 @@ export const ChatView: React.FC = () => {
     }
   }, [resolvedId, conversation?.participantId, identity])
 
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
-        virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'smooth' })
-      }, 50)
-    }
-  }, [messages.length])
-
   const handleSend = useCallback(
     async (content: string) => {
       if (!dataId || !conversation?.participantId) return
@@ -321,7 +312,9 @@ export const ChatView: React.FC = () => {
           <Virtuoso
             ref={virtuosoRef}
             data={messages}
-            followOutput="smooth"
+            // Ne suit le bas que si l'utilisateur y est déjà : remonter pour
+            // relire l'historique ne doit pas être annulé par chaque arrivée.
+            followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
             className="h-full virtual-list"
             initialTopMostItemIndex={messages.length - 1}
             itemContent={(index, message) => (
