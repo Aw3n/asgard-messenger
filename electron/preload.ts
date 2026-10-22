@@ -220,6 +220,10 @@ export interface AsgardAPI {
       | { success: true; filePath: string }
       | { success: false; reason: 'not-found' | 'canceled' | 'error'; message?: string }
     >
+    open: (blobId: string, suggestedName: string) => Promise<
+      | { success: true }
+      | { success: false; reason: 'not-found' | 'blocked' | 'error'; message?: string }
+    >
   }
   // App info
   app: {
@@ -545,6 +549,7 @@ contextBridge.exposeInMainWorld('asgard', {
   },
   file: {
     saveAs: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:save-as', blobId, suggestedName),
+    open: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:open', blobId, suggestedName),
   },
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),

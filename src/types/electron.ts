@@ -220,6 +220,10 @@ export interface AsgardElectronAPI {
       | { success: true; filePath: string }
       | { success: false; reason: 'not-found' | 'canceled' | 'error'; message?: string }
     >
+    open: (blobId: string, suggestedName: string) => Promise<
+      | { success: true }
+      | { success: false; reason: 'not-found' | 'blocked' | 'error'; message?: string }
+    >
   }
   app: {
     getVersion: () => Promise<string>

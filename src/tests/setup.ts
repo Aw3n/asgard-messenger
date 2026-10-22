@@ -37,6 +37,10 @@ const mockAsgardAPI = {
     getPath: vi.fn().mockResolvedValue('/mock/path'),
     getSize: vi.fn().mockResolvedValue(0),
   },
+  file: {
+    saveAs: vi.fn().mockResolvedValue({ success: false, reason: 'canceled' }),
+    open: vi.fn().mockResolvedValue({ success: false, reason: 'not-found' }),
+  },
   notifications: {
     show: vi.fn(),
     requestPermission: vi.fn().mockResolvedValue(true),

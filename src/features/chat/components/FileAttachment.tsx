@@ -145,6 +145,24 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
     return () => clearInterval(progressInterval.current)
   }, [attachment.transferId, attachment.name, attachment.localUrl, attachment.blobKey, attachment.failed, conversationId])
 
+  /**
+   * Ouvre la pièce jointe dans l'application système. `window.open('blob:…')`
+   * est refusé par la liste blanche des fenêtres Electron (et n'aurait de toute
+   * façon aucun lecteur externe) : le blob est matérialisé côté main puis
+   * confié à `shell.openPath`.
+   */
+  const openExternally = async (): Promise<boolean> => {
+    if (!attachment.blobKey) return false
+    const result = await window.asgard.file.open(attachment.blobKey, attachment.name)
+    if (!result.success) {
+      console.warn('[FileAttachment] open failed:', result.reason, result.message)
+      if (result.reason === 'blocked') {
+        addToast({ type: 'error', title: t('chat.fileTypeBlocked') })
+      }
+    }
+    return result.success
+  }
+
   const handleClick = async () => {
     const live = fileService.isLiveUrl(attachment.localUrl) ? (attachment.localUrl as string) : null
     if (attachment.type === 'image' && (live || attachment.thumbnail)) {
@@ -153,13 +171,14 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
       setLightboxOpen(true)
       return
     }
-    if (live) {
-      window.open(live, '_blank')
-      return
-    }
 
     setLoading(true)
     try {
+      if (attachment.blobKey) {
+        if (!(await openExternally())) setError(true)
+        return
+      }
+
       const url = await fileService.resolveLocalUrl(attachment)
       if (url) {
         // Publier dans le store (bulle, galerie, visionneuse) et, à défaut de
@@ -173,15 +192,15 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         // se perdrait dans une visionneuse vide.
         if (url || attachment.thumbnail) setLightboxOpen(true)
         else setError(true)
-      } else if (url) {
-        window.open(url, '_blank')
       } else {
+        // Pas de blob stocké : rien d'ouvrable hors de cette session.
         setError(true)
       }
     } catch {
       setError(true)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   // Every photo of this conversation, oldest first: the lightbox uses that for

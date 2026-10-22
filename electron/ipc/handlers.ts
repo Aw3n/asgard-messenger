@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, app, nativeTheme, shell, Notification, dialog } from 'electron'
+import { BrowserWindow, ipcMain, app, nativeTheme, Notification, dialog, shell } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
 import { IdentityService } from '../services/IdentityService'
@@ -6,6 +6,7 @@ import { NetworkService } from '../services/NetworkService'
 import { StorageService } from '../services/StorageService'
 import { configureFirewall, checkFirewallRule, runFirewallHelperAsAdmin, getFirewallStatus } from '../services/FirewallService'
 import { AsgardTray } from '../tray'
+import { openExternalSafe } from '../utils/openExternal'
 
 /**
  * Registers all IPC handlers for the main process.
@@ -13,6 +14,13 @@ import { AsgardTray } from '../tray'
  */
 let storageService: StorageService | null = null
 let networkServiceRef: NetworkService | null = null
+
+/** Extensions qu'un clic « ouvrir » ne doit jamais lancer directement. */
+const OPEN_BLOCKED_EXTENSIONS = new Set([
+  '.exe', '.com', '.bat', '.cmd', '.msi', '.scr', '.pif', '.cpl',
+  '.ps1', '.psm1', '.vbs', '.vbe', '.js', '.jse', '.wsf', '.wsh',
+  '.jar', '.lnk', '.reg', '.dll', '.app', '.sh', '.bash', '.py',
+])
 
 // ── Quit cleanup coordination (pattern officiel Electron) ─────────────────────
 // ELECTRON/HOLEPUNCH CONFORMANCE : Electron n'attend PAS les promesses des
@@ -1332,10 +1340,43 @@ async function setupStorageHandlers(): Promise<void> {
     }
   })
 
+  // Open an attachment in the OS default application. A `blob:` URL from the
+  // renderer cannot be opened externally, so the main process materialises the
+  // blob in a private temp directory first. Executables/scripts are refused:
+  // "open" must not become a one-click launcher for a file received in a chat.
+  ipcMain.handle('file:open', async (_event, blobId: string, suggestedName: string) => {
+    try {
+      const data = await storage.getBlob(blobId)
+      if (!data || data.length === 0) return { success: false, reason: 'not-found' }
+
+      let safeName = path.basename(String(suggestedName || 'file')).replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+      if (!safeName || safeName === '.' || safeName === '..') safeName = 'file'
+      const ext = path.extname(safeName).toLowerCase()
+      if (OPEN_BLOCKED_EXTENSIONS.has(ext)) {
+        console.warn('[file:open] Blocked executable attachment:', safeName)
+        return { success: false, reason: 'blocked' }
+      }
+
+      const dir = await fs.mkdtemp(path.join(app.getPath('temp'), 'asgard-open-'))
+      const filePath = path.join(dir, safeName)
+      await fs.writeFile(filePath, data)
+      const openError = await shell.openPath(filePath)
+      if (openError) {
+        console.error('[file:open] shell.openPath failed:', openError)
+        return { success: false, reason: 'error', message: openError }
+      }
+      return { success: true }
+    } catch (err) {
+      console.error('[file:open] Failed:', err)
+      return { success: false, reason: 'error', message: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
   // Cleanup on app quit — APRÈS le réseau (le swarm doit être détruit tant que
   // le corestore est encore ouvert ; cf. registerQuitCleanup en tête de fichier)
   registerQuitCleanup('storage', () => storage.destroy())
 }
+
 
 // ─── Notification Handlers ───────────────────────────────────────────────────
 
@@ -1466,15 +1507,7 @@ function setupAppHandlers(): void {
   })
 
   ipcMain.on('app:openExternal', (_event, url: string) => {
-    // Validate URL before opening
-    try {
-      const parsed = new URL(url)
-      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-        shell.openExternal(url)
-      }
-    } catch {
-      console.warn('Invalid URL blocked:', url)
-    }
+    openExternalSafe(url)
   })
 
   // PRIVACY SETTINGS (privacy.linkPreviews): récupération des métadonnées OG
