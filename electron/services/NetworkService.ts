@@ -109,6 +109,9 @@ export class NetworkService extends EventEmitter {
   // fraîchement publié (le P2P, lui, reste la voie primaire).
   private profileMissAt: Map<string, number> = new Map()
   private static readonly PROFILE_MISS_TTL_MS = 10_000
+  // Ed25519 → Noise public key, pure dérivation : la même valeur revient à
+  // chaque reconnexion et à chaque démarrage.
+  private derivedNoiseKeys: Map<string, string> = new Map()
   // STATUS: Current user online status — extended to support all UserStatus values
   private currentStatus: 'online' | 'away' | 'offline' | 'dnd' = 'online'
   private currentStatusMessage: string | undefined
@@ -913,11 +916,16 @@ export class NetworkService extends EventEmitter {
    *   noisePublicKey = noiseKeyPair.publicKey
    */
   async deriveNoisePublicKey(ed25519PublicKeyHex: string): Promise<string> {
+    // Derivation is pure: re-running an Ed25519 keygen on every redial/startup
+    // for the same contact only burns CPU on the main process.
+    const cached = this.derivedNoiseKeys.get(ed25519PublicKeyHex)
+    if (cached) return cached
     const crypto = await import('crypto')
     const seed = crypto.createHash('sha256').update(ed25519PublicKeyHex).digest()
     const HyperDHT = await import('hyperdht')
     const keyPair = HyperDHT.default.keyPair(seed)
     const noisePublicKeyHex = keyPair.publicKey.toString('hex')
+    this.derivedNoiseKeys.set(ed25519PublicKeyHex, noisePublicKeyHex)
     console.log('[NetworkService] deriveNoisePublicKey:', ed25519PublicKeyHex.slice(0, 16), '→', noisePublicKeyHex.slice(0, 16))
     return noisePublicKeyHex
   }
