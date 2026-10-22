@@ -209,6 +209,10 @@ class ChatService {
 
           const chunkData = bytes.slice(sepIdx + 1)
           const totalChunks = header.total ?? 1
+          // A header is attacker-controlled: bound the reassembly before
+          // allocating anything on its promise (legit chunks are 16 KiB).
+          if (!Number.isInteger(totalChunks) || totalChunks < 1 || totalChunks > ChatService.MAX_AVATAR_CHUNKS) return
+          if (chunkData.length > ChatService.MAX_AVATAR_CHUNK_BYTES) return
           const target = header.target ?? 'contact' // Backward compat: default to 'contact'
           const groupId = header.groupId
 
@@ -239,6 +243,10 @@ class ChatService {
           // Subsequent chunk (no header) — append to buffer
           const buf = this.avatarBuffers.get(data.from)
           if (!buf) return
+          if (buf.chunks.length >= buf.totalChunks || bytes.length > ChatService.MAX_AVATAR_CHUNK_BYTES) {
+            this.avatarBuffers.delete(data.from)
+            return
+          }
 
           buf.chunks.push(new Uint8Array(bytes))
           buf.receivedChunks++
@@ -2680,24 +2688,41 @@ class ChatService {
    * @param target - 'contact' | 'group_member' | 'group_icon'
    * @param groupId - Group ID (required for group_member and group_icon)
    */
+  /** Avatars are compressed to ≤256 px WebP; anything multi-megabyte is abuse. */
+  private static readonly MAX_AVATAR_CHARS = 2 * 1024 * 1024
+  private static readonly MAX_AVATAR_CHUNKS = 256
+  private static readonly MAX_AVATAR_CHUNK_BYTES = 64 * 1024
+  private static readonly AVATAR_DATA_URL = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/
+
   private storeAvatar(ed25519Key: string, avatarData: string, target: string, groupId?: string): void {
-    // Always update the contact store — the 1:1 contact avatar should always reflect
-    // the sender's current avatar, regardless of the delivery context.
-    useContactStore.getState().updateContact(ed25519Key, { avatar: avatarData })
+    // Binary chunks carry no application-level signature: validate before any
+    // store sees them, or a peer could inject arbitrary markup via the data
+    // URL or park megabytes in the zustand stores and local persistence.
+    if (typeof avatarData !== 'string' || avatarData.length === 0) return
+    if (avatarData.length > ChatService.MAX_AVATAR_CHARS) return
+    if (!ChatService.AVATAR_DATA_URL.test(avatarData)) return
+    const group = typeof groupId === 'string' && groupId.length <= 128
+      ? useGroupStore.getState().getGroup(groupId)
+      : undefined
 
     if (target === 'group_member' && groupId) {
-      // Group member's profile avatar — update in group store too
+      // Only a member of that group can refresh its own member avatar.
+      if (!group?.members.some((member) => member.publicKey === ed25519Key)) return
       useGroupStore.getState().updateMember(groupId, ed25519Key, { avatar: avatarData })
       const msg = `[ChatService] Group member avatar stored: ${avatarData.length} chars for ${ed25519Key.slice(0, 16)} in group ${groupId.slice(0, 16)}`
       console.log(msg)
       try { window.asgard.debugLog(msg) } catch {}
     } else if (target === 'group_icon' && groupId) {
-      // Group's own avatar/icon — update in group store
+      // The icon is an admin setting: a member (or an outsider) must not be
+      // able to deface it by pushing media with a guessed groupId.
+      if (!group || !useGroupStore.getState().isAdmin(groupId, ed25519Key)) return
       useGroupStore.getState().updateGroup(groupId, { avatar: avatarData })
       const msg = `[ChatService] Group icon avatar stored: ${avatarData.length} chars for group ${groupId.slice(0, 16)}`
       console.log(msg)
       try { window.asgard.debugLog(msg) } catch {}
     } else {
+      // Contact avatar: updateContact ignores keys that are not contacts.
+      useContactStore.getState().updateContact(ed25519Key, { avatar: avatarData })
       // Standard contact avatar
       const msg = `[ChatService] Contact avatar stored: ${avatarData.length} chars for ${ed25519Key.slice(0, 16)}`
       console.log(msg)
