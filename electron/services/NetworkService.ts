@@ -133,6 +133,16 @@ export class NetworkService extends EventEmitter {
   // STATUS: Current user online status — extended to support all UserStatus values
   private currentStatus: 'online' | 'away' | 'offline' | 'dnd' = 'online'
   private currentStatusMessage: string | undefined
+  // DHT mutable record: dernier `seq` vérifié chez les nœuds et dernier
+  // `lastSeen` publié. Les publications périodiques les réutilisent pour
+  // écrire sans relire le record (un aller-retour DHT en moins chacune). Au
+  // shutdown, ils permettent l'écriture « offline » en UN seul mutablePut :
+  // le chemin lecture + écriture + relecture (~1,35 s mesuré) dépassait le
+  // budget de fermeture de 1,5 s et était tué par swarm.destroy() — le record
+  // restait « online » (log 21:47:31 : mutablePut « Node destroyed », seq=1
+  // car la lecture initiale avait elle aussi échoué).
+  private lastLandedSeq: number | undefined
+  private lastSeenAt: number | undefined
   // CONNECTIVITY: Network status monitoring
   private isOnline = true
   private lastNetworkChange = 0
@@ -562,10 +572,10 @@ export class NetworkService extends EventEmitter {
         // Truncate displayName to fit
         const trimmed = { displayName: displayName.slice(0, 50), timestamp: Date.now(), version: 2, status: this.currentStatus, statusMessage: this.currentStatusMessage, identityPk: this.localPublicKey || undefined }
         const trimmedValue = Buffer.from(JSON.stringify(trimmed))
-        return this.mutablePutLatest(dht, keyPair, trimmedValue)
+        return this.mutablePutLatest(dht, keyPair, trimmedValue, this.lastLandedSeq)
       }
 
-      const landed = await this.mutablePutLatest(dht, keyPair, value)
+      const landed = await this.mutablePutLatest(dht, keyPair, value, this.lastLandedSeq)
       console.log('[NetworkService] ' + (landed ? '✅' : '⚠️') + ' Profile ' + (landed ? 'published' : 'NOT published (rejeté par les nœuds DHT)') + ' to DHT:', displayName,
         '| DHT key:', keyPair.publicKey.toString('hex').slice(0, 16),
         '| status:', this.currentStatus)
@@ -602,55 +612,92 @@ export class NetworkService extends EventEmitter {
       const dht = this.getDHT()
       if (!dht) return false
 
-      // Ensure the DHT is bootstrapped before publishing status.
-      await dht.fullyBootstrapped().catch(() => {})
-
-      // First fetch existing profile to preserve displayName
       const keyPair = (this.swarm as unknown as { keyPair?: { publicKey: Buffer; secretKey: Buffer } }).keyPair
       if (!keyPair) return false
 
+      // SHUTDOWN: le budget de fermeture (1,5 s) ne finance pas lecture +
+      // écriture + relecture. Le seq étant mémorisé, un seul mutablePut suffit
+      // pour que l'état final parte avant swarm.destroy(). Non vérifié par
+      // construction — c'est la dernière chance, pas un état durable.
+      if (this.shuttingDown && this.lastLandedSeq !== undefined) {
+        const profile = this.buildDhtProfile(status, statusMessage, {})
+        const value = this.encodeProfile(profile, statusMessage)
+        const seq = this.lastLandedSeq + 1
+        logMain(`[NetworkService] 📡 DHT PUBLISH (shutdown) | status=${status} | seq=${seq} | size=${value.length} | dhtKey=${keyPair.publicKey.toString('hex').slice(0, 16)}`)
+        try {
+          await dht.mutablePut(keyPair, value, { seq })
+          this.lastLandedSeq = seq
+          if (profile.lastSeen !== undefined) this.lastSeenAt = profile.lastSeen
+          logMain(`[NetworkService] 📴 DHT PUBLISH SENT (shutdown, non vérifié) | status=${status} | seq=${seq} | size=${value.length}`)
+          return true
+        } catch (err) {
+          logMain(`[NetworkService] ❌ DHT PUBLISH FAILED (shutdown) | status=${status} | seq=${seq} | err=${err instanceof Error ? err.message : String(err)}`)
+          return false
+        }
+      }
+
+      // Ensure the DHT is bootstrapped before publishing status.
+      await dht.fullyBootstrapped().catch(() => {})
+
+      // Relit le record seulement tant qu'aucune écriture vérifiée ne nous a
+      // donné son seq : ensuite, le relire toutes les 30 s ne servait qu'à
+      // récupérer un numéro déjà connu (et un aller-retour DHT de plus).
+      let knownSeq = this.lastLandedSeq
       let existingProfile: Partial<DHTProfile> = {}
-      let existingSeq: number | undefined
-      try {
-        const existing = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { value?: Buffer; seq?: number } | null
-        if (existing?.value) {
-          existingProfile = JSON.parse(existing.value.toString())
-        }
-        if (existing && typeof existing.seq === 'number') {
-          existingSeq = existing.seq
-        }
-      } catch {}
-
-      const profile: DHTProfile = {
-        // CRITICAL FIX: Use lastDisplayName (set by publishProfile) instead of
-        // defaulting to 'Unknown'. This prevents the displayName from being
-        // overwritten to 'Unknown' when publishStatus is called before publishProfile.
-        displayName: existingProfile.displayName || this.lastDisplayName || 'Unknown',
-        timestamp: Date.now(),
-        version: 2,
-        status,
-        statusMessage,
-        lastSeen: status === 'offline' ? Date.now() : existingProfile.lastSeen,
-        identityPk: this.localPublicKey || existingProfile.identityPk || undefined,
+      if (knownSeq === undefined) {
+        try {
+          const existing = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { value?: Buffer; seq?: number } | null
+          if (existing?.value) {
+            existingProfile = JSON.parse(existing.value.toString())
+          }
+          if (existing && typeof existing.seq === 'number') {
+            knownSeq = existing.seq
+          }
+          if (typeof existingProfile.lastSeen === 'number') {
+            this.lastSeenAt = existingProfile.lastSeen
+          }
+        } catch {}
       }
 
-      const value = Buffer.from(JSON.stringify(profile))
+      const profile = this.buildDhtProfile(status, statusMessage, existingProfile)
+      const value = this.encodeProfile(profile, statusMessage)
       logMain(`[NetworkService] 📡 DHT PUBLISH | name=${profile.displayName} | status=${status} | valueSize=${value.length} | dhtKey=${keyPair.publicKey.toString('hex').slice(0, 16)}`)
-      let landed: boolean
-      if (value.length > 1000) {
-        // Truncate statusMessage to fit
-        profile.statusMessage = statusMessage?.slice(0, 100)
-        const trimmedValue = Buffer.from(JSON.stringify(profile))
-        landed = await this.mutablePutLatest(dht, keyPair, trimmedValue, existingSeq)
-      } else {
-        landed = await this.mutablePutLatest(dht, keyPair, value, existingSeq)
-      }
+      const landed = await this.mutablePutLatest(dht, keyPair, value, knownSeq)
+      if (landed && profile.lastSeen !== undefined) this.lastSeenAt = profile.lastSeen
       logMain(`[NetworkService] ${landed ? '✅ DHT PUBLISH SUCCESS' : '❌ DHT PUBLISH REJECTED (record non atterri sur le réseau)'} | status=${status} | size=${value.length}`)
       return landed
     } catch (err) {
       console.error('[NetworkService] Failed to publish status:', err)
       return false
     }
+  }
+
+  /** Enregistrement mutable publié, reconstruit sans lecture DHT quand elle n'est pas nécessaire. */
+  private buildDhtProfile(
+    status: 'online' | 'away' | 'offline' | 'dnd',
+    statusMessage: string | undefined,
+    fallback: Partial<DHTProfile>,
+  ): DHTProfile {
+    return {
+      // CRITICAL FIX: Use lastDisplayName (set by publishProfile) instead of
+      // defaulting to 'Unknown'. This prevents the displayName from being
+      // overwritten to 'Unknown' when publishStatus is called before publishProfile.
+      displayName: this.lastDisplayName || fallback.displayName || 'Unknown',
+      timestamp: Date.now(),
+      version: 2,
+      status,
+      statusMessage,
+      lastSeen: status === 'offline' ? Date.now() : (this.lastSeenAt ?? fallback.lastSeen),
+      identityPk: this.localPublicKey || fallback.identityPk || undefined,
+    }
+  }
+
+  /** Sérialise le record en respectant la limite d'environ 1000 octets de hyperdht. */
+  private encodeProfile(profile: DHTProfile, statusMessage?: string): Buffer {
+    const value = Buffer.from(JSON.stringify(profile))
+    if (value.length <= 1000) return value
+    profile.statusMessage = statusMessage?.slice(0, 100)
+    return Buffer.from(JSON.stringify(profile))
   }
 
   /**
@@ -709,6 +756,7 @@ export class NetworkService extends EventEmitter {
       try {
         const after = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { seq?: number; value?: Uint8Array } | null
         if (after?.value && Buffer.compare(Buffer.from(after.value), value) === 0) {
+          this.lastLandedSeq = sentSeq
           if (attempt > 1) logMain(`[NetworkService] ✅ DHT mutable record landed on attempt ${attempt} | seq=${sentSeq}`)
           return true
         }
@@ -2257,6 +2305,8 @@ export class NetworkService extends EventEmitter {
     this.dhtReady = false
     this.networkReadyPromise = null
     this.earlyDials.clear()
+    this.lastLandedSeq = undefined
+    this.lastSeenAt = undefined
     this.profileCache.clear()
     this.profileMissAt.clear()
     this.profileMissStreak.clear()
