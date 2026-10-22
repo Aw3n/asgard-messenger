@@ -1,4 +1,4 @@
-import type { Group, GroupMember, GroupChannel, ProtocolMessage, GroupActivity } from '@/types'
+import type { Group, GroupMember, GroupChannel, Message, ProtocolMessage, GroupActivity } from '@/types'
 import { p2pService } from './P2PService'
 import { cryptoService } from './CryptoService'
 import { useGroupStore } from '@/stores/groupStore'
@@ -31,6 +31,15 @@ class GroupService {
   // This ensures members see our current status even after transient disconnects.
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null
   private static readonly HEARTBEAT_INTERVAL_MS = 30_000 // 30s — balance between freshness and bandwidth
+  /** Contenu d'un message de groupe : borne généreuse, mais pas illimitée. */
+  private static readonly MAX_MESSAGE_CHARS = 100_000
+  private static readonly MAX_MESSAGE_ID = 128
+  private static readonly MAX_GROUP_FIELD = 128
+  private static readonly MAX_PROFILE_NAME = 200
+  private static readonly MAX_CUSTOM_STATUS = 200
+  private static readonly MAX_MENTIONS = 32
+  private static readonly MAX_MENTION_PREVIEW = 300
+  private static readonly MESSAGE_TYPES = new Set(['text', 'mention', 'image', 'file'])
   // OFFLINE QUEUE: Messages queued for delivery when group members are offline.
   // Per Holepunch/Keet pattern: messages should be delivered when peers reconnect.
   // Key format: 'messageId:peerPublicKey' for per-peer tracking.
@@ -1377,30 +1386,30 @@ class GroupService {
    * Without this, group message status stays at 'sent' forever.
    */
   private handleGroupMessage(msg: ProtocolMessage): void {
-    const payload = msg.payload as Record<string, unknown>
-    const groupId = payload.groupId as string
-    const channelId = payload.channelId as string
-    const message = payload.message as {
-      id: string
-      conversationId: string
-      senderId: string
-      type: string
-      content: string
-      timestamp: number
-      status: string
-    }
-
-    if (!groupId || !channelId || !message || typeof message.id !== 'string' || !message.id) return
+    const payload = msg.payload as Record<string, unknown> | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const groupIdRaw = payload.groupId
+    const channelIdRaw = payload.channelId
+    const declared = payload.message
+    if (typeof groupIdRaw !== 'string' || groupIdRaw.length === 0 || groupIdRaw.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof channelIdRaw !== 'string' || channelIdRaw.length === 0 || channelIdRaw.length > GroupService.MAX_GROUP_FIELD) return
+    if (!declared || typeof declared !== 'object') return
+    const groupId = groupIdRaw
+    const channelId = channelIdRaw
+    const raw = declared as Record<string, unknown>
 
     // The signed envelope authenticates the sender; without this check a
     // member could attribute its own message to another member.
-    if (message.senderId !== msg.from) return
+    if (raw.senderId !== msg.from) return
+    if (typeof raw.id !== 'string' || raw.id.length === 0 || raw.id.length > GroupService.MAX_MESSAGE_ID) return
+    if (typeof raw.content !== 'string' || raw.content.length > GroupService.MAX_MESSAGE_CHARS) return
+    const content = raw.content
 
     // Verify the sender is a member of the group
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group) return
 
-    const isMember = group.members.some((m) => m.publicKey === message.senderId)
+    const isMember = group.members.some((m) => m.publicKey === msg.from)
     if (!isMember) return
 
     // LEGACY INVITES: a joiner used to invent its own « general » channel id.
@@ -1417,25 +1426,57 @@ class GroupService {
         useGroupStore.getState().setActiveChannel(channelId)
       }
     }
+    // Après un éventuel re-key, le canal doit exister dans le groupe : un
+    // membre ne choisit pas un channelId arbitraire pour déposer un message.
+    if (!useGroupStore.getState().getGroup(groupId)?.channels.some((channel) => channel.id === channelId)) return
+
+    // Ne recopie que les champs affichés : pièces jointes, réactions, accusés,
+    // readBy et statut sont un état local que l'expéditeur n'a pas à imposer.
+    const type = typeof raw.type === 'string' && GroupService.MESSAGE_TYPES.has(raw.type)
+      ? raw.type as Message['type']
+      : 'text'
+    const declaredTimestamp = raw.timestamp
+    const timestamp = typeof declaredTimestamp === 'number' && Number.isFinite(declaredTimestamp) && declaredTimestamp > 0
+      ? Math.min(declaredTimestamp, Date.now() + 86_400_000)
+      : Date.now()
+    const mentions = Array.isArray(raw.mentions)
+      ? raw.mentions.slice(0, GroupService.MAX_MENTIONS).flatMap((value) => {
+        if (!value || typeof value !== 'object') return []
+        const mention = value as Record<string, unknown>
+        if (typeof mention.publicKey !== 'string' || mention.publicKey.length === 0 || mention.publicKey.length > GroupService.MAX_GROUP_FIELD) return []
+        const startIndex = typeof mention.startIndex === 'number' && Number.isInteger(mention.startIndex) && mention.startIndex >= 0
+          ? Math.min(mention.startIndex, content.length)
+          : 0
+        const endIndex = typeof mention.endIndex === 'number' && Number.isInteger(mention.endIndex) && mention.endIndex >= startIndex
+          ? Math.min(mention.endIndex, content.length)
+          : startIndex
+        return [{
+          publicKey: mention.publicKey,
+          displayName: typeof mention.displayName === 'string' ? mention.displayName.slice(0, GroupService.MAX_PROFILE_NAME) : '',
+          startIndex,
+          endIndex,
+        }]
+      })
+      : []
+
+    const message: Message & { groupId: string } = {
+      id: raw.id,
+      conversationId: channelId,
+      senderId: msg.from,
+      type: mentions.length > 0 && type === 'text' ? 'mention' : type,
+      content,
+      timestamp,
+      status: 'delivered',
+      groupId,
+      ...(mentions.length > 0 ? { mentions } : {}),
+    }
 
     // Add message to the store — include groupId for routing and tracking
-    useMessageStore.getState().addMessage({
-      ...message,
-      type: (message.type as import('@/types').MessageType) || 'text',
-      status: 'delivered' as const, // Mark as delivered since we received it
-      conversationId: channelId,
-      groupId,
-    })
+    useMessageStore.getState().addMessage(message)
 
     // PERSISTENCE: Save group message to Hyperbee storage so it survives restarts.
     // Previously, group messages were only in memory and lost on app restart.
-    storageService.saveMessage(channelId, {
-      ...message,
-      type: (message.type as import('@/types').MessageType) || 'text',
-      status: 'delivered',
-      conversationId: channelId,
-      groupId,
-    } as import('@/types').Message).catch(console.error)
+    storageService.saveMessage(channelId, message).catch(console.error)
 
     // Update conversation list with last message info for proper sorting and preview
     useConversationStore.getState().updateConversation(groupId, {
@@ -1480,90 +1521,91 @@ class GroupService {
    * aggregates them to determine overall message status.
    */
   private handleGroupReceipt(msg: ProtocolMessage): void {
-    const payload = msg.payload as {
-      groupId: string
-      channelId: string
-      messageIds: string[]
-      status: 'delivered' | 'read'
-      readerPublicKey: string
-      timestamp: number
-    }
-
+    const payload = msg.payload as Record<string, unknown> | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const groupId = payload.groupId
+    const channelId = payload.channelId
+    const readerPublicKey = payload.readerPublicKey
+    const status = payload.status
+    if (typeof groupId !== 'string' || typeof channelId !== 'string' || typeof readerPublicKey !== 'string') return
+    if (status !== 'delivered' && status !== 'read') return
     if (!Array.isArray(payload.messageIds) || payload.messageIds.length === 0 || payload.messageIds.length > 1000) return
+    const messageIds = payload.messageIds.filter(
+      (id): id is string => typeof id === 'string' && id.length > 0 && id.length <= GroupService.MAX_MESSAGE_ID,
+    )
+    if (messageIds.length === 0) return
 
     // A receipt is a self-declaration from a member: it cannot speak for
     // another reader, nor for a group it does not belong to.
-    const receiptGroup = payload.groupId ? useGroupStore.getState().getGroup(payload.groupId) : undefined
-    if (!receiptGroup || !msg.from) return
-    if (payload.readerPublicKey !== msg.from) return
+    const receiptGroup = useGroupStore.getState().getGroup(groupId)
+    if (!receiptGroup) return
+    if (readerPublicKey !== msg.from) return
     if (!receiptGroup.members.some((member) => member.publicKey === msg.from)) return
+    // Le canal doit être celui du groupe : un accusé ne traverse pas les
+    // conversations et ne peut pas viser un message d'un autre groupe.
+    if (!receiptGroup.channels.some((channel) => channel.id === channelId)) return
 
-    const logMsg = `[GroupService] Receipt received from ${msg.from?.slice(0, 16)} | status: ${payload.status} | msgs: ${payload.messageIds.length}`
+    const logMsg = `[GroupService] Receipt received from ${msg.from.slice(0, 16)} | status: ${status} | msgs: ${messageIds.length}`
     console.log(logMsg)
 
     const store = useMessageStore.getState()
     const order = { sending: 0, sent: 1, delivered: 2, read: 3, failed: 0, scheduled: 0 }
 
-    for (const messageId of payload.messageIds) {
-      // Find the message across all conversations (it's one we sent)
-      for (const convId of Object.keys(store.messages)) {
-        const messages = store.messages[convId]
-        const idx = messages.findIndex((m) => m.id === messageId)
-        if (idx !== -1) {
-          const m = messages[idx]
+    for (const messageId of messageIds) {
+      // Seuls les messages du canal cité sont concernés : un id valide d'une
+      // autre conversation ne doit pas recevoir d'accusé de ce groupe.
+      const messages = useMessageStore.getState().messages[channelId]
+      if (!messages) continue
+      const idx = messages.findIndex((m) => m.id === messageId)
+      if (idx === -1) continue
+      const m = messages[idx]
+      if (m.senderId === readerPublicKey) continue
 
-          // PER-RECIPIENT TRACKING: Update deliveryReceipts map with this recipient's status
-          const deliveryReceipts = { ...(m.deliveryReceipts ?? {}) }
-          deliveryReceipts[payload.readerPublicKey] = payload.status
+      // PER-RECIPIENT TRACKING: Update deliveryReceipts map with this recipient's status
+      const deliveryReceipts = { ...(m.deliveryReceipts ?? {}) }
+      deliveryReceipts[readerPublicKey] = status
 
-          // Track readBy list for read receipts
-          const readBy = [...(m.readBy ?? [])]
-          if (payload.status === 'read' && !readBy.includes(payload.readerPublicKey)) {
-            readBy.push(payload.readerPublicKey)
-          }
-
-          // Determine overall status based on all receipts
-          // - If all recipients have read → 'read'
-          // - If all recipients have at least delivered → 'delivered'
-          // - Otherwise keep current status
-          const group = useGroupStore.getState().getGroup(payload.groupId)
-          if (group) {
-            const totalRecipients = group.members.filter(
-              (mem) => mem.publicKey !== m.senderId
-            ).length
-            const deliveredCount = Object.values(deliveryReceipts).filter(
-              (s) => s === 'delivered' || s === 'read'
-            ).length
-            const readCount = Object.values(deliveryReceipts).filter(
-              (s) => s === 'read'
-            ).length
-
-            let newStatus = m.status
-            if (totalRecipients > 0 && readCount >= totalRecipients) {
-              newStatus = 'read'
-            } else if (totalRecipients > 0 && deliveredCount >= totalRecipients) {
-              newStatus = 'delivered'
-            } else if (deliveredCount > 0 && (order[m.status] ?? 0) < order['delivered']) {
-              newStatus = 'delivered'
-            }
-
-            // Only upgrade, never downgrade
-            if ((order[newStatus] ?? 0) > (order[m.status] ?? 0)) {
-              console.log(`[GroupService] Upgrading message ${messageId.slice(0, 16)} from ${m.status} to ${newStatus} (delivered: ${deliveredCount}/${totalRecipients}, read: ${readCount}/${totalRecipients})`)
-              store.updateStatus(messageId, convId, newStatus)
-            }
-          }
-
-          // Update the message with per-recipient tracking data
-          // Use addMessage to replace the message with updated fields
-          store.updateMessageAttachment?.(messageId, convId, {
-            deliveryReceipts,
-            readBy,
-          } as any)
-
-          break
-        }
+      // Track readBy list for read receipts
+      const readBy = [...(m.readBy ?? [])]
+      if (status === 'read' && !readBy.includes(readerPublicKey)) {
+        readBy.push(readerPublicKey)
       }
+
+      // Determine overall status based on all receipts
+      // - If all recipients have read → 'read'
+      // - If all recipients have at least delivered → 'delivered'
+      // - Otherwise keep current status
+      const totalRecipients = receiptGroup.members.filter(
+        (mem) => mem.publicKey !== m.senderId
+      ).length
+      const deliveredCount = Object.values(deliveryReceipts).filter(
+        (s) => s === 'delivered' || s === 'read'
+      ).length
+      const readCount = Object.values(deliveryReceipts).filter(
+        (s) => s === 'read'
+      ).length
+
+      let newStatus = m.status
+      if (totalRecipients > 0 && readCount >= totalRecipients) {
+        newStatus = 'read'
+      } else if (totalRecipients > 0 && deliveredCount >= totalRecipients) {
+        newStatus = 'delivered'
+      } else if (deliveredCount > 0 && (order[m.status] ?? 0) < order['delivered']) {
+        newStatus = 'delivered'
+      }
+
+      // Only upgrade, never downgrade
+      if ((order[newStatus] ?? 0) > (order[m.status] ?? 0)) {
+        console.log(`[GroupService] Upgrading message ${messageId.slice(0, 16)} from ${m.status} to ${newStatus} (delivered: ${deliveredCount}/${totalRecipients}, read: ${readCount}/${totalRecipients})`)
+        store.updateStatus(messageId, channelId, newStatus)
+      }
+
+      // Update the message with per-recipient tracking data
+      // Use addMessage to replace the message with updated fields
+      store.updateMessageAttachment?.(messageId, channelId, {
+        deliveryReceipts,
+        readBy,
+      } as any)
     }
   }
 
@@ -1575,14 +1617,19 @@ class GroupService {
    */
   private handleGroupPresence(msg: ProtocolMessage): void {
     const payload = msg.payload as Record<string, unknown>
-    const groupId = payload.groupId as string
-    const publicKey = payload.publicKey as string
-    const status = payload.status as string
-    const displayName = payload.displayName as string | undefined
-    const customStatus = payload.customStatus as string | undefined
-    const hasAvatar = payload.hasAvatar as boolean | undefined
+    const groupId = payload.groupId
+    const publicKey = payload.publicKey
+    const status = typeof payload.status === 'string' ? payload.status : 'online'
+    const displayName = typeof payload.displayName === 'string'
+      ? payload.displayName.slice(0, GroupService.MAX_PROFILE_NAME)
+      : undefined
+    const customStatus = typeof payload.customStatus === 'string'
+      ? payload.customStatus.slice(0, GroupService.MAX_CUSTOM_STATUS)
+      : undefined
+    const hasAvatar = payload.hasAvatar === true
 
-    if (!groupId || !publicKey) return
+    if (typeof groupId !== 'string' || !groupId || groupId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof publicKey !== 'string' || !publicKey) return
 
     // A presence is a self-declaration: the signed sender cannot speak for
     // another member, and a peer we don't know must not inflate the online
@@ -1645,26 +1692,31 @@ class GroupService {
    */
   private handleGroupTyping(msg: ProtocolMessage): void {
     const payload = msg.payload as Record<string, unknown>
-    const groupId = payload.groupId as string
-    const channelId = payload.channelId as string
-    const publicKey = payload.publicKey as string
-    const displayName = payload.displayName as string
-    const isTyping = payload.isTyping as boolean
+    const groupId = payload.groupId
+    const channelId = payload.channelId
+    const publicKey = payload.publicKey
+    const displayName = payload.displayName
+    const isTyping = payload.isTyping
 
-    if (!groupId || !channelId || !publicKey) return
+    if (typeof groupId !== 'string' || !groupId || groupId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof channelId !== 'string' || !channelId || channelId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof publicKey !== 'string' || !publicKey) return
+    if (typeof isTyping !== 'boolean') return
 
-    // Typing is a self-declaration from a member of that group.
+    // Typing is a self-declaration from a member of that group, in one of
+    // that group's own channels.
     if (publicKey !== msg.from) return
     const group = useGroupStore.getState().getGroup(groupId)
     const member = group?.members.find((m) => m.publicKey === publicKey)
-    if (!member) return
+    if (!group || !member) return
+    if (!group.channels.some((c) => c.id === channelId)) return
 
     // Update typing state in the store
     useGroupStore.getState().setChannelTyping(
       groupId,
       channelId,
       publicKey,
-      member.displayName || (typeof displayName === 'string' ? displayName.slice(0, 200) : ''),
+      member.displayName || (typeof displayName === 'string' ? displayName.slice(0, GroupService.MAX_PROFILE_NAME) : ''),
       isTyping,
     )
   }
@@ -1674,23 +1726,33 @@ class GroupService {
    */
   private handleGroupRead(msg: ProtocolMessage): void {
     const payload = msg.payload as Record<string, unknown>
-    const groupId = payload.groupId as string
-    const channelId = payload.channelId as string
-    const publicKey = payload.publicKey as string
-    const messageIds = payload.messageIds as string[]
+    const groupId = payload.groupId
+    const channelId = payload.channelId
+    const publicKey = payload.publicKey
+    const messageIds = payload.messageIds
 
-    if (!groupId || !channelId || !publicKey || !Array.isArray(messageIds)) return
-    if (messageIds.length > 1000) return
+    if (typeof groupId !== 'string' || !groupId || groupId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof channelId !== 'string' || !channelId || channelId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof publicKey !== 'string' || !publicKey) return
+    if (!Array.isArray(messageIds) || messageIds.length === 0 || messageIds.length > 1000) return
+    if (!messageIds.every((id) => typeof id === 'string' && id.length > 0 && id.length <= GroupService.MAX_MESSAGE_ID)) return
 
     // A read marker is a self-declaration from a member of that group.
     if (publicKey !== msg.from) return
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group?.members.some((m) => m.publicKey === publicKey)) return
+    if (!group.channels.some((c) => c.id === channelId)) return
 
-    // Update message read status in the message store
-    const messageStore = useMessageStore.getState()
+    // Only mark messages that actually live in this group channel: without
+    // this, a marker naming an arbitrary id could target a 1:1 conversation
+    // whose message happens to share the id.
+    const messages = useMessageStore.getState().messages[channelId]
+    if (!messages) return
+    const store = useMessageStore.getState()
     for (const messageId of messageIds) {
-      messageStore.markMessageRead(messageId, publicKey)
+      const target = messages.find((m) => m.id === messageId)
+      if (!target || target.senderId === publicKey) continue
+      store.updateStatus(messageId, channelId, 'read')
     }
   }
 
@@ -1724,25 +1786,33 @@ class GroupService {
    */
   private handleGroupMention(msg: ProtocolMessage): void {
     const payload = msg.payload as Record<string, unknown>
-    const groupId = payload.groupId as string
-    const channelId = payload.channelId as string
-    const messageId = payload.messageId as string
-    const mentionedBy = payload.mentionedBy as string
-    const mentionedByDisplayName = payload.mentionedByDisplayName as string
-    const content = payload.content as string
+    const groupId = payload.groupId
+    const channelId = payload.channelId
+    const messageId = payload.messageId
+    const mentionedBy = payload.mentionedBy
+    const content = payload.content
 
-    if (!groupId || !channelId || !messageId || !mentionedBy) return
+    if (typeof groupId !== 'string' || !groupId || groupId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof channelId !== 'string' || !channelId || channelId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof messageId !== 'string' || !messageId || messageId.length > GroupService.MAX_MESSAGE_ID) return
+    if (typeof mentionedBy !== 'string' || !mentionedBy) return
 
     // Get group info for the notification. Only a member can raise a mention,
     // and it can only be raised in its own name.
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group) return
     if (mentionedBy !== msg.from) return
-    if (!group.members.some((m) => m.publicKey === msg.from)) return
+    const author = group.members.find((m) => m.publicKey === msg.from)
+    if (!author) return
+    if (!group.channels.some((c) => c.id === channelId)) return
 
-    // Show notification
-    const title = `${mentionedByDisplayName} mentioned you in ${group.name}`
-    const body = content || 'You were mentioned in a message'
+    // The notifier names itself with its roster profile, not with a string
+    // carried by the wire: otherwise anyone could impersonate another member
+    // in the notification.
+    const authorName = author.displayName || mentionedBy.slice(0, 16)
+    const preview = typeof content === 'string' ? content.trim().slice(0, GroupService.MAX_MENTION_PREVIEW) : ''
+    const title = `${authorName} mentioned you in ${group.name}`
+    const body = preview || 'You were mentioned in a message'
 
     // Use the notification API if available
     try {
