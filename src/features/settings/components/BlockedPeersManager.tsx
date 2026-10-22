@@ -33,6 +33,19 @@ export const BlockedPeersManager: React.FC<{ onClose?: () => void }> = ({ onClos
     try {
       await window.asgard.network.blockPeer(peerKey, false)
       setBlockedPeers((prev) => prev.filter((p) => p !== peerKey))
+      // La liste ne connaît que la clé Noise : on retrouve le contact dont la
+      // clé Ed25519 la dérive, sinon son état local resterait « bloqué ».
+      for (const c of Object.values(contacts)) {
+        if (c.relation !== 'blocked') continue
+        try {
+          if (await window.asgard.network.deriveNoisePublicKey(c.publicKey) === peerKey) {
+            useContactStore.getState().unblockContact(c.publicKey)
+            break
+          }
+        } catch {
+          // Clé non dérivable : ce pair n'est pas un contact local.
+        }
+      }
     } catch (err) {
       console.error('[BlockedPeersManager] Failed to unblock peer:', err)
     }

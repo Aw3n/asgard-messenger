@@ -168,8 +168,16 @@ export class NetworkService extends EventEmitter {
     if (this.initialized) return
     if (this.initPromise) return this.initPromise
 
-    this.initPromise = this._doInitialize()
-    return this.initPromise
+    const attempt = this._doInitialize()
+    this.initPromise = attempt
+    try {
+      await attempt
+    } catch (err) {
+      // Un échec ne doit pas être mémorisé : sinon tout appel suivant reçoit
+      // la même promesse rejetée et le réseau reste mort jusqu'au redémarrage.
+      if (this.initPromise === attempt) this.initPromise = null
+      throw err
+    }
   }
 
   private async _doInitialize(): Promise<void> {
@@ -195,7 +203,6 @@ export class NetworkService extends EventEmitter {
         port?: number
         connectionKeepAlive?: number
         randomPunchInterval?: number
-        ephemeral?: boolean
       } = {}
 
       // Use default Pear bootstrap nodes (public DHT)
@@ -214,13 +221,12 @@ export class NetworkService extends EventEmitter {
       // Default is 20000ms. Lower value = faster hole-punch retries for cross-border.
       dhtOpts.randomPunchInterval = 5000
 
-      // NON-EPHEMERAL: Announce ourselves to the DHT as reachable servers.
-      // Per dht-rpc docs: "Nodes per default use adaptive mode to decide whether or not
-      // they want to join other nodes' routing table. Adaptive mode is conservative,
-      // so it might take ~20-30 mins for the node to turn persistent."
-      // Setting ephemeral: false bypasses adaptive mode and becomes persistent immediately
-      // (assuming open NAT). This is critical for contacts to discover us.
-      dhtOpts.ephemeral = false
+      // PAS d'`ephemeral: false`. dht-rpc documente ce drapeau pour les réseaux
+      // de test / bootstrap : « For the vast majority of use-cases you should
+      // always use adaptive mode » (le défaut). Forcer le mode persistant
+      // annonce la machine comme serveur public sans connaître son NAT et
+      // pollue les tables de routage; le passage en persistant se fait de
+      // lui-même, et l'événement 'persistent' republie déjà profil et statut.
 
       // CRITICAL: Generate deterministic keyPair from seed using HyperDHT.keyPair().
       // Per HyperDHT docs: "keyPair = DHT.keyPair([seed]) — Use this method to generate
@@ -237,7 +243,7 @@ export class NetworkService extends EventEmitter {
       }
 
       const dht = new HyperDHT(dhtOpts)
-      logMain(`[NetworkService] 🔧 HyperDHT created | bootstrap=${dhtOpts.bootstrap?.join(', ')} | ephemeral=${dhtOpts.ephemeral} | keepAlive=${dhtOpts.connectionKeepAlive}ms | punchInterval=${dhtOpts.randomPunchInterval}ms`)
+      logMain(`[NetworkService] 🔧 HyperDHT created | bootstrap=${dhtOpts.bootstrap?.join(', ')} | ephemeral=adaptive | keepAlive=${dhtOpts.connectionKeepAlive}ms | punchInterval=${dhtOpts.randomPunchInterval}ms`)
 
       const swarmOpts: {
         maxPeers: number
@@ -392,6 +398,22 @@ export class NetworkService extends EventEmitter {
       }, NetworkService.SCORE_UPDATE_INTERVAL_MS)
     } catch (err) {
       console.error('[NetworkService] Failed to initialize:', err)
+      // Une tentative ratée peut avoir créé un swarm partiel : on le referme
+      // sans passer par destroy() (qui poserait shuttingDown et interdirait
+      // toute nouvelle tentative).
+      const partial = this.swarm
+      this.swarm = null
+      if (partial) {
+        try {
+          await NetworkService.bounded(
+            partial.destroy({ force: true }),
+            NetworkService.SWARM_DESTROY_TIMEOUT_MS,
+          )
+        } catch {
+          // Instance déjà morte : rien à récupérer.
+        }
+      }
+      throw err
     }
   }
 
@@ -780,21 +802,17 @@ export class NetworkService extends EventEmitter {
     const topicBuffer = Buffer.from(topicHex, 'hex')
     const discovery = this.swarm.join(topicBuffer, { client: true, server: true })
 
-    // PERFORMANCE: Signal to corestore that we're finding peers.
-    // This allows core.update() to properly wait for replication data
-    // instead of returning immediately with stale data.
-    if (this.corestore) {
+    // CONFORMITÉ HOLEPUNCH: c'est le STORE qui expose findingPeers(), pas les
+    // cores (Corestore v7 — `store.getCores()` n'existe pas). L'appel ouvre une
+    // session de découverte : tant qu'elle court, `core.update()` attend
+    // réellement des pairs au lieu de rendre des données périmées. La fonction
+    // rendue referme la session une fois l'annonce terminée.
+    if (this.corestore?.findingPeers) {
       try {
-        const cores = (this.corestore as unknown as { getCores?: () => HypercoreLike[] }).getCores?.() ?? []
-        for (const core of cores) {
-          if (typeof (core as unknown as { findingPeers?: () => () => void }).findingPeers === 'function') {
-            const done = (core as unknown as { findingPeers: () => () => void }).findingPeers()
-            // Call done after discovery flushes
-            discovery.flushed().then(() => done()).catch(() => done())
-          }
-        }
+        const done = this.corestore.findingPeers()
+        discovery.flushed().then(done, done)
       } catch {
-        // Ignore findingPeers errors — not critical
+        // La découverte reste fonctionnelle sans cette optimisation.
       }
     }
 
@@ -1816,17 +1834,30 @@ export class NetworkService extends EventEmitter {
    * Blocked peers are immediately rejected on connection attempts.
    */
   blockPeer(noisePublicKeyHex: string, blocked: boolean): void {
+    const info = this.peerInfos.get(noisePublicKeyHex)
     if (blocked) {
       this.blockedPeers.add(noisePublicKeyHex)
       // Also ban via Hyperswarm if connected
-      const info = this.peerInfos.get(noisePublicKeyHex)
       if (info?.ban) {
         info.ban(true)
+      }
+      /*
+        Hyperswarm documente que `ban()` n'agit que sur les nouvelles
+        tentatives : « banning a peer will not close any existing connections ».
+        Sans cette coupure, un pair bloqué pendant une session continuait
+        d'envoyer messages, médias et fichiers jusqu'à la déconnexion.
+      */
+      const peer = this.peers.get(noisePublicKeyHex)
+      if (peer?.socket && !peer.socket.destroyed) {
+        try {
+          peer.socket.destroy?.()
+        } catch {
+          // Socket déjà en cours de fermeture.
+        }
       }
       console.log('[NetworkService] Peer blocked:', noisePublicKeyHex.slice(0, 16))
     } else {
       this.blockedPeers.delete(noisePublicKeyHex)
-      const info = this.peerInfos.get(noisePublicKeyHex)
       if (info?.ban) {
         info.ban(false)
       }
@@ -3123,11 +3154,7 @@ interface ProtomuxMessage {
 
 interface CorestoreLike {
   replicate: (stream: unknown) => unknown
-  getCores?: () => HypercoreLike[]
-}
-
-interface HypercoreLike {
-  ready: () => Promise<void>
+  /** Corestore v7 : ouvre une session de découverte, rendue par la fonction retournée. */
   findingPeers?: () => () => void
 }
 

@@ -144,13 +144,22 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
     })
   }
 
-  const handleToggleBlock = () => {
-    if (isBlocked) {
-      unblockContact(contact.publicKey)
-      addToast({ type: 'info', title: t('contacts.unblocked'), duration: 2000 })
-    } else {
+  const handleToggleBlock = async () => {
+    const blocked = !isBlocked
+    // L'état local bascule tout de suite ; le réseau suit, car le blocage
+    // n'est effectif que si le firewall connaît la clé Noise du contact.
+    if (blocked) {
       blockContact(contact.publicKey)
       addToast({ type: 'warning', title: t('contacts.blocked'), duration: 2000 })
+    } else {
+      unblockContact(contact.publicKey)
+      addToast({ type: 'info', title: t('contacts.unblocked'), duration: 2000 })
+    }
+    try {
+      const noiseKey = await window.asgard.network.deriveNoisePublicKey(contact.publicKey)
+      await window.asgard.network.blockPeer(noiseKey, blocked)
+    } catch (err) {
+      console.error('[ContactDetailView] Failed to apply network block:', err)
     }
   }
 
