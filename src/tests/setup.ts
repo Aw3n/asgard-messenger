@@ -56,6 +56,7 @@ const mockAsgardAPI = {
     getVersion: vi.fn().mockResolvedValue('1.0.1'),
     getPlatform: vi.fn().mockReturnValue('win32'),
     openExternal: vi.fn(),
+    flashFrame: vi.fn(),
     getTheme: vi.fn().mockResolvedValue('dark'),
     onThemeChange: vi.fn().mockReturnValue(() => {}),
     getPendingDeepLink: vi.fn().mockResolvedValue(null),
