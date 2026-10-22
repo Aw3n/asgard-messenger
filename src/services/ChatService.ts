@@ -1,4 +1,4 @@
-import type { Message, OutgoingMessage, ProtocolMessage, Contact, UserStatus, NetworkPeer } from '@/types'
+import type { Message, Mention, OutgoingMessage, ProtocolMessage, Contact, UserStatus, NetworkPeer } from '@/types'
 import { p2pService } from './P2PService'
 import { cryptoService } from './CryptoService'
 import { storageService } from './StorageService'
@@ -150,6 +150,11 @@ class ChatService {
   /** Nombre de renvois avant de marquer un message définitivement « failed » */
   private static readonly MAX_SEND_ATTEMPTS = 3
   private static readonly MAX_PENDING_REACTIONS = 200
+  /** Contenu et identifiant d'un message 1:1 entrant. */
+  private static readonly MAX_INCOMING_CHARS = 100_000
+  private static readonly MAX_INCOMING_ID = 128
+  private static readonly MAX_INCOMING_MENTIONS = 32
+  private static readonly MAX_INCOMING_SIGNATURE = 256
   private static readonly REACTION_MAX_ATTEMPTS = 3
 
   static getInstance(): ChatService {
@@ -2985,8 +2990,86 @@ class ChatService {
     storageService.deleteMessage(found.conversationId, messageId).catch(() => {})
   }
 
+  /**
+   * Un message 1:1 entrant n'est retenu que pour ses champs d'affichage.
+   * Réactions, accusés, modifications, pièces jointes et statut sont un état
+   * local alimenté par leurs propres messages : les recopier depuis le fil
+   * laisserait l'expéditeur planter une bulle déjà « lue » ou un fichier
+   * fantôme. Le devis de réponse est relu dans la conversation locale.
+   */
+  private sanitizeIncomingDmMessage(
+    raw: Message,
+    from: string,
+    conversationId: string,
+  ): Message | null {
+    if (typeof raw.id !== 'string' || raw.id.length === 0 || raw.id.length > ChatService.MAX_INCOMING_ID) return null
+    if (typeof raw.content !== 'string' || raw.content.length > ChatService.MAX_INCOMING_CHARS) return null
+    if (typeof raw.timestamp !== 'number' || !Number.isFinite(raw.timestamp) || raw.timestamp <= 0) return null
+    if (typeof raw.senderId !== 'string' || raw.senderId !== from) return null
+
+    const timestamp = Math.min(raw.timestamp, Date.now() + 86_400_000)
+    const mentions: Mention[] = Array.isArray(raw.mentions)
+      ? raw.mentions.slice(0, ChatService.MAX_INCOMING_MENTIONS).flatMap((value) => {
+        if (!value || typeof value !== 'object') return []
+        const mention = value as unknown as Record<string, unknown>
+        if (typeof mention.publicKey !== 'string'
+          || mention.publicKey.length === 0
+          || mention.publicKey.length > ChatService.MAX_INCOMING_ID) return []
+        const startIndex = typeof mention.startIndex === 'number'
+          && Number.isInteger(mention.startIndex) && mention.startIndex >= 0
+          ? Math.min(mention.startIndex, raw.content.length)
+          : 0
+        const endIndex = typeof mention.endIndex === 'number'
+          && Number.isInteger(mention.endIndex) && mention.endIndex >= startIndex
+          ? Math.min(mention.endIndex, raw.content.length)
+          : startIndex
+        return [{
+          publicKey: mention.publicKey,
+          displayName: typeof mention.displayName === 'string'
+            ? mention.displayName.slice(0, ChatService.MAX_PROFILE_NAME)
+            : '',
+          startIndex,
+          endIndex,
+        }]
+      })
+      : []
+
+    let replyTo: Message['replyTo']
+    const rawReply = raw.replyTo
+    if (rawReply && typeof rawReply === 'object'
+      && typeof rawReply.id === 'string'
+      && rawReply.id.length > 0
+      && rawReply.id.length <= ChatService.MAX_INCOMING_ID) {
+      const quoted = useMessageStore.getState().getMessage(rawReply.id, conversationId)
+      if (quoted) {
+        replyTo = {
+          id: quoted.id,
+          senderId: quoted.senderId,
+          content: quoted.content,
+          type: quoted.type,
+        }
+      }
+    }
+
+    return {
+      id: raw.id,
+      conversationId,
+      senderId: from,
+      type: raw.type === 'mention' ? 'mention' : 'text',
+      content: raw.content,
+      timestamp,
+      status: 'delivered',
+      ...(mentions.length > 0 ? { mentions } : {}),
+      ...(replyTo ? { replyTo } : {}),
+      ...(typeof raw.signature === 'string' && raw.signature.length <= ChatService.MAX_INCOMING_SIGNATURE
+        ? { signature: raw.signature }
+        : {}),
+    }
+  }
+
   private async handleIncomingMessage(msg: ProtocolMessage): Promise<void> {
-    const message = msg.payload as Message
+    const message = msg.payload as Message | null
+    if (!msg.from || !message || typeof message !== 'object') return
 
     const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
     const resolvedId = myPk
@@ -3001,38 +3084,41 @@ class ChatService {
     const contact = useContactStore.getState().getContact(msg.from)
     if (contact?.relation === 'blocked') return
 
+    // Un contenu ou un identifiant démesuré ne va pas plus loin : la
+    // vérification de signature sérialise déjà le contenu.
+    if (typeof message.id !== 'string' || message.id.length === 0 || message.id.length > ChatService.MAX_INCOMING_ID) return
+    if (typeof message.content !== 'string' || message.content.length > ChatService.MAX_INCOMING_CHARS) return
+    if (typeof message.timestamp !== 'number' || !Number.isFinite(message.timestamp) || message.timestamp <= 0) return
+    if (typeof message.senderId !== 'string' || message.senderId !== msg.from) return
+
     // HOLEPUNCH SECURITY: Verify the Ed25519 message-level signature.
     // The sender signs { id, content, timestamp, senderId } with their private key.
     // This ensures the message content hasn't been tampered with and
     // cryptographically proves the sender's identity.
     // Without this, a malicious peer could forge or alter messages.
-    if (message.signature) {
-      try {
-        const isValid = await cryptoService.verify(
-          { id: message.id, content: message.content, timestamp: message.timestamp, senderId: message.senderId },
-          message.signature,
-          msg.from
-        )
-        if (!isValid) {
-          console.warn('[ChatService] !!! INVALID MESSAGE SIGNATURE from:', msg.from?.slice(0, 32), '| msgId:', message.id?.slice(0, 8))
-          try { window.asgard.debugLog('[ChatService] INVALID SIGNATURE rejected from: ' + msg.from?.slice(0, 32)) } catch {}
-          return // Reject forged/tampered messages
-        }
-      } catch (err) {
-        console.warn('[ChatService] Signature verification error:', err)
-        return // Reject on verification failure
-      }
-    } else {
+    if (typeof message.signature !== 'string'
+      || message.signature.length === 0
+      || message.signature.length > ChatService.MAX_INCOMING_SIGNATURE) {
       // HOLEPUNCH SECURITY: Messages without signatures are rejected for integrity.
       // All chat messages must be signed by the sender.
       console.warn('[ChatService] !!! UNSIGNED MESSAGE from:', msg.from?.slice(0, 32), '— rejecting')
       return
     }
-
-    // The envelope authenticates msg.from. A payload naming another sender
-    // would be rendered as that person: same spoofing class as presence.
-    if (message.senderId !== msg.from) return
-    if (typeof message.id !== 'string' || !message.id || typeof message.content !== 'string') return
+    try {
+      const isValid = await cryptoService.verify(
+        { id: message.id, content: message.content, timestamp: message.timestamp, senderId: message.senderId },
+        message.signature,
+        msg.from
+      )
+      if (!isValid) {
+        console.warn('[ChatService] !!! INVALID MESSAGE SIGNATURE from:', msg.from?.slice(0, 32), '| msgId:', message.id?.slice(0, 8))
+        try { window.asgard.debugLog('[ChatService] INVALID SIGNATURE rejected from: ' + msg.from?.slice(0, 32)) } catch {}
+        return // Reject forged/tampered messages
+      }
+    } catch (err) {
+      console.warn('[ChatService] Signature verification error:', err)
+      return // Reject on verification failure
+    }
 
     // CRITICAL: Mark sender as online when we receive any message from them.
     // This is a fallback presence mechanism — even if presence:update was missed,
@@ -3044,8 +3130,10 @@ class ChatService {
     // l'ajouterait chez lui alors que ce n'est pas ce qu'il a demandé.
     confirmPendingContact(msg.from, 'outgoing', false)
 
-    // Update the message with the correct conversationId
-    const correctedMessage: Message = { ...message, conversationId: resolvedId }
+    // Seuls les champs d'affichage sont conservés, dans la conversation
+    // dérivée de l'identité signataire.
+    const correctedMessage = this.sanitizeIncomingDmMessage(message, msg.from, resolvedId)
+    if (!correctedMessage) return
 
     // Add message to store
     useMessageStore.getState().addMessage(correctedMessage)
