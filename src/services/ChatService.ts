@@ -323,14 +323,19 @@ class ChatService {
 
     // Handle ephemeral message expiration notification
     p2pService.on('message:chat:ephemeral', (msg: ProtocolMessage) => {
-      const { conversationId, expiresAt } = msg.payload as { conversationId: string; expiresAt: number }
+      const payload = msg.payload as { expiresAt?: unknown } | null
+      if (!msg.from || !payload || typeof payload !== 'object') return
+      const requested = payload.expiresAt
+      if (typeof requested !== 'number' || !Number.isFinite(requested) || requested <= 0) return
+      // A peer owns its message's lifetime, not an unbounded timer: cap the
+      // declaration so a far-future or absurd value cannot park the store.
+      const expiresAt = Math.min(requested, Date.now() + 30 * 24 * 60 * 60 * 1000)
       const store = useMessageStore.getState()
 
       // Resolve the correct local conversationId
       const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      const resolvedConvId = myPk
-        ? cryptoService.deriveConversationId(myPk, msg.from)
-        : conversationId
+      if (!myPk) return
+      const resolvedConvId = cryptoService.deriveConversationId(myPk, msg.from)
 
       // Find the last message from this peer and set its expiration
       const msgs = store.messages[resolvedConvId]
@@ -346,9 +351,21 @@ class ChatService {
 
     // Handle typing indicators
     p2pService.on('message:presence:typing', (msg: ProtocolMessage) => {
+      const payload = msg.payload as { conversationId?: unknown; typing?: unknown } | null
+      if (!msg.from || !payload || typeof payload !== 'object') return
+      if (typeof payload.typing !== 'boolean') return
+      const contact = useContactStore.getState().getContact(msg.from)
+      // A typing indicator names a conversation; only the DM this peer owns is
+      // legitimate, or a third contact could make them appear in another chat.
+      if (!contact || contact.relation === 'blocked') return
+      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+      if (!myPk) return
+      const conversationId = cryptoService.deriveConversationId(myPk, msg.from)
+      if (payload.conversationId !== conversationId) return
+
       // Activity from peer proves they are online (fallback for older clients)
       this.markPeerActive(msg.from)
-      const { conversationId, typing } = msg.payload as TypingPayload
+      const typing = payload.typing
       useNetworkStore.getState().setTyping(conversationId, msg.from, typing)
 
       // Auto-clear typing after 5 seconds
@@ -359,16 +376,23 @@ class ChatService {
           useNetworkStore.getState().setTyping(conversationId, msg.from, false)
         }, 5000)
         this.typingTimers.set(key, timer)
+      } else {
+        this.typingTimers.delete(key)
       }
     })
 
     // Handle presence updates
     p2pService.on('message:presence:update', (msg: ProtocolMessage) => {
-      const payload = msg.payload as PresencePayload
+      const payload = msg.payload as PresencePayload | null
+      if (!msg.from || !payload || typeof payload !== 'object') return
+      const declared = typeof payload.status === 'string' ? payload.status.trim().toLowerCase() : ''
+      if (!['online', 'away', 'offline', 'dnd', 'busy', 'invisible'].includes(declared)) return
       const recvMsg = `[ChatService] === PRESENCE RECEIVED from: ${msg.from?.slice(0, 32)} | status: ${payload.status}`
       console.log(recvMsg)
       try { window.asgard.debugLog(recvMsg) } catch {}
       const contact = useContactStore.getState().getContact(msg.from)
+      // A blocked contact keeps its frozen card: no status, name or avatar push.
+      if (contact?.relation === 'blocked') return
       const mappedStatus = fromNetworkStatus(payload.status)
       const updateMsg = `[ChatService] Presence update: contact found=${!!contact} | mapped=${mappedStatus}`
       console.log(updateMsg)
@@ -384,16 +408,25 @@ class ChatService {
     p2pService.on('message:presence:ping', (msg: ProtocolMessage) => {
       // Any traffic from peer proves they are online (fallback for older clients)
       this.markPeerActive(msg.from)
-      const { timestamp } = msg.payload as { timestamp: number }
+      const payload = msg.payload as { timestamp?: unknown } | null
+      const sentAt = typeof payload?.timestamp === 'number' && Number.isFinite(payload.timestamp)
+        ? payload.timestamp
+        : Date.now()
       // Respond with pong immediately
-      p2pService.sendMessage(msg.from, 'presence:pong', { timestamp }).catch(() => {})
+      p2pService.sendMessage(msg.from, 'presence:pong', { timestamp: sentAt }).catch(() => {})
     })
 
     p2pService.on('message:presence:pong', (msg: ProtocolMessage) => {
       // Any traffic from peer proves they are online (fallback for older clients)
       this.markPeerActive(msg.from)
-      const { timestamp } = msg.payload as { timestamp: number }
-      const rtt = Date.now() - timestamp
+      const payload = msg.payload as { timestamp?: unknown } | null
+      const sentAt = typeof payload?.timestamp === 'number' && Number.isFinite(payload.timestamp)
+        ? payload.timestamp
+        : null
+      if (sentAt === null) return
+      const rtt = Date.now() - sentAt
+      // Reject clock-skewed or absurd values instead of displaying them.
+      if (rtt < 0 || rtt > 60_000) return
       // Update network store with latency
       useNetworkStore.getState().setPeerLatency(msg.from, rtt)
       console.log('[ChatService] Pong from', msg.from.slice(0, 16), '— RTT:', rtt, 'ms')
@@ -778,9 +811,13 @@ class ChatService {
       status: mappedStatus,
       lastSeen: now,
     }
-    if (payload.displayName !== undefined) updates.displayName = payload.displayName
-    if (payload.avatar !== undefined) updates.avatar = payload.avatar
-    if (payload.customStatus !== undefined) updates.customStatus = payload.customStatus
+    const displayName = ChatService.declaredName(payload.displayName)
+    if (displayName) updates.displayName = displayName
+    const avatar = ChatService.declaredAvatar(payload.avatar)
+    if (avatar) updates.avatar = avatar
+    if (typeof payload.customStatus === 'string') {
+      updates.customStatus = payload.customStatus.slice(0, ChatService.MAX_CUSTOM_STATUS)
+    }
 
     useContactStore.getState().updateContact(publicKey, updates)
   }
@@ -2591,6 +2628,22 @@ class ChatService {
   private static readonly MAX_AVATAR_CHUNKS = 256
   private static readonly MAX_AVATAR_CHUNK_BYTES = 64 * 1024
   private static readonly AVATAR_DATA_URL = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/
+  private static readonly MAX_PROFILE_NAME = 200
+  private static readonly MAX_CUSTOM_STATUS = 200
+
+  /** A peer-declared name: trimmed, non-empty, bounded. */
+  private static declaredName(value: unknown): string | undefined {
+    if (typeof value !== 'string') return undefined
+    const trimmed = value.trim()
+    return trimmed ? trimmed.slice(0, ChatService.MAX_PROFILE_NAME) : undefined
+  }
+
+  /** A peer-declared avatar must be an image data URL of sane size. */
+  private static declaredAvatar(value: unknown): string | undefined {
+    if (typeof value !== 'string' || value.length === 0) return undefined
+    if (value.length > ChatService.MAX_AVATAR_CHARS) return undefined
+    return ChatService.AVATAR_DATA_URL.test(value) ? value : undefined
+  }
 
   private storeAvatar(ed25519Key: string, avatarData: string, target: string, groupId?: string): void {
     // Binary chunks carry no application-level signature: validate before any
@@ -3161,7 +3214,10 @@ class ChatService {
    * automatiquement, ce qui rouvrait même les contacts bloqués.
    */
   private handleContactRequest(msg: ProtocolMessage): void {
-    const { displayName, avatar } = msg.payload as { displayName?: string; avatar?: string }
+    const payload = msg.payload as { displayName?: unknown; avatar?: unknown } | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const displayName = ChatService.declaredName(payload.displayName)
+    const avatar = ChatService.declaredAvatar(payload.avatar)
     const store = useContactStore.getState()
     const existing = store.getContact(msg.from)
 
@@ -3264,7 +3320,9 @@ class ChatService {
    * `relation: 'contact'` dans tous les cas).
    */
   private handleContactAccept(msg: ProtocolMessage): void {
-    const { displayName } = msg.payload as { displayName?: string }
+    const payload = msg.payload as { displayName?: unknown } | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const displayName = ChatService.declaredName(payload.displayName)
     const store = useContactStore.getState()
     const existing = store.getContact(msg.from)
 
@@ -3917,11 +3975,6 @@ interface ReactionPayload {
   conversationId: string
   emoji: string
   action: 'add' | 'remove'
-}
-
-interface TypingPayload {
-  conversationId: string
-  typing: boolean
 }
 
 interface PresencePayload {
