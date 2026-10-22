@@ -293,134 +293,32 @@ class ChatService {
 
     // Handle message edits
     p2pService.on('message:chat:edit', (msg: ProtocolMessage) => {
-      const { messageId, conversationId, newContent } = msg.payload as EditPayload
-      useMessageStore.getState().editMessage(messageId, conversationId, newContent)
+      this.handleChatEdit(msg)
     })
 
     // Handle message deletions
     p2pService.on('message:chat:delete', (msg: ProtocolMessage) => {
-      const { messageId, conversationId } = msg.payload as DeletePayload
-      // CRITICAL: Resolve the correct local conversationId
-      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      const resolvedConvId = myPk
-        ? cryptoService.deriveConversationId(myPk, msg.from)
-        : conversationId
-      // Hard delete: permanently remove the message from store and storage
-      useMessageStore.getState().deleteMessagePermanently(messageId, resolvedConvId)
-      storageService.deleteMessage(resolvedConvId, messageId).catch(() => {})
+      this.handleChatDelete(msg)
     })
 
     // Handle reactions
     p2pService.on('message:chat:reaction', (msg: ProtocolMessage) => {
-      const { messageId, conversationId, emoji, action } = msg.payload as ReactionPayload
-      const store = useMessageStore.getState()
-
-      // CRITICAL: Resolve the correct local conversationId from both peers' keys.
-      // The sender's conversationId may differ from ours.
-      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      const resolvedConvId = myPk
-        ? cryptoService.deriveConversationId(myPk, msg.from)
-        : conversationId
-
-      // Also try the original conversationId as fallback
-      let message = store.getMessage(messageId, resolvedConvId)
-      let actualConvId = resolvedConvId
-      if (!message) {
-        message = store.getMessage(messageId, conversationId)
-        if (message) actualConvId = conversationId
-      }
-      // Last resort: search all conversations
-      if (!message) {
-        const allMessages = store.messages
-        for (const convId of Object.keys(allMessages)) {
-          const found = allMessages[convId]?.find((m) => m.id === messageId)
-          if (found) {
-            message = found
-            actualConvId = convId
-            break
-          }
-        }
-      }
-      if (!message) {
-        const dropLog = `[ChatService] !!! chat:reaction from ${msg.from?.slice(0, 16)} dropped: message ${messageId?.slice(0, 8)} not found in any loaded conversation`
-        console.warn(dropLog)
-        try { window.asgard.debugLog(dropLog) } catch {}
-        return
-      }
-
-      if (action === 'add') {
-        store.addReaction(messageId, actualConvId, emoji, msg.from)
-      } else {
-        store.removeReaction(messageId, actualConvId, emoji, msg.from)
-      }
-
-      // Sans cette écriture, la réaction reçue n'existe qu'en mémoire et meurt au redémarrage.
-      const updated = useMessageStore.getState().getMessage(messageId, actualConvId)
-      if (updated) storageService.saveMessage(actualConvId, updated).catch(() => {})
+      this.handleChatReaction(msg)
     })
 
     // Handle read receipts (DM)
     p2pService.on('message:chat:read', (msg: ProtocolMessage) => {
-      const payload = msg.payload as { messageIds?: string[]; messageId?: string; conversationId?: string }
-      const ids = payload.messageIds ?? (payload.messageId ? [payload.messageId] : [])
-      const legacyLog = `[ChatService] === LEGACY chat:read from ${msg.from?.slice(0, 16)} | msgs: ${ids.length}`
-      console.log(legacyLog)
-      try { window.asgard.debugLog(legacyLog) } catch {}
-      const store = useMessageStore.getState()
-      for (const id of ids) {
-        store.markMessageRead(id, msg.from)
-      }
+      this.handleChatRead(msg)
     })
 
     // Handle delivery & read receipts (unified receipt protocol).
-    // When a peer acknowledges our message, upgrade its status accordingly.
     p2pService.on('message:chat:receipt', (msg: ProtocolMessage) => {
-      const payload = msg.payload as { messageIds: string[]; status: 'delivered' | 'read'; conversationId?: string }
-      const recvLog = `[ChatService] === RECEIPT RECEIVED from ${msg.from?.slice(0, 16)} | status: ${payload.status} | msgs: ${payload.messageIds.length}`
-      console.log(recvLog)
-      try { window.asgard.debugLog(recvLog) } catch {}
-      const store = useMessageStore.getState()
-      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      if (!myPk) return
-
-      for (const messageId of payload.messageIds) {
-        // Find the message across all conversations (it's one we sent)
-        for (const convId of Object.keys(store.messages)) {
-          const messages = store.messages[convId]
-          const idx = messages.findIndex((m) => m.id === messageId)
-          if (idx !== -1) {
-            const m = messages[idx]
-            // Only upgrade status for our own messages, and never downgrade
-            if (m.senderId !== myPk) break
-            const order = { sending: 0, sent: 1, delivered: 2, read: 3, failed: 0, scheduled: 0 }
-            if ((order[payload.status] ?? 0) > (order[m.status] ?? 0)) {
-              const updateLog = `[ChatService] Upgrading message ${messageId.slice(0, 16)} from ${m.status} to ${payload.status}`
-              console.log(updateLog)
-              try { window.asgard.debugLog(updateLog) } catch {}
-              store.updateStatus(messageId, convId, payload.status)
-            }
-            break
-          }
-        }
-      }
+      this.handleChatReceipt(msg)
     })
 
     // Handle message recall
     p2pService.on('message:chat:recall', (msg: ProtocolMessage) => {
-      const { messageId, conversationId, reason } = msg.payload as RecallPayload
-      const store = useMessageStore.getState()
-
-      // Resolve the correct local conversationId
-      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      const resolvedConvId = myPk
-        ? cryptoService.deriveConversationId(myPk, msg.from)
-        : conversationId
-
-      // Mark message as recalled
-      store.recallMessage(messageId, resolvedConvId, reason)
-      
-      // Also delete from storage
-      storageService.deleteMessage(resolvedConvId, messageId).catch(() => {})
+      this.handleChatRecall(msg)
     })
 
     // Handle ephemeral message expiration notification
@@ -2709,6 +2607,8 @@ class ChatService {
       // Only a member of that group can refresh its own member avatar.
       if (!group?.members.some((member) => member.publicKey === ed25519Key)) return
       useGroupStore.getState().updateMember(groupId, ed25519Key, { avatar: avatarData })
+      // The member avatar is the sender's own profile: keep the 1:1 card in sync.
+      useContactStore.getState().updateContact(ed25519Key, { avatar: avatarData })
       const msg = `[ChatService] Group member avatar stored: ${avatarData.length} chars for ${ed25519Key.slice(0, 16)} in group ${groupId.slice(0, 16)}`
       console.log(msg)
       try { window.asgard.debugLog(msg) } catch {}
@@ -2929,6 +2829,109 @@ class ChatService {
     }
   }
 
+  /**
+   * Resolve a message a peer claims to act on inside the 1:1 conversation it
+   * shares with us. The old handlers searched every loaded conversation: a
+   * contact could edit, delete or react to group messages and to other
+   * contacts' messages that happened to share an id.
+   */
+  private findDmMessage(from: string, messageId: unknown): { conversationId: string; message: Message } | null {
+    if (typeof messageId !== 'string' || !messageId || !from) return null
+    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+    if (!myPk) return null
+    const conversationId = cryptoService.deriveConversationId(myPk, from)
+    const message = useMessageStore.getState().getMessage(messageId, conversationId)
+    return message ? { conversationId, message } : null
+  }
+
+  private handleChatEdit(msg: ProtocolMessage): void {
+    const { messageId, newContent } = msg.payload as EditPayload
+    if (typeof newContent !== 'string' || newContent.length === 0 || newContent.length > 20_000) return
+    const found = this.findDmMessage(msg.from, messageId)
+    // Only the author may rewrite a message.
+    if (!found || found.message.senderId !== msg.from) return
+    useMessageStore.getState().editMessage(messageId, found.conversationId, newContent)
+    const edited = useMessageStore.getState().getMessage(messageId, found.conversationId)
+    if (edited) storageService.saveMessage(found.conversationId, edited).catch(() => {})
+  }
+
+  private handleChatDelete(msg: ProtocolMessage): void {
+    const { messageId } = msg.payload as DeletePayload
+    const found = this.findDmMessage(msg.from, messageId)
+    // A delete request means "delete my message", never someone else's.
+    if (!found || found.message.senderId !== msg.from) return
+    useMessageStore.getState().deleteMessagePermanently(messageId, found.conversationId)
+    storageService.deleteMessage(found.conversationId, messageId).catch(() => {})
+  }
+
+  private handleChatReaction(msg: ProtocolMessage): void {
+    const { messageId, emoji, action } = msg.payload as ReactionPayload
+    if (typeof emoji !== 'string' || emoji.length === 0 || emoji.length > 16) return
+    if (action !== 'add' && action !== 'remove') return
+    const found = this.findDmMessage(msg.from, messageId)
+    if (!found) return
+    const store = useMessageStore.getState()
+    if (action === 'add') {
+      store.addReaction(messageId, found.conversationId, emoji, msg.from)
+    } else {
+      store.removeReaction(messageId, found.conversationId, emoji, msg.from)
+    }
+    // Sans cette écriture, la réaction reçue n'existe qu'en mémoire et meurt au redémarrage.
+    const updated = store.getMessage(messageId, found.conversationId)
+    if (updated) storageService.saveMessage(found.conversationId, updated).catch(() => {})
+  }
+
+  private handleChatRead(msg: ProtocolMessage): void {
+    const payload = msg.payload as { messageIds?: string[]; messageId?: string }
+    const ids = payload.messageIds ?? (payload.messageId ? [payload.messageId] : [])
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 1000) return
+    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+    if (!myPk) return
+    const conversationId = cryptoService.deriveConversationId(myPk, msg.from)
+    const store = useMessageStore.getState()
+    for (const id of ids) {
+      // A read marker only applies to messages we sent in this conversation.
+      const message = store.getMessage(id, conversationId)
+      if (message?.senderId !== myPk) continue
+      store.markMessageRead(id, msg.from)
+    }
+  }
+
+  private handleChatReceipt(msg: ProtocolMessage): void {
+    const payload = msg.payload as { messageIds: string[]; status: 'delivered' | 'read' }
+    if (!Array.isArray(payload.messageIds) || payload.messageIds.length === 0 || payload.messageIds.length > 1000) return
+    if (payload.status !== 'delivered' && payload.status !== 'read') return
+    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+    if (!myPk) return
+    const conversationId = cryptoService.deriveConversationId(myPk, msg.from)
+    const store = useMessageStore.getState()
+    const messages = store.messages[conversationId]
+    if (!messages) return
+
+    for (const messageId of payload.messageIds) {
+      const m = messages.find((message) => message.id === messageId)
+      // Only our own messages can be acknowledged, and never downgraded.
+      if (!m || m.senderId !== myPk) continue
+      const order = { sending: 0, sent: 1, delivered: 2, read: 3, failed: 0, scheduled: 0 }
+      if ((order[payload.status] ?? 0) > (order[m.status] ?? 0)) {
+        store.updateStatus(messageId, conversationId, payload.status)
+      }
+    }
+  }
+
+  private handleChatRecall(msg: ProtocolMessage): void {
+    const { messageId, reason } = msg.payload as RecallPayload
+    const found = this.findDmMessage(msg.from, messageId)
+    // Only the author can recall a message.
+    if (!found || found.message.senderId !== msg.from) return
+    useMessageStore.getState().recallMessage(
+      messageId,
+      found.conversationId,
+      typeof reason === 'string' ? reason.slice(0, 500) : undefined,
+    )
+    storageService.deleteMessage(found.conversationId, messageId).catch(() => {})
+  }
+
   private async handleIncomingMessage(msg: ProtocolMessage): Promise<void> {
     const message = msg.payload as Message
 
@@ -2972,6 +2975,11 @@ class ChatService {
       console.warn('[ChatService] !!! UNSIGNED MESSAGE from:', msg.from?.slice(0, 32), '— rejecting')
       return
     }
+
+    // The envelope authenticates msg.from. A payload naming another sender
+    // would be rendered as that person: same spoofing class as presence.
+    if (message.senderId !== msg.from) return
+    if (typeof message.id !== 'string' || !message.id || typeof message.content !== 'string') return
 
     // CRITICAL: Mark sender as online when we receive any message from them.
     // This is a fallback presence mechanism — even if presence:update was missed,

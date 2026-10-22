@@ -76,9 +76,34 @@ describe('avatar de membre', () => {
     expect(memberOf(D)).toBeUndefined()
   })
 
-  it('applique l’avatar d’un membre connu', () => {
+  it('applique l’avatar d’un membre connu et synchronise son contact', () => {
+    useContactStore.getState().addContact({
+      publicKey: C,
+      displayName: 'Carol',
+      status: 'offline',
+      relation: 'contact',
+      verified: false,
+      addedAt: 1,
+    })
+
     storeAvatar(C, AVATAR, 'group_member', groupId)
     expect(memberOf(C)?.avatar).toBe(AVATAR)
+    expect(useContactStore.getState().getContact(C)?.avatar).toBe(AVATAR)
+  })
+
+  it('ne confond pas l’icône du groupe avec l’avatar de l’admin qui l’envoie', () => {
+    useContactStore.getState().addContact({
+      publicKey: B,
+      displayName: 'Bob',
+      status: 'offline',
+      relation: 'contact',
+      verified: false,
+      addedAt: 1,
+    })
+
+    storeAvatar(B, AVATAR, 'group_icon', groupId)
+    expect(group().avatar).toBe(AVATAR)
+    expect(useContactStore.getState().getContact(B)?.avatar).toBeUndefined()
   })
 })
 
