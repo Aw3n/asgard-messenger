@@ -101,6 +101,14 @@ export class NetworkService extends EventEmitter {
   // retombait sur le cache et la présence n'était réellement relue que toutes
   // les deux minutes.
   private static readonly PROFILE_CACHE_TTL_MS = 20_000
+  // Un contact sans enregistrement DHT coûte 3 tentatives espacées de 1,5 s et
+  // 3 s (4,5 s d'aller-retours) à CHAQUE interrogation. Sans cache négatif, un
+  // focus de fenêtre, une ouverture de conversation et la boucle de 30 s
+  // rejouaient ces 4,5 s pour le même pair absent. 10 s : on absorbe les
+  // rafales sans retarder de plus de 10 s l'apparition d'un enregistrement
+  // fraîchement publié (le P2P, lui, reste la voie primaire).
+  private profileMissAt: Map<string, number> = new Map()
+  private static readonly PROFILE_MISS_TTL_MS = 10_000
   // STATUS: Current user online status — extended to support all UserStatus values
   private currentStatus: 'online' | 'away' | 'offline' | 'dnd' = 'online'
   private currentStatusMessage: string | undefined
@@ -728,6 +736,14 @@ export class NetworkService extends EventEmitter {
       console.log('[NetworkService] Profile cache hit for:', publicKeyHex.slice(0, 16), '| age:', Math.round((Date.now() - cached.timestamp) / 1000) + 's')
       return cached.data
     }
+    // Negative cache: a known miss collapses the next 4,5 s retry burst into an
+    // immediate null. Read after the positive cache so a record that landed in
+    // between still wins.
+    const missedAt = this.profileMissAt.get(publicKeyHex)
+    if (missedAt !== undefined && Date.now() - missedAt < NetworkService.PROFILE_MISS_TTL_MS) {
+      console.log('[NetworkService] Profile negative-cache hit for:', publicKeyHex.slice(0, 16), '| age:', Math.round((Date.now() - missedAt) / 1000) + 's')
+      return null
+    }
 
     try {
       const dht = this.getDHT()
@@ -775,6 +791,7 @@ export class NetworkService extends EventEmitter {
 
       if (!result || !result.value) {
         logMain(`[NetworkService] ⚠️ DHT FETCH FAILED after 3 attempts | peer=${publicKeyHex.slice(0, 16)}`)
+        this.profileMissAt.set(publicKeyHex, Date.now())
         return null
       }
 
@@ -783,6 +800,7 @@ export class NetworkService extends EventEmitter {
 
       // Cache the result
       this.profileCache.set(publicKeyHex, { data: profile, timestamp: Date.now() })
+      this.profileMissAt.delete(publicKeyHex)
 
       logMain(`[NetworkService] ✅ DHT PROFILE | peer=${publicKeyHex.slice(0, 16)} | name=${profile.displayName} | status=${profile.status || 'none'} | age=${ageSeconds}s`)
       return profile
@@ -798,8 +816,10 @@ export class NetworkService extends EventEmitter {
   clearProfileCache(publicKeyHex?: string): void {
     if (publicKeyHex) {
       this.profileCache.delete(publicKeyHex)
+      this.profileMissAt.delete(publicKeyHex)
     } else {
       this.profileCache.clear()
+      this.profileMissAt.clear()
     }
   }
 
@@ -2131,6 +2151,7 @@ export class NetworkService extends EventEmitter {
     this.peers.clear()
     this.topics.clear()
     this.profileCache.clear()
+    this.profileMissAt.clear()
     this.reconnectAttempts.clear()
     this.peerPublicKeyMap.clear()
     this.peerLatency.clear()
