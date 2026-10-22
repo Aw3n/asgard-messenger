@@ -3083,6 +3083,10 @@ class ChatService {
     if (!p2pService.isPeerConnected(publicKey)) {
       void this.redial(publicKey)
     }
+    // Le contact vient d'être ajouté : son statut DHT (s'il est en ligne) doit
+    // s'afficher sans attendre la boucle de refresh de 30 s. L'ordre P2P
+    // prioritaire est appliqué par applyDhtProfile.
+    void this.refreshDhtPresence(publicKey)
 
     try {
       const topic = await cryptoService.deriveConversationTopic(
