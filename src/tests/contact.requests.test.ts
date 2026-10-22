@@ -84,7 +84,13 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  vi.restoreAllMocks()
+  // Restore only the spies created above. vi.restoreAllMocks() also wiped the
+  // implementations of the global vi.fn() mocks from setup.ts (fetchProfile
+  // returned undefined, so refreshDhtPresence threw on `.catch`).
+  vi.mocked(storageService.saveContact).mockRestore()
+  vi.mocked(storageService.saveMessage).mockRestore()
+  vi.mocked(p2pService.sendMessage).mockRestore()
+  vi.mocked(p2pService.joinTopic).mockRestore()
 })
 
 describe('contactRequests — transition pending → contact', () => {
