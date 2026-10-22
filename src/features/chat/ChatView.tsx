@@ -31,6 +31,7 @@ export const ChatView: React.FC = () => {
   const { t } = useTranslation()
   const { conversationId } = useParams<{ conversationId: string }>()
   const [replyTo, setReplyTo] = useState<Message | undefined>()
+  const [editingMessage, setEditingMessage] = useState<Message | undefined>()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
   const virtuosoRef = useRef<VirtuosoHandle>(null)
@@ -79,6 +80,13 @@ export const ChatView: React.FC = () => {
   const isBroadcastReadOnly = useConversationStore((s) =>
     dataId && identity ? s.isBroadcastReadOnly(dataId, identity.keyPair.publicKey) : false
   )
+
+  // Changer de conversation abandonne une réponse ou une édition en cours :
+  // le composer ne doit pas modifier un message qui n'est plus à l'écran.
+  useEffect(() => {
+    setEditingMessage(undefined)
+    setReplyTo(undefined)
+  }, [conversationId])
 
   // Load message history from Hyperbee storage when conversation opens
   useEffect(() => {
@@ -164,6 +172,40 @@ export const ChatView: React.FC = () => {
       }
     },
     [dataId, conversation, replyTo, t]
+  )
+
+  const handleEditSubmit = useCallback(
+    async (content: string) => {
+      const target = editingMessage
+      if (!target || !dataId || !conversation?.participantId) return
+      const peerId = conversation.participantId
+      setEditingMessage(undefined)
+      setReplyTo(undefined)
+      try {
+        await chatService.editMessage(target.id, dataId, content, peerId)
+      } catch (err) {
+        console.error('[ChatView] editMessage failed:', err)
+        try { window.asgard.debugLog('[ChatView] editMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.editFailed') })
+      }
+    },
+    [editingMessage, dataId, conversation, t]
+  )
+
+  const handleRetry = useCallback(
+    async (message: Message) => {
+      if (!dataId || !conversation?.participantId) return
+      try {
+        const outcome = await chatService.retryMessage(message.id, dataId, conversation.participantId)
+        if (outcome === 'queued') {
+          useUIStore.getState().addToast({ type: 'warning', title: t('chat.messageQueued'), duration: 5000 })
+        }
+      } catch (err) {
+        console.error('[ChatView] retryMessage failed:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.messageNotDelivered') })
+      }
+    },
+    [dataId, conversation, t]
   )
 
   const handleTyping = useCallback(
@@ -339,7 +381,15 @@ export const ChatView: React.FC = () => {
                   messages[index - 1].senderId === message.senderId &&
                   message.timestamp - messages[index - 1].timestamp < 300_000
                 }
-                onReply={setReplyTo}
+                onReply={(msg) => {
+                  setEditingMessage(undefined)
+                  setReplyTo(msg)
+                }}
+                onEdit={(msg) => {
+                  setReplyTo(undefined)
+                  setEditingMessage(msg)
+                }}
+                onRetry={handleRetry}
                 onDelete={(msg) => {
                   if (!conversation.participantId || !dataId) return
                   chatService.deleteMessage(msg.id, dataId, conversation.participantId).catch((err) => {
@@ -389,7 +439,10 @@ export const ChatView: React.FC = () => {
       <MessageInput
         conversationId={conversationId}
         replyTo={replyTo}
+        editingMessage={editingMessage}
         onSend={handleSend}
+        onEditSubmit={handleEditSubmit}
+        onCancelEdit={() => setEditingMessage(undefined)}
         onFiles={handleFiles}
         onCancelReply={() => setReplyTo(undefined)}
         onTyping={handleTyping}

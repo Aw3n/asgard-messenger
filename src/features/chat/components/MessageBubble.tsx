@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
@@ -19,6 +19,8 @@ interface MessageBubbleProps {
   compact?: boolean
   onReply?: (message: Message) => void
   onEdit?: (message: Message) => void
+  /** Réessaie l'envoi d'un message passé en échec définitif. */
+  onRetry?: (message: Message) => void
   onDelete?: (message: Message) => void
   onDeletePermanently?: (message: Message) => void
   onReaction?: (message: Message, emoji: string) => void
@@ -39,6 +41,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   compact = false,
   onReply,
   onEdit,
+  onRetry,
   onDelete,
   onDeletePermanently,
   onReaction,
@@ -55,7 +58,45 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     ? message.content?.match(/\bhttps?:\/\/[^\s<>()[\]"']+/)?.[0]?.replace(/[.,;:!?)]+$/, '')
     : undefined
   const [showActions, setShowActions] = useState(false)
-  const [showContextMenu, setShowContextMenu] = useState(false)
+  /**
+   * Menu ancré à des coordonnées écran, pas à la bulle : ouvert au clic droit,
+   * par le bouton « Plus » (souris et tactile) ou au clavier (Menu / Maj+F10).
+   * `null` = fermé ; sinon il se ferme au clic extérieur, à Échap, au scroll
+   * et au redimensionnement.
+   */
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const openContextMenu = (x: number, y: number) => {
+    // Le menu fait ~180 × 240 px : on le garde dans la fenêtre plutôt que de
+    // le laisser sortir à droite ou en bas sur les messages des bords.
+    setContextMenu({
+      x: Math.max(8, Math.min(x, window.innerWidth - 188)),
+      y: Math.max(8, Math.min(y, window.innerHeight - 248)),
+    })
+  }
+
+  useEffect(() => {
+    if (!contextMenu) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setContextMenu(null)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setContextMenu(null)
+    }
+    const close = () => setContextMenu(null)
+    window.addEventListener('pointerdown', onPointerDown, true)
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
+    }
+  }, [contextMenu])
 
   if (message.deleted) {
     return (
@@ -69,19 +110,44 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <motion.div
+      ref={rowRef}
       layout
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.15 }}
+      // Une rangée focalisable rend les actions atteignables au clavier :
+      // Tab affiche la barre, Menu/Maj+F10 ouvre le menu complet, Échap le ferme.
+      tabIndex={0}
+      role="group"
+      aria-label={t('chat.messageActions')}
+      onKeyDown={(e) => {
+        if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+          e.preventDefault()
+          const rect = rowRef.current?.getBoundingClientRect()
+          openContextMenu(rect ? rect.left + 24 : 24, rect ? rect.top + 24 : 24)
+        } else if (e.key === 'Escape' && contextMenu) {
+          setContextMenu(null)
+        }
+      }}
       className={cn(
-        'group flex message-enter',
+        'group flex message-enter rounded-lg',
         // CHAT SETTINGS (density + collapseMessages): vertical rhythm per row
         compact ? 'py-0 px-4' : chatSettings.density === 'compact' ? 'py-0.5 px-4' : chatSettings.density === 'cozy' ? 'py-1 px-4' : 'py-1.5 px-4',
         isOwn ? 'flex-row-reverse' : 'flex-row',
-        'items-end gap-2'
+        'items-end gap-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-asgard-glacier/40'
       )}
       onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => { setShowActions(false); setShowContextMenu(false) }}
+      onMouseLeave={() => setShowActions(false)}
+      onFocus={() => setShowActions(true)}
+      onBlur={(e) => {
+        // Ne referme pas la barre quand le focus passe d'un bouton à l'autre
+        // de la même rangée ; seulement quand il en sort.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setShowActions(false)
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        openContextMenu(e.clientX, e.clientY)
+      }}
     >
       {/* Bubble */}
       <div className={cn('max-w-[65%] flex flex-col', isOwn ? 'items-end' : 'items-start')}>
@@ -153,14 +219,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {/* Timestamp + status — CHAT SETTINGS: timestamps/seconds hidden via
             chat.showTimestamps / chat.showSeconds ; read ticks via chat.showReadStatus.
             In collapsed mode the timestamp only shows for the last message of a group. */}
-        {(chatSettings.showTimestamps || (isOwn && chatSettings.showReadStatus)) && (
+        {(chatSettings.showTimestamps || (isOwn && (chatSettings.showReadStatus || message.status === 'failed'))) && (
           <div className={cn('flex items-center gap-1 mt-0.5 px-1', isOwn ? 'flex-row-reverse' : 'flex-row')}>
             {chatSettings.showTimestamps && !compact && (
               <span className="text-xxs text-asgard-text-muted">
                 {formatMessageTime(message.timestamp, { withSeconds: chatSettings.showSeconds })}
               </span>
             )}
-            {isOwn && chatSettings.showReadStatus && <MessageStatusIcon status={message.status} />}
+            {/* Un échec doit rester visible même quand l'utilisateur a masqué
+                les accusés de lecture, sinon le message semble simplement parti. */}
+            {isOwn && (chatSettings.showReadStatus || message.status === 'failed') && (
+              <MessageStatusIcon
+                status={message.status}
+                onRetry={onRetry ? () => onRetry(message) : undefined}
+              />
+            )}
           </div>
         )}
 
@@ -218,10 +291,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 </svg>
               }
             />
-            {/* More */}
+            {/* More — ancre le menu sous le bouton (souris, tactile, clavier) */}
             <ActionIcon
               label={t('chat.more')}
-              onClick={() => setShowContextMenu((s) => !s)}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect()
+                openContextMenu(rect.left, rect.bottom + 4)
+              }}
               icon={
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
@@ -232,22 +308,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Context menu */}
+      {/* Context menu — ancré à l'écran, fermé par clic extérieur / Échap */}
       <AnimatePresence>
-        {showContextMenu && (
+        {contextMenu && (
           <motion.div
+            ref={menuRef}
             initial={{ opacity: 0, scale: 0.95, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
+            style={{ left: contextMenu.x, top: contextMenu.y }}
             className={cn(
-              'absolute z-50 mica-card border border-asgard-border rounded-xl p-1 shadow-modal',
+              'fixed z-50 mica-card border border-asgard-border rounded-xl p-1 shadow-modal',
               'flex flex-col gap-0.5 min-w-36'
             )}
           >
-            <ContextMenuItem label={t('chat.reply')} onClick={() => { onReply?.(message); setShowContextMenu(false) }} />
-            <ContextMenuItem label={t('common.copy')} onClick={() => { navigator.clipboard.writeText(message.content ?? '').catch(() => {}); setShowContextMenu(false) }} />
-            {onForward && <ContextMenuItem label={t('chat.forward')} onClick={() => { onForward(message); setShowContextMenu(false) }} />}
-            {onPin && <ContextMenuItem label={message.pinned ? t('chat.unpin') : t('chat.pin')} onClick={() => { onPin(message); setShowContextMenu(false) }} />}
+            <ContextMenuItem label={t('chat.reply')} onClick={() => { onReply?.(message); setContextMenu(null) }} />
+            {message.content && (
+              <ContextMenuItem label={t('common.copy')} onClick={() => { navigator.clipboard.writeText(message.content ?? '').catch(() => {}); setContextMenu(null) }} />
+            )}
+            {onForward && <ContextMenuItem label={t('chat.forward')} onClick={() => { onForward(message); setContextMenu(null) }} />}
+            {onPin && <ContextMenuItem label={message.pinned ? t('chat.unpin') : t('chat.pin')} onClick={() => { onPin(message); setContextMenu(null) }} />}
+            {isOwn && onRetry && message.status === 'failed' && (
+              <ContextMenuItem label={t('chat.retrySend')} onClick={() => { onRetry(message); setContextMenu(null) }} />
+            )}
             {/* Download attachment if present */}
             {message.attachments && message.attachments.length > 0 && message.attachments[0]?.blobKey && (
               <ContextMenuItem
@@ -263,16 +346,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       } catch {}
                     }
                   }
-                  setShowContextMenu(false)
+                  setContextMenu(null)
                 }}
               />
             )}
-            {isOwn && (
+            {isOwn && (onEdit || onDelete || onDeletePermanently) && (
               <>
-                <ContextMenuItem label={t('chat.editMessage')} onClick={() => { onEdit?.(message); setShowContextMenu(false) }} />
                 <div className="h-px bg-asgard-border my-0.5" />
-                <ContextMenuItem label={t('common.delete')} onClick={() => { onDelete?.(message); setShowContextMenu(false) }} />
-                <ContextMenuItem label={t('chat.deletePermanently')} onClick={() => { onDeletePermanently?.(message); setShowContextMenu(false) }} danger />
+                {onEdit && message.content && (
+                  <ContextMenuItem label={t('chat.editMessage')} onClick={() => { onEdit(message); setContextMenu(null) }} />
+                )}
+                {onDelete && (
+                  <ContextMenuItem label={t('common.delete')} onClick={() => { onDelete(message); setContextMenu(null) }} />
+                )}
+                {onDeletePermanently && (
+                  <ContextMenuItem label={t('chat.deletePermanently')} onClick={() => { onDeletePermanently(message); setContextMenu(null) }} danger />
+                )}
               </>
             )}
           </motion.div>
@@ -284,11 +373,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const ActionIcon: React.FC<{ label: string; icon: React.ReactNode; onClick: () => void }> = ({
-  label,
-  icon,
-  onClick,
-}) => (
+const ActionIcon: React.FC<{
+  label: string
+  icon: React.ReactNode
+  onClick: React.MouseEventHandler<HTMLButtonElement>
+}> = ({ label, icon, onClick }) => (
   <button
     aria-label={label}
     onClick={onClick}
@@ -316,7 +405,7 @@ const ContextMenuItem: React.FC<{
   </button>
 )
 
-function MessageStatusIcon({ status }: { status: Message['status'] }) {
+function MessageStatusIcon({ status, onRetry }: { status: Message['status']; onRetry?: () => void }) {
   const { t } = useTranslation()
   if (status === 'sending') {
     return (
@@ -349,11 +438,29 @@ function MessageStatusIcon({ status }: { status: Message['status'] }) {
     )
   }
   if (status === 'failed') {
+    const icon = (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      </svg>
+    )
+    // L'échec est actionnable : un clic relance l'envoi au lieu de laisser
+    // l'utilisateur retaper un message qu'il voit déjà dans la conversation.
+    if (onRetry) {
+      return (
+        <button
+          type="button"
+          onClick={onRetry}
+          aria-label={t('chat.retrySend')}
+          title={t('chat.retrySend')}
+          className="rounded p-0.5 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-asgard-glacier"
+        >
+          {icon}
+        </button>
+      )
+    }
     return (
       <span role="img" aria-label={t('chat.messageNotDelivered')} title={t('chat.messageNotDelivered')}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-        </svg>
+        {icon}
       </span>
     )
   }

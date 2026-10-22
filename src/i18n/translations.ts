@@ -849,6 +849,9 @@ export const translations = {
       "chat.messageQueued": "En attente d'envoi — le contact est hors ligne, le message partira à sa reconnexion.",
       "chat.messageNotDelivered": "Message non délivré",
       "chat.fileTypeBlocked": "Par sécurité, ce type de fichier ne peut pas être ouvert directement. Utilisez « Enregistrer sous ».",
+      "chat.retrySend": "Renvoyer",
+      "chat.editFailed": "Impossible de modifier le message",
+      "chat.messageActions": "Actions du message",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1701,6 +1704,9 @@ export const translations = {
       "chat.messageQueued": "In wachtrij — wordt verzonden zodra het contact weer online is.",
       "chat.messageNotDelivered": "Bericht niet bezorgd",
       "chat.fileTypeBlocked": "Uit veiligheid kan dit bestandstype niet rechtstreeks worden geopend. Gebruik ‘Opslaan als’.",
+      "chat.retrySend": "Opnieuw versturen",
+      "chat.editFailed": "Kan bericht niet bewerken",
+      "chat.messageActions": "Berichtacties",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2553,6 +2559,9 @@ export const translations = {
       "chat.messageQueued": "In Warteschlange – wird gesendet, sobald der Kontakt wieder online ist.",
       "chat.messageNotDelivered": "Nachricht nicht zugestellt",
       "chat.fileTypeBlocked": "Aus Sicherheitsgründen kann dieser Dateityp nicht direkt geöffnet werden. Verwenden Sie „Speichern unter“.",
+      "chat.retrySend": "Erneut senden",
+      "chat.editFailed": "Nachricht konnte nicht bearbeitet werden",
+      "chat.messageActions": "Nachrichtenaktionen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3405,6 +3414,9 @@ export const translations = {
       "chat.messageQueued": "In coda — verrà inviato quando il contatto sarà di nuovo online.",
       "chat.messageNotDelivered": "Messaggio non consegnato",
       "chat.fileTypeBlocked": "Per sicurezza, questo tipo di file non può essere aperto direttamente. Usa «Salva con nome».",
+      "chat.retrySend": "Invia di nuovo",
+      "chat.editFailed": "Impossibile modificare il messaggio",
+      "chat.messageActions": "Azioni del messaggio",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4257,6 +4269,9 @@ export const translations = {
       "chat.messageQueued": "En cola: se enviará cuando el contacto vuelva a estar en línea.",
       "chat.messageNotDelivered": "Mensaje no entregado",
       "chat.fileTypeBlocked": "Por seguridad, este tipo de archivo no se puede abrir directamente. Usa «Guardar como».",
+      "chat.retrySend": "Reenviar",
+      "chat.editFailed": "No se pudo editar el mensaje",
+      "chat.messageActions": "Acciones del mensaje",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5110,6 +5125,9 @@ export const translations = {
       "chat.messageQueued": "Em fila — será enviado quando o contacto voltar a estar online.",
       "chat.messageNotDelivered": "Mensagem não entregue",
       "chat.fileTypeBlocked": "Por segurança, este tipo de ficheiro não pode ser aberto diretamente. Use «Guardar como».",
+      "chat.retrySend": "Reenviar",
+      "chat.editFailed": "Não foi possível editar a mensagem",
+      "chat.messageActions": "Ações da mensagem",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -5963,6 +5981,9 @@ export const translations = {
       "chat.messageQueued": "Σε αναμονή — θα σταλεί όταν η επαφή επανέλθει σε σύνδεση.",
       "chat.messageNotDelivered": "Το μήνυμα δεν παραδόθηκε",
       "chat.fileTypeBlocked": "Για ασφάλεια, αυτός ο τύπος αρχείου δεν μπορεί να ανοίξει απευθείας. Χρησιμοποιήστε «Αποθήκευση ως».",
+      "chat.retrySend": "Επαναποστολή",
+      "chat.editFailed": "Δεν ήταν δυνατή η επεξεργασία του μηνύματος",
+      "chat.messageActions": "Ενέργειες μηνύματος",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6816,6 +6837,9 @@ export const translations = {
       "chat.messageQueued": "I kø — sendes, når kontakten er online igen.",
       "chat.messageNotDelivered": "Beskeden blev ikke leveret",
       "chat.fileTypeBlocked": "Af sikkerhedshensyn kan denne filtype ikke åbnes direkte. Brug »Gem som«.",
+      "chat.retrySend": "Send igen",
+      "chat.editFailed": "Beskeden kunne ikke redigeres",
+      "chat.messageActions": "Beskedhandlinger",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7669,6 +7693,9 @@ export const translations = {
       "chat.messageQueued": "Jonossa — lähetetään, kun yhteyshenkilö on taas paikalla.",
       "chat.messageNotDelivered": "Viestiä ei toimitettu",
       "chat.fileTypeBlocked": "Turvallisuussyistä tätä tiedostotyyppiä ei voi avata suoraan. Käytä Tallenna nimellä.",
+      "chat.retrySend": "Lähetä uudelleen",
+      "chat.editFailed": "Viestin muokkaaminen epäonnistui",
+      "chat.messageActions": "Viestin toiminnot",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8522,6 +8549,9 @@ export const translations = {
       "chat.messageQueued": "I kö — skickas när kontakten är online igen.",
       "chat.messageNotDelivered": "Meddelandet levererades inte",
       "chat.fileTypeBlocked": "Av säkerhetsskäl kan den här filtypen inte öppnas direkt. Använd »Spara som».",
+      "chat.retrySend": "Skicka igen",
+      "chat.editFailed": "Det gick inte att redigera meddelandet",
+      "chat.messageActions": "Meddelandeåtgärder",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9375,6 +9405,9 @@ export const translations = {
       "chat.messageQueued": "U redu čekanja — poslat će se kad kontakt ponovno bude na mreži.",
       "chat.messageNotDelivered": "Poruka nije dostavljena",
       "chat.fileTypeBlocked": "Iz sigurnosnih razloga ova vrsta datoteke ne može se izravno otvoriti. Upotrijebite „Spremi kao”.",
+      "chat.retrySend": "Pošalji ponovno",
+      "chat.editFailed": "Nije moguće urediti poruku",
+      "chat.messageActions": "Radnje poruke",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10228,6 +10261,9 @@ export const translations = {
       "chat.messageQueued": "Järjekorras — saadetakse, kui kontakt on jälle võrgus.",
       "chat.messageNotDelivered": "Sõnumit ei toimetatud",
       "chat.fileTypeBlocked": "Turvalisuse huvides ei saa seda failitüüpi otse avada. Kasutage „Salvesta kui”.",
+      "chat.retrySend": "Saada uuesti",
+      "chat.editFailed": "Sõnumi muutmine ebaõnnestus",
+      "chat.messageActions": "Sõnumi toimingud",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11081,6 +11117,9 @@ export const translations = {
       "chat.messageQueued": "Várólistán — elküldésre kerül, amikor a kapcsolat újra online lesz.",
       "chat.messageNotDelivered": "Az üzenet nem kézbesíthető",
       "chat.fileTypeBlocked": "Biztonsági okokból ez a fájltípus nem nyitható meg közvetlenül. Használja a „Mentés másként” lehetőséget.",
+      "chat.retrySend": "Újraküldés",
+      "chat.editFailed": "Az üzenetet nem sikerült szerkeszteni",
+      "chat.messageActions": "Üzenetműveletek",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -11934,6 +11973,9 @@ export const translations = {
       "chat.messageQueued": "Rindā — tiks nosūtīts, kad kontakts būs atkal tiešsaistē.",
       "chat.messageNotDelivered": "Ziņa nav piegādāta",
       "chat.fileTypeBlocked": "Drošības dēļ šo faila tipu nevar atvērt tieši. Izmantojiet “Saglabāt kā”.",
+      "chat.retrySend": "Sūtīt vēlreiz",
+      "chat.editFailed": "Ziņu neizdevās rediģēt",
+      "chat.messageActions": "Ziņas darbības",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -12787,6 +12829,9 @@ export const translations = {
       "chat.messageQueued": "Eilėje — bus išsiųsta, kai kontaktas vėl bus prisijungęs.",
       "chat.messageNotDelivered": "Žinutė nepristatyta",
       "chat.fileTypeBlocked": "Saugumo sumetimais šio tipo failo negalima atidaryti tiesiogiai. Naudokite „Išsaugoti kaip“.",
+      "chat.retrySend": "Siųsti dar kartą",
+      "chat.editFailed": "Nepavyko redaguoti žinutės",
+      "chat.messageActions": "Žinutės veiksmai",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13640,6 +13685,9 @@ export const translations = {
       "chat.messageQueued": "Fil-kju — tintbagħat meta l-kuntatt jerġa' jkun online.",
       "chat.messageNotDelivered": "Il-messaġġ ma nwassalx",
       "chat.fileTypeBlocked": "Għas-sigurtà, dan it-tip ta' fajl ma jistax jinfetaħ direttament. Uża “Issejvja bħala”.",
+      "chat.retrySend": "Ibgħat mill-ġdid",
+      "chat.editFailed": "Il-messaġġ ma setax jiġi editjat",
+      "chat.messageActions": "Azzjonijiet tal-messaġġ",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14493,6 +14541,9 @@ export const translations = {
       "chat.messageQueued": "W kolejce — zostanie wysłana, gdy kontakt znów będzie online.",
       "chat.messageNotDelivered": "Wiadomość nie została dostarczona",
       "chat.fileTypeBlocked": "Ze względów bezpieczeństwa tego typu pliku nie można otworzyć bezpośrednio. Użyj „Zapisz jako”.",
+      "chat.retrySend": "Wyślij ponownie",
+      "chat.editFailed": "Nie udało się edytować wiadomości",
+      "chat.messageActions": "Akcje wiadomości",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15346,6 +15397,9 @@ export const translations = {
       "chat.messageQueued": "V poradí — odošle sa, keď bude kontakt opäť online.",
       "chat.messageNotDelivered": "Správa nebola doručená",
       "chat.fileTypeBlocked": "Z bezpečnostných dôvodov tento typ súboru nemožno otvoriť priamo. Použite „Uložiť ako“.",
+      "chat.retrySend": "Odoslať znova",
+      "chat.editFailed": "Správu sa nepodarilo upraviť",
+      "chat.messageActions": "Akcie správy",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16199,6 +16253,9 @@ export const translations = {
       "chat.messageQueued": "V čakalni vrsti — poslano bo, ko bo stik spet na spletu.",
       "chat.messageNotDelivered": "Sporočilo ni bilo dostavljeno",
       "chat.fileTypeBlocked": "Zaradi varnosti te vrste datoteke ni mogoče odpreti neposredno. Uporabite »Shrani kot«.",
+      "chat.retrySend": "Pošlji znova",
+      "chat.editFailed": "Sporočila ni bilo mogoče urediti",
+      "chat.messageActions": "Dejanja sporočila",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17052,6 +17109,9 @@ export const translations = {
       "chat.messageQueued": "Ve frontě — odešle se, až bude kontakt znovu online.",
       "chat.messageNotDelivered": "Zpráva nebyla doručena",
       "chat.fileTypeBlocked": "Z bezpečnostních důvodů nelze tento typ souboru otevřít přímo. Použijte „Uložit jako“.",
+      "chat.retrySend": "Odeslat znovu",
+      "chat.editFailed": "Zprávu se nepodařilo upravit",
+      "chat.messageActions": "Akce zprávy",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -17905,6 +17965,9 @@ export const translations = {
       "chat.messageQueued": "В опашка — ще се изпрати, когато контактът отново е онлайн.",
       "chat.messageNotDelivered": "Съобщението не е доставено",
       "chat.fileTypeBlocked": "От съображения за сигурност този тип файл не може да се отвори директно. Използвайте „Запази като“.",
+      "chat.retrySend": "Изпрати отново",
+      "chat.editFailed": "Съобщението не можа да бъде редактирано",
+      "chat.messageActions": "Действия със съобщението",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -18758,6 +18821,9 @@ export const translations = {
       "chat.messageQueued": "Sa scuaine — seolfar nuair a bheidh an teagmhálaí ar líne arís.",
       "chat.messageNotDelivered": "Níor seachadadh an teachtaireacht",
       "chat.fileTypeBlocked": "Ar mhaithe le sábháilteacht, ní féidir an cineál comhaid seo a oscailt go díreach. Úsáid “Sábháil mar”.",
+      "chat.retrySend": "Seol arís",
+      "chat.editFailed": "Níorbh fhéidir an teachtaireacht a chur in eagar",
+      "chat.messageActions": "Gníomhartha teachtaireachta",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -19611,6 +19677,9 @@ export const translations = {
       "chat.messageQueued": "În coadă — se va trimite când contactul va fi din nou online.",
       "chat.messageNotDelivered": "Mesajul nu a fost livrat",
       "chat.fileTypeBlocked": "Din motive de siguranță, acest tip de fișier nu poate fi deschis direct. Folosiți „Salvează ca”.",
+      "chat.retrySend": "Trimite din nou",
+      "chat.editFailed": "Mesajul nu a putut fi editat",
+      "chat.messageActions": "Acțiuni pentru mesaj",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20473,6 +20542,9 @@ export const translations = {
       "chat.messageQueued": "Queued — will send when the contact is back online.",
       "chat.messageNotDelivered": "Message not delivered",
       "chat.fileTypeBlocked": "For safety, this file type cannot be opened directly. Use “Save as” instead.",
+      "chat.retrySend": "Send again",
+      "chat.editFailed": "Could not edit the message",
+      "chat.messageActions": "Message actions",
     }
   },
 
@@ -21327,6 +21399,9 @@ export const translations = {
       "chat.messageQueued": "У черзі — надішлеться, коли контакт знову буде онлайн.",
       "chat.messageNotDelivered": "Повідомлення не доставлено",
       "chat.fileTypeBlocked": "З міркувань безпеки цей тип файлу не можна відкрити напряму. Скористайтеся «Зберегти як».",
+      "chat.retrySend": "Надіслати знову",
+      "chat.editFailed": "Не вдалося змінити повідомлення",
+      "chat.messageActions": "Дії з повідомленням",
     }
   },
 }

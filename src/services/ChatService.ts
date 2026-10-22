@@ -922,6 +922,40 @@ class ChatService {
   }
 
   /**
+   * Renvoie un message passé en échec définitif, à la demande de l'utilisateur.
+   * Même identifiant et même horodatage que l'original : le pair qui l'aurait
+   * déjà reçu (échec ambigu) le déduplique au lieu d'afficher deux bulles.
+   * Un second échec réseau le remet en file pour la reconnexion.
+   */
+  async retryMessage(messageId: string, conversationId: string, peerId: string): Promise<SendOutcome> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) throw new Error('No identity')
+
+    const message = useMessageStore.getState().getMessage(messageId, conversationId)
+    if (!message || message.deleted) throw new Error('Message not found')
+
+    const signature = await cryptoService.sign({
+      id: message.id,
+      content: message.content,
+      timestamp: message.timestamp,
+      senderId: message.senderId,
+    })
+    const signedMessage: Message = { ...message, signature }
+
+    try {
+      await p2pService.sendRawMessage(peerId, 'chat:message', signedMessage)
+      useMessageStore.getState().updateStatus(messageId, conversationId, 'sent')
+      storageService.saveMessage(conversationId, signedMessage).catch(console.error)
+      return 'sent'
+    } catch (err) {
+      console.warn('[ChatService] retry failed — message re-queued:', err)
+      this.queueMessage(signedMessage, conversationId, peerId)
+      useMessageStore.getState().updateStatus(messageId, conversationId, 'sending')
+      return 'queued'
+    }
+  }
+
+  /**
    * Crée le message local puis le signe. Le message signé est réutilisé tel
    * quel par les renvois : re-passer par messageStore.sendMessage créerait un
    * doublon dans la conversation à chaque tentative.
