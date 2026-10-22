@@ -94,7 +94,13 @@ export class NetworkService extends EventEmitter {
   private static readonly SWARM_DRAIN_ATTEMPTS = 4
   private lastDisplayName = ''
   private profileCache: Map<string, { data: DHTProfile; timestamp: number }> = new Map()
-  private static readonly PROFILE_CACHE_TTL_MS = 60_000 // 1 minute cache
+  // Deux boucles peuvent demander le même contact au même instant (démarrage,
+  // ouverture de conversation, refresh périodique) : un seul aller DHT partagé.
+  private profileFetchInFlight: Map<string, Promise<DHTProfile | null>> = new Map()
+  // 20 s : plus court que la boucle de refresh de 30 s, sinon chaque cycle
+  // retombait sur le cache et la présence n'était réellement relue que toutes
+  // les deux minutes.
+  private static readonly PROFILE_CACHE_TTL_MS = 20_000
   // STATUS: Current user online status — extended to support all UserStatus values
   private currentStatus: 'online' | 'away' | 'offline' | 'dnd' = 'online'
   private currentStatusMessage: string | undefined
@@ -704,6 +710,16 @@ export class NetworkService extends EventEmitter {
    * Uses a local cache to avoid excessive DHT queries.
    */
   async fetchProfile(publicKeyHex: string): Promise<DHTProfile | null> {
+    const pending = this.profileFetchInFlight.get(publicKeyHex)
+    if (pending) return pending
+    const lookup = this.doFetchProfile(publicKeyHex).finally(() => {
+      this.profileFetchInFlight.delete(publicKeyHex)
+    })
+    this.profileFetchInFlight.set(publicKeyHex, lookup)
+    return lookup
+  }
+
+  private async doFetchProfile(publicKeyHex: string): Promise<DHTProfile | null> {
     if (!this.swarm) return null
 
     // Check cache first

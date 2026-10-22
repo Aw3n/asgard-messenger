@@ -148,6 +148,14 @@ export const ChatView: React.FC = () => {
     }
   }, [resolvedId, conversation?.participantId, identity])
 
+  // DÉCOUVERTE IMMÉDIATE : ouvrir une conversation compose le contact tout de
+  // suite (adresse Noise directe) et rafraîchit son profil DHT, au lieu
+  // d'attendre le heartbeat (5 s) ou la boucle de présence (30 s).
+  useEffect(() => {
+    if (!conversation?.participantId) return
+    chatService.probeContact(conversation.participantId)
+  }, [conversation?.participantId])
+
   const handleSend = useCallback(
     async (content: string) => {
       if (!dataId || !conversation?.participantId) return

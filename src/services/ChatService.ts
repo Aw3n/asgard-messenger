@@ -97,7 +97,11 @@ class ChatService {
   // Anti-rentree: connexions en cours de dérivation/tentative
   private redialInFlight: Set<string> = new Set()
   private lastRedialAt: Map<string, number> = new Map()
-  private static readonly REDIAL_INTERVAL = 30_000 // 30 s entre deux jointPeer vers un contact non connecté
+  // Anti-rafale des sondes déclenchées par l'ouverture d'une conversation.
+  private lastProbeAt: Map<string, number> = new Map()
+  private static readonly REDIAL_INTERVAL = 10_000 // 10 s — re-tentative rapide après une coupure
+  private static readonly PROBE_INTERVAL = 8_000 // 8 s entre deux sondes du même contact
+  private static readonly DHT_PROFILE_MAX_AGE = 2 * 60 * 1000 // au-delà, le record DHT ne prouve plus rien
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null
   // Peers considered offline until heard from (ms)
   // CRITICAL FIX: Reduced from 120s to 45s. A Hyperswarm/Noise connection does NOT
@@ -2500,6 +2504,68 @@ class ChatService {
   }
 
   /**
+   * Un signal P2P récent (déclaration ou socket ouvert) fait autorité : le DHT
+   * n'apporte alors qu'une copie plus ancienne et ne doit pas être interrogé.
+   */
+  isPeerReachable(publicKey: string): boolean {
+    return this.hasFreshPresence(publicKey) || p2pService.isPeerConnected(publicKey)
+  }
+
+  /**
+   * Accélère la découverte d'un contact au moment où l'utilisateur ouvre sa
+   * conversation : compose directement son adresse Noise (sans attendre le
+   * heartbeat) et interroge son profil DHT si aucun signal P2P ne fait autorité.
+   * Throttlé : ouvrir une conversation ne doit pas relancer une rafale DHT.
+   */
+  probeContact(publicKey: string): void {
+    const contact = useContactStore.getState().getContact(publicKey)
+    if (!contact || contact.relation === 'blocked') return
+    const now = Date.now()
+    if (now - (this.lastProbeAt.get(publicKey) ?? 0) < ChatService.PROBE_INTERVAL) return
+    this.lastProbeAt.set(publicKey, now)
+
+    if (!p2pService.isPeerConnected(publicKey)) {
+      void this.redial(publicKey)
+    }
+    if (!this.isPeerReachable(publicKey)) {
+      void this.refreshDhtPresence(publicKey)
+    }
+  }
+
+  /** Lit le profil DHT d'un contact et applique son statut avec les règles de priorité. */
+  async refreshDhtPresence(publicKey: string): Promise<boolean> {
+    if (!window.asgard?.network?.fetchProfile) return false
+    const profile = await window.asgard.network.fetchProfile(publicKey).catch(() => null)
+    return this.applyDhtProfile(publicKey, profile)
+  }
+
+  /**
+   * Applique un profil DHT (ou son absence) au statut d'un contact.
+   *
+   * Règles, dans l'ordre :
+   * 1. bloqué → jamais touché ;
+   * 2. signal P2P récent → le DHT est une copie plus ancienne, ignorée ;
+   * 3. profil de moins de 2 min → son statut s'applique ;
+   * 4. profil absent ou périmé → hors ligne.
+   * Renvoie true si le statut a changé.
+   */
+  applyDhtProfile(
+    publicKey: string,
+    profile: { status?: string; timestamp?: number } | null,
+    maxAgeMs: number = ChatService.DHT_PROFILE_MAX_AGE,
+  ): boolean {
+    const contact = useContactStore.getState().getContact(publicKey)
+    if (!contact || contact.relation === 'blocked') return false
+    if (this.isPeerReachable(publicKey)) return false
+
+    const fresh = !!profile?.status && !!profile.timestamp && Date.now() - profile.timestamp < maxAgeMs
+    const next = fresh && profile?.status ? fromNetworkStatus(profile.status) : 'offline'
+    if (contact.status === next) return false
+    useContactStore.getState().updateContact(publicKey, { status: next })
+    return true
+  }
+
+  /**
    * Broadcast presence update to all connected peers.
    * PERFORMANCE: Skips broadcast if status hasn't changed since last broadcast.
    * Sends minimal payload (status + customStatus, no displayName/avatar).
@@ -3023,6 +3089,12 @@ class ChatService {
       console.warn('[ChatService] Failed to join conversation topic:', err)
     }
 
+    // La découverte par topic peut prendre plusieurs secondes : on compose
+    // aussi directement l'adresse Noise du contact pour abréger l'attente.
+    if (!p2pService.isPeerConnected(publicKey)) {
+      void this.redial(publicKey)
+    }
+
     const contact = useContactStore.getState().getContact(publicKey)
     if (
       contact?.relation === 'pending' &&
@@ -3279,6 +3351,7 @@ class ChatService {
     this.noiseKeyCache.clear()
     this.redialInFlight.clear()
     this.lastRedialAt.clear()
+    this.lastProbeAt.clear()
     this.lastTypingSent.clear()
   }
 
