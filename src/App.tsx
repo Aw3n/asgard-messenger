@@ -6,9 +6,24 @@ import { OnboardingPage } from '@/features/onboarding/OnboardingPage'
 import { ConversationsPage } from '@/features/chat/ConversationsPage'
 import { ChatView } from '@/features/chat/ChatView'
 import { ContactsPage } from '@/features/contacts/ContactsPage'
-import { GroupsPage } from '@/features/groups/GroupsPage'
-import { CallsPage } from '@/features/calls/CallsPage'
-import { SettingsPage } from '@/features/settings/SettingsPage'
+
+// Pages secondaires chargées à la navigation : leur poids (réglages, groupes,
+// historique d'appels) ne retarde plus le premier rendu de la messagerie.
+const GroupsPage = React.lazy(() =>
+  import('@/features/groups/GroupsPage').then((m) => ({ default: m.GroupsPage }))
+)
+const CallsPage = React.lazy(() =>
+  import('@/features/calls/CallsPage').then((m) => ({ default: m.CallsPage }))
+)
+const SettingsPage = React.lazy(() =>
+  import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage }))
+)
+
+const RouteFallback: React.FC = () => <div style={{ flex: 1, height: '100%' }} />
+const lazyRoute = (page: React.ReactNode) => (
+  <React.Suspense fallback={<RouteFallback />}>{page}</React.Suspense>
+)
+
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useContactStore } from '@/stores/contactStore'
@@ -512,11 +527,18 @@ const App: React.FC = () => {
         chatService.publishDhtStatus().catch(() => {})
         void refreshContactsFromDht()
       }
+      // Revenir sur la fenêtre (sans changement de visibilité) doit aussi
+      // rafraîchir la présence : le cache DHT de 20 s évite toute rafale.
+      const handleFocus = () => {
+        void refreshContactsFromDht()
+      }
       window.addEventListener('online', handleOnline)
       document.addEventListener('visibilitychange', handleVisibility)
+      window.addEventListener('focus', handleFocus)
       removePresenceTriggers = () => {
         window.removeEventListener('online', handleOnline)
         document.removeEventListener('visibilitychange', handleVisibility)
+        window.removeEventListener('focus', handleFocus)
       }
 
       // ── PHASE 2.3: Firewall (tâche de fond) ──
@@ -627,12 +649,12 @@ const App: React.FC = () => {
               <Route path=":conversationId" element={<ChatView />} />
             </Route>
             <Route path="/contacts" element={<ContactsPage />} />
-            <Route path="/groups" element={<GroupsPage />}>
-              <Route path=":groupId" element={<GroupsPage />} />
-              <Route path=":groupId/channels/:channelId" element={<GroupsPage />} />
+            <Route path="/groups" element={lazyRoute(<GroupsPage />)}>
+              <Route path=":groupId" element={lazyRoute(<GroupsPage />)} />
+              <Route path=":groupId/channels/:channelId" element={lazyRoute(<GroupsPage />)} />
             </Route>
-            <Route path="/calls" element={<CallsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/calls" element={lazyRoute(<CallsPage />)} />
+            <Route path="/settings" element={lazyRoute(<SettingsPage />)} />
             <Route path="/profile" element={<Navigate to="/settings" replace />} />
           </Route>
 

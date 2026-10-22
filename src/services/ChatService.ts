@@ -3078,6 +3078,12 @@ class ChatService {
     // qui confirme l'ajout sera écrite.
     this.ensureConversation(conversationId, publicKey)
 
+    // Les deux chemins de découverte courent ensemble : composer l'adresse Noise
+    // ne doit pas attendre les annonces de topic (plusieurs secondes).
+    if (!p2pService.isPeerConnected(publicKey)) {
+      void this.redial(publicKey)
+    }
+
     try {
       const topic = await cryptoService.deriveConversationTopic(
         identity.keyPair.publicKey,
@@ -3087,12 +3093,6 @@ class ChatService {
     } catch (err) {
       // L'ajout local reste valide ; le heartbeat retentera la connexion.
       console.warn('[ChatService] Failed to join conversation topic:', err)
-    }
-
-    // La découverte par topic peut prendre plusieurs secondes : on compose
-    // aussi directement l'adresse Noise du contact pour abréger l'attente.
-    if (!p2pService.isPeerConnected(publicKey)) {
-      void this.redial(publicKey)
     }
 
     const contact = useContactStore.getState().getContact(publicKey)
