@@ -250,4 +250,97 @@ describe('ImageLightbox', () => {
     const prev = screen.getByLabelText(label('lightbox.previous'), { selector: 'button' })
     expect(prev.className).toContain('pointer-events-none')
   })
+
+  /**
+   * « Toucher Signal » : au-delà des bornes le glisser s'étire au lieu de se
+   * bloquer net (on sent le bord), et le relâchement ramène la photo dans le
+   * cadre. jsdom n'ayant pas de mise en page, la borne vaut PAN_EDGE_MARGIN.
+   */
+  it('étire le pan au-delà du bord, puis le ramène au relâchement', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    act(() => {
+      fireEvent.wheel(stageOf(), { deltaY: -120, clientX: 10, clientY: 10 })
+    })
+    const container = containerOf()
+    fireEvent.pointerDown(container, { button: 0, pointerId: 1, clientX: 300, clientY: 300 })
+    fireEvent.pointerMove(container, { pointerId: 1, clientX: 700, clientY: 300 })
+
+    const draggedX = Number(/translate\((-?[\d.]+)px/.exec(imgOf().style.transform)?.[1])
+    expect(draggedX).toBeGreaterThan(32)
+
+    fireEvent.pointerUp(container, { pointerId: 1, clientX: 700, clientY: 300 })
+    const releasedX = Number(/translate\((-?[\d.]+)px/.exec(imgOf().style.transform)?.[1])
+    expect(releasedX).toBe(32)
+  })
+
+  it('ferme au glisser-vers-le-bas, mais pas sur un petit mouvement', () => {
+    const onClose = vi.fn()
+    render(<ImageLightbox items={[item()]} onClose={onClose} />)
+    const container = containerOf()
+
+    // Course courte : la scène suit le doigt puis revient, sans fermer.
+    fireEvent.pointerDown(container, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(container, { pointerId: 1, clientX: 200, clientY: 260 })
+    expect(stageOf().style.transform).toContain('translate(0px, 60px)')
+    fireEvent.pointerUp(container, { pointerId: 1, clientX: 200, clientY: 260 })
+    expect(stageOf().style.transform).toBe('')
+
+    // Le clic de relâchement du geste ne ferme pas non plus (on est sur le fond).
+    fireEvent.click(container)
+    expect(onClose).not.toHaveBeenCalled()
+
+    // Descente franche : fermeture.
+    fireEvent.pointerDown(container, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(container, { pointerId: 1, clientX: 200, clientY: 400 })
+    fireEvent.pointerUp(container, { pointerId: 1, clientX: 200, clientY: 400 })
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('zoome au double-clic à 2,5× puis revient à l’ajustement', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    fireEvent.doubleClick(imgOf())
+    expect(imgOf().style.transform).toContain('scale(2.5)')
+    fireEvent.doubleClick(imgOf())
+    expect(imgOf().style.transform).toContain('scale(1)')
+  })
+
+  it('applique le pincement sans transition de transform', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    const root = containerOf().parentElement as HTMLElement
+    fireEvent.touchStart(root, {
+      touches: [{ clientX: 100, clientY: 100 }, { clientX: 200, clientY: 200 }],
+    })
+    expect(imgOf().style.transition).not.toContain('transform')
+
+    fireEvent.touchEnd(root, { touches: [] })
+    expect(imgOf().style.transition).toContain('transform')
+  })
+
+  /**
+   * La visionneuse vit dans une ligne virtualisée : sans piège, Tab ressort
+   * derrière le fond. Et un bandeau effacé ne doit pas rester dans le cycle.
+   */
+  it('piège Tab dans le dialogue et ignore les contrôles masqués', () => {
+    render(<ImageLightbox items={[item(), item({ id: 'b' })]} onClose={vi.fn()} />)
+    const dialog = screen.getByRole('dialog')
+    const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>('button:not([disabled])'))
+    const first = buttons[0]
+    const last = buttons[buttons.length - 1]
+
+    last.focus()
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.activeElement).toBe(first)
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(last)
+
+    // Clic sur la photo : les bandeaux s'effacent, leurs boutons sortent du cycle.
+    fireEvent.click(imgOf())
+    const visible = buttons.filter((el) => !el.closest('[aria-hidden="true"]'))
+    expect(visible.length).toBeLessThan(buttons.length)
+    const lastVisible = visible[visible.length - 1]
+    lastVisible.focus()
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.activeElement).toBe(visible[0])
+  })
 })

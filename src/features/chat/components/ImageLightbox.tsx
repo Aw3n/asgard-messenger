@@ -36,8 +36,8 @@ type View = { scale: number; x: number; y: number }
 const MIN_SCALE = 1
 /** Hard ceiling: beyond this a bitmap becomes a mosaic and rendering gets slow. */
 const ABSOLUTE_MAX_SCALE = 16
-/** Zoom reached by a double-click / double-tap. */
-const DETAIL_SCALE = 3
+/** Zoom reached by a double-click / double-tap (repère : celui de Signal). */
+const DETAIL_SCALE = 2.5
 /** Garde une image plus petite que la scène à portée de vue pendant un glisser. */
 const PAN_EDGE_MARGIN = 32
 /**
@@ -62,6 +62,36 @@ const DOUBLE_TAP_MS = 320
 const SWIPE_THRESHOLD_PX = 80
 /** Deux changements de photo à la molette ne peuvent pas être plus rapprochés. */
 const WHEEL_NAV_COOLDOWN_MS = 400
+/** Vitesse (px/ms) au-delà de laquelle un relâchement lance la vue sur son élan. */
+const FLING_MIN_VELOCITY = 0.25
+/** Balayage rapide qui change de photo sans atteindre le seuil de distance. */
+const SWIPE_FLICK_VELOCITY = 0.5
+/** Décélération de l'élan par image à 60 Hz. */
+const FLING_DECAY = 0.92
+/** Deux événements plus rapprochés que cela ne donnent pas une vitesse fiable. */
+const VELOCITY_MIN_DT_MS = 8
+/** Glisser vers le bas (tactile, photo non zoomée) : distance de fermeture. */
+const DISMISS_THRESHOLD_PX = 140
+/** Course minimale avant de verrouiller l'axe d'un geste. */
+const DISMISS_MIN_SPAN_PX = 10
+/** Résistance au-delà des bornes du pan : le glisser s'étire puis revient. */
+const ELASTIC_RESISTANCE = 0.35
+
+/** Échantillonne la vitesse d'un geste, en ignorant les deltas trop courts pour être fiables. */
+const sampleVelocity = (
+  g: { lastX: number; lastY: number; lastT: number; vx: number; vy: number },
+  x: number,
+  y: number,
+) => {
+  const now = performance.now()
+  const dt = now - g.lastT
+  if (dt < VELOCITY_MIN_DT_MS) return
+  g.vx = (x - g.lastX) / dt
+  g.vy = (y - g.lastY) / dt
+  g.lastX = x
+  g.lastY = y
+  g.lastT = now
+}
 
 /**
  * ImageLightbox — full-screen photo viewer.
@@ -101,6 +131,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false)
   /** Retraits réellement appliqués à la scène, mesurés sur les bandeaux. */
   const [insets, setInsets] = useState({ top: CHROME_TOP_PX, bottom: CHROME_BOTTOM_PX, side: 0 })
+  /** Deux doigts posés : le pincement ne doit subir aucune transition CSS. */
+  const [pinching, setPinching] = useState(false)
+  /** Glisser-vers-le-bas en cours (tactile, photo entière) : suit le doigt avant de fermer. */
+  const [dismiss, setDismiss] = useState<{ dy: number; active: boolean } | null>(null)
 
   const rootRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -114,9 +148,27 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const lastTapAt = useRef(0)
   /** Source pour laquelle la récupération par `loadFull` a déjà été tentée. */
   const recoveredFor = useRef<string | null>(null)
-  /** Balayage horizontal de navigation (photo non zoomée uniquement). */
-  const swipe = useRef<{ id: number; sx: number; sy: number; active: boolean } | null>(null)
+  /**
+   * Geste au repos (photo entière) : balayage horizontal de navigation ou
+   * glisser-vers-le-bas de fermeture. L'axe n'est verrouillé qu'après quelques
+   * pixels, et la vitesse est échantillonnée pour reconnaître un « flick ».
+   */
+  const swipe = useRef<{
+    id: number
+    sx: number
+    sy: number
+    axis: 'x' | 'y' | 'ignore' | null
+    canSwipe: boolean
+    canDismiss: boolean
+    lastX: number
+    lastY: number
+    lastT: number
+    vx: number
+    vy: number
+  } | null>(null)
   const [swipeDx, setSwipeDx] = useState(0)
+  /** Animation d'élan en cours (identifiant rAF), une seule à la fois. */
+  const fling = useRef<number | null>(null)
   /** Un balayage qui a navigué ne doit pas être relu comme un clic de fermeture. */
   const suppressBackdropClick = useRef(false)
   const wheelNav = useRef({ acc: 0, at: 0 })
@@ -132,6 +184,16 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   // Keep the latest values reachable from listeners registered once.
   const stateRef = useRef({ view, index, items })
   useEffect(() => { stateRef.current = { view, index, items } })
+
+  /** Tout nouveau geste ou changement d'échelle annule l'élan en cours. */
+  const stopFling = useCallback(() => {
+    if (fling.current !== null) {
+      cancelAnimationFrame(fling.current)
+      fling.current = null
+    }
+  }, [])
+
+  useEffect(() => stopFling, [stopFling])
 
   // ── Zoom maths ─────────────────────────────────────────────────────────────
 
@@ -150,28 +212,78 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
    */
   const frame = useCallback((): HTMLElement | null => stageRef.current ?? containerRef.current, [])
 
-  /** Keep the image from being panned out of sight. */
-  const clampView = useCallback((v: View): View => {
+  /**
+   * Bornes du pan pour une échelle donnée. Quand l'image dépasse la scène, la
+   * borne est exactement de quoi amener son bord au ras de la scène : la marge
+   * habituelle ouvrirait alors un vide sur le côté opposé, qui s'interprète comme
+   * « la photo est coupée là ». Quand elle est plus petite, elle reste à portée
+   * de vue quel que soit le glisser.
+   */
+  const panLimits = useCallback((scale: number) => {
     const cont = frame()
     const img = imgRef.current
-    if (!cont || !img) return v
-    const w = img.offsetWidth * v.scale
-    const h = img.offsetHeight * v.scale
-    // Quand l'image dépasse la scène, la borne est exactement de quoi amener son
-    // bord au ras de la scène : la marge habituelle ouvrirait alors un vide sur
-    // le côté opposé, qui s'interprète comme « la photo est coupée là ». Quand
-    // elle est plus petite, elle reste à portée de vue quel que soit le glisser.
+    if (!cont || !img) return { maxX: PAN_EDGE_MARGIN, maxY: PAN_EDGE_MARGIN }
+    const w = img.offsetWidth * scale
+    const h = img.offsetHeight * scale
     const limit = (size: number, stageSize: number) => (
       size > stageSize ? (size - stageSize) / 2 : PAN_EDGE_MARGIN
     )
-    const maxX = limit(w, cont.clientWidth)
-    const maxY = limit(h, cont.clientHeight)
+    return { maxX: limit(w, cont.clientWidth), maxY: limit(h, cont.clientHeight) }
+  }, [frame])
+
+  /** Keep the image from being panned out of sight. */
+  const clampView = useCallback((v: View): View => {
+    const { maxX, maxY } = panLimits(v.scale)
     return {
       scale: v.scale,
       x: Math.min(maxX, Math.max(-maxX, v.x)),
       y: Math.min(maxY, Math.max(-maxY, v.y)),
     }
-  }, [frame])
+  }, [panLimits])
+
+  /**
+   * Même chose, mais le dépassement est seulement freiné (ressort) au lieu
+   * d'être bloqué net : c'est la sensation « élastique » qui indique qu'on a
+   * atteint le bord, sans jamais perdre la photo.
+   */
+  const elasticView = useCallback((v: View): View => {
+    const { maxX, maxY } = panLimits(v.scale)
+    const give = (value: number, max: number) => {
+      if (value > max) return max + (value - max) * ELASTIC_RESISTANCE
+      if (value < -max) return -max + (value + max) * ELASTIC_RESISTANCE
+      return value
+    }
+    return { scale: v.scale, x: give(v.x, maxX), y: give(v.y, maxY) }
+  }, [panLimits])
+
+  /**
+   * Lâcher une vue zoomée sur son élan : la vitesse décroît à chaque image
+   * (`FLING_DECAY`), chaque pas est ramené dans les bornes, et l'animation
+   * s'arrête d'elle-même. Désactivée si le système demande moins de mouvement.
+   */
+  const startFling = useCallback((vx: number, vy: number) => {
+    stopFling()
+    if (Math.hypot(vx, vy) < FLING_MIN_VELOCITY) return
+    if (typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let vX = vx
+    let vY = vy
+    let previous = 0
+    const step = (now: number) => {
+      const dt = previous ? Math.min(now - previous, 32) : 16.67
+      previous = now
+      const decay = Math.pow(FLING_DECAY, dt / 16.67)
+      vX *= decay
+      vY *= decay
+      if (Math.hypot(vX, vY) < 0.02) {
+        fling.current = null
+        return
+      }
+      setView((v) => clampView({ ...v, x: v.x + vX * dt, y: v.y + vY * dt }))
+      fling.current = requestAnimationFrame(step)
+    }
+    fling.current = requestAnimationFrame(step)
+  }, [clampView, stopFling])
 
   /**
    * Apply a new scale while keeping the content point under (clientX, clientY)
@@ -200,14 +312,19 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   }, [clampView, frame, maxScale])
 
   const zoomTo = useCallback((target: number, clientX?: number, clientY?: number) => {
+    stopFling()
     setView((v) => rescale(v, target, clientX, clientY))
-  }, [rescale])
+  }, [rescale, stopFling])
 
   const zoomBy = useCallback((factor: number, clientX?: number, clientY?: number) => {
+    stopFling()
     setView((v) => rescale(v, v.scale * factor, clientX, clientY))
-  }, [rescale])
+  }, [rescale, stopFling])
 
-  const fitToWindow = useCallback(() => setView({ scale: 1, x: 0, y: 0 }), [])
+  const fitToWindow = useCallback(() => {
+    stopFling()
+    setView({ scale: 1, x: 0, y: 0 })
+  }, [stopFling])
 
   /** Ramène l'échelle dans les bornes courantes (le plafond change avec l'image). */
   const clampScale = useCallback((v: View): View => {
@@ -224,10 +341,11 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   }, [natural, zoomTo])
 
   const toggleDetail = useCallback((clientX?: number, clientY?: number) => {
+    stopFling()
     setView((v) => (v.scale > MIN_SCALE + 0.02
       ? { scale: 1, x: 0, y: 0 }
       : rescale(v, Math.min(DETAIL_SCALE, maxScale()), clientX, clientY)))
-  }, [maxScale, rescale])
+  }, [maxScale, rescale, stopFling])
 
   // ── Gallery navigation ─────────────────────────────────────────────────────
 
@@ -240,72 +358,163 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     if (list.length < 2) return
     const next = ((target % list.length) + list.length) % list.length
     if (next === i) return
+    stopFling()
+    setSwipeDx(0)
+    setDismiss(null)
     setView({ scale: 1, x: 0, y: 0 })
     setFullUrl(null)
     setFullFailed(false)
     setLoaded(false)
     setIndex(next)
-  }, [])
+  }, [stopFling])
 
   const goRelative = useCallback((delta: number) => {
     goTo(stateRef.current.index + delta)
   }, [goTo])
 
-  // ── Pointer drag to pan ────────────────────────────────────────────────────
+  // ── Pointer gestures: pan, gallery swipe, drag-to-dismiss ─────────────────
 
-  const drag = useRef<{ id: number; sx: number; sy: number; ox: number; oy: number } | null>(null)
+  const drag = useRef<{
+    id: number
+    sx: number
+    sy: number
+    ox: number
+    oy: number
+    captured: boolean
+    lastX: number
+    lastY: number
+    lastT: number
+    vx: number
+    vy: number
+  } | null>(null)
   const fingers = useRef(0)
   const pinch = useRef<{ dist: number; cx: number; cy: number; start: View } | null>(null)
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0 || fingers.current > 1) return
-    // Le clic qui suit un balayage de navigation ne doit pas fermer la visionneuse.
+    stopFling()
+    // Le clic qui suit un geste ne doit pas être relu comme un clic de fond.
     suppressBackdropClick.current = false
-    if (stateRef.current.view.scale <= MIN_SCALE + 0.001) {
-      // Photo non zoomée : le glisser horizontal sert à changer de photo.
-      if (stateRef.current.items.length > 1) {
-        e.currentTarget.setPointerCapture?.(e.pointerId)
-        swipe.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, active: false }
+    const { view: currentView, items: list } = stateRef.current
+    if (currentView.scale <= MIN_SCALE + 0.001) {
+      // Photo entière : balayage horizontal = changer de photo, glisser vers le
+      // bas = fermer. La fermeture est réservée au doigt, la souris a le fond,
+      // Échap et le bouton de fermeture.
+      const canSwipe = list.length > 1
+      const canDismiss = e.pointerType !== 'mouse'
+      if (!canSwipe && !canDismiss) return
+      swipe.current = {
+        id: e.pointerId,
+        sx: e.clientX,
+        sy: e.clientY,
+        axis: null,
+        canSwipe,
+        canDismiss,
+        lastX: e.clientX,
+        lastY: e.clientY,
+        lastT: performance.now(),
+        vx: 0,
+        vy: 0,
       }
       return
     }
-    e.currentTarget.setPointerCapture?.(e.pointerId)
-    drag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: stateRef.current.view.x, oy: stateRef.current.view.y }
+    drag.current = {
+      id: e.pointerId,
+      sx: e.clientX,
+      sy: e.clientY,
+      ox: currentView.x,
+      oy: currentView.y,
+      captured: false,
+      lastX: e.clientX,
+      lastY: e.clientY,
+      lastT: performance.now(),
+      vx: 0,
+      vy: 0,
+    }
     setDragging(true)
-  }, [])
+  }, [stopFling])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     const s = swipe.current
     if (s && s.id === e.pointerId) {
       const dx = e.clientX - s.sx
       const dy = e.clientY - s.sy
-      // Le geste ne devient un balayage qu'une fois clairement horizontal :
-      // un appui qui bouge à peine reste un clic (bascule des bandeaux).
-      if (!s.active && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) s.active = true
-      if (s.active) setSwipeDx(dx)
+      sampleVelocity(s, e.clientX, e.clientY)
+      // L'axe n'est verrouillé qu'une fois la direction évidente : un appui qui
+      // bouge à peine reste un clic (bascule des bandeaux), et un geste en
+      // diagonale attend de savoir s'il navigue ou s'il ferme.
+      if (!s.axis && Math.max(Math.abs(dx), Math.abs(dy)) > DISMISS_MIN_SPAN_PX) {
+        if (Math.abs(dx) > Math.abs(dy) * 1.2) s.axis = s.canSwipe ? 'x' : 'ignore'
+        else if (dy > Math.abs(dx) * 1.2) s.axis = s.canDismiss ? 'y' : 'ignore'
+        // La capture garde le geste vivant hors de la fenêtre une fois lancé.
+        if (s.axis && s.axis !== 'ignore') e.currentTarget.setPointerCapture?.(e.pointerId)
+      }
+      if (s.axis === 'x') setSwipeDx(dx)
+      else if (s.axis === 'y') setDismiss({ dy: Math.max(0, dy), active: true })
       return
     }
     const d = drag.current
     if (!d || d.id !== e.pointerId) return
-    setView((v) => clampView({ ...v, x: d.ox + (e.clientX - d.sx), y: d.oy + (e.clientY - d.sy) }))
-  }, [clampView])
+    if (!d.captured) {
+      d.captured = true
+      e.currentTarget.setPointerCapture?.(e.pointerId)
+    }
+    sampleVelocity(d, e.clientX, e.clientY)
+    // Au-delà des bornes, la vue s'étire au lieu de se bloquer : le doigt sent
+    // le bord, et le relâchement la ramène en place.
+    setView((v) => elasticView({
+      ...v,
+      x: d.ox + (e.clientX - d.sx),
+      y: d.oy + (e.clientY - d.sy),
+    }))
+  }, [elasticView])
 
   const endDrag = useCallback((e: React.PointerEvent) => {
     const s = swipe.current
     if (s && s.id === e.pointerId) {
       swipe.current = null
-      setSwipeDx(0)
-      if (s.active) {
-        suppressBackdropClick.current = true
-        const dx = e.clientX - s.sx
-        if (Math.abs(dx) >= SWIPE_THRESHOLD_PX) goRelative(dx < 0 ? 1 : -1)
+      const dx = e.clientX - s.sx
+      const dy = e.clientY - s.sy
+      if (s.axis === 'x' || s.axis === 'y') suppressBackdropClick.current = true
+      if (s.axis === 'x') {
+        setSwipeDx(0)
+        const flick = Math.abs(s.vx) >= SWIPE_FLICK_VELOCITY && Math.sign(s.vx) === Math.sign(dx)
+        if (Math.abs(dx) >= SWIPE_THRESHOLD_PX || (flick && Math.abs(dx) >= DISMISS_MIN_SPAN_PX)) {
+          goRelative(dx < 0 ? 1 : -1)
+        }
+      } else if (s.axis === 'y') {
+        const flicked = s.vy >= SWIPE_FLICK_VELOCITY && dy >= DISMISS_MIN_SPAN_PX
+        if (dy >= DISMISS_THRESHOLD_PX || flicked) {
+          onClose()
+          return
+        }
+        // Sous le seuil : la scène revient en place par sa transition.
+        setDismiss(null)
       }
     }
-    if (drag.current && drag.current.id === e.pointerId) {
+    const d = drag.current
+    if (d && d.id === e.pointerId) {
       drag.current = null
       setDragging(false)
+      // Le geste lâché, la borne reprend ses droits, puis l'élan prolonge.
+      setView((v) => clampView(v))
+      startFling(d.vx, d.vy)
     }
-  }, [goRelative])
+  }, [clampView, goRelative, onClose, startFling])
+
+  /** Annulation système (appel entrant, geste interrompu) : on ne valide rien. */
+  const cancelGesture = useCallback((e: React.PointerEvent) => {
+    if (swipe.current?.id === e.pointerId) {
+      swipe.current = null
+      setSwipeDx(0)
+      setDismiss(null)
+    }
+    if (drag.current?.id === e.pointerId) {
+      drag.current = null
+      setDragging(false)
+      setView((v) => clampView(v))
+    }
+  }, [clampView])
 
   // ── Pinch to zoom (two fingers, anchored on their midpoint) ────────────────
 
@@ -322,14 +531,17 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     fingers.current = e.touches.length
     if (e.touches.length === 2) {
+      stopFling()
       drag.current = null
       swipe.current = null
       setSwipeDx(0)
+      setDismiss(null)
       setDragging(false)
+      setPinching(true)
       const { dist, cx, cy } = touchPair(e)
       pinch.current = { dist, cx, cy, start: stateRef.current.view }
     }
-  }, [])
+  }, [stopFling])
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length !== 2 || !pinch.current) return
@@ -353,8 +565,23 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   const onTouchEnd = useCallback((e: React.TouchEvent) => {
     fingers.current = e.touches.length
-    if (e.touches.length < 2) pinch.current = null
+    if (e.touches.length < 2) {
+      pinch.current = null
+      setPinching(false)
+    }
     if (e.touches.length === 0 && drag.current) { drag.current = null; setDragging(false) }
+  }, [])
+
+  /** Pincement interrompu par le système : aucun élan, aucun état collant. */
+  const onTouchCancel = useCallback(() => {
+    fingers.current = 0
+    pinch.current = null
+    setPinching(false)
+    setSwipeDx(0)
+    setDismiss(null)
+    setDragging(false)
+    swipe.current = null
+    drag.current = null
   }, [])
 
   // ── Native listeners: wheel must not be passive, or preventDefault is a no-op
@@ -416,9 +643,45 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   }, [])
 
   useEffect(() => {
+    /**
+     * La visionneuse est montée dans une ligne virtualisée du chat : sans
+     * piège, Tab ressort derrière le fond et l'utilisateur au clavier perd le
+     * dialogue qu'il vient d'ouvrir. Les contrôles masqués (bandeaux effacés,
+     * flèches gelées par un zoom) sont sortis du cycle.
+     */
+    const trapTab = (e: KeyboardEvent) => {
+      const root = rootRef.current
+      if (!root) return
+      const focusable = Array.from(root.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter((el) => !el.closest('[aria-hidden="true"]'))
+      if (!focusable.length) {
+        e.preventDefault()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && (active === first || active === root)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
     const onKey = (e: KeyboardEvent) => {
       switch (e.key) {
-        case 'Escape': onClose(); return
+        case 'Escape':
+          // En plein écran, Échap doit d'abord rendre l'écran au système.
+          if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+            void document.exitFullscreen().catch(() => {})
+            return
+          }
+          onClose()
+          return
+        case 'Tab': trapTab(e); return
         case '+': case '=': zoomBy(1.3); return
         case '-': case '_': zoomBy(1 / 1.3); return
         case '0': fitToWindow(); return
@@ -427,6 +690,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         // Au zoom, la navigation est gelée : les flèches déplacent la vue.
         case 'ArrowRight':
           if (stateRef.current.view.scale > MIN_SCALE + 0.02) {
+            stopFling()
             setView((v) => clampView({ ...v, x: v.x - 60 }))
           } else if (stateRef.current.items.length > 1) {
             goRelative(1)
@@ -436,6 +700,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
           return
         case 'ArrowLeft':
           if (stateRef.current.view.scale > MIN_SCALE + 0.02) {
+            stopFling()
             setView((v) => clampView({ ...v, x: v.x + 60 }))
           } else if (stateRef.current.items.length > 1) {
             goRelative(-1)
@@ -448,13 +713,14 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       // dragging the image covers the rest.
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault()
+        stopFling()
         const step = e.key === 'ArrowDown' ? 60 : -60
         setView((v) => clampView({ ...v, y: v.y + step }))
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, zoomBy, fitToWindow, showActualSize, goRelative, clampView])
+  }, [onClose, zoomBy, fitToWindow, showActualSize, goRelative, clampView, stopFling])
 
   /**
    * Les bandeaux ont une hauteur qui dépend du réglage de taille de police : on
@@ -486,12 +752,13 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   // Reframe when the viewport changes (window resize / entering fullscreen).
   useEffect(() => {
     const onResize = () => {
+      stopFling()
       measureChrome()
       setView((v) => clampView(v))
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [clampView, measureChrome])
+  }, [clampView, measureChrome, stopFling])
 
   // La surface utile change quand les bandeaux s'effacent (clic sur l'image),
   // quand on entre en plein écran, et dès qu'ils viennent d'être mesurés : sans
@@ -516,15 +783,18 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   // Reset the stage whenever the visible item changes.
   useEffect(() => {
+    stopFling()
     setFullUrl(null)
     setFullFailed(false)
     setSrcFailed(false)
     setLoaded(false)
     setNatural({ w: 0, h: 0 })
     setView({ scale: 1, x: 0, y: 0 })
+    setSwipeDx(0)
+    setDismiss(null)
     setChromeVisible(true)
     recoveredFor.current = null
-  }, [index, current?.id])
+  }, [index, current?.id, stopFling])
 
   /*
     La vignette affichée reste centrée dans la bande, y compris après un saut
@@ -641,6 +911,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   const zoomPercentage = Math.round(view.scale * 100)
   const toolBtn = 'h-8 min-w-8 px-1.5 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs text-white/85'
+  /** Fermeture au doigt : le fond s'éclaircit à mesure que la photo descend. */
+  const dismissDy = dismiss?.dy ?? 0
+  const backdropAlpha = dismiss ? Math.max(0, 1 - dismissDy / 500) : 1
 
   if (!displaySrc) return null
 
@@ -656,19 +929,29 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18 }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md outline-none"
+      style={{
+        backgroundColor: `rgba(0, 0, 0, ${0.9 * backdropAlpha})`,
+        transition: dismiss?.active ? 'none' : 'background-color 200ms ease',
+      }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
     >
       {/* ── Top bar ── */}
       <div
         ref={topBarRef}
+        aria-hidden={!chromeVisible}
         className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between gap-2 px-3 py-2.5 bg-gradient-to-b from-black/70 to-transparent transition-opacity duration-200 ${chromeVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm text-white/85 font-medium truncate max-w-[38vw]">{current?.alt ?? fileName}</span>
-          <span className="text-[11px] text-white/50 px-2 py-0.5 rounded-full bg-white/10 tabular-nums shrink-0">
+          <span
+            aria-live="polite"
+            aria-atomic="true"
+            className="text-[11px] text-white/50 px-2 py-0.5 rounded-full bg-white/10 tabular-nums shrink-0"
+          >
             {zoomPercentage}%
           </span>
           {natural.w > 0 && (
@@ -720,8 +1003,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onPointerLeave={endDrag}
+        onPointerCancel={cancelGesture}
+        onPointerLeave={cancelGesture}
         onClick={(e) => {
           // Un balayage qui vient de changer de photo ne doit pas être relu
           // comme un clic de fermeture sur le fond.
@@ -776,10 +1059,14 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               right: insets.side,
               top: chromeVisible ? insets.top : 0,
               bottom: chromeVisible ? insets.bottom : 0,
-              // Le balayage horizontal emmène la scène avec le doigt : la photo
-              // ne saute pas d'un coup vers la suivante.
-              transform: swipeDx !== 0 ? `translateX(${swipeDx}px)` : undefined,
-              transition: swipeDx === 0 ? 'transform 200ms cubic-bezier(.2,.7,.3,1)' : 'none',
+              // Le geste emmène la scène avec le doigt : la photo ne saute pas
+              // d'un coup vers la suivante, et la fermeture la rétrécit.
+              transform: swipeDx !== 0 || dismiss
+                ? `translate(${swipeDx}px, ${dismissDy}px) scale(${dismiss ? Math.max(0.86, 1 - dismissDy / 1800) : 1})`
+                : undefined,
+              transition: swipeDx === 0 && !dismiss?.active
+                ? 'transform 200ms cubic-bezier(.2,.7,.3,1)'
+                : 'none',
             }}
           >
             <img
@@ -795,7 +1082,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
                 transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
                 transformOrigin: 'center center',
                 opacity: loaded ? 1 : 0,
-                transition: dragging
+                // Pendant un pincement, la moindre transition transformerait le
+                // geste en rattrapage permanent derrière les doigts.
+                transition: dragging || pinching
                   ? 'opacity .18s ease-out'
                   : 'transform 170ms cubic-bezier(.2,.7,.3,1), opacity .18s ease-out',
                 willChange: 'transform',
@@ -804,6 +1093,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               onLoad={onImgLoad}
               onError={handleImgError}
               onClick={(e) => {
+                // Le clic de relâchement d'un geste n'est pas une demande d'interface.
+                if (suppressBackdropClick.current) return
                 e.stopPropagation()
                 // A single click only hides/shows the toolbars — it used to close the
                 // whole viewer, which made any attempt at interacting a way to lose it.
@@ -833,6 +1124,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               className={`absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-all duration-200 ${isZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
               title={t('lightbox.previous')}
               aria-label={t('lightbox.previous')}
+              aria-hidden={isZoomed}
+              tabIndex={isZoomed ? -1 : 0}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" /></svg>
             </button>
@@ -841,6 +1134,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               className={`absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-all duration-200 ${isZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
               title={t('lightbox.next')}
               aria-label={t('lightbox.next')}
+              aria-hidden={isZoomed}
+              tabIndex={isZoomed ? -1 : 0}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" /></svg>
             </button>
@@ -851,6 +1146,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       {/* ── Bottom bar: filmstrip over the hint line ── */}
       <div
         ref={bottomBarRef}
+        aria-hidden={!chromeVisible}
         className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center gap-1 px-4 pt-2 pb-3 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-200 ${chromeVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={(e) => e.stopPropagation()}
       >
