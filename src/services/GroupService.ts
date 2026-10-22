@@ -1147,6 +1147,10 @@ class GroupService {
     const requesterPublicKey = payload.requesterPublicKey as string
     const requesterDisplayName = payload.requesterDisplayName as string
 
+    // The request is signed by the requester: it may only enrol itself.
+    // A spoofed key used to add any third party to a group.
+    if (!inviteKey || !requesterPublicKey || requesterPublicKey !== requesterPeerId) return
+
     // Find the group with this invite key
     const groups = useGroupStore.getState().getAllGroups()
     const group = groups.find((g) => g.inviteKey === inviteKey)
@@ -1158,7 +1162,9 @@ class GroupService {
     // Add the new member locally
     const newMember: GroupMember = {
       publicKey: requesterPublicKey,
-      displayName: requesterDisplayName,
+      displayName: typeof requesterDisplayName === 'string' && requesterDisplayName.length > 0
+        ? requesterDisplayName.slice(0, 200)
+        : requesterPublicKey.slice(0, 12),
       role: 'member',
       joinedAt: Date.now(),
       canPost: true,
@@ -1201,75 +1207,164 @@ class GroupService {
   }
 
   /**
-   * Handle incoming group update
+   * Handle incoming group update.
+   *
+   * A signature proves who spoke, not what they may do in this group: every
+   * branch checks the sender against the local roster before touching the
+   * store. Without that, any peer knowing a group id could rename the group,
+   * promote itself, kick members, or wipe its channels.
    */
   private handleGroupUpdate(msg: ProtocolMessage): void {
     const payload = msg.payload as Record<string, unknown>
     const action = payload.action as string
     const groupId = payload.groupId as string
+    const sender = msg.from
     const store = useGroupStore.getState()
+    const group = groupId ? store.getGroup(groupId) : undefined
+    if (!group || !sender) return
+
+    const senderMember = group.members.find((member) => member.publicKey === sender)
+    const isAdmin = store.isAdmin(groupId, sender)
+    const boundedKey = (value: unknown): string | undefined =>
+      typeof value === 'string' && value.length > 0 && value.length <= 256 ? value : undefined
+    const boundedText = (value: unknown, max: number): string | undefined =>
+      typeof value === 'string' && value.length > 0 ? value.slice(0, max) : undefined
 
     switch (action) {
       case 'metadata:update': {
-        // PERFORMANCE: Strip avatar from updates — it arrives via binary media channel.
-        // The hasAvatar flag indicates whether an avatar exists (for UI placeholder).
-        const rawUpdates = payload.updates as Record<string, unknown>
-        const { avatar: _strippedAvatar, ...safeUpdates } = rawUpdates
-        store.updateGroup(groupId, safeUpdates as Partial<Group>)
+        // Admin-only, and only the fields the UI edits are copied. Spreading
+        // the payload used to let a peer rewrite ownerId, inviteKey, members
+        // or channels. The avatar never travels here (binary media channel).
+        if (!isAdmin) return
+        const updates = payload.updates as Record<string, unknown> | undefined
+        if (!updates) return
+        const safe: Partial<Group> = {}
+        const name = boundedText(updates.name, 200)
+        if (name) safe.name = name
+        if (typeof updates.description === 'string') safe.description = updates.description.slice(0, 2000)
+        if (typeof updates.isPublic === 'boolean') safe.isPublic = updates.isPublic
+        if (Object.keys(safe).length > 0) store.updateGroup(groupId, safe)
         break
       }
 
       case 'member:joined': {
         const member = payload.member as GroupMember | undefined
-        if (!member || typeof member.publicKey !== 'string' || !member.publicKey) break
+        const publicKey = boundedKey(member?.publicKey)
+        if (!member || !publicKey) return
+        // Two legitimate paths: the joiner introduces itself (its own signed
+        // message) or an existing member relays a join it accepted. Anything
+        // else is an outsider injecting a third party.
+        if (publicKey !== sender && !senderMember) return
         // A join never grants a role: promotions go through member:role, which
         // only admins send. Otherwise a peer could self-announce as owner.
-        store.addMember(groupId, { ...member, role: 'member' })
+        store.addMember(groupId, {
+          publicKey,
+          displayName: boundedText(member.displayName, 200) ?? publicKey.slice(0, 12),
+          role: 'member',
+          joinedAt: typeof member.joinedAt === 'number' && Number.isFinite(member.joinedAt)
+            ? member.joinedAt
+            : Date.now(),
+          canPost: true,
+        })
         break
       }
 
-      case 'member:left':
+      case 'member:left': {
+        const leaving = boundedKey(payload.publicKey ?? payload.targetPublicKey)
+        // Only the member itself may announce its departure.
+        if (leaving !== sender) return
+        store.removeMember(groupId, leaving)
+        break
+      }
+
       case 'member:removed':
       case 'member:kicked': {
-        const publicKey = (payload.targetPublicKey ?? payload.publicKey) as string
-        store.removeMember(groupId, publicKey)
+        if (!isAdmin) return
+        // A kick addressed to us carries no target: the addressee is the
+        // target. Without this fallback the kicked member silently kept a
+        // group it could no longer post to.
+        const self = useIdentityStore.getState().identity?.keyPair.publicKey
+        const target = boundedKey(payload.targetPublicKey ?? payload.publicKey)
+          ?? (action === 'member:kicked' ? self : undefined)
+        if (!target) return
+        if (target === self) {
+          useGroupStore.getState().leaveGroup(groupId)
+          useConversationStore.getState().removeConversation(groupId)
+          break
+        }
+        store.removeMember(groupId, target)
         break
       }
 
       case 'member:role': {
-        const targetPk = payload.targetPublicKey as string
-        const newRole = payload.newRole as GroupMember['role']
-        store.setMemberRole(groupId, targetPk, newRole)
+        if (!isAdmin) return
+        const target = boundedKey(payload.targetPublicKey)
+        const newRole = payload.newRole
+        // Ownership is not transferable over the wire, and guests are not a
+        // role the UI can grant. Anything outside this list is dropped.
+        if (!target || !['admin', 'moderator', 'member'].includes(newRole as string)) return
+        const targetMember = group.members.find((member) => member.publicKey === target)
+        if (!targetMember || targetMember.role === 'owner') return
+        store.setMemberRole(groupId, target, newRole as GroupMember['role'])
         break
       }
 
       case 'member:muted': {
-        const targetPk = payload.targetPublicKey as string
-        const mutedBy = payload.mutedBy as string
-        store.muteMember(groupId, targetPk, mutedBy)
+        if (!isAdmin) return
+        const target = boundedKey(payload.targetPublicKey)
+        if (!target) return
+        store.muteMember(groupId, target, sender)
         break
       }
 
       case 'member:unmuted': {
-        const targetPk = payload.targetPublicKey as string
-        store.unmuteMember(groupId, targetPk)
+        if (!isAdmin) return
+        const target = boundedKey(payload.targetPublicKey)
+        if (!target) return
+        store.unmuteMember(groupId, target)
         break
       }
 
       case 'channel:add': {
-        const channel = payload.channel as GroupChannel
-        // Use immer set directly via addChannel to avoid duplicates
-        const group = store.getGroup(groupId)
-        if (group && !group.channels.some(ch => ch.id === channel.id)) {
-          store.updateGroup(groupId, {
-            channels: [...group.channels, channel].sort((a, b) => a.position - b.position),
-          })
-        }
+        if (!isAdmin) return
+        const raw = payload.channel as Partial<GroupChannel> | undefined
+        const id = boundedKey(raw?.id)
+        const name = boundedText(raw?.name, 100)
+        if (!raw || !id || !name) return
+        if (group.channels.some((channel) => channel.id === id)) return
+        const roles: GroupMember['role'][] = ['owner', 'admin', 'moderator', 'member', 'guest']
+        const allowedRoles = (value: unknown): GroupMember['role'][] =>
+          Array.isArray(value)
+            ? value.filter((role): role is GroupMember['role'] =>
+                typeof role === 'string' && roles.includes(role as GroupMember['role']))
+            : []
+        const types: GroupChannel['type'][] = ['text', 'announcement', 'voice', 'readonly']
+        store.updateGroup(groupId, {
+          channels: [...group.channels, {
+            id,
+            groupId,
+            name,
+            description: typeof raw.description === 'string' ? raw.description.slice(0, 500) : undefined,
+            type: types.includes(raw.type as GroupChannel['type']) ? (raw.type as GroupChannel['type']) : 'text',
+            position: typeof raw.position === 'number' && Number.isFinite(raw.position)
+              ? raw.position
+              : group.channels.length,
+            permissions: {
+              send: allowedRoles(raw.permissions?.send),
+              read: allowedRoles(raw.permissions?.read),
+              manage: allowedRoles(raw.permissions?.manage),
+            },
+            unreadCount: 0,
+            pinnedMessageIds: [],
+          }].sort((a, b) => a.position - b.position),
+        })
         break
       }
 
       case 'channel:remove': {
-        const channelId = payload.channelId as string
+        if (!isAdmin) return
+        const channelId = boundedKey(payload.channelId)
+        if (!channelId) return
         store.removeChannel(groupId, channelId)
         break
       }
@@ -1295,7 +1390,11 @@ class GroupService {
       status: string
     }
 
-    if (!groupId || !channelId || !message) return
+    if (!groupId || !channelId || !message || typeof message.id !== 'string' || !message.id) return
+
+    // The signed envelope authenticates the sender; without this check a
+    // member could attribute its own message to another member.
+    if (message.senderId !== msg.from) return
 
     // Verify the sender is a member of the group
     const group = useGroupStore.getState().getGroup(groupId)
@@ -1390,7 +1489,14 @@ class GroupService {
       timestamp: number
     }
 
-    if (!payload.messageIds || payload.messageIds.length === 0) return
+    if (!Array.isArray(payload.messageIds) || payload.messageIds.length === 0 || payload.messageIds.length > 1000) return
+
+    // A receipt is a self-declaration from a member: it cannot speak for
+    // another reader, nor for a group it does not belong to.
+    const receiptGroup = payload.groupId ? useGroupStore.getState().getGroup(payload.groupId) : undefined
+    if (!receiptGroup || !msg.from) return
+    if (payload.readerPublicKey !== msg.from) return
+    if (!receiptGroup.members.some((member) => member.publicKey === msg.from)) return
 
     const logMsg = `[GroupService] Receipt received from ${msg.from?.slice(0, 16)} | status: ${payload.status} | msgs: ${payload.messageIds.length}`
     console.log(logMsg)
@@ -1547,8 +1653,20 @@ class GroupService {
 
     if (!groupId || !channelId || !publicKey) return
 
+    // Typing is a self-declaration from a member of that group.
+    if (publicKey !== msg.from) return
+    const group = useGroupStore.getState().getGroup(groupId)
+    const member = group?.members.find((m) => m.publicKey === publicKey)
+    if (!member) return
+
     // Update typing state in the store
-    useGroupStore.getState().setChannelTyping(groupId, channelId, publicKey, displayName, isTyping)
+    useGroupStore.getState().setChannelTyping(
+      groupId,
+      channelId,
+      publicKey,
+      member.displayName || (typeof displayName === 'string' ? displayName.slice(0, 200) : ''),
+      isTyping,
+    )
   }
 
   /**
@@ -1561,7 +1679,13 @@ class GroupService {
     const publicKey = payload.publicKey as string
     const messageIds = payload.messageIds as string[]
 
-    if (!groupId || !channelId || !publicKey || !messageIds) return
+    if (!groupId || !channelId || !publicKey || !Array.isArray(messageIds)) return
+    if (messageIds.length > 1000) return
+
+    // A read marker is a self-declaration from a member of that group.
+    if (publicKey !== msg.from) return
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((m) => m.publicKey === publicKey)) return
 
     // Update message read status in the message store
     const messageStore = useMessageStore.getState()
@@ -1583,6 +1707,9 @@ class GroupService {
     if (!groupId || !channelId || !messageId) return
 
     const store = useGroupStore.getState()
+    const group = store.getGroup(groupId)
+    const actor = group?.members.find((member) => member.publicKey === msg.from)
+    if (!actor || !['owner', 'admin', 'moderator'].includes(actor.role)) return
 
     if (action === 'pin') {
       store.pinChannelMessage(groupId, channelId, messageId)
@@ -1606,9 +1733,12 @@ class GroupService {
 
     if (!groupId || !channelId || !messageId || !mentionedBy) return
 
-    // Get group info for the notification
+    // Get group info for the notification. Only a member can raise a mention,
+    // and it can only be raised in its own name.
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group) return
+    if (mentionedBy !== msg.from) return
+    if (!group.members.some((m) => m.publicKey === msg.from)) return
 
     // Show notification
     const title = `${mentionedByDisplayName} mentioned you in ${group.name}`
