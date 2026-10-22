@@ -90,6 +90,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
           contactName={contact?.displayName}
           contactAvatar={contact?.avatar}
           contactStatus={contact?.status}
+          contactPending={contact?.relation === 'pending'}
           isActive={isActive}
           onClick={() => handleSelectConversation(conv)}
           onContextMenu={(e) => handleContextMenu(e, conv)}
@@ -212,6 +213,7 @@ interface ConversationItemProps {
   contactName?: string
   contactAvatar?: string
   contactStatus?: string
+  contactPending?: boolean
   isActive: boolean
   onClick: () => void
   onContextMenu?: (e: React.MouseEvent) => void
@@ -222,6 +224,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   contactName,
   contactAvatar,
   contactStatus,
+  contactPending,
   isActive,
   onClick,
   onContextMenu,
@@ -272,6 +275,11 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           >
             {name}
           </span>
+          {contactPending && (
+            <span className="text-xxs px-1.5 py-0.5 rounded-full bg-asgard-away/15 text-asgard-away flex-shrink-0 ml-2">
+              {t('contacts.pendingBadge')}
+            </span>
+          )}
           {conv.updatedAt > 0 && (
             <span className="text-xxs text-asgard-text-muted flex-shrink-0 ml-2">
               {formatConversationTime(conv.updatedAt)}

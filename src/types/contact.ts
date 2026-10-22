@@ -21,6 +21,11 @@ export interface Contact {
   customStatus?: string
   /** Relationship type */
   relation: ContactRelation
+  /**
+   * Sens d'une demande encore en attente : `incoming` (le pair nous a ajoutés)
+   * ou `outgoing` (nous l'avons ajouté, en attendant sa réponse).
+   */
+  requestDirection?: 'incoming' | 'outgoing'
   /** Whether the contact's identity has been verified */
   verified: boolean
   /** Custom note about this contact */

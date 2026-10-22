@@ -852,6 +852,9 @@ export const translations = {
       "chat.retrySend": "Renvoyer",
       "chat.editFailed": "Impossible de modifier le message",
       "chat.messageActions": "Actions du message",
+      "contacts.replyToConfirm": "Répondez dans la conversation pour confirmer l'ajout.",
+      "contacts.requestSent": "Demande envoyée — l'ajout sera confirmé à sa première réponse.",
+      "contacts.pendingBadge": "En attente",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1707,6 +1710,9 @@ export const translations = {
       "chat.retrySend": "Opnieuw versturen",
       "chat.editFailed": "Kan bericht niet bewerken",
       "chat.messageActions": "Berichtacties",
+      "contacts.replyToConfirm": "Antwoord in het gesprek om het contact te bevestigen.",
+      "contacts.requestSent": "Verzoek verzonden — het contact wordt bevestigd bij het eerste antwoord.",
+      "contacts.pendingBadge": "In afwachting",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2562,6 +2568,9 @@ export const translations = {
       "chat.retrySend": "Erneut senden",
       "chat.editFailed": "Nachricht konnte nicht bearbeitet werden",
       "chat.messageActions": "Nachrichtenaktionen",
+      "contacts.replyToConfirm": "Antworten Sie im Gespräch, um den Kontakt zu bestätigen.",
+      "contacts.requestSent": "Anfrage gesendet — der Kontakt wird mit der ersten Antwort bestätigt.",
+      "contacts.pendingBadge": "Ausstehend",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3417,6 +3426,9 @@ export const translations = {
       "chat.retrySend": "Invia di nuovo",
       "chat.editFailed": "Impossibile modificare il messaggio",
       "chat.messageActions": "Azioni del messaggio",
+      "contacts.replyToConfirm": "Rispondi nella conversazione per confermare il contatto.",
+      "contacts.requestSent": "Richiesta inviata — il contatto sarà confermato alla prima risposta.",
+      "contacts.pendingBadge": "In attesa",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4272,6 +4284,9 @@ export const translations = {
       "chat.retrySend": "Reenviar",
       "chat.editFailed": "No se pudo editar el mensaje",
       "chat.messageActions": "Acciones del mensaje",
+      "contacts.replyToConfirm": "Responde en la conversación para confirmar el contacto.",
+      "contacts.requestSent": "Solicitud enviada: el contacto se confirmará con su primera respuesta.",
+      "contacts.pendingBadge": "Pendiente",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5128,6 +5143,9 @@ export const translations = {
       "chat.retrySend": "Reenviar",
       "chat.editFailed": "Não foi possível editar a mensagem",
       "chat.messageActions": "Ações da mensagem",
+      "contacts.replyToConfirm": "Responda na conversa para confirmar o contacto.",
+      "contacts.requestSent": "Pedido enviado — o contacto será confirmado na primeira resposta.",
+      "contacts.pendingBadge": "Pendente",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -5984,6 +6002,9 @@ export const translations = {
       "chat.retrySend": "Επαναποστολή",
       "chat.editFailed": "Δεν ήταν δυνατή η επεξεργασία του μηνύματος",
       "chat.messageActions": "Ενέργειες μηνύματος",
+      "contacts.replyToConfirm": "Απαντήστε στη συνομιλία για να επιβεβαιώσετε την επαφή.",
+      "contacts.requestSent": "Το αίτημα στάλθηκε — η επαφή θα επιβεβαιωθεί με την πρώτη απάντηση.",
+      "contacts.pendingBadge": "Σε αναμονή",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6840,6 +6861,9 @@ export const translations = {
       "chat.retrySend": "Send igen",
       "chat.editFailed": "Beskeden kunne ikke redigeres",
       "chat.messageActions": "Beskedhandlinger",
+      "contacts.replyToConfirm": "Svar i samtalen for at bekræfte kontakten.",
+      "contacts.requestSent": "Anmodning sendt — kontakten bekræftes ved det første svar.",
+      "contacts.pendingBadge": "Afventer",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7696,6 +7720,9 @@ export const translations = {
       "chat.retrySend": "Lähetä uudelleen",
       "chat.editFailed": "Viestin muokkaaminen epäonnistui",
       "chat.messageActions": "Viestin toiminnot",
+      "contacts.replyToConfirm": "Vastaa keskustelussa vahvistaaksesi yhteystiedon.",
+      "contacts.requestSent": "Pyyntö lähetetty — yhteystieto vahvistetaan ensimmäisellä vastauksella.",
+      "contacts.pendingBadge": "Odottaa",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8552,6 +8579,9 @@ export const translations = {
       "chat.retrySend": "Skicka igen",
       "chat.editFailed": "Det gick inte att redigera meddelandet",
       "chat.messageActions": "Meddelandeåtgärder",
+      "contacts.replyToConfirm": "Svara i konversationen för att bekräfta kontakten.",
+      "contacts.requestSent": "Förfrågan skickad — kontakten bekräftas vid första svaret.",
+      "contacts.pendingBadge": "Väntar",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9408,6 +9438,9 @@ export const translations = {
       "chat.retrySend": "Pošalji ponovno",
       "chat.editFailed": "Nije moguće urediti poruku",
       "chat.messageActions": "Radnje poruke",
+      "contacts.replyToConfirm": "Odgovorite u razgovoru kako biste potvrdili kontakt.",
+      "contacts.requestSent": "Zahtjev poslan — kontakt će biti potvrđen prvim odgovorom.",
+      "contacts.pendingBadge": "Na čekanju",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10264,6 +10297,9 @@ export const translations = {
       "chat.retrySend": "Saada uuesti",
       "chat.editFailed": "Sõnumi muutmine ebaõnnestus",
       "chat.messageActions": "Sõnumi toimingud",
+      "contacts.replyToConfirm": "Kinnitage kontakt, vastates vestluses.",
+      "contacts.requestSent": "Taotlus saadetud — kontakt kinnitatakse esimese vastusega.",
+      "contacts.pendingBadge": "Ootel",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11120,6 +11156,9 @@ export const translations = {
       "chat.retrySend": "Újraküldés",
       "chat.editFailed": "Az üzenetet nem sikerült szerkeszteni",
       "chat.messageActions": "Üzenetműveletek",
+      "contacts.replyToConfirm": "Válaszoljon a beszélgetésben a névjegy megerősítéséhez.",
+      "contacts.requestSent": "Kérés elküldve — a névjegy az első válasszal erősödik meg.",
+      "contacts.pendingBadge": "Függőben",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -11976,6 +12015,9 @@ export const translations = {
       "chat.retrySend": "Sūtīt vēlreiz",
       "chat.editFailed": "Ziņu neizdevās rediģēt",
       "chat.messageActions": "Ziņas darbības",
+      "contacts.replyToConfirm": "Atbildiet sarunā, lai apstiprinātu kontaktu.",
+      "contacts.requestSent": "Pieprasījums nosūtīts — kontakts tiks apstiprināts ar pirmo atbildi.",
+      "contacts.pendingBadge": "Gaida",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -12832,6 +12874,9 @@ export const translations = {
       "chat.retrySend": "Siųsti dar kartą",
       "chat.editFailed": "Nepavyko redaguoti žinutės",
       "chat.messageActions": "Žinutės veiksmai",
+      "contacts.replyToConfirm": "Atsakykite pokalbyje, kad patvirtintumėte kontaktą.",
+      "contacts.requestSent": "Užklausa išsiųsta — kontaktas bus patvirtintas pirmuoju atsakymu.",
+      "contacts.pendingBadge": "Laukiama",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13688,6 +13733,9 @@ export const translations = {
       "chat.retrySend": "Ibgħat mill-ġdid",
       "chat.editFailed": "Il-messaġġ ma setax jiġi editjat",
       "chat.messageActions": "Azzjonijiet tal-messaġġ",
+      "contacts.replyToConfirm": "Wieġeb fil-konversazzjoni biex tikkonferma l-kuntatt.",
+      "contacts.requestSent": "Talba mibgħuta — il-kuntatt jiġi kkonfermat fl-ewwel tweġiba.",
+      "contacts.pendingBadge": "Pendenti",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14544,6 +14592,9 @@ export const translations = {
       "chat.retrySend": "Wyślij ponownie",
       "chat.editFailed": "Nie udało się edytować wiadomości",
       "chat.messageActions": "Akcje wiadomości",
+      "contacts.replyToConfirm": "Odpowiedz w rozmowie, aby potwierdzić kontakt.",
+      "contacts.requestSent": "Zaproszenie wysłane — kontakt zostanie potwierdzony przy pierwszej odpowiedzi.",
+      "contacts.pendingBadge": "Oczekuje",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15400,6 +15451,9 @@ export const translations = {
       "chat.retrySend": "Odoslať znova",
       "chat.editFailed": "Správu sa nepodarilo upraviť",
       "chat.messageActions": "Akcie správy",
+      "contacts.replyToConfirm": "Odpovedzte v konverzácii, aby potvrdiť kontakt.",
+      "contacts.requestSent": "Žiadosť odoslaná — kontakt sa potvrdí pri prvej odpovedi.",
+      "contacts.pendingBadge": "Čaká sa",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16256,6 +16310,9 @@ export const translations = {
       "chat.retrySend": "Pošlji znova",
       "chat.editFailed": "Sporočila ni bilo mogoče urediti",
       "chat.messageActions": "Dejanja sporočila",
+      "contacts.replyToConfirm": "Odgovorite v pogovoru, da potrdite stik.",
+      "contacts.requestSent": "Zahteva poslana — stik bo potrjen ob prvem odgovoru.",
+      "contacts.pendingBadge": "V čakanju",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17112,6 +17169,9 @@ export const translations = {
       "chat.retrySend": "Odeslat znovu",
       "chat.editFailed": "Zprávu se nepodařilo upravit",
       "chat.messageActions": "Akce zprávy",
+      "contacts.replyToConfirm": "Odpovězte v konverzaci, abyste potvrdili kontakt.",
+      "contacts.requestSent": "Žádost odeslána — kontakt bude potvrzen první odpovědí.",
+      "contacts.pendingBadge": "Čeká na potvrzení",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -17968,6 +18028,9 @@ export const translations = {
       "chat.retrySend": "Изпрати отново",
       "chat.editFailed": "Съобщението не можа да бъде редактирано",
       "chat.messageActions": "Действия със съобщението",
+      "contacts.replyToConfirm": "Отговорете в разговора, за да потвърдите контакта.",
+      "contacts.requestSent": "Заявката е изпратена — контактът ще бъде потвърден при първия отговор.",
+      "contacts.pendingBadge": "Чака",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -18824,6 +18887,9 @@ export const translations = {
       "chat.retrySend": "Seol arís",
       "chat.editFailed": "Níorbh fhéidir an teachtaireacht a chur in eagar",
       "chat.messageActions": "Gníomhartha teachtaireachta",
+      "contacts.replyToConfirm": "Freagair sa chomhrá chun an teagmhálaí a dheimhniú.",
+      "contacts.requestSent": "Iarratas seolta — deimhneofar an teagmhálaí ar an gcéad fhreagra.",
+      "contacts.pendingBadge": "Ag feitheamh",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -19680,6 +19746,9 @@ export const translations = {
       "chat.retrySend": "Trimite din nou",
       "chat.editFailed": "Mesajul nu a putut fi editat",
       "chat.messageActions": "Acțiuni pentru mesaj",
+      "contacts.replyToConfirm": "Răspundeți în conversație pentru a confirma contactul.",
+      "contacts.requestSent": "Cerere trimisă — contactul va fi confirmat la primul răspuns.",
+      "contacts.pendingBadge": "În așteptare",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20545,6 +20614,9 @@ export const translations = {
       "chat.retrySend": "Send again",
       "chat.editFailed": "Could not edit the message",
       "chat.messageActions": "Message actions",
+      "contacts.replyToConfirm": "Reply in the conversation to confirm the contact.",
+      "contacts.requestSent": "Request sent — the contact will be confirmed on their first reply.",
+      "contacts.pendingBadge": "Pending",
     }
   },
 
@@ -21402,6 +21474,9 @@ export const translations = {
       "chat.retrySend": "Надіслати знову",
       "chat.editFailed": "Не вдалося змінити повідомлення",
       "chat.messageActions": "Дії з повідомленням",
+      "contacts.replyToConfirm": "Дайте відповідь у розмові, щоб підтвердити контакт.",
+      "contacts.requestSent": "Запит надіслано — контакт буде підтверджено першою відповіддю.",
+      "contacts.pendingBadge": "Очікує",
     }
   },
 }

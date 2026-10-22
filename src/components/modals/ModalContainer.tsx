@@ -5,11 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/stores/uiStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
-import { useIdentityStore } from '@/stores/identityStore'
-import { cryptoService } from '@/services/CryptoService'
-import { p2pService } from '@/services/P2PService'
+import { chatService } from '@/services/ChatService'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
-import type { Contact } from '@/types'
 
 /**
  * ModalContainer — renders modals based on uiStore modal state.
@@ -99,9 +96,7 @@ const AddContactModal: React.FC<{
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const addContact = useContactStore((s) => s.addContact)
   const getContact = useContactStore((s) => s.getContact)
-  const addConversation = useConversationStore((s) => s.addConversation)
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
 
   // UX COPY/PASTE : un lien d'invitation complet (asgard://invite/<key>?name=)
@@ -152,75 +147,24 @@ const AddContactModal: React.FC<{
       return
     }
 
-    // Check if contact already exists — la clé étant canonique, les doublons
-    // inter-formats (hex 64 vs DER 88) sont désormais détectés.
-    if (getContact(normalizedKey)) {
+    // Une demande encore en attente peut être relancée (le pair ne l'a peut-être
+    // jamais reçue) ; un contact déjà confirmé reste un doublon.
+    const existing = getContact(normalizedKey)
+    if (existing && existing.relation !== 'pending') {
       setError(t('modal.error.contactExists'))
       return
     }
 
-    // COHÉRENCE : User-<8 chars de la clé BRUTE> — les 8 premiers chars du DER
-    // sont le préfixe SPKI constant (302a3005) : tous les contacts par défaut
-    // s'appelaient identiquement. slice(24,32) prend la partie variable.
-    const name = displayName.trim() || `User-${normalizedKey.slice(24, 32)}`
-
-    // Create contact
-    const contact: Contact = {
-      publicKey: normalizedKey,
-      displayName: name,
-      status: 'offline',
-      relation: 'contact',
-      verified: false,
-      addedAt: Date.now(),
-    }
-    addContact(contact)
-
-    // CRITICAL: Persist contact to Hyperbee storage for durability
     try {
-      console.log('[ModalContainer] Saving contact to Hyperbee:', contact.publicKey.slice(0, 16) + '...')
-      await window.asgard.storage.saveContact(contact)
-      console.log('[ModalContainer] Contact saved successfully to Hyperbee')
-      
-      // Verify contact was saved
-      const savedContact = await window.asgard.storage.getContact(contact.publicKey)
-      if (savedContact) {
-        console.log('[ModalContainer] Verified: contact found in Hyperbee')
-      } else {
-        console.warn('[ModalContainer] WARNING: contact NOT found in Hyperbee after save!')
-      }
+      const convId = await chatService.registerContact(normalizedKey, displayName.trim())
+      // Ouvrir la conversation : c'est là que la demande se confirme (réponse).
+      setActiveConversation(convId)
+      navigate(`/conversations/${convId}`)
+      onClose()
     } catch (err) {
-      console.error('[ModalContainer] Failed to save contact to Hyperbee:', err)
+      console.error('[ModalContainer] Failed to add contact:', err)
+      setError(t('toast.failedToAddContact'))
     }
-
-    // CRITICAL: Use deterministic conversationId so both peers compute the same ID
-    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-    if (!myPk) return
-    const convId = cryptoService.deriveConversationId(myPk, normalizedKey)
-
-    addConversation({
-      id: convId,
-      type: 'direct',
-      participantId: normalizedKey,
-      unreadCount: 0,
-      muted: false,
-      pinned: false,
-      archived: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    })
-
-    // CRITICAL: Join Hyperswarm topic for peer discovery
-    try {
-      const topic = await cryptoService.deriveConversationTopic(myPk, normalizedKey)
-      await p2pService.joinTopic(topic)
-    } catch (err) {
-      console.warn('[ModalContainer] Failed to join topic for new contact:', err)
-    }
-
-    // Navigate to conversation
-    setActiveConversation(convId)
-    navigate(`/conversations/${convId}`)
-    onClose()
   }
 
   return (

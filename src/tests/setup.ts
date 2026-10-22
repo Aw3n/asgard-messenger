@@ -28,6 +28,7 @@ const mockAsgardAPI = {
   network: {
     join: vi.fn().mockResolvedValue(undefined),
     leave: vi.fn().mockResolvedValue(undefined),
+    flush: vi.fn().mockResolvedValue(undefined),
     send: vi.fn().mockResolvedValue(undefined),
     onPeer: vi.fn().mockReturnValue(() => {}),
     onMessage: vi.fn().mockReturnValue(() => {}),

@@ -27,7 +27,9 @@ interface GroupedCallEntry {
 export const CallsPage: React.FC = () => {
   const history = useCallStore((s) => s.history)
   const clearHistory = useCallStore((s) => s.clearHistory)
-  const contacts = useContactStore((s) => Object.values(s.contacts).filter((c) => c.relation !== 'blocked'))
+  const contacts = useContactStore((s) =>
+    Object.values(s.contacts).filter((c) => c.relation === 'contact' || c.relation === 'favorite')
+  )
   const [search, setSearch] = useState('')
   const [expandedPeer, setExpandedPeer] = useState<string | null>(null)
 

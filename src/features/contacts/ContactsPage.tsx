@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Virtuoso } from 'react-virtuoso'
 import { useContactStore } from '@/stores/contactStore'
+import { useConversationStore } from '@/stores/conversationStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { Avatar } from '@/components/ui/Avatar'
@@ -12,8 +14,7 @@ import { formatLastSeen } from '@/utils/time'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
 import { PRESENCE_CHOICES, presenceMeta, fromNetworkStatus, isLivePresence } from '@/utils/presence'
-import { p2pService } from '@/services/P2PService'
-import { cryptoService } from '@/services/CryptoService'
+import { chatService } from '@/services/ChatService'
 import { ContactDetailView } from './components/ContactDetailView'
 import { QRCodeModal } from './components/QRCodeModal'
 import { ContactInviteModal } from './components/ContactInviteModal'
@@ -153,6 +154,7 @@ export const ContactsPage: React.FC = () => {
                     displayName: string
                     status?: string
                     relation?: string
+                    requestDirection?: 'incoming' | 'outgoing'
                     verified?: boolean
                     addedAt?: number
                     lastSeen?: number
@@ -171,7 +173,8 @@ export const ContactsPage: React.FC = () => {
                           // ('dnd') a pu être persistée jadis dans le store de
                           // contacts par le refresh DHT.
                           status: fromNetworkStatus(c.status),
-                          relation: (c.relation as 'contact' | 'favorite' | 'blocked') || 'contact',
+                          relation: (c.relation as Contact['relation']) || 'contact',
+                          requestDirection: c.requestDirection,
                           verified: c.verified ?? false,
                           addedAt: c.addedAt ?? Date.now(),
                           lastSeen: c.lastSeen,
@@ -348,7 +351,14 @@ const ContactItem: React.FC<{ contact: Contact; isSelected: boolean; onClick: ()
       showStatus
     />
     <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium text-asgard-text-primary truncate">{contact.displayName}</p>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <p className="text-sm font-medium text-asgard-text-primary truncate">{contact.displayName}</p>
+        {contact.relation === 'pending' && (
+          <span className="flex-shrink-0 text-xxs px-1.5 py-0.5 rounded-full bg-asgard-away/15 text-asgard-away">
+            {t('contacts.pendingBadge')}
+          </span>
+        )}
+      </div>
       <p className="text-xs text-asgard-text-muted">
         {statusLabel
           ?? (contact.lastSeen
@@ -372,11 +382,12 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [isAdding, setIsAdding] = useState(false)
-  const addContact = useContactStore((s) => s.addContact)
   const getContact = useContactStore((s) => s.getContact)
+  const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
   const addToast = useUIStore((s) => s.addToast)
   const identity = useIdentityStore((s) => s.identity)
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   // UX COPY/PASTE : un lien d'invitation complet (asgard://invite/<key>?name=)
   // collé dans le champ remplit automatiquement la clé ET le nom
@@ -437,47 +448,24 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       // COHÉRENCE (pattern ModalContainer) : rejet des doublons — impossible
       // d'ajouter deux fois la même personne, quel que soit le format de clé
       // saisi (la normalisation rend les doublons inter-formats détectables).
-      if (getContact(normalizedKey)) {
+      // Une demande encore en attente peut être relancée : le pair ne l'a
+      // peut-être jamais reçue.
+      const existing = getContact(normalizedKey)
+      if (existing && existing.relation !== 'pending') {
         setError(t('modal.error.contactExists'))
         return
       }
 
-      // Add contact to local store — clé TOUJOURS canonique (88 hex DER),
-      // donc les doublons « même personne, deux formats » (hex 64 vs DER 88)
-      // sont désormais détectés par getContact.
-      const contact: Contact = {
-        publicKey: normalizedKey,
-        displayName: displayName.trim() || `User-${normalizedKey.slice(24, 32)}`,
-        status: 'offline',
-        relation: 'contact',
-        verified: false,
-        addedAt: Date.now(),
-      }
-      addContact(contact)
-
-      // COHÉRENCE PERSISTANCE : même double persistance que ModalContainer
-      // (store localStorage via zustand/persist + Hyperbee) — le contact
-      // survit aussi au flux de restauration « reload contacts from Hyperbee ».
-      try {
-        await window.asgard.storage.saveContact(contact)
-      } catch (err) {
-        console.warn('[AddContact] Hyperbee persistence failed (localStorage persist remains):', err)
-      }
-
-      // CRITICAL: Derive and join the Hyperswarm conversation topic
-      // so both peers can discover each other via Hyperswarm DHT.
-      // Once connected, ChatService's peer:connected listener will
-      // automatically send contact:request to the peer.
-      // COHÉRENCE KEET : le topic est dérivé depuis la clé CANONIQUE (DER 88) —
-      // le pair distant dérive depuis la sienne ; une clé hex 64 ou z32 non
-      // normalisée produirait un topic différent et aucune connexion.
-      const topic = await cryptoService.deriveConversationTopic(
-        identity.keyPair.publicKey,
-        normalizedKey
-      )
-      await p2pService.joinTopic(topic)
+      // registerContact : relation « en attente » + conversation + joinTopic +
+      // demande immédiate si le pair est déjà joignable. La clé est TOUJOURS
+      // canonique (88 hex DER), donc les doublons « même personne, deux
+      // formats » (hex 64 vs DER 88) sont détectés par getContact.
+      const convId = await chatService.registerContact(normalizedKey, displayName.trim())
 
       addToast({ type: 'success', title: t('toast.contactAdded'), duration: 3000 })
+      // Ouvrir la conversation : la réponse qui confirme l'ajout s'y écrit.
+      setActiveConversation(convId)
+      navigate(`/conversations/${convId}`)
       onClose()
     } catch (err) {
       console.error('[AddContact] Failed to add contact:', err)

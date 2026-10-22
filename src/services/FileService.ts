@@ -1,6 +1,7 @@
 import { storageService } from './StorageService'
 import { p2pService } from './P2PService'
 import { cryptoService } from './CryptoService'
+import { confirmPendingContact } from './contactRequests'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
@@ -435,6 +436,10 @@ class FileService {
       const dialed = await p2pService.dialPeer(peerId, SEND_DIAL_TIMEOUT_MS)
       if (!dialed) throw new PeerUnreachableError(peerId)
     }
+
+    // Envoyer un fichier est aussi une réponse : une demande entrante est
+    // confirmée dès que le destinataire est joignable.
+    confirmPendingContact(peerId, 'incoming', true)
 
     const transferId = generateId()
     const transfer: FileTransfer = {

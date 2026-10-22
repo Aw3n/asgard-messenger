@@ -11,6 +11,7 @@ import { useNetworkStore } from '@/stores/networkStore'
 import { useUIStore } from '@/stores/uiStore'
 import { MessageBubble } from './components/MessageBubble'
 import { MessageInput } from './components/MessageInput'
+import { PendingContactBanner } from './components/PendingContactBanner'
 import { ForwardModal } from './components/ForwardModal'
 import { ActiveTransfersWidget } from './components/ActiveTransfersWidget'
 import { Avatar } from '@/components/ui/Avatar'
@@ -282,8 +283,9 @@ export const ChatView: React.FC = () => {
         <div className="flex items-center gap-1">
           <HeaderButton
             aria-label={t('calls.audioCall')}
+            disabled={contact?.relation === 'pending'}
             onClick={() => {
-              if (contact) {
+              if (contact && contact.relation !== 'pending') {
                 callService.startCall(contact.publicKey, contact.displayName, 'audio', contact.avatar)
               }
             }}
@@ -294,8 +296,9 @@ export const ChatView: React.FC = () => {
           </HeaderButton>
           <HeaderButton
             aria-label={t('calls.videoCall')}
+            disabled={contact?.relation === 'pending'}
             onClick={() => {
-              if (contact) {
+              if (contact && contact.relation !== 'pending') {
                 callService.startCall(contact.publicKey, contact.displayName, 'video', contact.avatar)
               }
             }}
@@ -433,6 +436,11 @@ export const ChatView: React.FC = () => {
       {/* Active file transfers widget */}
       <AnimatePresence>
         <ActiveTransfersWidget conversationId={dataId} />
+      </AnimatePresence>
+
+      {/* Demande de contact en attente — réponse = confirmation */}
+      <AnimatePresence>
+        {contact?.relation === 'pending' && <PendingContactBanner contact={contact} />}
       </AnimatePresence>
 
       {/* Message input */}
@@ -575,7 +583,7 @@ const TypingIndicator: React.FC<{ users: string[]; contact?: string }> = ({ user
 const HeaderButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ children, ...props }) => (
   <motion.button
     whileTap={{ scale: 0.9 }}
-    className="w-9 h-9 flex items-center justify-center rounded-xl text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
+    className="w-9 h-9 flex items-center justify-center rounded-xl text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
     {...(props as any)}
   >
     {children}

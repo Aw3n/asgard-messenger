@@ -4,6 +4,7 @@ import { cryptoService } from './CryptoService'
 import { storageService } from './StorageService'
 import { groupService } from './GroupService'
 import { ringtoneService } from './RingtoneService'
+import { confirmPendingContact } from './contactRequests'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
@@ -792,7 +793,15 @@ class ChatService {
       console.log('[ChatService] Applied pending presence for peer:', data.publicKey.slice(0, 16), '| status:', pendingPayload.status)
     }
 
-    if (!this.contactRequestsSent.has(data.publicKey)) {
+    // La demande n'est renvoyée que si NOUS avons ajouté ce pair et qu'il ne l'a
+    // pas encore confirmée. L'ancien envoi inconditionnel, à chaque connexion,
+    // transformait une simple identification (contact déjà confirmé, ou pair
+    // recroisé) en demande : elle ne doit naître que d'un ajout volontaire.
+    if (
+      contact.relation === 'pending' &&
+      contact.requestDirection === 'outgoing' &&
+      !this.contactRequestsSent.has(data.publicKey)
+    ) {
       this.contactRequestsSent.add(data.publicKey)
       if (identity) {
         p2pService.sendMessage(data.peerId, 'contact:request', {
@@ -898,6 +907,10 @@ class ChatService {
     const resolvedId = cryptoService.deriveConversationId(identity.keyPair.publicKey, peerId)
     const signedMessage = await this.buildSignedMessage(outgoing, resolvedId, identity.keyPair.publicKey)
 
+    // Répondre vaut acceptation : si ce pair nous avait ajoutés, notre message
+    // est la réponse qui confirme l'ajout (et lui envoie contact:accept).
+    this.confirmReplyContact(peerId)
+
     try {
       // PERFORMANCE: sendRawMessage() saute la signature Ed25519 du P2P — le
       // payload est déjà signé ci-dessus (~5-20 ms gagnés par message).
@@ -942,6 +955,8 @@ class ChatService {
     })
     const signedMessage: Message = { ...message, signature }
 
+    this.confirmReplyContact(peerId)
+
     try {
       await p2pService.sendRawMessage(peerId, 'chat:message', signedMessage)
       useMessageStore.getState().updateStatus(messageId, conversationId, 'sent')
@@ -952,6 +967,18 @@ class ChatService {
       this.queueMessage(signedMessage, conversationId, peerId)
       useMessageStore.getState().updateStatus(messageId, conversationId, 'sending')
       return 'queued'
+    }
+  }
+
+  /**
+   * Répondre dans la conversation vaut acceptation d'une demande entrante.
+   * L'avatar n'est poussé qu'à la transition, pas à chaque message.
+   */
+  private confirmReplyContact(peerId: string): void {
+    if (!confirmPendingContact(peerId, 'incoming', true)) return
+    const identity = useIdentityStore.getState().identity
+    if (identity?.profile.avatar && p2pService.isPeerConnected(peerId)) {
+      this.sendAvatarViaMedia(peerId, identity.profile.avatar, 'contact').catch(() => {})
     }
   }
 
@@ -2860,6 +2887,11 @@ class ChatService {
     // receiving a message proves the peer is online.
     this.markPeerActive(msg.from)
 
+    // Le pair nous a répondu : notre demande sortante est confirmée. Pas
+    // d'accept en écho — sa réponse suffit, et une acceptation renvoyée
+    // l'ajouterait chez lui alors que ce n'est pas ce qu'il a demandé.
+    confirmPendingContact(msg.from, 'outgoing', false)
+
     // Update the message with the correct conversationId
     const correctedMessage: Message = { ...message, conversationId: resolvedId }
 
@@ -2932,13 +2964,100 @@ class ChatService {
   }
 
   /**
-   * Handle incoming contact request
-   * CRITICAL: Always respond with contact:accept to establish bidirectional presence.
-   * Without this, the sender never learns that we're online.
+   * Ajoute un pair par sa clé publique et ouvre sa conversation.
+   *
+   * La relation naît « en attente » : le pair doit répondre dans la conversation
+   * pour confirmer l'ajout — aucune acceptation automatique de part et d'autre.
+   * Retourne l'identifiant de conversation à ouvrir. Si une demande entrante du
+   * même pair existe déjà, ajouter sa clé vaut acceptation : la relation passe
+   * immédiatement à « contact ».
+   */
+  async registerContact(publicKey: string, displayName?: string): Promise<string> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) throw new Error('No identity')
+    if (publicKey === identity.keyPair.publicKey) throw new Error('Cannot add yourself')
+
+    const store = useContactStore.getState()
+    const existing = store.getContact(publicKey)
+    if (existing?.relation === 'blocked') throw new Error('Contact is blocked')
+
+    const name = displayName?.trim()
+    const conversationId = cryptoService.deriveConversationId(
+      identity.keyPair.publicKey,
+      publicKey
+    )
+
+    if (!existing) {
+      const contact: Contact = {
+        publicKey,
+        displayName: name || `User-${publicKey.slice(24, 32)}`,
+        status: 'offline',
+        relation: 'pending',
+        requestDirection: 'outgoing',
+        verified: false,
+        addedAt: Date.now(),
+      }
+      store.addContact(contact)
+      storageService.saveContact(contact).catch((err) => {
+        console.warn('[ChatService] Failed to persist contact request:', err)
+      })
+    } else if (existing.relation === 'pending') {
+      if (name) store.updateContact(publicKey, { displayName: name })
+      if (existing.requestDirection === 'incoming') {
+        confirmPendingContact(publicKey, 'incoming', true)
+      }
+    }
+
+    // La conversation existe même pendant l'attente : c'est là que la réponse
+    // qui confirme l'ajout sera écrite.
+    this.ensureConversation(conversationId, publicKey)
+
+    try {
+      const topic = await cryptoService.deriveConversationTopic(
+        identity.keyPair.publicKey,
+        publicKey
+      )
+      await p2pService.joinTopic(topic)
+    } catch (err) {
+      // L'ajout local reste valide ; le heartbeat retentera la connexion.
+      console.warn('[ChatService] Failed to join conversation topic:', err)
+    }
+
+    const contact = useContactStore.getState().getContact(publicKey)
+    if (
+      contact?.relation === 'pending' &&
+      contact.requestDirection === 'outgoing' &&
+      p2pService.isPeerConnected(publicKey)
+    ) {
+      this.contactRequestsSent.add(publicKey)
+      p2pService
+        .sendMessage(publicKey, 'contact:request', {
+          displayName: identity.profile.displayName,
+        })
+        .catch((err) => {
+          this.contactRequestsSent.delete(publicKey)
+          console.warn('[ChatService] Failed to send contact request:', err)
+        })
+    }
+
+    return conversationId
+  }
+
+  /**
+   * Handle incoming contact request.
+   *
+   * Une demande ne confirme jamais l'ajout : elle crée (ou rafraîchit) une
+   * relation « pending » / `incoming`, et c'est la réponse de l'utilisateur
+   * dans la conversation qui enverra contact:accept. L'ancien code acceptait
+   * automatiquement, ce qui rouvrait même les contacts bloqués.
    */
   private handleContactRequest(msg: ProtocolMessage): void {
     const { displayName, avatar } = msg.payload as { displayName?: string; avatar?: string }
-    const existing = useContactStore.getState().getContact(msg.from)
+    const store = useContactStore.getState()
+    const existing = store.getContact(msg.from)
+
+    // Bloqué : la demande ne rouvre rien et ne doit pas déclencher d'accept.
+    if (existing?.relation === 'blocked') return
 
     // Activité, pas déclaration : c'est markPeerActive() qui décide de montrer le
     // pair « en ligne », et il respecte un « absent » / « occupé » / « invisible »
@@ -2946,30 +3065,42 @@ class ChatService {
     // Pour un contact encore inconnu, il ne fait qu'enregistrer l'horodatage.
     this.markPeerActive(msg.from)
 
-    if (existing && existing.relation === 'pending') {
-      // Montée de relation : les champs déclaratifs sont repris, mais le statut
-      // n'est pas écrit ici.
-      useContactStore.getState().updateContact(msg.from, {
-        relation: 'contact',
-        displayName: displayName ?? existing.displayName,
-        avatar: avatar ?? existing.avatar,
-        lastSeen: Date.now(),
-      })
-    } else if (!existing) {
-      // New contact — create as 'contact' directly (not 'pending')
-      // since they initiated the request, they've already added us. Aucun pair
-      // jamais atteint n'a de déclaration en poche : « online » est ici exactement
-      // ce que markPeerActive() aurait décidé.
+    // Les deux pairs ont ajouté la clé de l'autre : intentions réciproques. Une
+    // demande ne circule désormais que depuis un ajout volontaire (voir
+    // handleIdentifiedPeer), donc la recevoir alors que notre propre demande
+    // est sortante confirme les deux côtés.
+    const mutual = existing?.relation === 'pending' && existing.requestDirection === 'outgoing'
+
+    if (!existing) {
+      // New contact — pending until we reply. Aucun pair jamais atteint n'a de
+      // déclaration en poche : « online » est ici exactement ce que
+      // markPeerActive() aurait décidé.
       const contact: Contact = {
         publicKey: msg.from,
         displayName: displayName ?? msg.from.slice(0, 8),
         avatar,
         status: 'online',
-        relation: 'contact',
+        relation: 'pending',
+        requestDirection: 'incoming',
         verified: false,
         addedAt: Date.now(),
       }
-      useContactStore.getState().addContact(contact)
+      store.addContact(contact)
+      storageService.saveContact(contact).catch((err) => {
+        console.warn('[ChatService] Failed to persist incoming contact request:', err)
+      })
+    } else {
+      // Champs déclaratifs repris sans toucher à la relation : une demande
+      // reçue ne promeut ni un favori ni une demande déjà en attente.
+      store.updateContact(msg.from, {
+        displayName: displayName ?? existing.displayName,
+        avatar: avatar ?? existing.avatar,
+        lastSeen: Date.now(),
+        ...(existing.relation === 'pending' && !existing.requestDirection
+          ? { requestDirection: 'incoming' as const }
+          : {}),
+      })
+      if (mutual) confirmPendingContact(msg.from, 'outgoing', true)
     }
 
     // CRITICAL: Auto-create conversation so we can navigate to it
@@ -2986,17 +3117,23 @@ class ChatService {
         .catch(() => {})
     }
 
-    // CRITICAL: Send contact:accept back so the sender knows we're online.
-    // This is the bidirectional handshake completion.
     const identity = useIdentityStore.getState().identity
     if (identity) {
-      // PERFORMANCE: Never include avatar in signed messages (saves ~3.8MB per sign)
-      // Avatar is sent separately via binary media channel below
-      p2pService.sendMessage(msg.from, 'contact:accept', {
-        displayName: identity.profile.displayName,
-      }).catch(err => {
-        console.warn('[ChatService] Failed to send contact:accept to:', msg.from.slice(0, 16), err)
-      })
+      // Un contact DÉJÀ confirmé (ou confirmé à l'instant par un ajout croisé)
+      // reçoit l'accept. Une demande encore en attente n'en reçoit pas : seule
+      // la réponse de l'utilisateur confirme l'ajout. On annonce simplement
+      // notre présence, sans avatar tant que le contact n'est pas confirmé.
+      const current = useContactStore.getState().getContact(msg.from)
+      if (current && (current.relation === 'contact' || current.relation === 'favorite')) {
+        if (!mutual) {
+          p2pService.sendMessage(msg.from, 'contact:accept', {
+            displayName: identity.profile.displayName,
+          }).catch(err => {
+            console.warn('[ChatService] Failed to send contact:accept to:', msg.from.slice(0, 16), err)
+          })
+        }
+        this.sendAvatarViaMedia(msg.from, identity.profile.avatar).catch(() => {})
+      }
 
       // Also send our presence so they know we're online
       const status = this.outgoingPresence()
@@ -3005,30 +3142,51 @@ class ChatService {
         displayName: identity.profile.displayName,
         // PERFORMANCE: No avatar in signed message
       }).catch(() => {})
-
-      // PERFORMANCE: Send avatar via binary media channel (doesn't block signing)
-      this.sendAvatarViaMedia(msg.from, identity.profile.avatar).catch(() => {})
     }
 
     this.flushPendingPresence()
   }
 
   /**
-   * Handle incoming contact acceptance
+   * Handle incoming contact acceptance.
+   *
+   * Une acceptation reçue confirme une demande sortante ; elle ne doit jamais
+   * débloquer un pair bloqué ni écraser un favori (l'ancien code forçait
+   * `relation: 'contact'` dans tous les cas).
    */
   private handleContactAccept(msg: ProtocolMessage): void {
     const { displayName } = msg.payload as { displayName?: string }
+    const store = useContactStore.getState()
+    const existing = store.getContact(msg.from)
+
+    if (existing?.relation === 'blocked') return
+
+    if (!existing) {
+      // Ils nous acceptent sans que nous les ayons ajoutés : la relation est
+      // confirmée des deux côtés par l'acceptation elle-même.
+      const contact: Contact = {
+        publicKey: msg.from,
+        displayName: displayName ?? msg.from.slice(0, 8),
+        status: 'online',
+        relation: 'contact',
+        verified: false,
+        addedAt: Date.now(),
+      }
+      store.addContact(contact)
+      storageService.saveContact(contact).catch((err) => {
+        console.warn('[ChatService] Failed to persist accepted contact:', err)
+      })
+    } else {
+      if (displayName) store.updateContact(msg.from, { displayName })
+      // pending (les deux sens) → contact ; contact/favori inchangés.
+      confirmPendingContact(msg.from, 'any', false)
+      store.updateContact(msg.from, { lastSeen: Date.now() })
+    }
 
     // CRITICAL: Update activity timestamp — receiving accept proves the peer is there,
     // nothing more. L'acceptation est une activité, pas une déclaration : c'est
     // markPeerActive() qui tranche, pour ne pas effacer un « absent » / « occupé » /
     // « invisible » que ce pair vient de nous annoncer.
-    useContactStore.getState().updateContact(msg.from, {
-      relation: 'contact',
-      displayName: displayName ?? undefined,
-      // Avatar will arrive via binary media channel (not in signed message)
-      lastSeen: Date.now(),
-    })
     this.markPeerActive(msg.from)
 
     // CRITICAL: Auto-create conversation so user can navigate to it

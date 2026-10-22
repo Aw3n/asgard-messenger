@@ -28,6 +28,7 @@ import { IncomingCallOverlay } from '@/components/overlays/IncomingCallOverlay'
 import { CallView } from '@/features/calls/components/CallView'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useCallStore } from '@/stores/callStore'
+import type { Contact } from '@/types'
 
 /**
  * App — root component with routing and initialization.
@@ -317,6 +318,7 @@ const App: React.FC = () => {
           displayName: string
           status?: string
           relation?: string
+          requestDirection?: 'incoming' | 'outgoing'
           verified?: boolean
           addedAt?: number
           lastSeen?: number
@@ -336,7 +338,8 @@ const App: React.FC = () => {
                 // peer actually connects. Restoring the last-known status (e.g.
                 // 'online') creates ghost contacts that appear online when they're not.
                 status: 'offline',
-                relation: (c.relation as 'contact' | 'favorite' | 'blocked') || 'contact',
+                relation: (c.relation as Contact['relation']) || 'contact',
+                requestDirection: c.requestDirection,
                 verified: c.verified ?? false,
                 addedAt: c.addedAt ?? Date.now(),
                 lastSeen: c.lastSeen,
