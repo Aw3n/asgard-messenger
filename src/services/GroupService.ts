@@ -816,6 +816,11 @@ class GroupService {
       if (payload) {
         p2pService.sendMessage(peerPublicKey, 'group:presence', payload).catch(() => {})
       }
+      // A member who just identified may never have received our profile
+      // avatar (it only travelled at join time). One push per peer and avatar.
+      if (identity.profile.avatar) {
+        this.sendMemberAvatarViaMedia(peerPublicKey, group.id, identity.profile.avatar).catch(() => {})
+      }
     }
   }
 
@@ -1473,15 +1478,28 @@ class GroupService {
 
     if (!groupId || !publicKey) return
 
+    // A presence is a self-declaration: the signed sender cannot speak for
+    // another member, and a peer we don't know must not inflate the online
+    // count by naming a groupId it happens to know.
+    if (publicKey !== msg.from) return
+    const groupBefore = useGroupStore.getState().getGroup(groupId)
+    if (!groupBefore || !groupBefore.members.some((m) => m.publicKey === publicKey)) return
+
     // PERFORMANCE: If the peer has an avatar but we don't have it yet, it will arrive
     // via binary media channel (target='group_member'). The hasAvatar flag is for
     // UI placeholder display — it does NOT contain avatar data.
     if (hasAvatar) {
-      const group = useGroupStore.getState().getGroup(groupId)
-      const member = group?.members.find((m) => m.publicKey === publicKey)
+      const member = groupBefore.members.find((m) => m.publicKey === publicKey)
       if (member && !member.avatar) {
         console.log(`[GroupService] Member ${publicKey.slice(0, 16)} has avatar — awaiting binary transfer`)
       }
+    }
+
+    // GROUP ICON: a joiner may have missed the icon sent right after the invite
+    // (separate media channel, no cross-channel ordering). Re-push it once per
+    // peer and avatar; the dedupe table makes later heartbeats free.
+    if (groupBefore.avatar) {
+      this.sendGroupAvatarViaMedia(publicKey, groupId, groupBefore.avatar).catch(() => {})
     }
 
     // Normalize ONCE, then store the same internal value everywhere. The member
