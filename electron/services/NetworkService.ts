@@ -118,6 +118,15 @@ export class NetworkService extends EventEmitter {
   // fraîchement publié (le P2P, lui, reste la voie primaire).
   private profileMissAt: Map<string, number> = new Map()
   private static readonly PROFILE_MISS_TTL_MS = 10_000
+  // ABSENCE DE RECORD : les trois tentatives servent à laisser à un
+  // enregistrement EXISTANT le temps de se propager (pair transfrontalier).
+  // Un contact qui n'a rien publié répond `null` à chaque fois : insister ne
+  // le fait pas apparaître et coûte 4,5 s de backoff à chaque interrogation
+  // (boucle de 30 s, focus de fenêtre, retour réseau). Après deux cycles
+  // vides consécutifs — le délai de propagation est passé — une seule
+  // tentative suffit ; toute lecture réussie remet le compteur à zéro.
+  private profileMissStreak: Map<string, number> = new Map()
+  private static readonly PROFILE_MISS_RETRY_CYCLES = 2
   // Ed25519 → Noise public key, pure dérivation : la même valeur revient à
   // chaque reconnexion et à chaque démarrage.
   private derivedNoiseKeys: Map<string, string> = new Map()
@@ -837,8 +846,12 @@ export class NetworkService extends EventEmitter {
 
       // Try up to 3 times — DHT lookups can fail due to propagation delays,
       // especially for cross-border connections (e.g. Belgium ↔ France).
+      // Un contact absent de longue date a déjà épuisé ces cycles : une seule
+      // requête, sans backoff, évite de rejouer 4,5 s pour un `null` certain.
+      const missStreak = this.profileMissStreak.get(publicKeyHex) ?? 0
+      const maxAttempts = missStreak >= NetworkService.PROFILE_MISS_RETRY_CYCLES ? 1 : 3
       let result: { value?: Buffer } | null = null
-      for (let attempt = 0; attempt < 3; attempt++) {
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
           result = await dht.mutableGet(publicKey, { latest: true }) as { value?: Buffer } | null
           if (result?.value) {
@@ -847,16 +860,17 @@ export class NetworkService extends EventEmitter {
           }
           logMain(`[NetworkService] ⚠️ DHT FETCH NOT FOUND on attempt ${attempt + 1} | peer=${publicKeyHex.slice(0, 16)}`)
           // Wait before retry — increasing backoff: 1.5s, 3s
-          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+          if (attempt < maxAttempts - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
         } catch (err) {
           logMain(`[NetworkService] ❌ DHT FETCH ERROR on attempt ${attempt + 1}: ${err instanceof Error ? err.message : String(err)}`)
-          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+          if (attempt < maxAttempts - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
         }
       }
 
       if (!result || !result.value) {
-        logMain(`[NetworkService] ⚠️ DHT FETCH FAILED after 3 attempts | peer=${publicKeyHex.slice(0, 16)}`)
+        logMain(`[NetworkService] ⚠️ DHT FETCH FAILED after ${maxAttempts} attempt(s) | peer=${publicKeyHex.slice(0, 16)}`)
         this.profileMissAt.set(publicKeyHex, Date.now())
+        this.profileMissStreak.set(publicKeyHex, missStreak + 1)
         return null
       }
 
@@ -866,6 +880,7 @@ export class NetworkService extends EventEmitter {
       // Cache the result
       this.profileCache.set(publicKeyHex, { data: profile, timestamp: Date.now() })
       this.profileMissAt.delete(publicKeyHex)
+      this.profileMissStreak.delete(publicKeyHex)
 
       logMain(`[NetworkService] ✅ DHT PROFILE | peer=${publicKeyHex.slice(0, 16)} | name=${profile.displayName} | status=${profile.status || 'none'} | age=${ageSeconds}s`)
       return profile
@@ -882,9 +897,11 @@ export class NetworkService extends EventEmitter {
     if (publicKeyHex) {
       this.profileCache.delete(publicKeyHex)
       this.profileMissAt.delete(publicKeyHex)
+      this.profileMissStreak.delete(publicKeyHex)
     } else {
       this.profileCache.clear()
       this.profileMissAt.clear()
+      this.profileMissStreak.clear()
     }
   }
 
@@ -2242,6 +2259,7 @@ export class NetworkService extends EventEmitter {
     this.earlyDials.clear()
     this.profileCache.clear()
     this.profileMissAt.clear()
+    this.profileMissStreak.clear()
     this.reconnectAttempts.clear()
     this.peerPublicKeyMap.clear()
     this.peerLatency.clear()
