@@ -261,11 +261,18 @@ export class NetworkService extends EventEmitter {
 
       const swarmOpts: {
         maxPeers: number
+        maxParallel: number
         firewall: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => boolean
         dht: HyperDHTInstance
         keyPair?: { publicKey: Buffer; secretKey: Buffer }
       } = {
         maxPeers: 100,
+        // Hyperswarm plafonne à 3 les tentatives de connexion simultanées
+        // (maxParallel). Le démarrage lance un joinPeer par contact : au-delà de
+        // trois, la découverte attend la fin des essais précédents, y compris
+        // ceux qui échouent. 8 garde la rafale bornée tout en laissant la
+        // découverte de plusieurs contacts progresser réellement en parallèle.
+        maxParallel: 8,
         // CRITICAL FIX: Pass the deterministic DHT keyPair to Hyperswarm.
         // Per Hyperswarm source (index.js constructor): `keyPair = DHT.keyPair(seed)`
         // defaults to a RANDOM keypair when neither `keyPair` nor `seed` is passed —
