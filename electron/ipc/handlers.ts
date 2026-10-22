@@ -1,12 +1,14 @@
 import { BrowserWindow, ipcMain, app, nativeTheme, Notification, dialog, shell } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
+import { promises as dns } from 'dns'
 import { IdentityService } from '../services/IdentityService'
 import { NetworkService } from '../services/NetworkService'
 import { StorageService } from '../services/StorageService'
 import { configureFirewall, checkFirewallRule, runFirewallHelperAsAdmin, getFirewallStatus } from '../services/FirewallService'
 import { AsgardTray } from '../tray'
 import { openExternalSafe } from '../utils/openExternal'
+import { isDisallowedIpAddress, isIpLiteral, isSafePreviewUrl } from '../utils/previewUrlSafety'
 
 /**
  * Registers all IPC handlers for the main process.
@@ -1349,7 +1351,12 @@ async function setupStorageHandlers(): Promise<void> {
       const data = await storage.getBlob(blobId)
       if (!data || data.length === 0) return { success: false, reason: 'not-found' }
 
-      let safeName = path.basename(String(suggestedName || 'file')).replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+      // Pas de regex de caractères de contrôle (règle no-control-regex) : le
+      // nom reçu est découpé et chaque unité interdite devient un « _ ».
+      let safeName = path.basename(String(suggestedName || 'file'))
+        .split('')
+        .map((ch) => (ch.charCodeAt(0) < 0x20 || '<>:"/\\|?*'.includes(ch) ? '_' : ch))
+        .join('')
       if (!safeName || safeName === '.' || safeName === '..') safeName = 'file'
       const ext = path.extname(safeName).toLowerCase()
       if (OPEN_BLOCKED_EXTENSIONS.has(ext)) {
@@ -1434,56 +1441,123 @@ function decodeHtmlEntities(s: string): string {
     .replace(/&nbsp;/g, ' ')
 }
 
+/**
+ * Un nom d'hôte n'est accepté que si TOUTES ses adresses résolues sont
+ * publiques. Un DNS qui répond 127.0.0.1 ou 10.x est le rebinding classique :
+ * le nom paraît légitime et la connexion reste locale. La résolution précède
+ * la requête (fenêtre de rebinding résiduelle assumée : la parade complète
+ * serait d'épingler l'IP dans le connecteur).
+ */
+async function hostnameResolvesPublic(hostname: string): Promise<boolean> {
+  const bare = hostname.replace(/^\[|\]$/g, '')
+  if (isIpLiteral(bare)) return !isDisallowedIpAddress(bare)
+  try {
+    const records = await dns.lookup(bare, { all: true, verbatim: true })
+    if (records.length === 0) return false
+    return records.every((record) => !isDisallowedIpAddress(record.address))
+  } catch {
+    return false
+  }
+}
+
+const LINK_PREVIEW_TIMEOUT_MS = 5000
+const LINK_PREVIEW_MAX_REDIRECTS = 3
+
+/**
+ * Redirections suivies À LA MAIN : `redirect: 'follow'` laisserait un site
+ * public renvoyer vers http://127.0.0.1/ et contournerait la garde. Le timeout
+ * couvre aussi la lecture du corps — l'appelant doit le libérer.
+ */
+async function fetchPreviewResponse(
+  initial: URL
+): Promise<{ response: Response; timeout: ReturnType<typeof setTimeout> } | null> {
+  let current = initial
+  for (let hop = 0; hop <= LINK_PREVIEW_MAX_REDIRECTS; hop++) {
+    if (!isSafePreviewUrl(current.toString())) return null
+    if (!(await hostnameResolvesPublic(current.hostname))) return null
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), LINK_PREVIEW_TIMEOUT_MS)
+    let response: Response
+    try {
+      response = await fetch(current, {
+        signal: controller.signal,
+        redirect: 'manual',
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Asgard Link Preview)' },
+      })
+    } catch {
+      clearTimeout(timeout)
+      return null
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location')
+      try { await response.body?.cancel() } catch {}
+      clearTimeout(timeout)
+      if (!location || hop === LINK_PREVIEW_MAX_REDIRECTS) return null
+      try {
+        current = new URL(location, current)
+      } catch {
+        return null
+      }
+      continue
+    }
+
+    return { response, timeout }
+  }
+  return null
+}
+
 async function fetchLinkPreview(rawUrl: string): Promise<LinkPreviewResult | null> {
   try {
+    // Cible validée AVANT tout accès réseau : schéma, identifiants, port, hôte.
+    if (!isSafePreviewUrl(rawUrl)) return null
     const url = new URL(rawUrl)
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
 
     const cached = linkPreviewCache.get(rawUrl)
     if (cached) return cached
 
-    // 5s de timeout — un site lent ne doit jamais bloquer le renderer
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Asgard Link Preview)' },
-    })
-    clearTimeout(timeout)
+    const fetched = await fetchPreviewResponse(url)
+    if (!fetched) return null
 
     const preview: LinkPreviewResult = { url: rawUrl, hostname: url.hostname, title: null, description: null }
-    if (res.ok && res.body) {
-      // Lire au plus 64 KB — les balises OG vivent dans le <head>
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let html = ''
-      let received = 0
-      while (received < 65536) {
-        const { done, value } = await reader.read()
-        if (done) break
-        received += value.length
-        html += decoder.decode(value, { stream: true })
-      }
-      try { await reader.cancel() } catch {}
-
-      const pick = (...patterns: RegExp[]): string | null => {
-        for (const p of patterns) {
-          const m = html.match(p)
-          if (m?.[1]) return decodeHtmlEntities(m[1].trim()).slice(0, 200)
+    try {
+      const res = fetched.response
+      if (res.ok && res.body) {
+        // Lire au plus 64 KB — les balises OG vivent dans le <head>
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let html = ''
+        let received = 0
+        while (received < 65536) {
+          const { done, value } = await reader.read()
+          if (done) break
+          received += value.length
+          html += decoder.decode(value, { stream: true })
         }
-        return null
+        try { await reader.cancel() } catch {}
+
+        const pick = (...patterns: RegExp[]): string | null => {
+          for (const p of patterns) {
+            const m = html.match(p)
+            if (m?.[1]) return decodeHtmlEntities(m[1].trim()).slice(0, 200)
+          }
+          return null
+        }
+        preview.title = pick(
+          /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
+          /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i,
+          /<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i,
+          /<title[^>]*>([^<]+)<\/title>/i
+        )
+        preview.description = pick(
+          /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i,
+          /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i,
+          /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i
+        )
       }
-      preview.title = pick(
-        /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
-        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i,
-        /<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i,
-        /<title[^>]*>([^<]+)<\/title>/i
-      )
-      preview.description = pick(
-        /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i,
-        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i,
-        /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i
-      )
+    } finally {
+      clearTimeout(fetched.timeout)
     }
 
     if (linkPreviewCache.size >= 50) {
