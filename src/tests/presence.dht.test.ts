@@ -211,11 +211,21 @@ describe('GroupService — découverte et présence après redémarrage', () => 
 
     p2pService.emit('peer:identified', { peerId: 'noise', publicKey: peer })
 
-    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1))
-    const [target, type, payload] = send.mock.calls[0]
+    await vi.waitFor(() =>
+      expect(send.mock.calls.filter(([, type]) => type === 'group:presence')).toHaveLength(1))
+    const presence = send.mock.calls.filter(([, type]) => type === 'group:presence')
+    const [target, type, payload] = presence[0]
     expect(target).toBe(peer)
     expect(type).toBe('group:presence')
     expect((payload as { groupId: string }).groupId).toBe(group.id)
+
+    // Le snapshot d'effectif suit le même chemin : au pair seul, et uniquement
+    // pour le groupe qu'il partage.
+    await vi.waitFor(() =>
+      expect(send.mock.calls.filter(([, t]) => t === 'group:update')).toHaveLength(1))
+    const [, , roster] = send.mock.calls.find(([, t]) => t === 'group:update')!
+    expect((roster as { groupId: string }).groupId).toBe(group.id)
+    expect((roster as { action: string }).action).toBe('roster:sync')
     send.mockRestore()
   })
 })

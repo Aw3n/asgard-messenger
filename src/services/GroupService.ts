@@ -39,6 +39,8 @@ class GroupService {
   private static readonly MAX_CUSTOM_STATUS = 200
   private static readonly MAX_MENTIONS = 32
   private static readonly MAX_MENTION_PREVIEW = 300
+  /** Effectif maximal échangé dans un seul snapshot d'effectif. */
+  private static readonly MAX_ROSTER_SYNC = 256
   private static readonly MESSAGE_TYPES = new Set(['text', 'mention', 'image', 'file'])
   // OFFLINE QUEUE: Messages queued for delivery when group members are offline.
   // Per Holepunch/Keet pattern: messages should be delivered when peers reconnect.
@@ -81,6 +83,10 @@ class GroupService {
     // immédiatement, sans rebroadcaster à tout le groupe.
     p2pService.on('peer:identified', (data: { publicKey: string }) => {
       this.announcePresenceToPeer(data.publicKey).catch(() => {})
+      // ROSTER: un membre absent au moment d'une arrivée n'a jamais reçu le
+      // member:joined (diffusion unique). En se recroisant, chacun échange son
+      // effectif : les inconnus communs sont ajoutés, jamais de rôle.
+      this.syncGroupRostersWithPeer(data.publicKey).catch(() => {})
     })
 
     // Listen for group invitations
@@ -179,6 +185,37 @@ class GroupService {
   /** Annonce immédiatement notre présence aux groupes déjà connectés. */
   announcePresenceNow(): void {
     this.announcePresenceToAllGroups().catch(() => {})
+  }
+
+  /**
+   * Échange l'effectif des groupes partagés avec un pair qui vient d'être
+   * identifié. Le member:joined n'est diffusé qu'une fois, au moment de
+   * l'arrivée : un membre hors ligne à cet instant ne connaît jamais le
+   * nouveau venu et rejetait ensuite ses messages comme ceux d'un inconnu.
+   * Seuls des ajouts d'inconnus circulent — jamais un rôle, un propriétaire
+   * ou une suppression.
+   */
+  async syncGroupRostersWithPeer(peerPublicKey: string): Promise<void> {
+    if (!peerPublicKey) return
+    const identity = useIdentityStore.getState().identity
+    if (!identity || identity.keyPair.publicKey === peerPublicKey) return
+
+    for (const group of useGroupStore.getState().getAllGroups()) {
+      const members = group.members
+      if (members.length === 0 || members.length > GroupService.MAX_ROSTER_SYNC) continue
+      if (!members.some((m) => m.publicKey === identity.keyPair.publicKey)) continue
+      if (!members.some((m) => m.publicKey === peerPublicKey)) continue
+
+      await p2pService.sendMessage(peerPublicKey, 'group:update', {
+        action: 'roster:sync',
+        groupId: group.id,
+        members: members.map((m) => ({
+          publicKey: m.publicKey,
+          displayName: m.displayName,
+          joinedAt: m.joinedAt,
+        })),
+      }).catch(() => {})
+    }
   }
 
   /**
@@ -1275,6 +1312,34 @@ class GroupService {
             : Date.now(),
           canPost: true,
         })
+        break
+      }
+
+      case 'roster:sync': {
+        // Un membre connu atteste l'effectif qu'il connaît. On n'ajoute que
+        // les inconnus, toujours comme simples membres : un snapshot ne
+        // promeut ni ne rétrograde personne et ne retire personne.
+        if (!senderMember) return
+        const roster = payload.members
+        if (!Array.isArray(roster) || roster.length === 0) return
+        const self = useIdentityStore.getState().identity?.keyPair.publicKey
+        const known = new Set(group.members.map((member) => member.publicKey))
+        for (const entry of roster.slice(0, GroupService.MAX_ROSTER_SYNC)) {
+          if (!entry || typeof entry !== 'object') continue
+          const record = entry as Record<string, unknown>
+          const publicKey = boundedKey(record.publicKey)
+          if (!publicKey || publicKey === self || known.has(publicKey)) continue
+          store.addMember(groupId, {
+            publicKey,
+            displayName: boundedText(record.displayName, GroupService.MAX_PROFILE_NAME) ?? publicKey.slice(0, 12),
+            role: 'member',
+            joinedAt: typeof record.joinedAt === 'number' && Number.isFinite(record.joinedAt)
+              ? record.joinedAt
+              : Date.now(),
+            canPost: true,
+          })
+          known.add(publicKey)
+        }
         break
       }
 
