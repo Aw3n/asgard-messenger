@@ -423,7 +423,7 @@ class FileService {
     // ANNULATION: la condition s'évalue à chaque itération — un transfert
     // annulé pendant l'émission s'arrête au lot suivant au lieu d'aller
     // jusqu'au bout du fichier.
-    for (let offset = 0; offset < bytes.length && chunkError === null && !this.isTransferCancelled(guardKey); offset += CHUNK_SIZE) {
+    for (let offset = 0; offset < bytes.length && chunkError === null && !this.isTransferCancelled(guardKey) && !(cancelKey && this.isGroupPeerCancelled(cancelKey, peerId)); offset += CHUNK_SIZE) {
       // subarray, pas slice : une vue sur le fichier plutôt qu'une copie. Le
       // chunk n'est copié qu'une fois, dans `framed`.
       const chunk = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
@@ -445,6 +445,7 @@ class FileService {
     // Les lots déjà soumis se terminent, mais un transfert annulé ne doit pas
     // continuer : sendFile renonce donc à file:complete et signale l'annulation.
     if (this.isTransferCancelled(guardKey)) throw new TransferCancelledError(guardKey)
+    if (cancelKey && this.isGroupPeerCancelled(cancelKey, peerId)) throw new TransferCancelledError(guardKey)
     if (chunkError !== null) throw chunkError
   }
 
@@ -860,7 +861,7 @@ class FileService {
     // Annulation du groupe : inutile d'ouvrir un envoi pour un transfert déjà
     // annulé — ce contrôle couvre aussi le chemin inline, qui n'a pas de boucle
     // de chunks pour observer le tombstone.
-    if (this.isTransferCancelled(groupTransferId)) {
+    if (this.isTransferCancelled(groupTransferId) || this.isGroupPeerCancelled(groupTransferId, peerId)) {
       throw new TransferCancelledError(groupTransferId)
     }
 
@@ -2023,10 +2024,16 @@ class FileService {
       return
     }
 
-    // Groupe : l'annulation porte l'id de transfert groupé, seul connu des
-    // deux côtés — retrouver les buffers de réception par lui, mais uniquement
-    // ceux du pair qui parle.
+    // Groupe : le récepteur annule sous son id de fil, inconnu de l'expéditeur ;
+    // seul groupTransferId est partagé. Retrouver son buffer de réception par
+    // cet id, uniquement chez le pair qui parle, et cesser de lui envoyer des
+    // lots s'il abandonne sa réception.
     if (groupTransferId) {
+      const groupTransfer = this.groupTransfers.get(groupTransferId)
+      if (groupTransfer?.peerProgress.has(msg.from)) {
+        if (!groupTransfer.cancelledPeers) groupTransfer.cancelledPeers = new Set()
+        groupTransfer.cancelledPeers.add(msg.from)
+      }
       for (const [id, candidate] of [...this.receiveBuffers]) {
         if (candidate.groupTransferId === groupTransferId && candidate.from === msg.from) {
           this.tombstoneCancelled(id)
@@ -2063,6 +2070,11 @@ class FileService {
    */
   isTransferCancelled(transferId: string): boolean {
     return this.cancelledTransfers.has(transferId)
+  }
+
+  /** Un pair d'un envoi groupé a abandonné sa réception. */
+  private isGroupPeerCancelled(groupTransferId: string, peerId: string): boolean {
+    return this.groupTransfers.get(groupTransferId)?.cancelledPeers?.has(peerId) ?? false
   }
 
   /**
@@ -6807,6 +6819,8 @@ interface GroupTransfer {
   attachment: MessageAttachment
   peerProgress: Map<string, number> // peerId -> progress (0-100)
   totalPeers: number
+  /** Pairs qui ont annulé leur réception : ne plus leur envoyer de lots. */
+  cancelledPeers?: Set<string>
   /** Sender's local message ID — included in metadata so receivers can reference it in receipts */
   fileMessageId?: string
 }

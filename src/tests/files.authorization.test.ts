@@ -7,7 +7,7 @@
  * sur le chemin de réception (metadata, chunks, complétion, annulation).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fileService } from '@/services/FileService'
+import { fileService, TransferCancelledError } from '@/services/FileService'
 import { p2pService } from '@/services/P2PService'
 import { storageService } from '@/services/StorageService'
 import { useContactStore } from '@/stores/contactStore'
@@ -41,7 +41,19 @@ interface PrivateFileService {
   orphanChunks: Map<string, unknown[]>
   completedTransferIds: Set<string>
   transfers: Map<string, { peerId?: string }>
-  groupTransfers: Map<string, unknown>
+  groupTransfers: Map<string, {
+    groupId?: string
+    peerProgress?: Map<string, number>
+    cancelledPeers?: Set<string>
+  }>
+  sendFramedChunks(
+    peerId: string,
+    bytes: Uint8Array,
+    transferId: string,
+    totalChunks: number,
+    onProgress: (percent: number) => void,
+    cancelKey?: string,
+  ): Promise<void>
   cancelledTransfers: Set<string>
 }
 
@@ -426,5 +438,33 @@ describe('complétion et annulation', () => {
     }, { size: 7 })
 
     expect(messages()).toEqual([])
+  })
+})
+
+describe('annulation d’un envoi groupé par un destinataire', () => {
+  it('retient le pair qui abandonne et cesse de lui envoyer des lots', async () => {
+    const sendBatch = vi.spyOn(p2pService, 'sendFileDataBatch').mockResolvedValue(undefined)
+    service.groupTransfers.set(groupTransferId, { peerProgress: new Map([[B, 0], [C, 0]]) })
+
+    cancel(B, { transferId: 'fil-de-b', groupTransferId })
+
+    expect(service.groupTransfers.get(groupTransferId)?.cancelledPeers?.has(B)).toBe(true)
+    await expect(service.sendFramedChunks(
+      B, new Uint8Array(16), 'fil-de-b', 1, () => {}, groupTransferId,
+    )).rejects.toBeInstanceOf(TransferCancelledError)
+    expect(sendBatch).not.toHaveBeenCalled()
+
+    // Les autres destinataires continuent de recevoir leur copie.
+    await service.sendFramedChunks(C, new Uint8Array(16), 'fil-de-c', 1, () => {}, groupTransferId)
+    expect(sendBatch).toHaveBeenCalledTimes(1)
+    sendBatch.mockRestore()
+  })
+
+  it('ignore l’annulation d’un pair qui ne reçoit pas ce transfert', () => {
+    service.groupTransfers.set(groupTransferId, { peerProgress: new Map([[B, 0]]) })
+
+    cancel(C, { transferId: 'fil-de-c', groupTransferId })
+
+    expect(service.groupTransfers.get(groupTransferId)?.cancelledPeers).toBeUndefined()
   })
 })
