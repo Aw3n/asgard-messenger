@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Avatar } from '@/components/ui/Avatar'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useConversationStore } from '@/stores/conversationStore'
+import { useGroupStore } from '@/stores/groupStore'
 import { cn } from '@/utils/cn'
 
 interface NavItem {
@@ -57,9 +58,17 @@ export const Sidebar: React.FC = () => {
   const { t } = useTranslation()
   const identity = useIdentityStore((s) => s.identity)
   const conversations = useConversationStore((s) => s.conversations)
+  const groups = useGroupStore((s) => s.groups)
 
+  // Les conversations de groupe sont suivies par le GroupStore (par canal) :
+  // les additionner ici compterait deux fois un jour, et la liste Messages ne
+  // montre que les 1:1.
   const totalUnread = Object.values(conversations).reduce(
-    (sum, c) => sum + (c.unreadCount ?? 0),
+    (sum, c) => (c.type === 'direct' ? sum + (c.unreadCount ?? 0) : sum),
+    0
+  )
+  const groupsUnread = Object.values(groups).reduce(
+    (sum, group) => sum + group.channels.reduce((n, channel) => n + channel.unreadCount, 0),
     0
   )
 
@@ -72,7 +81,13 @@ export const Sidebar: React.FC = () => {
       badge: totalUnread > 0 ? totalUnread : undefined,
     },
     { id: 'contacts',  path: '/contacts',  label: t('nav.contacts'), icon: <ContactsIcon /> },
-    { id: 'groups',    path: '/groups',    label: t('nav.groups'),  icon: <GroupsIcon /> },
+    {
+      id: 'groups',
+      path: '/groups',
+      label: t('nav.groups'),
+      icon: <GroupsIcon />,
+      badge: groupsUnread > 0 ? groupsUnread : undefined,
+    },
     { id: 'calls',     path: '/calls',     label: t('nav.calls'),   icon: <CallsIcon /> },
   ]
 

@@ -37,7 +37,10 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
   // By subscribing to `contacts`, Zustand re-renders whenever any contact is
   // updated (immer produces a new object reference on mutation).
   const contacts = useContactStore((s) => s.contacts)
-  const conversations = getFilteredConversations()
+  // Les groupes vivent dans leur propre page et leur propre liste : une entrée
+  // de groupe ici s'affichait comme un identifiant brut et ouvrait ChatView
+  // sans destinataire, donc un fil vide qui ne pouvait rien envoyer.
+  const conversations = getFilteredConversations().filter((conv) => conv.type === 'direct')
   const [contextMenu, setContextMenu] = useState<{ conv: Conversation; x: number; y: number } | null>(null)
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
