@@ -16,6 +16,56 @@ export const COMPOSER_INPUT_ID = 'asgard-composer-input'
 
 export type ShortcutName = keyof KeyboardShortcuts
 
+/**
+ * Les gestes posés au premier lancement.
+ *
+ * Le magasin portait sa propre copie de ces quinze chaînes : l'éditeur de
+ * réglages, qui doit dire si une valeur est encore celle du lancement, aurait
+ * dû en tenir une seconde. Une seule table, lue par `uiStore` et par l'écran.
+ */
+export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
+  sendMessage: 'Enter',
+  newLine: 'Shift+Enter',
+  openSearch: 'Ctrl+K',
+  closeModal: 'Escape',
+  toggleSidebar: 'Ctrl+B',
+  nextConversation: 'Ctrl+ArrowDown',
+  prevConversation: 'Ctrl+ArrowUp',
+  openSettings: 'Ctrl+,',
+  openProfile: 'Ctrl+P',
+  focusInput: 'Ctrl+I',
+  deleteMessage: 'Delete',
+  editLastMessage: 'Ctrl+E',
+  replyToMessage: 'Ctrl+R',
+  forwardMessage: 'Ctrl+F',
+  copyMessage: 'Ctrl+C',
+}
+
+/**
+ * Le nom de chaque geste tel que l'éditeur de réglages l'écrit.
+ *
+ * Sept d'entre eux reprennent un libellé déjà prononcé ailleurs — le menu de la
+ * bulle, le rail, le composeur : le même mot dans deux endroits ne peut pas
+ * dériver. Les autres n'existent que sur cet écran.
+ */
+export const SHORTCUT_LABEL_KEYS: Record<ShortcutName, string> = {
+  sendMessage: 'contacts.sendMessage',
+  newLine: 'settings.shortcutNewLine',
+  openSearch: 'common.search',
+  closeModal: 'common.close',
+  toggleSidebar: 'settings.shortcutToggleSidebar',
+  nextConversation: 'settings.shortcutNextConversation',
+  prevConversation: 'settings.shortcutPrevConversation',
+  openSettings: 'settings.shortcutOpenSettings',
+  openProfile: 'settings.shortcutOpenProfile',
+  focusInput: 'settings.shortcutFocusInput',
+  deleteMessage: 'chat.deleteMessage',
+  editLastMessage: 'chat.editMessageTitle',
+  replyToMessage: 'chat.reply',
+  forwardMessage: 'chat.forwardMessage',
+  copyMessage: 'chat.copyText',
+}
+
 export interface ParsedCombo {
   /** Touche normalisée : minuscule, « space » pour la barre d'espacement. */
   key: string
@@ -97,14 +147,11 @@ function compiled(raw: string): ParsedCombo | null {
 }
 
 /** Une frappe seule, sans événement : pour brancher un contrôle hors clavier physique. */
-export function comboMatches(
-  raw: unknown,
+/** Le geste décomposé confronté à une frappe, modificateurs déjà connus. */
+function comboMatchesParsed(
+  combo: ParsedCombo,
   event: { key: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }
 ): boolean {
-  if (typeof raw !== 'string') return false
-  const combo = compiled(raw)
-  if (!combo) return false
-
   if (combo.key !== normalizeKey(event.key)) return false
 
   // « Ctrl » accepte la touche Cmd : sous macOS comme sous Electron, Cmd est la
@@ -117,6 +164,15 @@ export function comboMatches(
   const alt = combo.alt ? event.altKey : !event.altKey
 
   return ctrl && meta && shift && alt
+}
+
+export function comboMatches(
+  raw: unknown,
+  event: { key: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }
+): boolean {
+  if (typeof raw !== 'string') return false
+  const combo = compiled(raw)
+  return !!combo && comboMatchesParsed(combo, event)
 }
 
 /**
@@ -164,7 +220,14 @@ export type WiredShortcut = (typeof WIRED_SHORTCUTS)[number]
 /** Les deux combinaisons que le composeur lit lui-même (`MessageInput`). */
 export const COMPOSER_SHORTCUTS = ['sendMessage', 'newLine'] as const satisfies readonly ShortcutName[]
 
-/** Les combinaisons que `useMessageActionShortcuts` applique aux messages du fil ouvert. */
+/**
+ * Les combinaisons que `useMessageActionShortcuts` applique aux messages du fil
+ * ouvert.
+ *
+ * `deleteMessage` (« Delete ») ne porte sur la rangée sous le focus — ou celle
+ * qu'une recherche vient de faire briller — et ouvre une confirmation : la touche
+ * seule ne fait disparaître aucun message.
+ */
 export const MESSAGE_ACTION_SHORTCUTS = [
   'editLastMessage',
   'replyToMessage',
@@ -173,8 +236,187 @@ export const MESSAGE_ACTION_SHORTCUTS = [
   'deleteMessage',
 ] as const satisfies readonly ShortcutName[]
 
+/** Où se joue chaque geste : les trois colonnes de l'éditeur de réglages. */
+export type ShortcutGroupId = 'composer' | 'global' | 'messages'
+
+export interface ShortcutGroup {
+  id: ShortcutGroupId
+  titleKey: string
+  names: readonly ShortcutName[]
+}
+
 /**
- * `deleteMessage` (« Delete ») ne porte sur la rangée sous le focus — ou celle
- * qu'une recherche vient de faire briller — et ouvre une confirmation : la touche
- * seule ne fait disparaître aucun message.
+ * Les groupes de l'éditeur, dans l'ordre de l'écran. Chaque geste n'y figure
+ * qu'une fois et les quinze y figurent : `closeModal` est lu par les dialogues
+ * eux-mêmes, non par l'écouteur global, et se règle au même titre que les
+ * autres.
  */
+export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
+  { id: 'composer', titleKey: 'settings.shortcutsComposer', names: COMPOSER_SHORTCUTS },
+  { id: 'global', titleKey: 'settings.shortcutsGlobal', names: [...WIRED_SHORTCUTS, 'closeModal'] },
+  { id: 'messages', titleKey: 'settings.shortcutsOnMessage', names: MESSAGE_ACTION_SHORTCUTS },
+]
+
+/** Les quinze gestes dans l'ordre de l'écran : l'ordre que prend la recherche d'un conflit. */
+export const SHORTCUT_NAMES: readonly ShortcutName[] = SHORTCUT_GROUPS.flatMap((group) => [...group.names])
+
+/** Les touches qui ne terminent jamais une combinaison : tenues seules, elles n'ont aucun geste à dire. */
+const BARE_MODIFIERS = new Set(['control', 'shift', 'alt', 'meta', 'os', 'win', 'window'])
+
+/** Le nom écrit dans le magasin, tel que `parseCombo` le relit. */
+const STORED_KEY_NAMES: Record<string, string> = {
+  arrowup: 'ArrowUp',
+  arrowdown: 'ArrowDown',
+  arrowleft: 'ArrowLeft',
+  arrowright: 'ArrowRight',
+  pageup: 'PageUp',
+  pagedown: 'PageDown',
+  backspace: 'Backspace',
+  delete: 'Delete',
+  insert: 'Insert',
+  contextmenu: 'ContextMenu',
+  capslock: 'CapsLock',
+  escape: 'Escape',
+  enter: 'Enter',
+  tab: 'Tab',
+  space: 'Space',
+  home: 'Home',
+  end: 'End',
+}
+
+/** Les quatre flèches se lisent mieux dessinées que nommées ; ces glyphes sont du bloc « flèches typographiques », rendu par toutes les polices de base. */
+const KEY_GLYPHS: Record<string, string> = {
+  arrowup: '↑',
+  arrowdown: '↓',
+  arrowleft: '←',
+  arrowright: '→',
+}
+
+function upperFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+/**
+ * La combinaison écrite telle que le magasin la garde, fabriquée depuis une
+ * frappe : c'est tout ce que sait faire l'éditeur de réglages.
+ *
+ * `null` pour un modificateur tenu seul — l'attente continue, la touche n'a
+ * rien réglé — et pour une touche sans signe écrit (une touche multimédia, un
+ * accent mort) : la régler serait promettre un geste que `comboMatches` ne
+ * reconnaîtra jamais.
+ */
+export function comboFromKeypress(
+  event: { key: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }
+): string | null {
+  if (BARE_MODIFIERS.has(event.key.toLowerCase())) return null
+
+  const key = normalizeKey(event.key)
+  if (key.length > 1 && !NAMED_KEYS.has(key)) return null
+
+  const parts: string[] = []
+  if (event.ctrlKey) parts.push('Ctrl')
+  if (event.altKey) parts.push('Alt')
+  if (event.shiftKey) parts.push('Shift')
+  if (event.metaKey) parts.push('Cmd')
+
+  // Le signe « + » s'écrit en toutes lettres : seul, il serait pris pour le
+  // séparateur de la combinaison.
+  const token = key === '+' ? 'plus' : STORED_KEY_NAMES[key] ?? key
+  parts.push(token.length === 1 ? token.toUpperCase() : upperFirst(token))
+  return parts.join('+')
+}
+
+/** Les quatre états des deux touches de contrôle qu'une frappe peut présenter. */
+const CONTROL_STATES: ReadonlyArray<[ctrlKey: boolean, metaKey: boolean]> = [
+  [false, false],
+  [true, false],
+  [false, true],
+  [true, true],
+]
+
+/**
+ * Une même frappe suffit-elle à déclencher les deux gestes ? La comparaison porte
+ * sur les frappes que `comboMatches` reconnaît, pas sur les chaînes écrites :
+ * « Ctrl+K » accepte aussi la touche Cmd, donc réglé en face d'un « Cmd+K », les
+ * deux gestes partent sur la même frappe et le second — celui que la liste
+ * parcourt après — ne se déclenche jamais. L'écran le refuse au lieu de laisser
+ * un réglage qui ment.
+ */
+function combosCollide(a: ParsedCombo, b: ParsedCombo): boolean {
+  if (a.key !== b.key || a.shift !== b.shift || a.alt !== b.alt) return false
+  return CONTROL_STATES.some(([ctrlKey, metaKey]) => {
+    const event = { key: a.key, ctrlKey, metaKey, shiftKey: a.shift, altKey: a.alt }
+    return comboMatchesParsed(a, event) && comboMatchesParsed(b, event)
+  })
+}
+
+/**
+ * Un geste réglé sur « Tab » est refusé : Tab mène le focus dans toute
+ * l'interface. Le piégeage d'un dialogue (`useDialogBehavior`) comme l'arrêt
+ * sur une rangée de message (`useMessageActionShortcuts`) s'appuient sur elle ;
+ * la détourner rendrait l'application sourde au clavier, et c'est le réglage
+ * qu'il faudrait alors retrouver à la souris.
+ */
+export function isReservedCombo(raw: unknown): boolean {
+  const combo = typeof raw === 'string' ? parseCombo(raw) : null
+  return !!combo && combo.key === 'tab'
+}
+
+/**
+ * Le premier autre geste posé sur une frappe que la candidate déclenche aussi,
+ * `null` si personne ne la tient. « ctrl+k » et « Ctrl+K » sont le même geste
+ * réglé deux fois, et « Cmd+K » en tient un troisième qui part avec eux.
+ */
+export function findShortcutConflict(
+  shortcuts: KeyboardShortcuts,
+  name: ShortcutName,
+  candidate: string
+): ShortcutName | null {
+  const wanted = parseCombo(candidate)
+  if (!wanted) return null
+  for (const other of SHORTCUT_NAMES) {
+    if (other === name) continue
+    const held = parseCombo(shortcuts[other])
+    if (held && combosCollide(held, wanted)) return other
+  }
+  return null
+}
+
+/**
+ * La combinaison telle qu'on la lit à l'écran : « Ctrl+ArrowDown » devient
+ * « Ctrl+↓ ». Les modificateurs gardent le nom gravé sur les touches et une
+ * touche nommée s'écrit avec son nom — « Escape », « Delete » — donc rien ici
+ * n'a besoin d'être traduit. `null` quand le magasin porte une chaîne qu'aucune
+ * frappe ne produirait : l'écran dit alors le geste désactivé, comme le code.
+ */
+export function formatCombo(raw: unknown): string | null {
+  const combo = typeof raw === 'string' ? parseCombo(raw) : null
+  if (!combo) return null
+
+  const parts: string[] = []
+  if (combo.ctrl) parts.push('Ctrl')
+  if (combo.alt) parts.push('Alt')
+  if (combo.shift) parts.push('Shift')
+  if (combo.meta) parts.push('Cmd')
+
+  const key = combo.key === '+' ? 'plus' : KEY_GLYPHS[combo.key] ?? combo.key
+  parts.push(key.length === 1 ? key.toUpperCase() : upperFirst(key))
+  return parts.join(' + ')
+}
+
+/**
+ * `aria-keyshortcuts` attend le mot « Control », pas l'abréviation « Ctrl », et
+ * rien pour une combinaison que le code ne saurait pas reconnaître.
+ */
+export function toAriaKeyShortcuts(raw: unknown): string | undefined {
+  const combo = typeof raw === 'string' ? parseCombo(raw) : null
+  if (!combo) return undefined
+
+  const tokens: string[] = []
+  if (combo.ctrl) tokens.push('Control')
+  if (combo.alt) tokens.push('Alt')
+  if (combo.shift) tokens.push('Shift')
+  if (combo.meta) tokens.push('Meta')
+  tokens.push(combo.key === '+' ? 'plus' : upperFirst(combo.key))
+  return tokens.join('+')
+}

@@ -10,12 +10,22 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   COMPOSER_SHORTCUTS,
+  DEFAULT_KEYBOARD_SHORTCUTS,
   MESSAGE_ACTION_SHORTCUTS,
+  SHORTCUT_GROUPS,
+  SHORTCUT_LABEL_KEYS,
+  SHORTCUT_NAMES,
   WIRED_SHORTCUTS,
+  comboFromKeypress,
   comboMatches,
+  findShortcutConflict,
+  formatCombo,
   isPlainEnterCombo,
+  isReservedCombo,
   isTextEntry,
   parseCombo,
+  toAriaKeyShortcuts,
+  type ShortcutName,
 } from '@/utils/shortcuts'
 
 const press = (key: string, modifiers: Partial<{ ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }> = {}) => ({
@@ -214,5 +224,167 @@ describe('actions branchées', () => {
     // n'efface donc un message, et le geste reste hors des raccourcis globaux.
     expect(MESSAGE_ACTION_SHORTCUTS).toContain('deleteMessage')
     expect(WIRED_SHORTCUTS).not.toContain('deleteMessage')
+  })
+})
+
+// ─── Ce que l'éditeur de réglages écrit, lit et refuse ───────────────────────
+
+describe('combinaison fabriquée depuis une frappe', () => {
+  it('écrit la combinaison telle que le magasin la garde', () => {
+    expect(comboFromKeypress(press('k', { ctrlKey: true }))).toBe('Ctrl+K')
+    expect(comboFromKeypress(press('K', { ctrlKey: true }))).toBe('Ctrl+K')
+    expect(comboFromKeypress(press('ArrowDown', { ctrlKey: true }))).toBe('Ctrl+ArrowDown')
+    expect(comboFromKeypress(press('Escape'))).toBe('Escape')
+  })
+
+  it('nomme la barre d’espacement et le plus au lieu de leurs signes', () => {
+    expect(comboFromKeypress(press(' ', { ctrlKey: true }))).toBe('Ctrl+Space')
+    expect(comboFromKeypress(press('+', { ctrlKey: true }))).toBe('Ctrl+Plus')
+  })
+
+  it('garde Cmd pour la touche Cmd', () => {
+    expect(comboFromKeypress(press('k', { metaKey: true }))).toBe('Cmd+K')
+  })
+
+  it('écrit les modificateurs dans un ordre fixe', () => {
+    expect(comboFromKeypress(press('j', { shiftKey: true, altKey: true, ctrlKey: true }))).toBe('Ctrl+Alt+Shift+J')
+  })
+
+  it('attend la touche qui suit un modificateur seul', () => {
+    for (const key of ['Control', 'Shift', 'Alt', 'Meta']) {
+      expect(comboFromKeypress(press(key, { shiftKey: key === 'Shift' }))).toBeNull()
+    }
+  })
+
+  it('ne règle pas une touche sans signe écrit', () => {
+    expect(comboFromKeypress(press('MediaPlay'))).toBeNull()
+    expect(comboFromKeypress(press('Dead'))).toBeNull()
+    expect(comboFromKeypress(press('Unidentified'))).toBeNull()
+  })
+
+  it('rend une chaîne que le magasin relit et que la frappe retrouvée reconnaît', () => {
+    const presses = [
+      press('k', { ctrlKey: true }),
+      press('F5'),
+      press(' ', { altKey: true }),
+      press('+', { ctrlKey: true, shiftKey: true }),
+      press('ArrowUp', { metaKey: true }),
+      press('Delete'),
+      press(',', { ctrlKey: true }),
+    ]
+    for (const event of presses) {
+      const combo = comboFromKeypress(event)
+      expect(combo).toBeTypeOf('string')
+      expect(parseCombo(combo)).not.toBeNull()
+      expect(comboMatches(combo, event)).toBe(true)
+    }
+  })
+})
+
+describe('combinaison affichée', () => {
+  it('dessine les flèches et laisse les noms de touche entiers', () => {
+    expect(formatCombo('Ctrl+ArrowDown')).toBe('Ctrl + ↓')
+    expect(formatCombo('Ctrl+ArrowUp')).toBe('Ctrl + ↑')
+    expect(formatCombo('Escape')).toBe('Escape')
+    expect(formatCombo('Shift+Enter')).toBe('Shift + Enter')
+    expect(formatCombo('Ctrl+Space')).toBe('Ctrl + Space')
+  })
+
+  it('dit nul pour une chaîne qu’aucune frappe ne produirait', () => {
+    expect(formatCombo('')).toBeNull()
+    expect(formatCombo('Ctrl+Foo')).toBeNull()
+    expect(formatCombo(undefined)).toBeNull()
+  })
+
+  it('n’écrit aucun glyphe qu’une police de base ne rendrait pas', () => {
+    // Le verrou `check:emoji` interdit les pictogrammes d'interface ; les
+    // quatre flèches sont du bloc typographique autorisé.
+    const forbidden = /[\u{1F000}-\u{1FAFF}\u{2300}-\u{23FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]|\u{FE0F}/u
+    for (const combo of Object.values(DEFAULT_KEYBOARD_SHORTCUTS)) {
+      const shown = formatCombo(combo)
+      expect(shown).toBeTypeOf('string')
+      expect(forbidden.test(shown as string)).toBe(false)
+    }
+  })
+
+  it('traduit le vocabulaire que réclame aria-keyshortcuts', () => {
+    expect(toAriaKeyShortcuts('Ctrl+K')).toBe('Control+K')
+    expect(toAriaKeyShortcuts('Cmd+K')).toBe('Meta+K')
+    expect(toAriaKeyShortcuts('Shift+Enter')).toBe('Shift+Enter')
+    expect(toAriaKeyShortcuts('')).toBeUndefined()
+  })
+})
+
+describe('gestes refusés à la saisie', () => {
+  it('gardent Tab pour le focus, sous modificateur comme sans', () => {
+    expect(isReservedCombo('Tab')).toBe(true)
+    expect(isReservedCombo('Shift+Tab')).toBe(true)
+    expect(isReservedCombo('Ctrl+Tab')).toBe(true)
+    expect(isReservedCombo('Enter')).toBe(false)
+    expect(isReservedCombo('')).toBe(false)
+  })
+
+  it('aucun geste du lancement ne tombe sous le refus', () => {
+    for (const combo of Object.values(DEFAULT_KEYBOARD_SHORTCUTS)) {
+      expect(isReservedCombo(combo)).toBe(false)
+    }
+  })
+
+  it('nomment le geste qui tient déjà la combinaison', () => {
+    expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, 'openSearch', 'Ctrl+C')).toBe('copyMessage')
+    // La casse et les espaces ne changent rien au geste : « ctrl + c » est
+    // celui de la copie, pas une combinaison libre.
+    expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, 'openSearch', 'ctrl + c')).toBe('copyMessage')
+  })
+
+  it('laissent une combinaison que personne ne tient, et la propre', () => {
+    expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, 'openSearch', 'Ctrl+J')).toBeNull()
+    expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, 'openSearch', 'Ctrl+K')).toBeNull()
+    expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, 'openSearch', '')).toBeNull()
+  })
+
+  it('comparent les frappes, pas les chaînes écrites', () => {
+    // « Ctrl+K » accepte la touche Cmd : posé sur un geste qui nomme déjà Cmd,
+    // les deux partiraient sur la même frappe et le second ne se déclencherait
+    // jamais. Le refus porte dans les deux sens, et même avec Ctrl en plus.
+    expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, 'openProfile', 'Cmd+K')).toBe('openSearch')
+    expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, 'openProfile', 'Ctrl+Cmd+K')).toBe('openSearch')
+    const swapped = { ...DEFAULT_KEYBOARD_SHORTCUTS, openSearch: 'Cmd+K' }
+    expect(findShortcutConflict(swapped, 'openProfile', 'Ctrl+K')).toBe('openSearch')
+    // Une touche tenue seule, sans modificateur, ne peut pas satisfaire un geste
+    // qui en exige un : « K » reste libre en face de « Ctrl+K ».
+    expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, 'openProfile', 'K')).toBeNull()
+  })
+
+  it('ne laissent pas deux gestes du lancement sur la même combinaison', () => {
+    for (const name of SHORTCUT_NAMES) {
+      expect(findShortcutConflict(DEFAULT_KEYBOARD_SHORTCUTS, name, DEFAULT_KEYBOARD_SHORTCUTS[name])).toBeNull()
+    }
+  })
+})
+
+describe('gestes présentés à l’écran', () => {
+  it('couvrent les quinze combinaisons du magasin, chacune une fois', () => {
+    const fromStore = Object.keys(DEFAULT_KEYBOARD_SHORTCUTS) as ShortcutName[]
+    expect([...SHORTCUT_NAMES].sort()).toEqual([...fromStore].sort())
+    expect(new Set(SHORTCUT_NAMES).size).toBe(15)
+  })
+
+  it('nomment chaque geste', () => {
+    for (const name of SHORTCUT_NAMES) {
+      expect(SHORTCUT_LABEL_KEYS[name]).toMatch(/^(settings|chat|common|contacts)\./)
+    }
+  })
+
+  it('rangent les gestes par endroit où ils se jouent', () => {
+    expect(SHORTCUT_GROUPS.map((group) => group.id)).toEqual(['composer', 'global', 'messages'])
+    // Le composeur et les rangées de message restent hors de l'écouteur global ;
+    // `closeModal` se règle avec les autres bien qu'il soit lu par les panneaux.
+    expect(SHORTCUT_GROUPS[0].names).toEqual(['sendMessage', 'newLine'])
+    expect(SHORTCUT_GROUPS[2].names).toEqual([...MESSAGE_ACTION_SHORTCUTS])
+    expect(SHORTCUT_GROUPS[1].names).toContain('closeModal')
+    for (const name of [...COMPOSER_SHORTCUTS, ...MESSAGE_ACTION_SHORTCUTS]) {
+      expect(SHORTCUT_GROUPS[1].names).not.toContain(name)
+    }
   })
 })

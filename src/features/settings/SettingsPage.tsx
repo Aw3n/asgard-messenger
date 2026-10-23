@@ -14,6 +14,7 @@ import { SUPPORTED_LANGUAGES, changeLanguage, getCurrentLanguage } from '@/i18n/
 import { PRESENCE_CHOICES, presenceMeta } from '@/utils/presence'
 import { isQuietNow } from '@/utils/quietHours'
 import { TrashManager } from './components/TrashManager'
+import { ShortcutsManager } from './components/ShortcutsManager'
 import { ThemeSelector } from './components/ThemeSelector'
 import { DownloadHistory } from './components/DownloadHistory'
 import { ShareLinksManager } from './components/ShareLinksManager'
@@ -22,11 +23,11 @@ import { BlockedPeersManager } from './components/BlockedPeersManager'
 import { PageTransition } from '@/components/ui/PageTransition'
 import type { Theme, UserStatus } from '@/types'
 
-type SettingsSection = 'profile' | 'appearance' | 'language' | 'notifications' | 'privacy' | 'security' | 'network' | 'devices' | 'storage' | 'chat' | 'media' | 'accessibility' | 'about'
+type SettingsSection = 'profile' | 'appearance' | 'language' | 'notifications' | 'privacy' | 'security' | 'network' | 'devices' | 'storage' | 'chat' | 'media' | 'accessibility' | 'shortcuts' | 'about'
 
 const SECTION_IDS = [
   'profile', 'appearance', 'language', 'chat', 'media', 'notifications', 'privacy',
-  'security', 'accessibility', 'network', 'devices', 'storage', 'about',
+  'security', 'accessibility', 'shortcuts', 'network', 'devices', 'storage', 'about',
 ] as const satisfies readonly SettingsSection[]
 
 /** La section demandée par l'URL, `profile` sinon — une valeur inconnue ne doit pas rendre une page vide. */
@@ -58,6 +59,7 @@ export const SettingsPage: React.FC = () => {
     { id: 'privacy', label: t('settings.privacy'), icon: <PrivacyIcon /> },
     { id: 'security', label: t('settings.security'), icon: <SecurityIcon /> },
     { id: 'accessibility', label: t('settings.accessibility'), icon: <AccessibilityIcon /> },
+    { id: 'shortcuts', label: t('settings.shortcuts'), icon: <ShortcutsIcon /> },
     { id: 'network', label: t('settings.network'), icon: <NetworkIcon /> },
     { id: 'devices', label: t('settings.devices'), icon: <DevicesIcon /> },
     { id: 'storage', label: t('settings.storage'), icon: <StorageIcon /> },
@@ -111,6 +113,7 @@ export const SettingsPage: React.FC = () => {
             {section === 'privacy' && <PrivacySection />}
             {section === 'security' && <SecuritySection />}
             {section === 'accessibility' && <AccessibilitySection />}
+            {section === 'shortcuts' && <ShortcutsSection />}
             {section === 'network' && <NetworkSection />}
             {section === 'devices' && <DevicesSection />}
             {section === 'storage' && <StorageSection />}
@@ -922,6 +925,19 @@ return (
         </div>
       </div>
     )
+}
+
+// ─── Shortcuts Section ────────────────────────────────────────────────────────
+
+/** Les quinze gestes réglés, groupés par endroit où ils se jouent. */
+const ShortcutsSection: React.FC = () => {
+  const { t } = useTranslation()
+  return (
+    <div>
+      <SectionHeader title={t('settings.shortcuts')} subtitle={t('settings.shortcutsSubtitle')} />
+      <ShortcutsManager />
+    </div>
+  )
 }
 
 // ─── Network Section ──────────────────────────────────────────────────────────
@@ -1951,4 +1967,5 @@ const AboutIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="cu
 const ChatIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
 const MediaIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
 const AccessibilityIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 6c-2.61.7-5.67 1-8.5 1s-5.89-.3-8.5-1L3 8c1.86.5 4 .83 6 1v13h2v-6h2v6h2V9c2-.17 4.14-.5 6-1l-.5-2zM12 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
+const ShortcutsIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg>
 const LanguageIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/></svg>

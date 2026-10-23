@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Theme, RightPanelView, ModalState, Toast, AppSettings, ThemePreset } from '@/types'
 import { generateId } from '@/utils/id'
+import { DEFAULT_KEYBOARD_SHORTCUTS } from '@/utils/shortcuts'
 import { hexToCssRgb, lightenColor, darkenColor, isColorDark, invertColorForLight } from '@/utils/color'
 
 interface ToastTimer {
@@ -118,23 +119,9 @@ const defaultSettings: AppSettings = {
     compressVideos: true,
     compressImages: true,
   },
-  keyboardShortcuts: {
-    sendMessage: 'Enter',
-    newLine: 'Shift+Enter',
-    openSearch: 'Ctrl+K',
-    closeModal: 'Escape',
-    toggleSidebar: 'Ctrl+B',
-    nextConversation: 'Ctrl+ArrowDown',
-    prevConversation: 'Ctrl+ArrowUp',
-    openSettings: 'Ctrl+,',
-    openProfile: 'Ctrl+P',
-    focusInput: 'Ctrl+I',
-    deleteMessage: 'Delete',
-    editLastMessage: 'Ctrl+E',
-    replyToMessage: 'Ctrl+R',
-    forwardMessage: 'Ctrl+F',
-    copyMessage: 'Ctrl+C',
-  },
+  // Une copie : la table du module reste intacte quoi que devienne l'état du
+  // magasin, et l'éditeur de réglages compare ses valeurs aux siennes.
+  keyboardShortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS },
   customTheme: {
     enabled: false,
     accentColor: '#4A90E2',

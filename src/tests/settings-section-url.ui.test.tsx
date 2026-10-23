@@ -40,7 +40,7 @@ const url = () => screen.getByTestId('url').textContent
 
 const SECTIONS = [
   'profile', 'appearance', 'language', 'chat', 'media', 'notifications', 'privacy',
-  'security', 'accessibility', 'network', 'devices', 'storage', 'about',
+  'security', 'accessibility', 'shortcuts', 'network', 'devices', 'storage', 'about',
 ]
 
 beforeAll(() => {
