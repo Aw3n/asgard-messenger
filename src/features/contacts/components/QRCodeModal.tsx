@@ -29,6 +29,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
   const navigate = useNavigate()
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
   const dialogRef = useDialogBehavior(onClose)
+  const pasteKeyId = React.useId()
 
   // Generate QR code on mount
   useEffect(() => {
@@ -170,10 +171,11 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+              <label htmlFor={pasteKeyId} className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
                 {t('contacts.pastePublicKey')}
               </label>
               <textarea
+                id={pasteKeyId}
                 value={pasteKey}
                 onChange={(e) => setPasteKey(e.target.value)}
                 placeholder={t('contacts.pastePlaceholder')}

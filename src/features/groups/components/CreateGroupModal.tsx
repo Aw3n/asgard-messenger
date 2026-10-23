@@ -23,6 +23,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
   const [isCreating, setIsCreating] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
   const dialogRef = useDialogBehavior(onClose)
+  const descriptionId = React.useId()
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -81,10 +82,11 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
             autoFocus
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-asgard-text-secondary">
+            <label htmlFor={descriptionId} className="text-sm font-medium text-asgard-text-secondary">
               {t('groups.descriptionOptional')}
             </label>
             <textarea
+              id={descriptionId}
               className="asgard-input w-full p-3 text-sm resize-none"
               placeholder={t('groups.descriptionPlaceholder')}
               value={description}

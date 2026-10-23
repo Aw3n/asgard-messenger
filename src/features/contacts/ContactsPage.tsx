@@ -13,6 +13,7 @@ import { PageTransition } from '@/components/ui/PageTransition'
 import { formatLastSeen } from '@/utils/time'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { PRESENCE_CHOICES, presenceMeta, fromNetworkStatus, isLivePresence } from '@/utils/presence'
 import { chatService } from '@/services/ChatService'
 import { ContactDetailView } from './components/ContactDetailView'
@@ -407,6 +408,8 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const identity = useIdentityStore((s) => s.identity)
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const dialogRef = useDialogBehavior(onClose)
+  const publicKeyFieldId = React.useId()
 
   // UX COPY/PASTE : un lien d'invitation complet (asgard://invite/<key>?name=)
   // collé dans le champ remplit automatiquement la clé ET le nom
@@ -503,10 +506,15 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('contacts.addContact')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal focus:outline-none"
       >
         <h3 className="text-lg font-semibold text-asgard-text-primary mb-1">{t('contacts.addContact')}</h3>
         <p className="text-sm text-asgard-text-muted mb-5">
@@ -516,7 +524,7 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-sm font-medium text-asgard-text-secondary">
+              <label htmlFor={publicKeyFieldId} className="text-sm font-medium text-asgard-text-secondary">
                 {t('contacts.publicKey')}
               </label>
               <button
@@ -532,6 +540,7 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </button>
             </div>
             <Input
+              id={publicKeyFieldId}
               placeholder={t('contacts.publicKeyPlaceholder')}
               value={publicKey}
               onChange={(e) => handlePublicKeyChange(e.target.value)}

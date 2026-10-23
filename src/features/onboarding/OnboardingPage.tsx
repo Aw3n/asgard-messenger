@@ -288,6 +288,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
   onSave,
 }) => {
   const { t } = useTranslation()
+  const aboutId = React.useId()
   return (
   <motion.div
     variants={stepVariants}
@@ -326,8 +327,9 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
           maxLength={32}
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-asgard-text-secondary">{t('onboarding.about')}</label>
+          <label htmlFor={aboutId} className="text-sm font-medium text-asgard-text-secondary">{t('onboarding.about')}</label>
           <textarea
+            id={aboutId}
             className="asgard-input w-full p-3 text-sm resize-none"
             placeholder={t('onboarding.aboutPlaceholder')}
             value={about}

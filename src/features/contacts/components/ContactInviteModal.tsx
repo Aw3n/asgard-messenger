@@ -20,6 +20,9 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
   const [copied, setCopied] = useState(false)
   const [copiedKeet, setCopiedKeet] = useState(false)
   const dialogRef = useDialogBehavior(onClose)
+  const inviteLinkId = React.useId()
+  const publicKeyId = React.useId()
+  const keetIdFieldId = React.useId()
 
   // Generate invite link from public key
   const inviteKey = identity?.keyPair.publicKey
@@ -79,11 +82,12 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
 
         {/* Invite link */}
         <div className="mb-4">
-          <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+          <label htmlFor={inviteLinkId} className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
             {t('contacts.inviteLink')}
           </label>
           <div className="flex items-center gap-2">
             <input
+              id={inviteLinkId}
               readOnly
               value={inviteKey}
               className="flex-1 bg-asgard-black/30 border border-asgard-border/30 rounded-xl px-3 py-2.5 text-xs text-asgard-text-secondary font-mono truncate focus:outline-none"
@@ -103,11 +107,12 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
 
         {/* Public key */}
         <div className="mb-4">
-          <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+          <label htmlFor={publicKeyId} className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
             {t('contacts.publicKey')}
           </label>
           <div className="flex items-center gap-2">
             <input
+              id={publicKeyId}
               readOnly
               value={identity?.keyPair.publicKey || ''}
               className="flex-1 bg-asgard-black/30 border border-asgard-border/30 rounded-xl px-3 py-2.5 text-xs text-asgard-text-secondary font-mono truncate focus:outline-none"
@@ -124,11 +129,12 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
         {/* Keet/Pear compatible id (z-base-32) */}
         {keetId && (
           <div className="mb-4">
-            <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+            <label htmlFor={keetIdFieldId} className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
               {t('contacts.keetId')}
             </label>
             <div className="flex items-center gap-2">
               <input
+                id={keetIdFieldId}
                 readOnly
                 value={keetId}
                 className="flex-1 bg-asgard-black/30 border border-asgard-border/30 rounded-xl px-3 py-2.5 text-xs text-asgard-text-secondary font-mono truncate focus:outline-none"

@@ -270,6 +270,7 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
   const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high')
   const [noiseSuppression, setNoiseSuppression] = useState(true)
   const [echoCancellation, setEchoCancellation] = useState(true)
+  const videoQualityGroupId = React.useId()
 
   return (
     <motion.div
@@ -333,7 +334,7 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
 
       {/* Video Quality */}
       <div style={{ marginBottom: '16px' }}>
-        <label style={{
+        <p id={videoQualityGroupId} style={{
           fontSize: '13px',
           fontWeight: 500,
           color: 'rgba(255,255,255,0.8)',
@@ -341,12 +342,13 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
           display: 'block',
         }}>
           {t('calls.videoQuality')}
-        </label>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        </p>
+        <div role="group" aria-labelledby={videoQualityGroupId} style={{ display: 'flex', gap: '8px' }}>
           {(['high', 'medium', 'low'] as const).map((quality) => (
             <button
               key={quality}
               onClick={() => setVideoQuality(quality)}
+              aria-pressed={videoQuality === quality}
               style={{
                 flex: 1,
                 padding: '8px 12px',
