@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { useUIStore } from '@/stores/uiStore'
+import { useUIStore, restoreModalTriggerFocus } from '@/stores/uiStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { chatService } from '@/services/ChatService'
@@ -65,6 +65,14 @@ const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }>
   children,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    return () => {
+      // StrictMode rejoue ce nettoyage juste après le montage : tant que la
+      // modale est ouverte, le focus doit rester dans le dialogue.
+      if (!useUIStore.getState().modal.type) restoreModalTriggerFocus()
+    }
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

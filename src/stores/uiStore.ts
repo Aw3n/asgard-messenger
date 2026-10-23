@@ -12,6 +12,16 @@ interface ToastTimer {
 
 const toastTimers = new Map<string, ToastTimer>()
 
+// Déclencheur de la modale : sans ce rappel, le focus retombe sur <body> à la
+// fermeture et l'utilisateur clavier perd sa place dans la page.
+let modalTrigger: HTMLElement | null = null
+
+export function restoreModalTriggerFocus() {
+  const trigger = modalTrigger
+  modalTrigger = null
+  if (trigger && document.contains(trigger)) trigger.focus()
+}
+
 interface UIState {
   theme: Theme
   sidebarCollapsed: boolean
@@ -446,7 +456,15 @@ export const useUIStore = create<UIState>()(
         set({ rightPanelView: current === view ? null : view })
       },
 
-      openModal: (type, props) => set({ modal: { type, props } }),
+      openModal: (type, props) => {
+        // Capturé au clic, avant le montage du dialogue : quand l'effet
+        // arriverait, autoFocus a déjà déplacé le focus dans le champ.
+        if (!get().modal.type) {
+          const active = document.activeElement
+          modalTrigger = active instanceof HTMLElement ? active : null
+        }
+        set({ modal: { type, props } })
+      },
 
       closeModal: () => set({ modal: { type: null } }),
 

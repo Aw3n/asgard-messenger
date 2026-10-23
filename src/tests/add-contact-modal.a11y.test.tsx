@@ -1,8 +1,10 @@
 /**
  * La modale d'ajout de contact s'annonce comme un dialogue nommé, relie ses
- * libellés visibles à leurs champs, annonce l'erreur, et se ferme avec Échap
- * sans interrompre une composition IME en cours.
+ * libellés visibles à leurs champs, annonce l'erreur, se ferme avec Échap
+ * sans interrompre une composition IME en cours, et rend le focus au bouton
+ * qui l'a ouverte.
  */
+import { StrictMode, type ReactElement } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -74,5 +76,31 @@ describe('modale d’ajout de contact', () => {
     const input = screen.getByLabelText('modal.publicKey')
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(input).toHaveAttribute('aria-describedby', 'add-contact-error')
+  })
+
+  it.each([
+    ['hors StrictMode', (ui: ReactElement) => ui],
+    ['sous StrictMode', (ui: ReactElement) => <StrictMode>{ui}</StrictMode>],
+  ])('rend le focus au déclencheur à la fermeture (%s)', async (_name, wrap) => {
+    useUIStore.setState({ modal: { type: null } })
+    render(
+      wrap(
+        <MemoryRouter>
+          <button type="button" onClick={() => useUIStore.getState().openModal('addContact')}>
+            ouvrir
+          </button>
+          <ModalContainer />
+        </MemoryRouter>,
+      ),
+    )
+    const trigger = screen.getByRole('button', { name: 'ouvrir' })
+    trigger.focus()
+    fireEvent.click(trigger)
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByLabelText('modal.publicKey'))
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(document.activeElement).toBe(trigger)
   })
 })
