@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Izbriši kanal",
       "calls.youOnHold": "Klic je zadržen",
       "calls.peerOnHold": "{{name}} — zadržen",
+      "chat.pauseRecording": "Začasno ustavi snemanje",
+      "chat.resumeRecording": "Nadaljuj snemanje",
     }
 }

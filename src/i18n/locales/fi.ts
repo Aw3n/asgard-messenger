@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Poista kanava",
       "calls.youOnHold": "Puhelu on pidossa",
       "calls.peerOnHold": "{{name}} on pidossa",
+      "chat.pauseRecording": "Keskeytä tallennus",
+      "chat.resumeRecording": "Jatka tallennusta",
     }
 }

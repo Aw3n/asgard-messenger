@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Scrios cainéal",
       "calls.youOnHold": "Tá an glao ar coinneáil",
       "calls.peerOnHold": "{{name}} ar coinneáil",
+      "chat.pauseRecording": "Cuir an taifeadadh ar sos",
+      "chat.resumeRecording": "Lean den taifeadadh",
     }
 }

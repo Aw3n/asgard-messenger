@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Ištrinti kanalą",
       "calls.youOnHold": "Skambutis laikomas",
       "calls.peerOnHold": "{{name}} — laikomas",
+      "chat.pauseRecording": "Pristabdyti įrašymą",
+      "chat.resumeRecording": "Tęsti įrašymą",
     }
 }

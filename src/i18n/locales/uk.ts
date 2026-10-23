@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Видалити канал",
       "calls.youOnHold": "Дзвінок на утриманні",
       "calls.peerOnHold": "{{name}} на утриманні",
+      "chat.pauseRecording": "Призупинити запис",
+      "chat.resumeRecording": "Відновити запис",
     }
 }

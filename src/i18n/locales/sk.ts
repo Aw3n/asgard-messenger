@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Odstrániť kanál",
       "calls.youOnHold": "Hovor je pozastavený",
       "calls.peerOnHold": "{{name}} — pozastavený",
+      "chat.pauseRecording": "Pozastaviť nahrávanie",
+      "chat.resumeRecording": "Pokračovať v nahrávaní",
     }
 }

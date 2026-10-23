@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Usuń kanał",
       "calls.youOnHold": "Połączenie wstrzymane",
       "calls.peerOnHold": "{{name}} — połączenie wstrzymane",
+      "chat.pauseRecording": "Wstrzymaj nagrywanie",
+      "chat.resumeRecording": "Wznów nagrywanie",
     }
 }

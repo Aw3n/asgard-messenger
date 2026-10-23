@@ -16,11 +16,16 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
   const [isRecording, setIsRecording] = useState(false)
   const [duration, setDuration] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [canPause, setCanPause] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval>>()
   const startTimeRef = useRef<number>(0)
   const pausedDurationRef = useRef<number>(0)
+  // L'intervalle tourne en closure : sans ref, il lirait pour toujours la valeur
+  // d'origine et le chrono continuerait de défiler pendant la pause.
+  const pausedRef = useRef(false)
+  const pauseStartedRef = useRef(0)
 
   // Start recording
   const startRecording = useCallback(async () => {
@@ -29,6 +34,7 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       chunksRef.current = []
+      setCanPause(typeof mediaRecorder.pause === 'function' && typeof mediaRecorder.resume === 'function')
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data)
@@ -39,9 +45,10 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
       setDuration(0)
       startTimeRef.current = Date.now()
       pausedDurationRef.current = 0
+      pausedRef.current = false
 
       timerRef.current = setInterval(() => {
-        if (!isPaused) {
+        if (!pausedRef.current) {
           setDuration(Math.floor((Date.now() - startTimeRef.current - pausedDurationRef.current) / 1000))
         }
       }, 100)
@@ -49,15 +56,15 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
       console.error('Microphone access denied')
       onCancel()
     }
-  }, [onCancel, isPaused])
+  }, [onCancel])
 
   // Stop recording and send
   const stopRecording = useCallback(() => {
-    if (!mediaRecorderRef.current) return
-    mediaRecorderRef.current.stop()
-    mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
-
-    mediaRecorderRef.current.onstop = () => {
+    const recorder = mediaRecorderRef.current
+    if (!recorder) return
+    // Le handler doit être branché avant l'appel : onstop part dès la fin de
+    // l'encodage et un handler posé après risquerait de n'être jamais vu.
+    recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
       if (blob.size > 0 && duration > 0) {
         onSend(blob, duration)
@@ -65,9 +72,35 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
         onCancel()
       }
     }
+    // En pause, le média reste à couper : stop() l'accepte et rien de la pause
+    // ne s'ajoute au fichier.
+    recorder.stop()
+    recorder.stream.getTracks().forEach((track) => track.stop())
 
     cleanup()
   }, [duration, onSend, onCancel])
+
+  /**
+   * Pause : le chronomètre s'arrête et l'encodeur aussi — les fragments produits
+   * pendant la pause ne rejoignent jamais le fichier, contrairement à un simple
+   * arrêt du timer qui laisserait parler le micro dans le vide.
+   */
+  const togglePause = useCallback(() => {
+    const recorder = mediaRecorderRef.current
+    if (!recorder) return
+    if (!pausedRef.current) {
+      if (recorder.state !== 'recording') return
+      recorder.pause()
+      pausedRef.current = true
+      pauseStartedRef.current = Date.now()
+      setIsPaused(true)
+    } else {
+      if (recorder.state === 'paused') recorder.resume()
+      pausedDurationRef.current += Date.now() - pauseStartedRef.current
+      pausedRef.current = false
+      setIsPaused(false)
+    }
+  }, [])
 
   // Cancel recording
   const cancelRecording = useCallback(() => {
@@ -82,6 +115,9 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
   const cleanup = () => {
     setIsRecording(false)
     setIsPaused(false)
+    setCanPause(false)
+    pausedRef.current = false
+    pauseStartedRef.current = 0
     if (timerRef.current) clearInterval(timerRef.current)
   }
 
@@ -111,9 +147,9 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
       {/* Recording indicator */}
       <div className="flex items-center gap-2">
         <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
-          transition={{ duration: 1.2, repeat: Infinity }}
-          className="w-3 h-3 bg-red-500 rounded-full"
+          animate={isPaused ? { scale: 1, opacity: 1 } : { scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
+          transition={isPaused ? { duration: 0 } : { duration: 1.2, repeat: Infinity }}
+          className={cn('w-3 h-3 rounded-full', isPaused ? 'bg-amber-500' : 'bg-red-500')}
         />
         <span className="text-sm font-mono text-asgard-text-primary">
           {formatDuration(duration)}
@@ -144,6 +180,25 @@ export const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({ onSe
 
       {/* Controls */}
       <div className="flex items-center gap-2">
+        {/* Pause — seulement si l'encodeur sait vraiment s'arrêter */}
+        {canPause && (
+          <button
+            onClick={togglePause}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-asgard-surface-alt hover:bg-asgard-border transition-colors"
+            aria-label={isPaused ? t('chat.resumeRecording') : t('chat.pauseRecording')}
+          >
+            {isPaused ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-secondary">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-secondary">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+              </svg>
+            )}
+          </button>
+        )}
+
         {/* Cancel */}
         <button
           onClick={cancelRecording}

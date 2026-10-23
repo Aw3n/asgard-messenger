@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Șterge canalul",
       "calls.youOnHold": "Apelul este în așteptare",
       "calls.peerOnHold": "{{name}} este în așteptare",
+      "chat.pauseRecording": "Pune în pauză înregistrarea",
+      "chat.resumeRecording": "Reia înregistrarea",
     }
 }

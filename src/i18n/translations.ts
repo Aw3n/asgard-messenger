@@ -910,6 +910,8 @@ export const translations = {
       "groups.deleteChannel": "Supprimer le canal",
       "calls.youOnHold": "Vous êtes en attente",
       "calls.peerOnHold": "{{name}} est en attente",
+      "chat.pauseRecording": "Mettre en pause l’enregistrement",
+      "chat.resumeRecording": "Reprendre l’enregistrement",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1823,6 +1825,8 @@ export const translations = {
       "groups.deleteChannel": "Kanaal verwijderen",
       "calls.youOnHold": "Je staat in de wacht",
       "calls.peerOnHold": "{{name}} staat in de wacht",
+      "chat.pauseRecording": "Opname onderbreken",
+      "chat.resumeRecording": "Opname hervatten",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2736,6 +2740,8 @@ export const translations = {
       "groups.deleteChannel": "Kanal löschen",
       "calls.youOnHold": "Ihr Anruf ist gehalten",
       "calls.peerOnHold": "{{name}} hat den Anruf gehalten",
+      "chat.pauseRecording": "Aufnahme pausieren",
+      "chat.resumeRecording": "Aufnahme fortsetzen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3649,6 +3655,8 @@ export const translations = {
       "groups.deleteChannel": "Elimina canale",
       "calls.youOnHold": "Sei in attesa",
       "calls.peerOnHold": "{{name}} è in attesa",
+      "chat.pauseRecording": "Metti in pausa la registrazione",
+      "chat.resumeRecording": "Riprendi la registrazione",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4562,6 +4570,8 @@ export const translations = {
       "groups.deleteChannel": "Eliminar canal",
       "calls.youOnHold": "Estás en espera",
       "calls.peerOnHold": "{{name}} está en espera",
+      "chat.pauseRecording": "Pausar grabación",
+      "chat.resumeRecording": "Reanudar grabación",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5476,6 +5486,8 @@ export const translations = {
       "groups.deleteChannel": "Eliminar canal",
       "calls.youOnHold": "Está em espera",
       "calls.peerOnHold": "{{name}} está em espera",
+      "chat.pauseRecording": "Pausar gravação",
+      "chat.resumeRecording": "Retomar gravação",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6390,6 +6402,8 @@ export const translations = {
       "groups.deleteChannel": "Διαγραφή καναλιού",
       "calls.youOnHold": "Είστε σε αναμονή",
       "calls.peerOnHold": "{{name}} είναι σε αναμονή",
+      "chat.pauseRecording": "Παύση εγγραφής",
+      "chat.resumeRecording": "Συνέχιση εγγραφής",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7304,6 +7318,8 @@ export const translations = {
       "groups.deleteChannel": "Slet kanal",
       "calls.youOnHold": "Du er på pause",
       "calls.peerOnHold": "{{name}} er på pause",
+      "chat.pauseRecording": "Sæt optagelsen på pause",
+      "chat.resumeRecording": "Genoptag optagelsen",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -8218,6 +8234,8 @@ export const translations = {
       "groups.deleteChannel": "Poista kanava",
       "calls.youOnHold": "Puhelu on pidossa",
       "calls.peerOnHold": "{{name}} on pidossa",
+      "chat.pauseRecording": "Keskeytä tallennus",
+      "chat.resumeRecording": "Jatka tallennusta",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -9132,6 +9150,8 @@ export const translations = {
       "groups.deleteChannel": "Ta bort kanal",
       "calls.youOnHold": "Du är på vänt",
       "calls.peerOnHold": "{{name}} är på vänt",
+      "chat.pauseRecording": "Pausa inspelningen",
+      "chat.resumeRecording": "Återuppta inspelningen",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -10046,6 +10066,8 @@ export const translations = {
       "groups.deleteChannel": "Izbriši kanal",
       "calls.youOnHold": "Vi ste na čekanju",
       "calls.peerOnHold": "{{name}} je na čekanju",
+      "chat.pauseRecording": "Zaustavi snimanje",
+      "chat.resumeRecording": "Nastavi snimanje",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10960,6 +10982,8 @@ export const translations = {
       "groups.deleteChannel": "Kustuta kanal",
       "calls.youOnHold": "Olete ootel",
       "calls.peerOnHold": "{{name}} on ootel",
+      "chat.pauseRecording": "Peata salvestamine",
+      "chat.resumeRecording": "Jätka salvestamist",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11874,6 +11898,8 @@ export const translations = {
       "groups.deleteChannel": "Csatorna törlése",
       "calls.youOnHold": "A hívás tartásban van",
       "calls.peerOnHold": "{{name}} tartásban van",
+      "chat.pauseRecording": "Felvétel szüneteltetése",
+      "chat.resumeRecording": "Felvétel folytatása",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12788,6 +12814,8 @@ export const translations = {
       "groups.deleteChannel": "Dzēst kanālu",
       "calls.youOnHold": "Zvans ir aizturēts",
       "calls.peerOnHold": "{{name}} — aizturēts",
+      "chat.pauseRecording": "Pauzēt ierakstu",
+      "chat.resumeRecording": "Turpināt ierakstu",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13702,6 +13730,8 @@ export const translations = {
       "groups.deleteChannel": "Ištrinti kanalą",
       "calls.youOnHold": "Skambutis laikomas",
       "calls.peerOnHold": "{{name}} — laikomas",
+      "chat.pauseRecording": "Pristabdyti įrašymą",
+      "chat.resumeRecording": "Tęsti įrašymą",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14616,6 +14646,8 @@ export const translations = {
       "groups.deleteChannel": "Ħassar il-kanal",
       "calls.youOnHold": "Is-sejħa fil-pawża",
       "calls.peerOnHold": "{{name}} fil-pawża",
+      "chat.pauseRecording": "Pawża r-reġistrazzjoni",
+      "chat.resumeRecording": "Kompli r-reġistrazzjoni",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -15530,6 +15562,8 @@ export const translations = {
       "groups.deleteChannel": "Usuń kanał",
       "calls.youOnHold": "Połączenie wstrzymane",
       "calls.peerOnHold": "{{name}} — połączenie wstrzymane",
+      "chat.pauseRecording": "Wstrzymaj nagrywanie",
+      "chat.resumeRecording": "Wznów nagrywanie",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -16444,6 +16478,8 @@ export const translations = {
       "groups.deleteChannel": "Odstrániť kanál",
       "calls.youOnHold": "Hovor je pozastavený",
       "calls.peerOnHold": "{{name}} — pozastavený",
+      "chat.pauseRecording": "Pozastaviť nahrávanie",
+      "chat.resumeRecording": "Pokračovať v nahrávaní",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -17358,6 +17394,8 @@ export const translations = {
       "groups.deleteChannel": "Izbriši kanal",
       "calls.youOnHold": "Klic je zadržen",
       "calls.peerOnHold": "{{name}} — zadržen",
+      "chat.pauseRecording": "Začasno ustavi snemanje",
+      "chat.resumeRecording": "Nadaljuj snemanje",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -18272,6 +18310,8 @@ export const translations = {
       "groups.deleteChannel": "Odstranit kanál",
       "calls.youOnHold": "Hovor je pozastaven",
       "calls.peerOnHold": "{{name}} — pozastaven",
+      "chat.pauseRecording": "Pozastavit nahrávání",
+      "chat.resumeRecording": "Pokračovat v nahrávání",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -19186,6 +19226,8 @@ export const translations = {
       "groups.deleteChannel": "Изтрий канала",
       "calls.youOnHold": "Разговорът е на изчакване",
       "calls.peerOnHold": "{{name}} е на изчакване",
+      "chat.pauseRecording": "Пауза на записа",
+      "chat.resumeRecording": "Възобновяване на записа",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -20100,6 +20142,8 @@ export const translations = {
       "groups.deleteChannel": "Scrios cainéal",
       "calls.youOnHold": "Tá an glao ar coinneáil",
       "calls.peerOnHold": "{{name}} ar coinneáil",
+      "chat.pauseRecording": "Cuir an taifeadadh ar sos",
+      "chat.resumeRecording": "Lean den taifeadadh",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -21014,6 +21058,8 @@ export const translations = {
       "groups.deleteChannel": "Șterge canalul",
       "calls.youOnHold": "Apelul este în așteptare",
       "calls.peerOnHold": "{{name}} este în așteptare",
+      "chat.pauseRecording": "Pune în pauză înregistrarea",
+      "chat.resumeRecording": "Reia înregistrarea",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21937,6 +21983,8 @@ export const translations = {
       "groups.deleteChannel": "Delete channel",
       "calls.youOnHold": "You are on hold",
       "calls.peerOnHold": "{{name}} is on hold",
+      "chat.pauseRecording": "Pause recording",
+      "chat.resumeRecording": "Resume recording",
     }
   },
 
@@ -22852,6 +22900,8 @@ export const translations = {
       "groups.deleteChannel": "Видалити канал",
       "calls.youOnHold": "Дзвінок на утриманні",
       "calls.peerOnHold": "{{name}} на утриманні",
+      "chat.pauseRecording": "Призупинити запис",
+      "chat.resumeRecording": "Відновити запис",
     }
   },
 }

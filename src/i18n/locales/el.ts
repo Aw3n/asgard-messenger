@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Διαγραφή καναλιού",
       "calls.youOnHold": "Είστε σε αναμονή",
       "calls.peerOnHold": "{{name}} είναι σε αναμονή",
+      "chat.pauseRecording": "Παύση εγγραφής",
+      "chat.resumeRecording": "Συνέχιση εγγραφής",
     }
 }

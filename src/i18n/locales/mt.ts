@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Ħassar il-kanal",
       "calls.youOnHold": "Is-sejħa fil-pawża",
       "calls.peerOnHold": "{{name}} fil-pawża",
+      "chat.pauseRecording": "Pawża r-reġistrazzjoni",
+      "chat.resumeRecording": "Kompli r-reġistrazzjoni",
     }
 }

@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Kustuta kanal",
       "calls.youOnHold": "Olete ootel",
       "calls.peerOnHold": "{{name}} on ootel",
+      "chat.pauseRecording": "Peata salvestamine",
+      "chat.resumeRecording": "Jätka salvestamist",
     }
 }

@@ -911,5 +911,7 @@ export default {
       "groups.deleteChannel": "Kanal löschen",
       "calls.youOnHold": "Ihr Anruf ist gehalten",
       "calls.peerOnHold": "{{name}} hat den Anruf gehalten",
+      "chat.pauseRecording": "Aufnahme pausieren",
+      "chat.resumeRecording": "Aufnahme fortsetzen",
     }
 }

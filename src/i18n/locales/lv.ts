@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Dzēst kanālu",
       "calls.youOnHold": "Zvans ir aizturēts",
       "calls.peerOnHold": "{{name}} — aizturēts",
+      "chat.pauseRecording": "Pauzēt ierakstu",
+      "chat.resumeRecording": "Turpināt ierakstu",
     }
 }

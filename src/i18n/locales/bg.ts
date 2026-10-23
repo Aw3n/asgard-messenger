@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Изтрий канала",
       "calls.youOnHold": "Разговорът е на изчакване",
       "calls.peerOnHold": "{{name}} е на изчакване",
+      "chat.pauseRecording": "Пауза на записа",
+      "chat.resumeRecording": "Възобновяване на записа",
     }
 }

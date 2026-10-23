@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Slet kanal",
       "calls.youOnHold": "Du er på pause",
       "calls.peerOnHold": "{{name}} er på pause",
+      "chat.pauseRecording": "Sæt optagelsen på pause",
+      "chat.resumeRecording": "Genoptag optagelsen",
     }
 }

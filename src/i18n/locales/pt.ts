@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Eliminar canal",
       "calls.youOnHold": "Está em espera",
       "calls.peerOnHold": "{{name}} está em espera",
+      "chat.pauseRecording": "Pausar gravação",
+      "chat.resumeRecording": "Retomar gravação",
     }
 }

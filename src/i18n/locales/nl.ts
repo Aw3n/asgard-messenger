@@ -911,5 +911,7 @@ export default {
       "groups.deleteChannel": "Kanaal verwijderen",
       "calls.youOnHold": "Je staat in de wacht",
       "calls.peerOnHold": "{{name}} staat in de wacht",
+      "chat.pauseRecording": "Opname onderbreken",
+      "chat.resumeRecording": "Opname hervatten",
     }
 }

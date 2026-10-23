@@ -912,5 +912,7 @@ export default {
       "groups.deleteChannel": "Csatorna törlése",
       "calls.youOnHold": "A hívás tartásban van",
       "calls.peerOnHold": "{{name}} tartásban van",
+      "chat.pauseRecording": "Felvétel szüneteltetése",
+      "chat.resumeRecording": "Felvétel folytatása",
     }
 }
