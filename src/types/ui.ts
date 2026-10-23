@@ -106,8 +106,6 @@ export interface MediaSettings {
   muteByDefault: boolean
   /** Show video controls */
   showVideoControls: boolean
-  /** Image zoom level */
-  imageZoom: number
   /** Enable video compression before sending */
   compressVideos: boolean
   /** Enable image compression before sending */

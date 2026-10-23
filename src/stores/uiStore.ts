@@ -115,7 +115,6 @@ const defaultSettings: AppSettings = {
     audioQuality: 'medium',
     muteByDefault: true,
     showVideoControls: true,
-    imageZoom: 1,
     compressVideos: true,
     compressImages: true,
   },
@@ -315,6 +314,9 @@ function applyCustomThemeToCSS(customTheme: AppSettings['customTheme']) {
   // Dark mode variables - match globals.css hierarchy:
   // deep-black(5) < black(10) < surface(15) < surface-alt(20)
   const darkBg = customTheme.backgroundColor || '#1a1b23'
+  // « Surface Color » est une pipette à l'écran : elle doit peindre les surfaces,
+  // pas rester muette pendant que backgroundColor les déduit du fond.
+  const darkSurface = customTheme.surfaceColor || '#252630'
   const darkVars = `
     --asgard-accent: ${toRgb(customTheme.accentColor, '#4FC3F7')};
     --asgard-glacier: ${toRgb(customTheme.accentColor, '#4FC3F7')};
@@ -328,8 +330,8 @@ function applyCustomThemeToCSS(customTheme: AppSettings['customTheme']) {
     --asgard-cyan-glow: ${toRgb(lightenColor(customTheme.secondaryColor || '#7B68EE', 20), '#9B8BFF')};
     --asgard-deep-black: ${toRgb(darkenColor(darkBg, 10), '#0a0a0f')};
     --asgard-black: ${toRgb(darkenColor(darkBg, 5), '#0f1015')};
-    --asgard-surface: ${toRgb(darkBg, '#1a1b23')};
-    --asgard-surface-alt: ${toRgb(lightenColor(darkBg, 5), '#252630')};
+    --asgard-surface: ${toRgb(darkSurface, '#252630')};
+    --asgard-surface-alt: ${toRgb(lightenColor(darkSurface, 5), '#2e2f3a')};
     --asgard-text-primary: ${toRgb(customTheme.textPrimaryColor, '#ffffff')};
     --asgard-text-secondary: ${toRgb(customTheme.textSecondaryColor, '#a0a0a0')};
     --asgard-text-muted: ${toRgb(darkenColor(customTheme.textSecondaryColor || '#a0a0a0', 20), '#707070')};
@@ -352,6 +354,9 @@ function applyCustomThemeToCSS(customTheme: AppSettings['customTheme']) {
   const lightBg = isDarkTheme 
     ? invertColorForLight(customTheme.backgroundColor || '#1a1b23')
     : (customTheme.backgroundColor || '#f5f9ff')
+  const lightSurface = isDarkTheme
+    ? invertColorForLight(customTheme.surfaceColor || '#252630')
+    : (customTheme.surfaceColor || '#ffffff')
   const lightTextPrimary = isDarkTheme 
     ? darkenColor(customTheme.textPrimaryColor || '#ffffff', 85)
     : (customTheme.textPrimaryColor || '#1a237e')
@@ -375,8 +380,8 @@ function applyCustomThemeToCSS(customTheme: AppSettings['customTheme']) {
     --asgard-cyan-glow: ${toRgb(lightenColor(lightSecondary, 20), '#4FC3F7')};
     --asgard-deep-black: ${toRgb(darkenColor(lightBg, 8), '#e8f0f8')};
     --asgard-black: ${toRgb(lightBg, '#f5f9ff')};
-    --asgard-surface-alt: ${toRgb(lightenColor(lightBg, 2), '#f8f9fc')};
-    --asgard-surface: ${toRgb(lightenColor(lightBg, 5), '#ffffff')};
+    --asgard-surface-alt: ${toRgb(darkenColor(lightSurface, 2), '#f0f4f9')};
+    --asgard-surface: ${toRgb(lightSurface, '#ffffff')};
     --asgard-text-primary: ${toRgb(lightTextPrimary, '#1a237e')};
     --asgard-text-secondary: ${toRgb(lightTextSecondary, '#5c6bc0')};
     --asgard-text-muted: ${toRgb(lightenColor(lightTextSecondary, 25), '#9fa8da')};
