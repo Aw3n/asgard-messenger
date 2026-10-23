@@ -223,6 +223,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, [content, editingMessage, pendingFiles, disabled, onSend, onEditSubmit, onFiles, handleTyping, conversationId, setComposerContent])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter qui valide une composition IME (japonais, chinois, coréen…) :
+    // l'envoyer couperait la saisie en cours. Certains IME ne renseignent que
+    // keyCode 229.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return
     if (e.key === 'Enter') {
       // Ctrl+Enter always sends (explicit user intent)
       if (e.ctrlKey || e.metaKey) {
