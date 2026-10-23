@@ -50,6 +50,7 @@ beforeEach(() => {
     groups: {},
     activeGroupId: null,
     activeChannelId: null,
+    groupViewVisible: false,
     searchQuery: '',
     groupPresence: {},
     channelTyping: {},
@@ -119,5 +120,17 @@ describe('ouverture d’un canal = lecture', () => {
       'group:receipt',
       expect.objectContaining({ groupId, channelId, messageIds: ['m-1', 'm-2'], status: 'read', readerPublicKey: A }),
     )
+  })
+
+  it('ne tait pas les messages d’un canal sélectionné mais quitté', () => {
+    useGroupStore.getState().setActiveGroup(groupId)
+    // Le canal reste « actif » dans le store alors que la page n'est plus
+    // montée : le message doit tout de même compter comme non lu.
+    useGroupStore.getState().incrementChannelUnread(groupId, channelId)
+    expect(useGroupStore.getState().getGroup(groupId)?.channels[0].unreadCount).toBe(1)
+
+    useGroupStore.getState().setGroupViewVisible(true)
+    useGroupStore.getState().incrementChannelUnread(groupId, channelId)
+    expect(useGroupStore.getState().getGroup(groupId)?.channels[0].unreadCount).toBe(1)
   })
 })

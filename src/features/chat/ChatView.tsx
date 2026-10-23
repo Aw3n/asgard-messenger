@@ -89,6 +89,13 @@ export const ChatView: React.FC = () => {
     setReplyTo(undefined)
   }, [conversationId])
 
+  // Seul un ChatView monté prouve que le fil est visible : l'identifiant de
+  // conversation, lui, reste sélectionné après un passage sur une autre page.
+  useEffect(() => {
+    useConversationStore.getState().setChatViewVisible(true)
+    return () => { useConversationStore.getState().setChatViewVisible(false) }
+  }, [])
+
   // Load message history from Hyperbee storage when conversation opens
   useEffect(() => {
     if (!resolvedId) return

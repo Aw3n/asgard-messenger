@@ -12,6 +12,11 @@ interface GroupState {
   activeGroupId: string | null
   /** Currently active channel within the active group */
   activeChannelId: string | null
+  /**
+   * True only while a GroupView is mounted. The selected group/channel survive
+   * navigation, so the unread guard must not assume they are still on screen.
+   */
+  groupViewVisible: boolean
   /** Search query for filtering groups */
   searchQuery: string
   /** Group member presence: groupId -> publicKey -> status */
@@ -82,6 +87,9 @@ interface GroupState {
 
   /** Set the active channel within the active group */
   setActiveChannel: (channelId: string | null) => void
+
+  /** Track whether the group view is actually mounted */
+  setGroupViewVisible: (visible: boolean) => void
 
   /** Update channel unread count */
   incrementChannelUnread: (groupId: string, channelId: string) => void
@@ -157,6 +165,7 @@ export const useGroupStore = create<GroupState>()(
       groups: {},
       activeGroupId: null,
       activeChannelId: null,
+      groupViewVisible: false,
       searchQuery: '',
       groupPresence: {},
       channelTyping: {},
@@ -412,14 +421,20 @@ export const useGroupStore = create<GroupState>()(
         })
       },
 
+      setGroupViewVisible: (visible) => {
+        set((state) => {
+          state.groupViewVisible = visible
+        })
+      },
+
       incrementChannelUnread: (groupId, channelId) => {
         set((state) => {
           const group = state.groups[groupId]
           if (!group) return
           const channel = group.channels.find((ch) => ch.id === channelId)
           if (!channel) return
-          // Don't increment if this is the active channel
-          if (state.activeGroupId === groupId && state.activeChannelId === channelId) return
+          // Don't increment while the channel is actually on screen
+          if (state.groupViewVisible && state.activeGroupId === groupId && state.activeChannelId === channelId) return
           channel.unreadCount += 1
           channel.lastActivity = Date.now()
         })
@@ -677,6 +692,16 @@ export const useGroupStore = create<GroupState>()(
     {
       name: 'asgard-groups',
       storage: createJSONStorage(() => localStorage),
+      // La visibilité de la vue n'est pas persistée : une session relancée ne
+      // doit pas croire qu'un canal est encore affiché et taire ses non-lus.
+      partialize: (state) => ({
+        groups: state.groups,
+        activeGroupId: state.activeGroupId,
+        activeChannelId: state.activeChannelId,
+        searchQuery: state.searchQuery,
+        groupPresence: state.groupPresence,
+        channelTyping: state.channelTyping,
+      }),
     }
   )
 )

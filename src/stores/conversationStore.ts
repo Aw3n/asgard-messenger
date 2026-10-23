@@ -6,6 +6,12 @@ import type { Conversation, ConversationFilter } from '@/types'
 interface ConversationState {
   conversations: Record<string, Conversation>
   activeConversationId: string | null
+  /**
+   * True only while a ChatView is mounted. `activeConversationId` survives
+   * navigation and restarts, so it alone cannot tell that the user has left
+   * the conversation; unread accounting must not trust it.
+   */
+  chatViewVisible: boolean
   filter: ConversationFilter
 
   // Actions
@@ -13,6 +19,7 @@ interface ConversationState {
   updateConversation: (id: string, updates: Partial<Conversation>) => void
   removeConversation: (id: string) => void
   setActiveConversation: (id: string | null) => void
+  setChatViewVisible: (visible: boolean) => void
   incrementUnread: (id: string) => void
   clearUnread: (id: string) => void
   pinConversation: (id: string, pinned: boolean) => void
@@ -35,6 +42,7 @@ export const useConversationStore = create<ConversationState>()(
     immer((set, get) => ({
       conversations: {},
       activeConversationId: null,
+      chatViewVisible: false,
       filter: {},
 
       addConversation: (conv) => {
@@ -73,11 +81,17 @@ export const useConversationStore = create<ConversationState>()(
         })
       },
 
+      setChatViewVisible: (visible) => {
+        set((state) => {
+          state.chatViewVisible = visible
+        })
+      },
+
       incrementUnread: (id) => {
         set((state) => {
           if (!state.conversations[id]) return
-          // Don't increment if this is the active conversation
-          if (state.activeConversationId === id) return
+          // Don't increment while the conversation is actually on screen
+          if (state.chatViewVisible && state.activeConversationId === id) return
           state.conversations[id].unreadCount += 1
         })
       },
@@ -189,6 +203,14 @@ export const useConversationStore = create<ConversationState>()(
     {
       name: 'asgard-conversations',
       storage: createJSONStorage(() => localStorage),
+      // La visibilité d'une vue n'est pas une donnée : une session relancée
+      // après une fermeture pendant un chat ne doit pas croire qu'il est
+      // encore à l'écran et cesser de compter ses non-lus.
+      partialize: (state) => ({
+        conversations: state.conversations,
+        activeConversationId: state.activeConversationId,
+        filter: state.filter,
+      }),
     }
   )
 )

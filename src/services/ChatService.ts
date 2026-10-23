@@ -3151,12 +3151,15 @@ class ChatService {
     // Update unread count
     const convStore = useConversationStore.getState()
     const activeId = convStore.activeConversationId
-    if (activeId !== resolvedId) {
+    // L'identifiant sélectionné survit à la navigation : seul un ChatView
+    // monté prouve que le fil est sous les yeux de l'utilisateur.
+    const viewingConversation = convStore.chatViewVisible && activeId === resolvedId
+    if (!viewingConversation) {
       convStore.incrementUnread(resolvedId)
     }
 
     // Show notification if not active conversation AND notifications are allowed
-    if (activeId !== resolvedId) {
+    if (!viewingConversation) {
       const notifSettings = useUIStore.getState().settings.notifications
       const a11ySettings = useUIStore.getState().settings.accessibility
       if (notifSettings.enabled && !notifSettings.dndMode) {

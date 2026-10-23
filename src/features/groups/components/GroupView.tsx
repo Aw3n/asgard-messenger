@@ -136,6 +136,14 @@ export const GroupView: React.FC = () => {
     }
   }, [activeGroup?.id])
 
+  // Le groupe et le canal sélectionnés survivent à la navigation : sans ce
+  // drapeau, un message reçu après avoir quitté la page serait considéré comme
+  // lu parce que le canal était encore « actif » dans le store.
+  useEffect(() => {
+    useGroupStore.getState().setGroupViewVisible(true)
+    return () => { useGroupStore.getState().setGroupViewVisible(false) }
+  }, [])
+
   // Une citation ou une édition appartient au canal où elle a été choisie :
   // changer de canal ne doit pas envoyer une réponse pointant vers un message
   // invisible, ni valider une édition sur un autre canal.
