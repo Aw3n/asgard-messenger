@@ -411,6 +411,8 @@ export default {
       "settings.created": "Vytvorené",
       "settings.customColors": "Vlastné farby",
       "settings.customColorsDescription": "Prispôsobte farby rozhrania svojmu štýlu.",
+      "settings.useGradient": "Gradient akcentov",
+      "settings.useGradientDesc": "Vyplní tvoje bubliny a hlavné tlačidlá gradientom. Vypnutý použije plochú farbu.",
       "settings.customStatus": "Vlastný stav",
       "settings.customStatusHint": "Voliteľná krátka správa zobrazená kontaktom",
       "settings.customStatusPlaceholder": "Na čo myslíš?",

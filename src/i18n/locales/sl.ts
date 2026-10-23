@@ -411,6 +411,8 @@ export default {
       "settings.created": "Ustvarjeno",
       "settings.customColors": "Barve po meri",
       "settings.customColorsDescription": "Prilagodite barve vmesnika svojemu slogu.",
+      "settings.useGradient": "Prehod poudarkov",
+      "settings.useGradientDesc": "Zapolni vaše mehurčke in glavne gumbe s prehodom. Ko je izklopljen, uporabi eno samo barvo.",
       "settings.customStatus": "Status po meri",
       "settings.customStatusHint": "Neobvezno kratko sporočilo, prikazano stikom",
       "settings.customStatusPlaceholder": "O čem razmišljaš?",

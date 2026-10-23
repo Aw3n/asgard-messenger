@@ -470,6 +470,8 @@ export default {
       "settings.created": "Створено",
       "settings.customColors": "Власні кольори",
       "settings.customColorsDescription": "Налаштуйте кольори інтерфейсу під свій стиль.",
+      "settings.useGradient": "Градієнт акцентів",
+      "settings.useGradientDesc": "Заповнює ваші бульби та основні кнопки градієнтом. Якщо вимкнено, колір буде однотонний.",
       "settings.deletePermanently": "Видалити остаточно",
       "settings.deletedFilesWillAppearHere": "Видалені файли з'являтимуться тут.",
       "settings.deselectAll": "Скасувати вибір усіх",

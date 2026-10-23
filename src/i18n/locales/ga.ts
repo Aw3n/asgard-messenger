@@ -411,6 +411,8 @@ export default {
       "settings.created": "Cruthaithe",
       "settings.customColors": "Dathanna saincheaptha",
       "settings.customColorsDescription": "Saincheap dathanna an chomhéadain d'fhonn do stíle.",
+      "settings.useGradient": "Grádán na mbéimeanna",
+      "settings.useGradientDesc": "Líonann do bholgáin agus na cnaipí príomha le grádán. Nuair atá sé as, úsáidtear dath réidh.",
       "settings.customStatus": "Stádas Saincheaptha",
       "settings.customStatusHint": "Teachtaireacht ghearr roghnach a thaispeántar do theagmhálacha",
       "settings.customStatusPlaceholder": "Cad atá ar d'intinn?",

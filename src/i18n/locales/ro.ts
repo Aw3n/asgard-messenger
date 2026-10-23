@@ -411,6 +411,8 @@ export default {
       "settings.created": "Creat",
       "settings.customColors": "Culori personalizate",
       "settings.customColorsDescription": "Personalizați culorile interfeței pentru a se potrivi stilului dvs.",
+      "settings.useGradient": "Gradient al accentelor",
+      "settings.useGradientDesc": "Umple bulele tale și butoanele principale cu un gradient. Dezactivat, folosește o culoare plată.",
       "settings.customStatus": "Status personalizat",
       "settings.customStatusHint": "Mesaj scurt opțional afișat contactelor",
       "settings.customStatusPlaceholder": "La ce te gândești?",

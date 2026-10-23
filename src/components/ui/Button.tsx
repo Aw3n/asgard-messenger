@@ -16,7 +16,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-br from-asgard-nordic to-asgard-nordic-light text-white hover:from-asgard-nordic-light hover:to-blue-500 shadow-md hover:shadow-asgard-nordic/40',
+  // accent-fill, pas bg-gradient-to-br : le réglage « dégradé » se coupe en
+  // redéfinissant des variables CSS sur <html>, ce qu'une image de dégradé
+  // Tailwind ne peut pas entendre (il n'y a pas de couleur de fond en dessous).
+  primary: 'accent-fill text-white shadow-md hover:shadow-asgard-nordic/40',
   secondary: 'bg-asgard-surface-alt border border-asgard-border text-asgard-text-primary hover:bg-asgard-border hover:border-asgard-border-alt',
   ghost: 'bg-transparent text-asgard-text-secondary hover:bg-asgard-surface-alt hover:text-asgard-text-primary',
   danger: 'bg-gradient-to-br from-red-700 to-red-600 text-white hover:from-red-600 hover:to-red-500',

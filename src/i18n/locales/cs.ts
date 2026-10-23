@@ -411,6 +411,8 @@ export default {
       "settings.created": "Vytvořeno",
       "settings.customColors": "Vlastní barvy",
       "settings.customColorsDescription": "Přizpůsobte barvy rozhraní svému stylu.",
+      "settings.useGradient": "Přechod akcentů",
+      "settings.useGradientDesc": "Vyplní vaše bubliny a hlavní tlačítka přechodem. Vypnuto použije plochou barvu.",
       "settings.customStatus": "Vlastní stav",
       "settings.customStatusHint": "Volitelná krátká zpráva zobrazená kontaktům",
       "settings.customStatusPlaceholder": "Na co myslíš?",

@@ -59,6 +59,7 @@ import { IncomingCallOverlay } from '@/components/overlays/IncomingCallOverlay'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useCallStore } from '@/stores/callStore'
 import { useAppShortcuts } from '@/hooks/useAppShortcuts'
+import { useAppearanceClasses } from '@/hooks/useAppearanceClasses'
 import i18n from '@/i18n/config'
 import type { Contact } from '@/types'
 
@@ -165,21 +166,10 @@ const App: React.FC = () => {
     })
   }, [navigate])
 
-  // ACCESSIBILITY SETTINGS: toggle hook classes on <html> — the actual rules
-  // live in globals.css (highContrast, reducedMotion, keyboardNav, large touch
-  // targets). framer-motion animations are covered by MotionConfig below.
-  useEffect(() => {
-    const root = document.documentElement
-    root.classList.toggle('a11y-high-contrast', settings.accessibility.highContrast)
-    root.classList.toggle('a11y-reduced-motion', settings.accessibility.reducedMotion)
-    root.classList.toggle('a11y-keyboard-nav', settings.accessibility.keyboardNav)
-    root.classList.toggle('a11y-large-touch', settings.accessibility.largerTouchTargets)
-  }, [
-    settings.accessibility.highContrast,
-    settings.accessibility.reducedMotion,
-    settings.accessibility.keyboardNav,
-    settings.accessibility.largerTouchTargets,
-  ])
+  // ACCESSIBILITY + APPARENCE : les réglages posent leurs classes sur <html> —
+  // les règles vivent dans globals.css. framer-motion est couvert par
+  // MotionConfig plus bas.
+  useAppearanceClasses()
 
   const identityPublicKey = identity?.keyPair?.publicKey ?? null
 

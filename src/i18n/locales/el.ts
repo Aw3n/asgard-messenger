@@ -411,6 +411,8 @@ export default {
       "settings.created": "Δημιουργήθηκε",
       "settings.customColors": "Προσαρμοσμένα χρώματα",
       "settings.customColorsDescription": "Προσαρμόστε τα χρώματα της διεπαφής στο στυλ σας.",
+      "settings.useGradient": "Διαβάθμιση τονισμών",
+      "settings.useGradientDesc": "Γεμίζει τις φυσαλίδες σας και τα κύρια κουμπιά με διαβάθμιση. Απενεργοποιημένο, χρησιμοποιεί ένα επίπεδο χρώμα.",
       "settings.customStatus": "Προσαρμοσμένη κατάσταση",
       "settings.customStatusHint": "Προαιρετικό σύντομο μήνυμα που εμφανίζεται στις επαφές",
       "settings.customStatusPlaceholder": "Τι σκέφτεστε;",

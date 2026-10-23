@@ -411,6 +411,8 @@ export default {
       "settings.created": "Skapad",
       "settings.customColors": "Anpassade färger",
       "settings.customColorsDescription": "Anpassa gränssnittets färger efter din stil.",
+      "settings.useGradient": "Gradient för markeringarna",
+      "settings.useGradientDesc": "Fyller dina babbler och huvudknapparna med en gradient. Avstängd ger en enfärgad yta.",
       "settings.customStatus": "Anpassad status",
       "settings.customStatusHint": "Valfritt kort meddelande som visas för kontakter",
       "settings.customStatusPlaceholder": "Vad tänker du på?",

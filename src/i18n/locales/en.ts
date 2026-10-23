@@ -498,6 +498,8 @@ export default {
       "settings.created": "Created",
       "settings.customColors": "Custom colors",
       "settings.customColorsDescription": "Customize interface colors to match your style.",
+      "settings.useGradient": "Gradient accents",
+      "settings.useGradientDesc": "Fills your own bubbles and the primary buttons with a gradient. Turned off, they take one flat colour.",
       "settings.deletePermanently": "Delete permanently",
       "settings.deletedFilesWillAppearHere": "Deleted files will appear here.",
       "settings.deselectAll": "Deselect all",

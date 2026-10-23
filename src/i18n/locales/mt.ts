@@ -411,6 +411,8 @@ export default {
       "settings.created": "Maħluq",
       "settings.customColors": "Kuluri personalizzati",
       "settings.customColorsDescription": "Personalizza l-kuluri tal-interfaċċa skond il-stil tiegħek.",
+      "settings.useGradient": "Gradjent tal-aċċenti",
+      "settings.useGradientDesc": "Jimlew il-bowow tiegħek u l-buttuni primarji b’gradjent. Meta mitfi, juża kulur ċatt.",
       "settings.customStatus": "Status personalizzat",
       "settings.customStatusHint": "Messaġġ qosir opzjonali mur lill-kuntatti",
       "settings.customStatusPlaceholder": "X'qed taħseb?",

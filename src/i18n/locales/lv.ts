@@ -411,6 +411,8 @@ export default {
       "settings.created": "Izveidots",
       "settings.customColors": "Pielāgotās krāsas",
       "settings.customColorsDescription": "Pielāgojiet saskarnes krāsas savam stilam.",
+      "settings.useGradient": "Akcentu gradients",
+      "settings.useGradientDesc": "Aizpilda tavus burbuļus un galvenās pogas ar gradientu. Izslēgts tiek izmantota viena plakana krāsa.",
       "settings.customStatus": "Pielāgots statuss",
       "settings.customStatusHint": "Neobligāts īss ziņojums, kas tiek rādīts kontaktiem",
       "settings.customStatusPlaceholder": "Par ko tu domā?",

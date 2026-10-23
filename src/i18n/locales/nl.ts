@@ -428,6 +428,8 @@ export default {
       "settings.created": "Aangemaakt",
       "settings.customColors": "Aangepaste kleuren",
       "settings.customColorsDescription": "Pas de interfacekleuren aan aan uw stijl.",
+      "settings.useGradient": "Verloop van accenten",
+      "settings.useGradientDesc": "Vult je eigen berichten en de primaire knoppen met een verloop. Uitgeschakeld wordt het één effen kleur.",
       "settings.customStatus": "Aangepaste status",
       "settings.customStatusHint": "Optioneel kort bericht getoond aan contacten",
       "settings.customStatusPlaceholder": "Waar denkt u aan?",

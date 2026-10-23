@@ -428,6 +428,8 @@ export default {
       "settings.created": "Creato",
       "settings.customColors": "Colori personalizzati",
       "settings.customColorsDescription": "Personalizza i colori dell'interfaccia in base al tuo stile.",
+      "settings.useGradient": "Gradiente degli accenti",
+      "settings.useGradientDesc": "Riempie i tuoi fumetti e i pulsanti principali con un gradiente. Disattivato, usa un colore piatto.",
       "settings.customStatus": "Stato personalizzato",
       "settings.customStatusHint": "Breve messaggio opzionale mostrato ai contatti",
       "settings.customStatusPlaceholder": "A cosa stai pensando?",

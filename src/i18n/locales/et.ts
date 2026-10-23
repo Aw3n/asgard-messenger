@@ -411,6 +411,8 @@ export default {
       "settings.created": "Loodud",
       "settings.customColors": "Kohandatud värvid",
       "settings.customColorsDescription": "Kohanda liidese värve oma stiiliga.",
+      "settings.useGradient": "Aktsentide üleminek",
+      "settings.useGradientDesc": "Täidab sinu mullid ja põhitoimingnood üleminekuga. Välja lülitatuna on need ühevärvilised.",
       "settings.customStatus": "Kohandatud olek",
       "settings.customStatusHint": "Valikuline lühiteade, mis kuvatakse kontaktidele",
       "settings.customStatusPlaceholder": "Millest mõtled?",

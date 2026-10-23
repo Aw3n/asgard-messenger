@@ -411,6 +411,8 @@ export default {
       "settings.created": "Utworzono",
       "settings.customColors": "Kolory niestandardowe",
       "settings.customColorsDescription": "Dostosuj kolory interfejsu do swojego stylu.",
+      "settings.useGradient": "Gradient akcentów",
+      "settings.useGradientDesc": "Wypełnia Twoje dymki i główne przyciski gradientem. Wyłączony używa płaskiego koloru.",
       "settings.customStatus": "Niestandardowy status",
       "settings.customStatusHint": "Opcjonalna krótka wiadomość pokazywana kontaktom",
       "settings.customStatusPlaceholder": "O czym myślisz?",

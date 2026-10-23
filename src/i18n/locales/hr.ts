@@ -411,6 +411,8 @@ export default {
       "settings.created": "Stvoreno",
       "settings.customColors": "Prilagođene boje",
       "settings.customColorsDescription": "Prilagodite boje sučelja svom stilu.",
+      "settings.useGradient": "Gradijent naglasaka",
+      "settings.useGradientDesc": "Ispunjava vaše mjehuriće i glavne gumbe gradijentom. Isključeno koristi jednu plošnu boju.",
       "settings.customStatus": "Prilagođeni status",
       "settings.customStatusHint": "Neobavezna kratka poruka prikazana kontaktima",
       "settings.customStatusPlaceholder": "Što ti je na umu?",

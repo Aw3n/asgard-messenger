@@ -428,6 +428,8 @@ export default {
       "settings.created": "Creado",
       "settings.customColors": "Colores personalizados",
       "settings.customColorsDescription": "Personaliza los colores de la interfaz para que coincidan con tu estilo.",
+      "settings.useGradient": "Degradado de los acentos",
+      "settings.useGradientDesc": "Rellena tus burbujas y los botones principales con un degradado. Desactivado, usa un color plano.",
       "settings.customStatus": "Estado personalizado",
       "settings.customStatusHint": "Mensaje corto opcional mostrado a los contactos",
       "settings.customStatusPlaceholder": "¿En qué estás pensando?",

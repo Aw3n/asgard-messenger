@@ -411,6 +411,8 @@ export default {
       "settings.created": "Létrehozva",
       "settings.customColors": "Egyéni színek",
       "settings.customColorsDescription": "Szabja személyre a felület színeit a stílusához.",
+      "settings.useGradient": "Kiemelések színátmenete",
+      "settings.useGradientDesc": "Színátmenettel tölti a saját buborékjait és az elsődleges gombokat. Kikapcsolva egyszínűek.",
       "settings.customStatus": "Egyéni állapot",
       "settings.customStatusHint": "Névjegyeknek megjelenített opcionális rövid üzenet",
       "settings.customStatusPlaceholder": "Mire gondolsz?",

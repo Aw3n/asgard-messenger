@@ -58,7 +58,6 @@ const defaultSettings: AppSettings = {
   theme: 'dark',
   language: 'en',
   fontSize: 'medium',
-  compactMode: 'comfortable',
   notifications: {
     enabled: true,
     sound: true,
@@ -148,11 +147,6 @@ const defaultSettings: AppSettings = {
     borderColor: '#3a3b45',
     useGradient: true,
     borderRadius: 12,
-  },
-  appearance: {
-    theme: 'dark',
-    fontSize: 'medium',
-    compactMode: 'comfortable',
   },
 }
 
@@ -588,7 +582,6 @@ export const useUIStore = create<UIState>()(
               accessibility: { ...defaultSettings.accessibility, ...state.settings.accessibility },
               notifications: { ...defaultSettings.notifications, ...state.settings.notifications },
               privacy: { ...defaultSettings.privacy, ...state.settings.privacy },
-              appearance: { ...defaultSettings.appearance, ...state.settings.appearance },
               network: { ...defaultSettings.network, ...state.settings.network },
               keyboardShortcuts: { ...defaultSettings.keyboardShortcuts, ...state.settings.keyboardShortcuts },
               customTheme: { ...defaultSettings.customTheme, ...state.settings.customTheme },

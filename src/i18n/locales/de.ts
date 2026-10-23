@@ -428,6 +428,8 @@ export default {
       "settings.created": "Erstellt",
       "settings.customColors": "Benutzerdefinierte Farben",
       "settings.customColorsDescription": "Passen Sie die Farben der Benutzeroberfläche an Ihren Stil an.",
+      "settings.useGradient": "Farbverlauf der Akzente",
+      "settings.useGradientDesc": "Füllt eigene Sprechblasen und Hauptbuttons mit einem Verlauf. Ausgeschaltet erscheint eine einfarbige Fläche.",
       "settings.customStatus": "Benutzerdefinierter Status",
       "settings.customStatusHint": "Optionale kurze Nachricht, die Kontakten angezeigt wird",
       "settings.customStatusPlaceholder": "Was beschäftigt dich?",

@@ -468,6 +468,8 @@ export default {
       "settings.created": "Créé",
       "settings.customColors": "Couleurs personnalisées",
       "settings.customColorsDescription": "Personnalisez les couleurs de l'interface pour correspondre à votre style.",
+      "settings.useGradient": "Dégradé des accents",
+      "settings.useGradientDesc": "Remplit vos bulles et les boutons principaux d’un dégradé. Désactivé, ils prennent une couleur plate.",
       "settings.customStatus": "Statut personnalisé",
       "settings.customStatusHint": "Court message facultatif affiché à vos contacts",
       "settings.customStatusPlaceholder": "À quoi pensez-vous ?",

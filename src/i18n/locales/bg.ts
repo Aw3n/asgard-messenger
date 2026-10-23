@@ -411,6 +411,8 @@ export default {
       "settings.created": "Създадено",
       "settings.customColors": "Персонализирани цветове",
       "settings.customColorsDescription": "Персонализирайте цветовете на интерфейса според вашия стил.",
+      "settings.useGradient": "Градиент на акцентите",
+      "settings.useGradientDesc": "Запълва вашите мехурчета и главните бутони с градиент. Изключено, използва плосък цвят.",
       "settings.customStatus": "Персонализиран статус",
       "settings.customStatusHint": "Незадължително кратко съобщение, показвано на контактите",
       "settings.customStatusPlaceholder": "Какво си мислите?",

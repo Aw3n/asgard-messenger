@@ -5,13 +5,11 @@
 export type Theme = 'dark' | 'light' | 'system'
 export type Language = 'en' | 'fr' | 'de' | 'es' | 'ja' | 'zh'
 export type FontSize = 'small' | 'medium' | 'large'
-export type CompactMode = 'comfortable' | 'compact' | 'cozy'
 
 export interface AppSettings {
   theme: Theme
   language: Language
   fontSize: FontSize
-  compactMode: CompactMode
   notifications: NotificationSettings
   privacy: PrivacySettings
   storage: StorageSettings
@@ -21,13 +19,6 @@ export interface AppSettings {
   media: MediaSettings
   keyboardShortcuts: KeyboardShortcuts
   customTheme: CustomThemeSettings
-  /** Appearance sub-section (mirrors theme + fontSize for hydration compat) */
-  appearance: {
-    theme: Theme
-    fontSize: FontSize
-    compactMode: CompactMode
-    accentColor?: string
-  }
 }
 
 export interface NotificationSettings {

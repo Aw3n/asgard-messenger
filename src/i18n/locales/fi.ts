@@ -411,6 +411,8 @@ export default {
       "settings.created": "Luotu",
       "settings.customColors": "Mukautetut värit",
       "settings.customColorsDescription": "Mukauta käyttöliittymän värit omaan tyyliisi.",
+      "settings.useGradient": "Korostusten liukuväri",
+      "settings.useGradientDesc": "Täyttää omat kuplat ja pääpainikkeet liukuvärillä. Pois kytkettynä niissä on tasainen väri.",
       "settings.customStatus": "Mukautettu tila",
       "settings.customStatusHint": "Valinnainen lyhyt viesti yhteystiedoille",
       "settings.customStatusPlaceholder": "Mitä mietit?",

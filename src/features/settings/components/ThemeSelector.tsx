@@ -33,6 +33,15 @@ export const ThemeSelector: React.FC = () => {
     })
   }
 
+  const handleToggleGradient = () => {
+    updateSettings({
+      customTheme: {
+        ...customTheme,
+        useGradient: !customTheme.useGradient,
+      },
+    })
+  }
+
   const handleColorChange = (key: keyof typeof customTheme, value: string) => {
     if (key === 'accentColor' || key === 'secondaryColor' || key === 'backgroundColor' || 
         key === 'surfaceColor' || key === 'textPrimaryColor' || key === 'textSecondaryColor' || 
@@ -127,6 +136,9 @@ export const ThemeSelector: React.FC = () => {
           </div>
           <button
             onClick={handleToggleCustom}
+            role="switch"
+            aria-checked={customTheme.enabled}
+            aria-label={t('settings.customColors')}
             className={cn(
               'relative w-12 h-6 rounded-full transition-colors',
               customTheme.enabled ? 'bg-asgard-glacier' : 'bg-asgard-border'
@@ -134,6 +146,34 @@ export const ThemeSelector: React.FC = () => {
           >
             <motion.div
               animate={{ x: customTheme.enabled ? 24 : 2 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className="absolute top-1 w-4 h-4 rounded-full bg-white"
+            />
+          </button>
+        </div>
+
+        {/* Gradient switch — hors du bloc « couleurs personnalisées » : il décide
+            du remplissage des bulles et des boutons primaires dans TOUS les
+            thèmes, preset compris. */}
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className="text-sm font-medium text-asgard-text-primary">{t('settings.useGradient')}</p>
+            <p className="text-xs text-asgard-text-muted">
+              {t('settings.useGradientDesc')}
+            </p>
+          </div>
+          <button
+            onClick={handleToggleGradient}
+            role="switch"
+            aria-checked={customTheme.useGradient}
+            aria-label={t('settings.useGradient')}
+            className={cn(
+              'relative w-12 h-6 rounded-full transition-colors',
+              customTheme.useGradient ? 'bg-asgard-glacier' : 'bg-asgard-border'
+            )}
+          >
+            <motion.div
+              animate={{ x: customTheme.useGradient ? 24 : 2 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               className="absolute top-1 w-4 h-4 rounded-full bg-white"
             />

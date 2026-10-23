@@ -411,6 +411,8 @@ export default {
       "settings.created": "Sukurta",
       "settings.customColors": "Tinkintos spalvos",
       "settings.customColorsDescription": "Derinkite sąsajos spalvas pagal savo stilių.",
+      "settings.useGradient": "Akcentų perėjimas",
+      "settings.useGradientDesc": "Užpildo jūsų burbulus ir pagrindinius mygtukus perėjimu. Išjungus naudojama viena plokščia spalva.",
       "settings.customStatus": "Pasirinktinė būsena",
       "settings.customStatusHint": "Neprivalomas trumpas pranešimas, rodomas kontaktams",
       "settings.customStatusPlaceholder": "Apie ką galvoji?",

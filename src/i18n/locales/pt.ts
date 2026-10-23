@@ -411,6 +411,8 @@ export default {
       "settings.created": "Criado",
       "settings.customColors": "Cores personalizadas",
       "settings.customColorsDescription": "Personalize as cores da interface para corresponder ao seu estilo.",
+      "settings.useGradient": "Gradiente dos acentos",
+      "settings.useGradientDesc": "Preenche as suas bolhas e os botões principais com um gradiente. Desativado, usa uma cor lisa.",
       "settings.customStatus": "Estado personalizado",
       "settings.customStatusHint": "Mensagem curta opcional mostrada aos contactos",
       "settings.customStatusPlaceholder": "Em que está a pensar?",

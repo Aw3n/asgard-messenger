@@ -411,6 +411,8 @@ export default {
       "settings.created": "Oprettet",
       "settings.customColors": "Tilpassede farver",
       "settings.customColorsDescription": "Tilpas grænsefladens farver til din stil.",
+      "settings.useGradient": "Forløb for markeringerne",
+      "settings.useGradientDesc": "Fylder dine bobler og de primære knapper med et forløb. Slået fra bruger de én flad farve.",
       "settings.customStatus": "Brugerdefineret status",
       "settings.customStatusHint": "Valgfri kort besked vist til kontakter",
       "settings.customStatusPlaceholder": "Hvad tænker du på?",
