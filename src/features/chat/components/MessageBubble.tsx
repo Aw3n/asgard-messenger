@@ -58,7 +58,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   // PRIVACY SETTINGS (privacy.linkPreviews): first URL of the message gets a
   // preview card when the user opted in — metadata is fetched by the main
   // process only, nothing leaves the app when the setting is off.
-  const linkPreviewUrl = useUIStore.getState().settings.privacy.linkPreviews
+  // La souscription est obligatoire : lu en getState(), l'interrupteur restait
+  // sans effet sur les bulles déjà montées.
+  const linkPreviewsOn = useUIStore((s) => s.settings.privacy.linkPreviews)
+  const linkPreviewUrl = linkPreviewsOn
     ? message.content?.match(/\bhttps?:\/\/[^\s<>()[\]"']+/)?.[0]?.replace(/[.,;:!?)]+$/, '')
     : undefined
   const [showActions, setShowActions] = useState(false)

@@ -7,6 +7,12 @@ interface MarkdownRendererProps {
   className?: string
 }
 
+/** Réglages qui changent ce que la parse produit, et donc ce qu'il faut re-rendre. */
+interface RenderPrefs {
+  autoEmoji: boolean
+  inlinePreviews: boolean
+}
+
 /**
  * MarkdownRenderer — renders markdown content with support for:
  * bold, italic, code, code blocks, links, blockquotes, lists, headings.
@@ -15,7 +21,13 @@ interface MarkdownRendererProps {
  * auto-links bare URLs so they are clickable.
  */
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className }) => {
-  const rendered = useMemo(() => parseMarkdown(content), [content])
+  // Les deux réglages se relisaient en coup d'œil instantané au store pendant la
+  // parse : les bulles déjà montées ignoraient l'interrupteur jusqu'au remontage.
+  // La souscription ici est ce qui fait basculer l'écran.
+  const autoEmoji = useUIStore((s) => s.settings.chat.autoEmoji)
+  const inlinePreviews = useUIStore((s) => s.settings.chat.inlinePreviews)
+  const prefs = useMemo<RenderPrefs>(() => ({ autoEmoji, inlinePreviews }), [autoEmoji, inlinePreviews])
+  const rendered = useMemo(() => parseMarkdown(content, prefs), [content, prefs])
 
   return (
     <div className={cn('message-content', className)}>
@@ -26,7 +38,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
 // ─── Simple Markdown Parser ──────────────────────────────────────────────────
 
-function parseMarkdown(text: string): React.ReactNode[] {
+function parseMarkdown(text: string, prefs: RenderPrefs): React.ReactNode[] {
   const lines = text.split('\n')
   const elements: React.ReactNode[] = []
   let inCodeBlock = false
@@ -68,7 +80,7 @@ function parseMarkdown(text: string): React.ReactNode[] {
     if (line.startsWith('### ')) {
       elements.push(
         <h3 key={`h3-${i}`} className="text-sm font-bold text-asgard-text-primary mt-2 mb-1">
-          {parseInline(line.slice(4))}
+          {parseInline(line.slice(4), prefs)}
         </h3>
       )
       continue
@@ -76,7 +88,7 @@ function parseMarkdown(text: string): React.ReactNode[] {
     if (line.startsWith('## ')) {
       elements.push(
         <h2 key={`h2-${i}`} className="text-base font-bold text-asgard-text-primary mt-2 mb-1">
-          {parseInline(line.slice(3))}
+          {parseInline(line.slice(3), prefs)}
         </h2>
       )
       continue
@@ -84,7 +96,7 @@ function parseMarkdown(text: string): React.ReactNode[] {
     if (line.startsWith('# ')) {
       elements.push(
         <h1 key={`h1-${i}`} className="text-lg font-bold text-asgard-text-primary mt-2 mb-1">
-          {parseInline(line.slice(2))}
+          {parseInline(line.slice(2), prefs)}
         </h1>
       )
       continue
@@ -94,7 +106,7 @@ function parseMarkdown(text: string): React.ReactNode[] {
     if (line.startsWith('> ')) {
       elements.push(
         <blockquote key={`bq-${i}`} className="border-l-3 border-asgard-glacier/50 pl-3 text-asgard-text-secondary italic my-1">
-          {parseInline(line.slice(2))}
+          {parseInline(line.slice(2), prefs)}
         </blockquote>
       )
       continue
@@ -105,7 +117,7 @@ function parseMarkdown(text: string): React.ReactNode[] {
       elements.push(
         <div key={`li-${i}`} className="flex gap-2 ml-3 my-0.5">
           <span className="text-asgard-glacier mt-0.5">•</span>
-          <span className="text-sm">{parseInline(line.slice(2))}</span>
+          <span className="text-sm">{parseInline(line.slice(2), prefs)}</span>
         </div>
       )
       continue
@@ -117,7 +129,7 @@ function parseMarkdown(text: string): React.ReactNode[] {
       elements.push(
         <div key={`ol-${i}`} className="flex gap-2 ml-3 my-0.5">
           <span className="text-asgard-text-muted text-xs mt-0.5 min-w-4">{orderedMatch[1]}.</span>
-          <span className="text-sm">{parseInline(line.slice(orderedMatch[0].length))}</span>
+          <span className="text-sm">{parseInline(line.slice(orderedMatch[0].length), prefs)}</span>
         </div>
       )
       continue
@@ -126,7 +138,7 @@ function parseMarkdown(text: string): React.ReactNode[] {
     // Normal paragraph
     elements.push(
       <p key={`p-${i}`} className="text-sm leading-5 my-0.5">
-        {parseInline(line)}
+        {parseInline(line, prefs)}
       </p>
     )
   }
@@ -145,7 +157,7 @@ function parseMarkdown(text: string): React.ReactNode[] {
   return elements
 }
 
-function parseInline(text: string): React.ReactNode {
+function parseInline(text: string, prefs: RenderPrefs): React.ReactNode {
   const parts: React.ReactNode[] = []
   let remaining = text
   let key = 0
@@ -155,7 +167,7 @@ function parseInline(text: string): React.ReactNode {
     const boldMatch = remaining.match(/\*\*(.+?)\*\*/)
     if (boldMatch && boldMatch.index !== undefined) {
       if (boldMatch.index > 0) {
-        parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, boldMatch.index))}</span>)
+        parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, boldMatch.index), prefs)}</span>)
       }
       parts.push(<strong key={key++} className="font-semibold">{boldMatch[1]}</strong>)
       remaining = remaining.slice(boldMatch.index + boldMatch[0].length)
@@ -166,7 +178,7 @@ function parseInline(text: string): React.ReactNode {
     const italicMatch = remaining.match(/\*(.+?)\*/)
     if (italicMatch && italicMatch.index !== undefined) {
       if (italicMatch.index > 0) {
-        parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, italicMatch.index))}</span>)
+        parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, italicMatch.index), prefs)}</span>)
       }
       parts.push(<em key={key++} className="italic">{italicMatch[1]}</em>)
       remaining = remaining.slice(italicMatch.index + italicMatch[0].length)
@@ -177,7 +189,7 @@ function parseInline(text: string): React.ReactNode {
     const codeMatch = remaining.match(/`(.+?)`/)
     if (codeMatch && codeMatch.index !== undefined) {
       if (codeMatch.index > 0) {
-        parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, codeMatch.index))}</span>)
+        parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, codeMatch.index), prefs)}</span>)
       }
       parts.push(
         <code key={key++} className="bg-asgard-surface-alt rounded px-1 py-0.5 text-xs font-mono">
@@ -192,7 +204,7 @@ function parseInline(text: string): React.ReactNode {
     const linkMatch = remaining.match(/\[(.+?)\]\((.+?)\)/)
     if (linkMatch && linkMatch.index !== undefined) {
       if (linkMatch.index > 0) {
-        parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, linkMatch.index))}</span>)
+        parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, linkMatch.index), prefs)}</span>)
       }
       parts.push(
         <a key={key++} href={linkMatch[2]} target="_blank" rel="noopener noreferrer" className="text-asgard-glacier hover:underline">
@@ -204,14 +216,14 @@ function parseInline(text: string): React.ReactNode {
     }
 
     // No more matches — render the rest
-    parts.push(<span key={key++}>{parseSimpleInline(remaining)}</span>)
+    parts.push(<span key={key++}>{parseSimpleInline(remaining, prefs)}</span>)
     break
   }
 
   return <>{parts}</>
 }
 
-function parseSimpleInline(text: string): React.ReactNode {
+function parseSimpleInline(text: string, prefs: RenderPrefs): React.ReactNode {
   // Handle ~~strikethrough~~
   const strikeMatch = text.match(/~~(.+?)~~/)
   if (strikeMatch && strikeMatch.index !== undefined) {
@@ -219,15 +231,15 @@ function parseSimpleInline(text: string): React.ReactNode {
       <>
         {strikeMatch.index > 0 && text.slice(0, strikeMatch.index)}
         <s className="line-through opacity-60">{strikeMatch[1]}</s>
-        {parseSimpleInline(text.slice(strikeMatch.index + strikeMatch[0].length))}
+        {parseSimpleInline(text.slice(strikeMatch.index + strikeMatch[0].length), prefs)}
       </>
     )
   }
-  // CHAT SETTINGS: apply autoEmoji and bare-URL linkification to plain text runs
-  const { autoEmoji, inlinePreviews } = useUIStore.getState().settings.chat
+  // CHAT SETTINGS: autoEmoji and bare-URL linkification come from the renderer,
+  // not from a glance at the store — the switch must apply to mounted bubbles.
   let processed = text
-  if (autoEmoji) processed = applyAutoEmoji(processed)
-  if (inlinePreviews) return linkifyUrls(processed)
+  if (prefs.autoEmoji) processed = applyAutoEmoji(processed)
+  if (prefs.inlinePreviews) return linkifyUrls(processed)
   return processed
 }
 
