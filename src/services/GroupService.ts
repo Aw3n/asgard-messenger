@@ -1874,7 +1874,10 @@ class GroupService {
     const messageId = payload.messageId as string
     const action = payload.action as string
 
-    if (!groupId || !channelId || !messageId) return
+    if (typeof groupId !== 'string' || !groupId || groupId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof channelId !== 'string' || !channelId || channelId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof messageId !== 'string' || !messageId || messageId.length > GroupService.MAX_MESSAGE_ID) return
+    if (action !== 'pin' && action !== 'unpin') return
 
     const store = useGroupStore.getState()
     const group = store.getGroup(groupId)

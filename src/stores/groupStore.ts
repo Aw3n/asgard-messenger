@@ -446,6 +446,10 @@ export const useGroupStore = create<GroupState>()(
           }
           if (!channel.pinnedMessageIds.includes(messageId)) {
             channel.pinnedMessageIds.push(messageId)
+            // Une épingle est un état borné, pas un journal qui grossit sans fin.
+            if (channel.pinnedMessageIds.length > 100) {
+              channel.pinnedMessageIds = channel.pinnedMessageIds.slice(-100)
+            }
           }
         })
       },

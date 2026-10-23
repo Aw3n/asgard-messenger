@@ -372,4 +372,24 @@ describe('indicateurs et épingles', () => {
     dispatch('handleGroupPin', { groupId, channelId, messageId: 'm1', action: 'pin' }, B, 'group:pin')
     expect(group().channels.find((ch) => ch.id === channelId)?.pinnedMessageIds).toContain('m1')
   })
+
+  it('borne la liste des épingles et ignore une action ou un id hors format', () => {
+    for (let index = 0; index < 150; index++) {
+      dispatch('handleGroupPin', {
+        groupId, channelId, messageId: `p${index}`, action: 'pin',
+      }, B, 'group:pin')
+    }
+    const pins = group().channels.find((ch) => ch.id === channelId)!.pinnedMessageIds!
+    expect(pins).toHaveLength(100)
+    expect(pins).not.toContain('p0')
+    expect(pins).toContain('p149')
+
+    dispatch('handleGroupPin', { groupId, channelId, messageId: 'efface', action: 'erase' }, B, 'group:pin')
+    dispatch('handleGroupPin', {
+      groupId, channelId, messageId: 'k'.repeat(200), action: 'pin',
+    }, B, 'group:pin')
+    const after = group().channels.find((ch) => ch.id === channelId)!.pinnedMessageIds!
+    expect(after).not.toContain('efface')
+    expect(after).not.toContain('k'.repeat(200))
+  })
 })
