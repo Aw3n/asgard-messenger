@@ -733,7 +733,7 @@ export default {
       "settings.inlinePreviewsDesc": "Pokazuj podglądy obrazów bezpośrednio na czacie",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Nawigacja klawiaturą",
-      "settings.keyboardNavigationDesc": "Pokazuj skróty klawiaturowe i wskaźniki fokusu",
+      "settings.keyboardNavigationDesc": "Wyraźniejsza obwódka wokół elementu pod kursorem klawiatury",
       "settings.shortcuts": "Skróty klawiszowe",
       "settings.shortcutsSubtitle": "Kliknij czynność i wciśnij żądaną kombinację. Esc anuluje.",
       "settings.shortcutsComposer": "W polu wiadomości",

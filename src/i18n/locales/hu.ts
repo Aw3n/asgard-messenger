@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Képek előnézetének megjelenítése közvetlenül a csevegésben",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Billentyűzet navigáció",
-      "settings.keyboardNavigationDesc": "Gyorsbillentyűk és fókuszjelzők megjelenítése",
+      "settings.keyboardNavigationDesc": "Határozottabb keret a billentyűzetkurzor alatti elem körül",
       "settings.shortcuts": "Billentyűparancsok",
       "settings.shortcutsSubtitle": "Kattints egy műveletre, majd nyomd meg a kívánt kombinációt. Az Esc megszakítja.",
       "settings.shortcutsComposer": "Az üzenetmezőben",

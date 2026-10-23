@@ -758,7 +758,7 @@ export default {
       "settings.inlinePreviewsDesc": "Bildvorschauen direkt im Chat anzeigen",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Tastaturnavigation",
-      "settings.keyboardNavigationDesc": "Tastenkürzel und Fokusanzeigen anzeigen",
+      "settings.keyboardNavigationDesc": "Deutlicherer Rand um das Element mit Tastaturfokus",
       "settings.shortcuts": "Tastenkombinationen",
       "settings.shortcutsSubtitle": "Klicken Sie auf eine Aktion und drücken Sie die gewünschte Kombination. Esc bricht ab.",
       "settings.shortcutsComposer": "Im Eingabefeld",

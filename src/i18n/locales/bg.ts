@@ -733,7 +733,7 @@ export default {
       "settings.inlinePreviewsDesc": "Показване на прегледи на изображения директно в чата",
       "settings.kbPerSecond": "КБ/с",
       "settings.keyboardNavigation": "Навигация с клавиатура",
-      "settings.keyboardNavigationDesc": "Показване на клавишни преки пътища и индикатори за фокус",
+      "settings.keyboardNavigationDesc": "По-силна рамка около елемента с фокус от клавиатурата",
       "settings.shortcuts": "Клавишни комбинации",
       "settings.shortcutsSubtitle": "Кликнете върху действие и натиснете желаната комбинация. Esc отменя.",
       "settings.shortcutsComposer": "В полето за съобщение",

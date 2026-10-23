@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Visa bildförhandsvisningar direkt i chatten",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Tangentbordsnavigering",
-      "settings.keyboardNavigationDesc": "Visa tangentbordsgenvägar och fokusindikatorer",
+      "settings.keyboardNavigationDesc": "Tydligare kant runt elementet med tangentbordsfokus",
       "settings.shortcuts": "Kortkommandon",
       "settings.shortcutsSubtitle": "Klicka på en åtgärd och tryck den kombination du vill. Esc avbryter.",
       "settings.shortcutsComposer": "I meddelandefältet",

@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Näytä kuvien esikatselut suoraan chatissa",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Näppäimistönavigointi",
-      "settings.keyboardNavigationDesc": "Näytä pikanäppäimet ja fokuksen osoittimet",
+      "settings.keyboardNavigationDesc": "Voimakkaampi kehys näppäimistökohdistuksen ympärille",
       "settings.shortcuts": "Pikanäppäimet",
       "settings.shortcutsSubtitle": "Napsauta toimintoa ja paina haluamasi näppäinyhdistelmä. Esc peruu.",
       "settings.shortcutsComposer": "Viestikentässä",

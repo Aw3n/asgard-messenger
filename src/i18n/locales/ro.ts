@@ -733,7 +733,7 @@ export default {
       "settings.inlinePreviewsDesc": "Afișează previzualizări ale imaginilor direct în conversație",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Navigare cu tastatura",
-      "settings.keyboardNavigationDesc": "Afișează scurtături de tastatură și indicatori de focus",
+      "settings.keyboardNavigationDesc": "Contur mai vizibil în jurul elementului cu focus de la tastatură",
       "settings.shortcuts": "Comenzi rapide de la tastatură",
       "settings.shortcutsSubtitle": "Faceți clic pe o acțiune, apoi apăsați combinația dorită. Esc anulează.",
       "settings.shortcutsComposer": "În câmpul de mesaj",

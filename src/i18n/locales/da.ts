@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Vis forhåndsvisninger af billeder direkte i chatten",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Tastaturnavigation",
-      "settings.keyboardNavigationDesc": "Vis tastaturgenveje og fokusindikatorer",
+      "settings.keyboardNavigationDesc": "Mere markant kontur omkring det element, der har tastaturfokus",
       "settings.shortcuts": "Tastaturgenveje",
       "settings.shortcutsSubtitle": "Klik på en handling, og tryk den ønskede kombination. Esc annullerer.",
       "settings.shortcutsComposer": "I beskedfeltet",

@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Prikaži preglede slika izravno u chatu",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Navigacija tipkovnicom",
-      "settings.keyboardNavigationDesc": "Prikaži tipkovne prečace i indikatore fokusa",
+      "settings.keyboardNavigationDesc": "Izraženiji obrub oko elementa pod kursorom tipkovnice",
       "settings.shortcuts": "Tipkovnički prečaci",
       "settings.shortcutsSubtitle": "Kliknite radnju i pritisnite željenu kombinaciju. Esc poništava.",
       "settings.shortcutsComposer": "U polju poruke",

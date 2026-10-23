@@ -714,7 +714,7 @@ export default {
       "settings.inlinePreviewsDesc": "Показувати попередні перегляди зображень безпосередньо в чаті",
       "settings.kbPerSecond": "КБ/с",
       "settings.keyboardNavigation": "Навігація клавіатурою",
-      "settings.keyboardNavigationDesc": "Показувати комбінації клавіш та індикатори фокусу",
+      "settings.keyboardNavigationDesc": "Яскравіший контур навколо елемента під курсором клавіатури",
       "settings.shortcuts": "Клавіатурні скорочення",
       "settings.shortcutsSubtitle": "Натисніть на дію, а потім введіть потрібну комбінацію. Esc скасовує.",
       "settings.shortcutsComposer": "У полі повідомлення",

@@ -733,7 +733,7 @@ export default {
       "settings.inlinePreviewsDesc": "Taispeáin réamhamhairc íomhánna go díreach sa chomhrá",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Nascleanúint méarchláir",
-      "settings.keyboardNavigationDesc": "Taispeáin aicearraí méarchláir agus táscairí fócais",
+      "settings.keyboardNavigationDesc": "Imlíne níos airde timpeall an eilimint a bhfuil fócas an mhéarchláir air",
       "settings.shortcuts": "Aicearraí",
       "settings.shortcutsSubtitle": "Cliceáil ar ghníomh agus brúigh an comcheangal is mian leat. Cealaíonn Esc é.",
       "settings.shortcutsComposer": "Sa réimse teachtaireachta",

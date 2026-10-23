@@ -742,7 +742,7 @@ export default {
       "settings.inlinePreviewsDesc": "Show image previews directly in the chat",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Keyboard navigation",
-      "settings.keyboardNavigationDesc": "Show keyboard shortcuts and focus indicators",
+      "settings.keyboardNavigationDesc": "Draw a stronger outline around the element under the keyboard cursor",
       "settings.shortcuts": "Keyboard shortcuts",
       "settings.shortcutsSubtitle": "Click an action, then press the combination you want. Esc cancels.",
       "settings.shortcutsComposer": "In the message box",

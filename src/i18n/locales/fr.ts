@@ -551,7 +551,7 @@ export default {
       "settings.inlinePreviewsDesc": "Afficher les aperçus d'image directement dans le chat",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Navigation au clavier",
-      "settings.keyboardNavigationDesc": "Afficher les raccourcis clavier et les indicateurs de focus",
+      "settings.keyboardNavigationDesc": "Dessiner un contour plus net autour de l’élément sous le curseur clavier",
       "settings.shortcuts": "Raccourcis clavier",
       "settings.shortcutsSubtitle": "Cliquez sur un geste, puis appuyez la combinaison voulue. Échap annule la saisie.",
       "settings.shortcutsComposer": "Dans la zone de message",

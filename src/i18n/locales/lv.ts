@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Rādīt attēlu priekšskatījumus tieši tērzēšanā",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Tastatūras navigācija",
-      "settings.keyboardNavigationDesc": "Rādīt īsceļus un fokusa indikatorus",
+      "settings.keyboardNavigationDesc": "Izteiksmīgāka kontūra ap elementu, kam ir tastatūras fokuss",
       "settings.shortcuts": "Tastatūras saīsnes",
       "settings.shortcutsSubtitle": "Klikšķiniet uz darbības un nospiediet vēlamo kombināciju. Esc atceļ.",
       "settings.shortcutsComposer": "Ziņojuma laukā",

@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Rodyti vaizdų peržiūras tiesiai pokalbyje",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Klaviatūros naršymas",
-      "settings.keyboardNavigationDesc": "Rodyti sparčiuosius klavišus ir fokuso indikatorius",
+      "settings.keyboardNavigationDesc": "Ryškesnis apvedimas aplink elementą, kurį rodo klaviatūros žymeklis",
       "settings.shortcuts": "Spartieji klavišai",
       "settings.shortcutsSubtitle": "Spustelėkite veiksmą ir paspauskite norėtamą kombinaciją. Esc atšaukia.",
       "settings.shortcutsComposer": "Žinutės lauke",

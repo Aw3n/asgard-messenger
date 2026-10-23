@@ -758,7 +758,7 @@ export default {
       "settings.inlinePreviewsDesc": "Afbeeldingvoorbeelden direct in de chat weergeven",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Toetsenbordnavigatie",
-      "settings.keyboardNavigationDesc": "Toetsenbordsnelkoppelingen en focusindicatoren weergeven",
+      "settings.keyboardNavigationDesc": "Krachtigere omtrek rond het element onder de toetsenbordcursor",
       "settings.shortcuts": "Sneltoetsen",
       "settings.shortcutsSubtitle": "Klik op een handeling en druk de gewenste combinatie. Esc breekt af.",
       "settings.shortcutsComposer": "In het tekstvak",

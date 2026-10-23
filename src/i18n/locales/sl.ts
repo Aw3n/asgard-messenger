@@ -733,7 +733,7 @@ export default {
       "settings.inlinePreviewsDesc": "Prikaži predoglede slik neposredno v klepetu",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Krmarjenje s tipkovnico",
-      "settings.keyboardNavigationDesc": "Prikaži bližnjice tipkovnice in indikatorje fokusa",
+      "settings.keyboardNavigationDesc": "Izrazitejši okvir okoli elementa s tipkovnim fokusom",
       "settings.shortcuts": "Tipkovne bližnjice",
       "settings.shortcutsSubtitle": "Kliknite dejanje in pritisnite želeno kombinacijo. Esc prekliče.",
       "settings.shortcutsComposer": "V polju sporočila",

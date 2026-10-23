@@ -6,6 +6,7 @@ import { copyMessageText } from '@/utils/clipboard'
 import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { isCloseKeypress } from '@/hooks/useDialogBehavior'
 import { DELETE_MODE_LABEL_KEYS, type DeleteMode } from '@/hooks/useDeleteConfirmation'
+import { formatCombo } from '@/utils/shortcuts'
 import { formatMessageTime } from '@/utils/time'
 import { useUIStore } from '@/stores/uiStore'
 import { FileAttachment } from './FileAttachment'
@@ -64,6 +65,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const { t } = useTranslation()
   // CHAT SETTINGS: timestamps, seconds, read status ticks and density
   const chatSettings = useUIStore((s) => s.settings.chat)
+  // Les combinaisons réglées à l'écran « Raccourcis » se relisent ici, là où
+  // l'action se joue : une touche changée doit se retrouver sans rouvrir les
+  // réglages. Seuls les gestes qui portent sur cette rangée ont un indice —
+  // « Éditer le dernier message » vise un autre message que celui du menu.
+  const shortcuts = useUIStore((s) => s.settings.keyboardShortcuts)
   // PRIVACY SETTINGS (privacy.linkPreviews): first URL of the message gets a
   // preview card when the user opted in — metadata is fetched by the main
   // process only, nothing leaves the app when the setting is off.
@@ -89,10 +95,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const shownDeleteModes = onDelete ? (deleteModes ?? []) : []
 
   const openContextMenu = (x: number, y: number) => {
-    // Le menu fait ~180 × 240 px : on le garde dans la fenêtre plutôt que de
-    // le laisser sortir à droite ou en bas sur les messages des bords.
+    // Le menu porte sur la rangée ouverte : le focus y vient, sinon la frappe
+    // réglée (Copier, Répondre, Transférer) agirait sur la rangée tenue depuis
+    // le dernier Tab pendant que l'utilisateur regarde un autre message.
+    rowRef.current?.focus()
+    // Le menu fait ~240 × 240 px depuis qu'une colonne de geste porte la
+    // combinaison réglée en face de chaque action : on le garde dans la fenêtre
+    // plutôt que de le laisser sortir à droite ou en bas sur les messages des
+    // bords. La largeur réelle dépend de la frappe que l'utilisateur a réglée ;
+    // une combinaison à quatre modificateurs déborde encore, elle se rattrape
+    // au clic extérieur.
     setContextMenu({
-      x: Math.max(8, Math.min(x, window.innerWidth - 188)),
+      x: Math.max(8, Math.min(x, window.innerWidth - 248)),
       y: Math.max(8, Math.min(y, window.innerHeight - 248)),
     })
   }
@@ -344,11 +358,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               'flex flex-col gap-0.5 min-w-36'
             )}
           >
-            <ContextMenuItem label={t('chat.reply')} onClick={() => { onReply?.(message); setContextMenu(null) }} />
+            <ContextMenuItem label={t('chat.reply')} hint={formatCombo(shortcuts.replyToMessage)} onClick={() => { onReply?.(message); setContextMenu(null) }} />
             {message.content && (
-              <ContextMenuItem label={t('common.copy')} onClick={() => { copyMessageText(message); setContextMenu(null) }} />
+              <ContextMenuItem label={t('common.copy')} hint={formatCombo(shortcuts.copyMessage)} onClick={() => { copyMessageText(message); setContextMenu(null) }} />
             )}
-            {onForward && <ContextMenuItem label={t('chat.forward')} onClick={() => { onForward(message); setContextMenu(null) }} />}
+            {onForward && <ContextMenuItem label={t('chat.forward')} hint={formatCombo(shortcuts.forwardMessage)} onClick={() => { onForward(message); setContextMenu(null) }} />}
             {onPin && <ContextMenuItem label={message.pinned ? t('chat.unpin') : t('chat.pin')} onClick={() => { onPin(message); setContextMenu(null) }} />}
             {isOwn && onRetry && message.status === 'failed' && (
               <ContextMenuItem label={t('chat.retrySend')} onClick={() => { onRetry(message); setContextMenu(null) }} />
@@ -405,19 +419,22 @@ const ActionIcon: React.FC<{
 
 const ContextMenuItem: React.FC<{
   label: string
+  /** La combinaison réglée qui fait la même chose au clavier, `null` si le geste n'existe pas ici. */
+  hint?: string | null
   onClick: () => void
   danger?: boolean
-}> = ({ label, onClick, danger }) => (
+}> = ({ label, hint, onClick, danger }) => (
   <button
     onClick={onClick}
     className={cn(
-      'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors',
+      'w-full flex items-center justify-between gap-4 text-left px-3 py-2 text-sm rounded-lg transition-colors',
       danger
         ? 'text-red-400 hover:bg-red-500/10'
         : 'text-asgard-text-secondary hover:bg-asgard-surface-alt hover:text-asgard-text-primary'
     )}
   >
-    {label}
+    <span>{label}</span>
+    {hint && <span className="shrink-0 text-xs font-mono text-asgard-text-muted">{hint}</span>}
   </button>
 )
 

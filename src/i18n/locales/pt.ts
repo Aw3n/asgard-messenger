@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Mostrar pré-visualizações de imagens diretamente no chat",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Navegação por teclado",
-      "settings.keyboardNavigationDesc": "Mostrar atalhos de teclado e indicadores de foco",
+      "settings.keyboardNavigationDesc": "Contorno mais destacado em torno do elemento sob o cursor do teclado",
       "settings.shortcuts": "Atalhos de teclado",
       "settings.shortcutsSubtitle": "Clique numa ação e prima a combinação desejada. Esc cancela.",
       "settings.shortcutsComposer": "Na caixa de mensagem",

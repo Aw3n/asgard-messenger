@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Εμφάνιση προεπισκοπήσεων εικόνων απευθείας στη συνομιλία",
       "settings.kbPerSecond": "KB/δ",
       "settings.keyboardNavigation": "Πλοήγηση πληκτρολογίου",
-      "settings.keyboardNavigationDesc": "Εμφάνιση συντομεύσεων πληκτρολογίου και δεικτών εστίασης",
+      "settings.keyboardNavigationDesc": "Ισχυρότερο περίγραμμα γύρω από το στοιχείο με εστίαση πληκτρολογίου",
       "settings.shortcuts": "Συντομεύσεις πληκτρολογίου",
       "settings.shortcutsSubtitle": "Κάντε κλικ σε μια ενέργεια και πατήστε τον επιθυμητό συνδυασμό. Το Esc ακυρώνει.",
       "settings.shortcutsComposer": "Στο πεδίο μηνύματος",

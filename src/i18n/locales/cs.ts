@@ -733,7 +733,7 @@ export default {
       "settings.inlinePreviewsDesc": "Zobrazovat náhledy obrázků přímo v chatu",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Navigace klávesnicí",
-      "settings.keyboardNavigationDesc": "Zobrazit klávesové zkratky a indikátory fokusu",
+      "settings.keyboardNavigationDesc": "Výraznější ohraničení prvku se zaměřením klávesnice",
       "settings.shortcuts": "Klávesové zkratky",
       "settings.shortcutsSubtitle": "Klepněte na akci a stiskněte požadovanou kombinaci. Esc zadání zruší.",
       "settings.shortcutsComposer": "V poli zprávy",

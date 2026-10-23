@@ -758,7 +758,7 @@ export default {
       "settings.inlinePreviewsDesc": "Mostra le anteprime delle immagini direttamente nella chat",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Navigazione da tastiera",
-      "settings.keyboardNavigationDesc": "Mostra scorciatoie da tastiera e indicatori di focus",
+      "settings.keyboardNavigationDesc": "Contorno più marcato attorno all’elemento sotto il cursore da tastiera",
       "settings.shortcuts": "Scorciatoie da tastiera",
       "settings.shortcutsSubtitle": "Fai clic su un’azione e premi la combinazione desiderata. Esc annulla.",
       "settings.shortcutsComposer": "Nella casella di testo",

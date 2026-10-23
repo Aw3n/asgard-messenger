@@ -741,7 +741,7 @@ export default {
       "settings.inlinePreviewsDesc": "Kuva piltide eelvaated otse vestluses",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Klaviatuuriga navigeerimine",
-      "settings.keyboardNavigationDesc": "Kuva kiirklahvid ja fookuse näitajad",
+      "settings.keyboardNavigationDesc": "Selgem kontuur klaviatuurifokuses elemendi ümber",
       "settings.shortcuts": "Kiirklahvid",
       "settings.shortcutsSubtitle": "Klõpsa toimingule ja vajuta soovitud kombinatsioon. Esc tühistab.",
       "settings.shortcutsComposer": "Sõnumiväljal",

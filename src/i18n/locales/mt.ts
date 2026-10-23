@@ -733,7 +733,7 @@ export default {
       "settings.inlinePreviewsDesc": "Uri previews ta' stampi direttament fiċ-chat",
       "settings.kbPerSecond": "KB/s",
       "settings.keyboardNavigation": "Navigazzjoni bil-keyboard",
-      "settings.keyboardNavigationDesc": "Uri shortcuts tal-keyboard u indikaturi tal-fokus",
+      "settings.keyboardNavigationDesc": "Kontorn akt prominenti madwar l-element taħt il-kursor tal-keyboard",
       "settings.shortcuts": "Xqufitturi tat-tastiera",
       "settings.shortcutsSubtitle": "Agħfas fuq azzjoni u mbagħad ikteb il-kombinazzjoni li trid. Esc jikkanċella.",
       "settings.shortcutsComposer": "Fil-qasam tal-messaġġ",
