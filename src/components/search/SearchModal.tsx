@@ -8,6 +8,7 @@ import { useGroupStore } from '@/stores/groupStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/utils/cn'
 import { getCurrentLanguage } from '@/i18n/config'
+import { buildSearchSnippet } from '@/utils/searchSnippet'
 
 type SearchTab = 'all' | 'messages' | 'contacts' | 'groups'
 
@@ -269,6 +270,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                 key={`${result.type}-${index}`}
                 id={`search-result-${index}`}
                 result={result}
+                query={query}
                 selected={index === selectedIndex}
                 onMouseEnter={() => setSelectedIndex(index)}
                 onClick={() => openResult(result)}
@@ -303,6 +305,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
 interface SearchResultItemProps {
   id: string
   result: SearchResult
+  query: string
   selected: boolean
   onMouseEnter: () => void
   onClick: () => void
@@ -311,6 +314,7 @@ interface SearchResultItemProps {
 const SearchResultItem: React.FC<SearchResultItemProps> = ({
   id,
   result,
+  query,
   selected,
   onMouseEnter,
   onClick,
@@ -378,6 +382,7 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({
   }
 
   if (result.type === 'message' && result.message) {
+    const snippet = buildSearchSnippet(result.message.content, query)
     return (
       <button
         {...optionProps}
@@ -391,7 +396,15 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-asgard-text-primary truncate">
-            {highlightText(result.highlight, result.message.content)}
+            {snippet.clippedStart && '…'}
+            {snippet.before}
+            {snippet.match && (
+              <mark className="bg-asgard-glacier/30 text-asgard-text-primary rounded px-0.5">
+                {snippet.match}
+              </mark>
+            )}
+            {snippet.after}
+            {snippet.clippedEnd && '…'}
           </p>
           <p className="text-xs text-asgard-text-muted truncate">
             {result.sourceLabel ? `${result.sourceLabel} · ` : ''}
@@ -406,10 +419,6 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({
   }
 
   return null
-}
-
-function highlightText(_highlight: string, content: string): string {
-  return content.slice(0, 80)
 }
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
