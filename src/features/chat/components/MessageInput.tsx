@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 import { useUIStore } from '@/stores/uiStore'
+import { useConversationStore } from '@/stores/conversationStore'
 import type { Message } from '@/types'
 
 interface MessageInputProps {
@@ -26,6 +27,7 @@ interface MessageInputProps {
  * MessageInput — rich text input with reply, emoji, and file attachment support.
  */
 export const MessageInput: React.FC<MessageInputProps> = ({
+  conversationId,
   replyTo,
   editingMessage,
   onSend,
@@ -42,15 +44,68 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const effectivePlaceholder = placeholder ?? t('chat.typeMessage')
   // CHAT SETTINGS: Enter sends the message, or requires Ctrl+Enter when disabled
   const sendOnEnter = useUIStore((s) => s.settings.chat.sendOnEnter)
-  const [content, setContent] = useState('')
+  const [content, setContent] = useState(
+    () => useConversationStore.getState().getDraft(conversationId)
+  )
   const [showEmoji, setShowEmoji] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestContentRef = useRef(content)
+  const conversationIdRef = useRef(conversationId)
   const isTypingRef = useRef(false)
   const editingIdRef = useRef<string | null>(null)
+
+  const setComposerContent = useCallback((value: string) => {
+    latestContentRef.current = value
+    setContent(value)
+  }, [])
+
+  const queueDraft = useCallback(
+    (value: string) => {
+      if (editingMessage) return
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+      const id = conversationId
+      draftTimerRef.current = setTimeout(() => {
+        draftTimerRef.current = null
+        useConversationStore.getState().setDraft(id, value)
+      }, 300)
+    },
+    [conversationId, editingMessage]
+  )
+
+  /**
+   * Le champ appartient au fil affiché : en changeant de fil, sauver le texte
+   * du précédent puis charger son brouillon. Sans cela, la frappe restait dans
+   * le composeur et pouvait partir vers un autre destinataire.
+   */
+  useEffect(() => {
+    if (conversationIdRef.current !== conversationId) {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current)
+        draftTimerRef.current = null
+      }
+      if (editingIdRef.current === null) {
+        useConversationStore.getState().setDraft(conversationIdRef.current, latestContentRef.current)
+      }
+      conversationIdRef.current = conversationId
+      setPendingFiles([])
+      setShowEmoji(false)
+    }
+    setComposerContent(useConversationStore.getState().getDraft(conversationId))
+  }, [conversationId, setComposerContent])
+
+  useEffect(() => {
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+      if (editingIdRef.current === null) {
+        useConversationStore.getState().setDraft(conversationIdRef.current, latestContentRef.current)
+      }
+    }
+  }, [])
 
   /**
    * Entrée en édition : préremplir une seule fois par message. Comparer
@@ -64,24 +119,34 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     editingIdRef.current = nextId
     if (!editingMessage) {
       // Fin d'édition (validation, annulation ou changement de conversation) :
-      // le texte édité ne doit pas se retrouver dans un autre fil.
-      if (wasEditing) setContent('')
+      // restaurer le brouillon du fil affiché, jamais le texte édité.
+      if (wasEditing) {
+        setComposerContent(useConversationStore.getState().getDraft(conversationIdRef.current))
+      }
       return
     }
+    // Entrer en édition ne doit pas perdre la frappe déjà saisie.
+    if (!wasEditing) {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current)
+        draftTimerRef.current = null
+      }
+      useConversationStore.getState().setDraft(conversationIdRef.current, latestContentRef.current)
+    }
     const text = editingMessage.content ?? ''
-    setContent(text)
+    setComposerContent(text)
     setShowEmoji(false)
     const el = textareaRef.current
     el?.focus()
     el?.setSelectionRange(text.length, text.length)
-  }, [editingMessage])
+  }, [editingMessage, setComposerContent])
 
   const cancelEdit = useCallback(() => {
     onCancelEdit?.()
-    setContent('')
+    setComposerContent('')
     setPendingFiles([])
     textareaRef.current?.focus()
-  }, [onCancelEdit])
+  }, [onCancelEdit, setComposerContent])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -92,7 +157,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, [content])
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value)
+    const value = e.target.value
+    setComposerContent(value)
+    queueDraft(value)
     handleTyping(true)
   }
 
@@ -126,7 +193,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     if (editingMessage) {
       if (!trimmed || !onEditSubmit) return
       onEditSubmit(trimmed)
-      setContent('')
+      setComposerContent('')
       handleTyping(false)
       textareaRef.current?.focus()
       return
@@ -142,11 +209,18 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
     if (trimmed) {
       onSend(trimmed)
-      setContent('')
+      setComposerContent('')
+      // Effacer tout de suite : un enregistrement différé réécrirait le texte
+      // envoyé comme brouillon.
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current)
+        draftTimerRef.current = null
+      }
+      useConversationStore.getState().setDraft(conversationId, '')
     }
     handleTyping(false)
     textareaRef.current?.focus()
-  }, [content, editingMessage, pendingFiles, disabled, onSend, onEditSubmit, onFiles, handleTyping])
+  }, [content, editingMessage, pendingFiles, disabled, onSend, onEditSubmit, onFiles, handleTyping, conversationId, setComposerContent])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
@@ -335,7 +409,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             {quickEmojis.map((emoji) => (
               <button
                 key={emoji}
-                onClick={() => setContent((c) => c + emoji)}
+                onClick={() => {
+                  const next = latestContentRef.current + emoji
+                  setComposerContent(next)
+                  queueDraft(next)
+                }}
                 className="text-xl hover:scale-125 transition-transform"
               >
                 {emoji}

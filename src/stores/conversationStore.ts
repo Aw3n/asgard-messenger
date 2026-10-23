@@ -5,6 +5,11 @@ import type { Conversation, ConversationFilter } from '@/types'
 
 interface ConversationState {
   conversations: Record<string, Conversation>
+  /**
+   * Unsent composer text, keyed by conversation id. Channels are not entries
+   * of `conversations`, so their drafts need their own map.
+   */
+  drafts: Record<string, string>
   activeConversationId: string | null
   /**
    * True only while a ChatView is mounted. `activeConversationId` survives
@@ -26,6 +31,7 @@ interface ConversationState {
   muteConversation: (id: string, muted: boolean) => void
   archiveConversation: (id: string, archived: boolean) => void
   setDraft: (id: string, draft: string) => void
+  getDraft: (id: string) => string
   setFilter: (filter: Partial<ConversationFilter>) => void
   setBroadcastMode: (id: string, enabled: boolean, broadcasterKey?: string) => void
   getFilteredConversations: () => Conversation[]
@@ -41,6 +47,7 @@ export const useConversationStore = create<ConversationState>()(
   persist(
     immer((set, get) => ({
       conversations: {},
+      drafts: {},
       activeConversationId: null,
       chatViewVisible: false,
       filter: {},
@@ -130,11 +137,12 @@ export const useConversationStore = create<ConversationState>()(
 
       setDraft: (id, draft) => {
         set((state) => {
-          if (state.conversations[id]) {
-            state.conversations[id].draft = draft
-          }
+          if (draft) state.drafts[id] = draft
+          else delete state.drafts[id]
         })
       },
+
+      getDraft: (id) => get().drafts[id] ?? '',
 
       setFilter: (filter) => {
         set((state) => {
@@ -208,6 +216,7 @@ export const useConversationStore = create<ConversationState>()(
       // encore à l'écran et cesser de compter ses non-lus.
       partialize: (state) => ({
         conversations: state.conversations,
+        drafts: state.drafts,
         activeConversationId: state.activeConversationId,
         filter: state.filter,
       }),
