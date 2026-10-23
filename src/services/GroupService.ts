@@ -136,6 +136,14 @@ class GroupService {
       this.handleGroupReaction(msg)
     })
 
+    // Listen for group message edits and deletions
+    p2pService.on('message:group:edit', (msg: ProtocolMessage) => {
+      this.handleGroupEdit(msg)
+    })
+    p2pService.on('message:group:delete', (msg: ProtocolMessage) => {
+      this.handleGroupDelete(msg)
+    })
+
     // Listen for group mention notifications
     p2pService.on('message:group:mention', (msg: ProtocolMessage) => {
       this.handleGroupMention(msg)
@@ -1092,6 +1100,91 @@ class GroupService {
   }
 
   /**
+   * Vérifie qu'un message du canal appartient bien à l'utilisateur courant,
+   * dans un groupe dont il est membre. Les actions d'édition et de suppression
+   * ne doivent jamais s'appliquer au message d'un autre.
+   */
+  private findOwnGroupMessage(
+    groupId: string,
+    channelId: string,
+    messageId: string,
+  ): { memberKeys: string[] } | null {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return null
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return null
+    if (!group.channels.some((channel) => channel.id === channelId)) return null
+    const message = useMessageStore.getState().getMessage(messageId, channelId)
+    if (!message || message.deleted || message.senderId !== identity.keyPair.publicKey) return null
+    return { memberKeys: this.getGroupMemberKeys(groupId) }
+  }
+
+  /**
+   * Modifie un message de groupe dont on est l'auteur, persiste la nouvelle
+   * version puis la diffuse aux membres.
+   */
+  async editGroupMessage(
+    groupId: string,
+    channelId: string,
+    messageId: string,
+    newContent: string,
+  ): Promise<void> {
+    if (typeof newContent !== 'string' || newContent.trim().length === 0) return
+    if (newContent.length > GroupService.MAX_MESSAGE_CHARS) return
+    const target = this.findOwnGroupMessage(groupId, channelId, messageId)
+    if (!target) return
+
+    const store = useMessageStore.getState()
+    store.editMessage(messageId, channelId, newContent)
+    const edited = store.getMessage(messageId, channelId)
+    if (edited) storageService.saveMessage(channelId, edited).catch(console.error)
+
+    await p2pService.broadcastToPeers(target.memberKeys, 'group:edit', {
+      groupId,
+      channelId,
+      messageId,
+      newContent,
+    }).catch(console.error)
+  }
+
+  /**
+   * Supprime pour tout le monde un message de groupe dont on est l'auteur :
+   * tombeau local persistant, puis demande de suppression aux membres.
+   */
+  async deleteGroupMessage(groupId: string, channelId: string, messageId: string): Promise<void> {
+    const target = this.findOwnGroupMessage(groupId, channelId, messageId)
+    if (!target) return
+
+    const store = useMessageStore.getState()
+    store.deleteMessage(messageId, channelId)
+    const deleted = store.getMessage(messageId, channelId)
+    if (deleted) storageService.saveMessage(channelId, deleted).catch(console.error)
+
+    await p2pService.broadcastToPeers(target.memberKeys, 'group:delete', {
+      groupId,
+      channelId,
+      messageId,
+    }).catch(console.error)
+  }
+
+  /**
+   * Supprime un message de groupe pour soi uniquement, sans rien diffuser.
+   * Contrairement à l'édition, n'importe quel message du canal peut partir.
+   */
+  async deleteGroupMessageForMe(groupId: string, channelId: string, messageId: string): Promise<void> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return
+    if (!group.channels.some((channel) => channel.id === channelId)) return
+    const message = useMessageStore.getState().getMessage(messageId, channelId)
+    if (!message) return
+
+    useMessageStore.getState().deleteMessagePermanently(messageId, channelId)
+    storageService.deleteMessage(channelId, messageId).catch(console.error)
+  }
+
+  /**
    * Mark messages as read in a group channel and notify peers.
    */
   async markAsRead(groupId: string, channelId: string, messageIds: string[]): Promise<void> {
@@ -2004,6 +2097,63 @@ class GroupService {
     }
     const updated = store.getMessage(messageId, channelId)
     if (updated) storageService.saveMessage(channelId, updated).catch(console.error)
+  }
+
+  private handleGroupEdit(msg: ProtocolMessage): void {
+    const payload = msg.payload as Record<string, unknown> | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const groupId = payload.groupId
+    const channelId = payload.channelId
+    const messageId = payload.messageId
+    const newContent = payload.newContent
+
+    if (typeof groupId !== 'string' || !groupId || groupId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof channelId !== 'string' || !channelId || channelId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof messageId !== 'string' || !messageId || messageId.length > GroupService.MAX_MESSAGE_ID) return
+    if (typeof newContent !== 'string' || newContent.trim().length === 0) return
+    if (newContent.length > GroupService.MAX_MESSAGE_CHARS) return
+
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === msg.from)) return
+    if (!group.channels.some((channel) => channel.id === channelId)) return
+
+    const store = useMessageStore.getState()
+    const message = store.getMessage(messageId, channelId)
+    // Seul l'auteur du message peut le réécrire.
+    if (!message || message.deleted || message.senderId !== msg.from) return
+
+    store.editMessage(messageId, channelId, newContent)
+    const edited = store.getMessage(messageId, channelId)
+    if (edited) storageService.saveMessage(channelId, edited).catch(console.error)
+  }
+
+  private handleGroupDelete(msg: ProtocolMessage): void {
+    const payload = msg.payload as Record<string, unknown> | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const groupId = payload.groupId
+    const channelId = payload.channelId
+    const messageId = payload.messageId
+
+    if (typeof groupId !== 'string' || !groupId || groupId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof channelId !== 'string' || !channelId || channelId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof messageId !== 'string' || !messageId || messageId.length > GroupService.MAX_MESSAGE_ID) return
+
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group) return
+    const sender = group.members.find((member) => member.publicKey === msg.from)
+    if (!sender) return
+    if (!group.channels.some((channel) => channel.id === channelId)) return
+
+    const store = useMessageStore.getState()
+    const message = store.getMessage(messageId, channelId)
+    if (!message) return
+    // L'auteur peut retirer son message ; un rôle de modération peut retirer
+    // celui d'un autre membre.
+    const canModerate = ['owner', 'admin', 'moderator'].includes(sender.role)
+    if (message.senderId !== msg.from && !canModerate) return
+
+    store.deleteMessagePermanently(messageId, channelId)
+    storageService.deleteMessage(channelId, messageId).catch(console.error)
   }
 
   /**

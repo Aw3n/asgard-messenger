@@ -65,6 +65,8 @@ export type ProtocolMessageType =
   | 'group:receipt'
   | 'group:pin'
   | 'group:reaction'
+  | 'group:edit'
+  | 'group:delete'
   | 'group:mention'
   | 'group:thread'
   | 'group:poll'

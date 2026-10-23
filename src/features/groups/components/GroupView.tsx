@@ -5,6 +5,7 @@ import { useGroupStore } from '@/stores/groupStore'
 import { useMessageStore } from '@/stores/messageStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useNetworkStore } from '@/stores/networkStore'
+import { useUIStore } from '@/stores/uiStore'
 import { ChannelList } from './ChannelList'
 import { MemberList } from './MemberList'
 import { GroupSettings } from './GroupSettings'
@@ -30,6 +31,7 @@ export const GroupView: React.FC = () => {
   const [showMembers, setShowMembers] = useState(true)
   const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
   const [replyTo, setReplyTo] = useState<Message | undefined>()
+  const [editingMessage, setEditingMessage] = useState<Message | undefined>()
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
 
   const channelId = activeChannel?.id ?? ''
@@ -77,6 +79,42 @@ export const GroupView: React.FC = () => {
     [activeGroup, channelId]
   )
 
+  const handleEditSubmit = useCallback(
+    async (content: string) => {
+      const target = editingMessage
+      if (!target || !activeGroup || !channelId) return
+      setEditingMessage(undefined)
+      try {
+        await groupService.editGroupMessage(activeGroup.id, channelId, target.id, content)
+      } catch (err) {
+        console.error('[GroupView] editGroupMessage failed:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.editFailed') })
+      }
+    },
+    [editingMessage, activeGroup, channelId, t]
+  )
+
+  const handleDelete = useCallback(
+    (message: Message) => {
+      if (!activeGroup || !channelId) return
+      groupService.deleteGroupMessage(activeGroup.id, channelId, message.id).catch((err) => {
+        console.warn('[GroupView] deleteGroupMessage failed:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('common.failed') })
+      })
+    },
+    [activeGroup, channelId, t]
+  )
+
+  const handleDeleteForMe = useCallback(
+    (message: Message) => {
+      if (!activeGroup || !channelId) return
+      groupService.deleteGroupMessageForMe(activeGroup.id, channelId, message.id).catch((err) => {
+        console.warn('[GroupView] deleteGroupMessageForMe failed:', err)
+      })
+    },
+    [activeGroup, channelId]
+  )
+
   // PERFORMANCE: Handle file sends to group using multicast
   const handleFiles = useCallback(
     async (files: File[]) => {
@@ -97,10 +135,12 @@ export const GroupView: React.FC = () => {
     }
   }, [activeGroup?.id])
 
-  // Une citation appartient au canal où elle a été choisie : changer de canal
-  // ne doit pas envoyer une réponse pointant vers un message invisible.
+  // Une citation ou une édition appartient au canal où elle a été choisie :
+  // changer de canal ne doit pas envoyer une réponse pointant vers un message
+  // invisible, ni valider une édition sur un autre canal.
   useEffect(() => {
     setReplyTo(undefined)
+    setEditingMessage(undefined)
   }, [channelId])
 
   // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
@@ -206,7 +246,16 @@ export const GroupView: React.FC = () => {
                   isOwn={message.senderId === identity?.keyPair.publicKey}
                   senderName={getMemberName(activeGroup, message.senderId)}
                   showSender
-                  onReply={setReplyTo}
+                  onReply={(msg) => {
+                    setEditingMessage(undefined)
+                    setReplyTo(msg)
+                  }}
+                  onEdit={(msg) => {
+                    setReplyTo(undefined)
+                    setEditingMessage(msg)
+                  }}
+                  onDelete={handleDelete}
+                  onDeletePermanently={handleDeleteForMe}
                   onReaction={handleReaction}
                   onPin={canPin ? handlePin : undefined}
                   onForward={setForwardMessage}
@@ -231,7 +280,10 @@ export const GroupView: React.FC = () => {
         <MessageInput
           conversationId={channelId}
           replyTo={replyTo}
+          editingMessage={editingMessage}
           onSend={handleSend}
+          onEditSubmit={handleEditSubmit}
+          onCancelEdit={() => setEditingMessage(undefined)}
           onFiles={handleFiles}
           onCancelReply={() => setReplyTo(undefined)}
           placeholder={t('groups.messageChannel', { channelName: activeChannel?.name ?? t('groups.general') })}

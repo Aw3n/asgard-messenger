@@ -35,6 +35,8 @@ type Handler =
   | 'handleGroupRead'
   | 'handleGroupPin'
   | 'handleGroupReaction'
+  | 'handleGroupEdit'
+  | 'handleGroupDelete'
 
 const dispatch = (
   handler: Handler,
@@ -93,12 +95,14 @@ beforeEach(() => {
   vi.spyOn(p2pService, 'sendMessage').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'broadcastToPeers').mockResolvedValue({ sent: 1, failed: 0, unmapped: 0 })
   vi.spyOn(storageService, 'saveMessage').mockResolvedValue(undefined)
+  vi.spyOn(storageService, 'deleteMessage').mockResolvedValue(true)
 })
 
 afterEach(() => {
   vi.mocked(p2pService.sendMessage).mockRestore()
   vi.mocked(p2pService.broadcastToPeers).mockRestore()
   vi.mocked(storageService.saveMessage).mockRestore()
+  vi.mocked(storageService.deleteMessage).mockRestore()
 })
 
 describe('métadonnées', () => {
@@ -553,5 +557,118 @@ describe('réponses citées', () => {
         message: expect.objectContaining({ replyTo: expect.objectContaining({ id: 'm-origin' }) }),
       }),
     )
+  })
+})
+
+describe('modification et suppression de message', () => {
+  const seed = (id: string, senderId: string) => {
+    useMessageStore.getState().addMessage({
+      id,
+      conversationId: channelId,
+      senderId,
+      type: 'text',
+      content: 'texte initial',
+      timestamp: 1,
+      status: 'sent',
+      groupId,
+    } as Message)
+  }
+  const textOf = (id: string) =>
+    useMessageStore.getState().getMessage(id, channelId)?.content
+
+  it('n’accepte une édition que de son auteur', () => {
+    seed('m-edit', A)
+
+    dispatch('handleGroupEdit', {
+      groupId, channelId, messageId: 'm-edit', newContent: 'réécrit par Carol',
+    }, C, 'group:edit')
+
+    expect(textOf('m-edit')).toBe('texte initial')
+  })
+
+  it('applique et persiste l’édition de l’auteur', () => {
+    seed('m-edit', C)
+
+    dispatch('handleGroupEdit', {
+      groupId, channelId, messageId: 'm-edit', newContent: 'réécrit par Carol',
+    }, C, 'group:edit')
+
+    expect(textOf('m-edit')).toBe('réécrit par Carol')
+    expect(storageService.saveMessage).toHaveBeenCalled()
+  })
+
+  it('refuse un contenu vide ou au-delà de la borne', () => {
+    seed('m-edit', C)
+
+    dispatch('handleGroupEdit', {
+      groupId, channelId, messageId: 'm-edit', newContent: '   ',
+    }, C, 'group:edit')
+    expect(textOf('m-edit')).toBe('texte initial')
+
+    dispatch('handleGroupEdit', {
+      groupId, channelId, messageId: 'm-edit', newContent: 'x'.repeat(100_001),
+    }, C, 'group:edit')
+    expect(textOf('m-edit')).toBe('texte initial')
+  })
+
+  it('supprime le message à la demande de son auteur, et à celle d’une modération', () => {
+    seed('m-own', C)
+    seed('m-other', A)
+
+    // Carol (membre) ne peut pas retirer le message d'Alice.
+    dispatch('handleGroupDelete', { groupId, channelId, messageId: 'm-other' }, C, 'group:delete')
+    expect(useMessageStore.getState().getMessage('m-other', channelId)).toBeDefined()
+
+    // Bob (admin) le peut ; Carol peut retirer le sien.
+    dispatch('handleGroupDelete', { groupId, channelId, messageId: 'm-other' }, B, 'group:delete')
+    expect(useMessageStore.getState().getMessage('m-other', channelId)).toBeUndefined()
+
+    dispatch('handleGroupDelete', { groupId, channelId, messageId: 'm-own' }, C, 'group:delete')
+    expect(useMessageStore.getState().getMessage('m-own', channelId)).toBeUndefined()
+  })
+
+  it('ignore une suppression venue d’un non-membre', () => {
+    seed('m-target', C)
+
+    dispatch('handleGroupDelete', { groupId, channelId, messageId: 'm-target' }, D, 'group:delete')
+
+    expect(useMessageStore.getState().getMessage('m-target', channelId)).toBeDefined()
+  })
+
+  it('editGroupMessage n’édite que ses propres messages et diffuse', async () => {
+    seed('m-mine', A)
+    seed('m-theirs', C)
+
+    await groupService.editGroupMessage(groupId, channelId, 'm-theirs', 'volé')
+    expect(textOf('m-theirs')).toBe('texte initial')
+    expect(p2pService.broadcastToPeers).not.toHaveBeenCalledWith(
+      expect.any(Array), 'group:edit', expect.anything(),
+    )
+
+    await groupService.editGroupMessage(groupId, channelId, 'm-mine', 'ma correction')
+    expect(textOf('m-mine')).toBe('ma correction')
+    expect(p2pService.broadcastToPeers).toHaveBeenLastCalledWith(
+      expect.arrayContaining([B, C]),
+      'group:edit',
+      expect.objectContaining({ groupId, channelId, messageId: 'm-mine', newContent: 'ma correction' }),
+    )
+  })
+
+  it('supprime pour tous ou pour soi, avec le bon périmètre réseau', async () => {
+    seed('m-mine', A)
+    seed('m-local', A)
+
+    await groupService.deleteGroupMessage(groupId, channelId, 'm-mine')
+    expect(useMessageStore.getState().getMessage('m-mine', channelId)?.deleted).toBe(true)
+    expect(p2pService.broadcastToPeers).toHaveBeenLastCalledWith(
+      expect.any(Array),
+      'group:delete',
+      expect.objectContaining({ groupId, channelId, messageId: 'm-mine' }),
+    )
+
+    const calls = vi.mocked(p2pService.broadcastToPeers).mock.calls.length
+    await groupService.deleteGroupMessageForMe(groupId, channelId, 'm-local')
+    expect(useMessageStore.getState().getMessage('m-local', channelId)).toBeUndefined()
+    expect(vi.mocked(p2pService.broadcastToPeers).mock.calls).toHaveLength(calls)
   })
 })
