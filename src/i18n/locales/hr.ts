@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Ukloni privitak",
       "chat.historyLoadFailed": "Povijest se nije mogla učitati",
       "chat.pinnedMessages": "Zakačene poruke",
+      "search.moreResults": "Još rezultata nije prikazano — pojasnite pretragu.",
     }
 }

@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Pašalinti priedą",
       "chat.historyLoadFailed": "Istorijos nepavyko įkelti",
       "chat.pinnedMessages": "Prisegtos žinutės",
+      "search.moreResults": "Daugiau rezultatų nerodoma — patikslinkite paiešką.",
     }
 }

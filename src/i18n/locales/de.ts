@@ -884,5 +884,6 @@ export default {
       "messageInput.removeFile": "Anhang entfernen",
       "chat.historyLoadFailed": "Verlauf konnte nicht geladen werden",
       "chat.pinnedMessages": "Angeheftete Nachrichten",
+      "search.moreResults": "Weitere Ergebnisse werden nicht angezeigt — verfeinern Sie die Suche.",
     }
 }

@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Вилучити вкладення",
       "chat.historyLoadFailed": "Історію не вдалося завантажити",
       "chat.pinnedMessages": "Закріплені повідомлення",
+      "search.moreResults": "Інші результати не показані — уточніть пошук.",
     }
 }

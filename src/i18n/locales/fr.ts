@@ -884,5 +884,6 @@ export default {
       "messageInput.removeFile": "Retirer la pièce jointe",
       "chat.historyLoadFailed": "Impossible de charger l’historique",
       "chat.pinnedMessages": "Messages épinglés",
+      "search.moreResults": "D’autres résultats ne sont pas affichés — affinez la recherche.",
     }
 }

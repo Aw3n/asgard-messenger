@@ -32,7 +32,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { results, contactResults, messageResults, groupResults, isSearching } = useSearch(query)
+  const { results, contactResults, messageResults, groupResults, isSearching, truncated } = useSearch(query)
+  // Le plafond est par type : n'annoncer la coupure que pour l'onglet affiché.
+  const tabTruncated =
+    activeTab === 'contacts'
+      ? !!truncated?.contacts
+      : activeTab === 'groups'
+        ? !!truncated?.groups
+        : activeTab === 'messages'
+          ? !!truncated?.messages
+          : !!(truncated?.contacts || truncated?.groups || truncated?.messages)
   const tabs: { id: SearchTab; label: string }[] = [
     { id: 'all', label: t('search.all') },
     { id: 'messages', label: t('search.messages') },
@@ -305,6 +314,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                 onClick={() => openResult(result)}
               />
             ))}
+
+            {query.trim() && filteredResults.length > 0 && tabTruncated && (
+              <p className="px-3 py-2 text-xxs text-asgard-text-muted" role="status">
+                {t('search.moreResults')}
+              </p>
+            )}
           </div>
 
           {/* Footer */}

@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Noņemt pielikumu",
       "chat.historyLoadFailed": "Vēsturi nevarēja ielādēt",
       "chat.pinnedMessages": "Piesprausti ziņojumi",
+      "search.moreResults": "Vairāk rezultātu netiek rādīti — precizējiet meklēšanu.",
     }
 }

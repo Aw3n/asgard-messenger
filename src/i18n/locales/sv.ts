@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Ta bort bilaga",
       "chat.historyLoadFailed": "Historiken kunde inte laddas",
       "chat.pinnedMessages": "Nålade meddelanden",
+      "search.moreResults": "Fler resultat visas inte — förfina sökningen.",
     }
 }

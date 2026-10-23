@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Neħħi l-anness",
       "chat.historyLoadFailed": "L-istorja ma setgħetx titgħabba",
       "chat.pinnedMessages": "Messaġġi mwaqqa'",
+      "search.moreResults": "Aktar riżultati ma jurux — irfina t-tiftix.",
     }
 }

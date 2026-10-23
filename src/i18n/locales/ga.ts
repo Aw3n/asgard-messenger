@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Bain an ceangaltán",
       "chat.historyLoadFailed": "Níorbh fhéidir an stair a lódáil",
       "chat.pinnedMessages": "Teachtaireachtaí pionnáilte",
+      "search.moreResults": "Níl torthaí eile á dtaispeáint — déan cuardach níos cruinne.",
     }
 }

@@ -884,5 +884,6 @@ export default {
       "messageInput.removeFile": "Quitar adjunto",
       "chat.historyLoadFailed": "No se pudo cargar el historial",
       "chat.pinnedMessages": "Mensajes fijados",
+      "search.moreResults": "Hay más resultados sin mostrar — refina la búsqueda.",
     }
 }

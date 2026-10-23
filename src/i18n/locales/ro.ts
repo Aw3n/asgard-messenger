@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Elimină atașamentul",
       "chat.historyLoadFailed": "Istoricul nu a putut fi încărcat",
       "chat.pinnedMessages": "Mesaje fixate",
+      "search.moreResults": "Alte rezultate nu sunt afișate — rafinați căutarea.",
     }
 }

@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Melléklet eltávolítása",
       "chat.historyLoadFailed": "Az előzmények nem tölthetők be",
       "chat.pinnedMessages": "Kitűzött üzenetek",
+      "search.moreResults": "További eredmények nem jelennek meg — pontosítsa a keresést.",
     }
 }

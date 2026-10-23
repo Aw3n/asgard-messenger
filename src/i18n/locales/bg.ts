@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Премахване на прикачения файл",
       "chat.historyLoadFailed": "Историята не можа да се зареди",
       "chat.pinnedMessages": "Закачени съобщения",
+      "search.moreResults": "Други резултати не се показват — стеснете търсенето.",
     }
 }

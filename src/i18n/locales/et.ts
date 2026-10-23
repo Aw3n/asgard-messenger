@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Eemalda manus",
       "chat.historyLoadFailed": "Ajalugu ei saanud laadida",
       "chat.pinnedMessages": "Kinnitatud sõnumid",
+      "search.moreResults": "Rohkem tulemusi ei kuvata — täpsusta otsingut.",
     }
 }

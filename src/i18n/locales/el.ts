@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Αφαίρεση συνημμένου",
       "chat.historyLoadFailed": "Το ιστορικό δεν μπόρεσε να φορτωθεί",
       "chat.pinnedMessages": "Καρφιτσωμένα μηνύματα",
+      "search.moreResults": "Δεν εμφανίζονται άλλα αποτελέσματα — βελτιώστε την αναζήτηση.",
     }
 }

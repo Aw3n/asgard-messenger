@@ -37,8 +37,29 @@ interface SearchTarget {
 
 /** Laisse le temps de finir un mot avant d'interroger Hyperbee (IPC par conversation). */
 const STORAGE_SEARCH_DEBOUNCE_MS = 250
-const MAX_IN_MEMORY_MESSAGE_RESULTS = 20
+/** Combien de correspondances mémoire au maximum sont ramassées avant tri. */
+const MEMORY_MATCH_LIMIT = 40
+/**
+ * Bornes par type. Une seule liste tronquée globalement faisait qu'un mot présent
+ * dans 60 contacts ne remontait aucun message, même dans l'onglet Messages ;
+ * chaque type a donc son propre plafond.
+ */
+const MAX_CONTACT_RESULTS = 8
+const MAX_GROUP_RESULTS = 8
+const MAX_MESSAGE_RESULTS = 24
 const STORAGE_RESULTS_PER_CONVERSATION = 5
+
+const NO_TRUNCATION = { contacts: false, groups: false, messages: false }
+
+/** Liste vide partagée : une liste neuve par rendu relancerait la recherche. */
+const EMPTY_MESSAGES: Message[] = []
+
+/** Un type au moins a-t-il été coupé par son plafond ? */
+export interface SearchTruncation {
+  contacts: boolean
+  groups: boolean
+  messages: boolean
+}
 
 /**
  * useSearch — multi-source search hook for contacts, messages, and groups.
@@ -134,66 +155,57 @@ export function useSearch(query: string) {
     }
   }, [query, conversationIdsKey, groupChannelsKey])
 
-  const results = useMemo<SearchResult[]>(() => {
-    if (!query.trim()) return []
+  const { results, truncated } = useMemo<{ results: SearchResult[]; truncated: SearchTruncation }>(() => {
+    if (!query.trim()) return { results: [], truncated: NO_TRUNCATION }
     const q = query.toLowerCase().trim()
-    const results: SearchResult[] = []
 
-    // Search contacts
+    const contactHits: SearchResult[] = []
     for (const contact of contacts) {
       if (
         contact.displayName.toLowerCase().includes(q) ||
         contact.publicKey.toLowerCase().includes(q) ||
         (contact.remoteName && contact.remoteName.toLowerCase().includes(q))
       ) {
-        results.push({
-          type: 'contact',
-          contact,
-          highlight: contact.displayName,
-        })
+        contactHits.push({ type: 'contact', contact, highlight: contact.displayName })
       }
     }
 
-    // Search groups
+    const groupHits: SearchResult[] = []
     for (const group of Object.values(groups)) {
       if (
         group.name.toLowerCase().includes(q) ||
         (group.description && group.description.toLowerCase().includes(q))
       ) {
-        results.push({
-          type: 'group',
-          group,
-          highlight: group.name,
-        })
+        groupHits.push({ type: 'group', group, highlight: group.name })
       }
     }
 
-    // Search messages (in-memory), fils 1:1 puis canaux de groupe
+    // Messages en mémoire, fils 1:1 puis canaux de groupe. La collecte est bornée,
+    // mais le tri qui suit garde les plus récents, pas les premiers rencontrés.
+    const messageHits: SearchResult[] = []
     const inMemoryMsgKeys = new Set<string>()
-    let messageCount = 0
     for (const conv of Object.values(conversations)) {
-      if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
-      const messages = messagesByConversation[conv.id] ?? []
+      if (messageHits.length >= MEMORY_MATCH_LIMIT) break
+      const messages = messagesByConversation[conv.id] ?? EMPTY_MESSAGES
       for (const msg of messages) {
         if (msg.deleted || !msg.content?.toLowerCase().includes(q)) continue
-        results.push({
+        messageHits.push({
           type: 'message',
           message: msg,
           highlight: msg.content.slice(0, 100),
         })
         inMemoryMsgKeys.add(`${conv.id}:${msg.id}`)
-        messageCount++
-        if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+        if (messageHits.length >= MEMORY_MATCH_LIMIT) break
       }
     }
     for (const group of Object.values(groups)) {
-      if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+      if (messageHits.length >= MEMORY_MATCH_LIMIT) break
       for (const channel of group.channels) {
-        if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
-        const messages = messagesByConversation[channel.id] ?? []
+        if (messageHits.length >= MEMORY_MATCH_LIMIT) break
+        const messages = messagesByConversation[channel.id] ?? EMPTY_MESSAGES
         for (const msg of messages) {
           if (msg.deleted || !msg.content?.toLowerCase().includes(q)) continue
-          results.push({
+          messageHits.push({
             type: 'message',
             message: msg,
             groupId: group.id,
@@ -202,18 +214,17 @@ export function useSearch(query: string) {
             highlight: msg.content.slice(0, 100),
           })
           inMemoryMsgKeys.add(`${channel.id}:${msg.id}`)
-          messageCount++
-          if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+          if (messageHits.length >= MEMORY_MATCH_LIMIT) break
         }
       }
     }
 
-    // Add messages found in Hyperbee storage (deep search), sans doublon
+    // Ajoute les messages trouvés dans Hyperbee (recherche profonde), sans doublon
     for (const match of storageMessages) {
       const msg = match.message
       const key = `${match.channelId ?? msg.conversationId}:${msg.id}`
       if (!msg.deleted && !inMemoryMsgKeys.has(key) && msg.content?.toLowerCase().includes(q)) {
-        results.push({
+        messageHits.push({
           type: 'message',
           message: msg,
           groupId: match.groupId,
@@ -224,12 +235,25 @@ export function useSearch(query: string) {
       }
     }
 
-    return results.slice(0, 50)
+    messageHits.sort((a, b) => (b.message?.timestamp ?? 0) - (a.message?.timestamp ?? 0))
+
+    return {
+      results: [
+        ...contactHits.slice(0, MAX_CONTACT_RESULTS),
+        ...groupHits.slice(0, MAX_GROUP_RESULTS),
+        ...messageHits.slice(0, MAX_MESSAGE_RESULTS),
+      ],
+      truncated: {
+        contacts: contactHits.length > MAX_CONTACT_RESULTS,
+        groups: groupHits.length > MAX_GROUP_RESULTS,
+        messages: messageHits.length > MAX_MESSAGE_RESULTS,
+      },
+    }
   }, [query, contacts, groups, conversations, messagesByConversation, storageMessages])
 
   const contactResults = useMemo(() => results.filter((r) => r.type === 'contact'), [results])
   const messageResults = useMemo(() => results.filter((r) => r.type === 'message'), [results])
   const groupResults = useMemo(() => results.filter((r) => r.type === 'group'), [results])
 
-  return { results, contactResults, messageResults, groupResults, isSearching }
+  return { results, contactResults, messageResults, groupResults, isSearching, truncated }
 }

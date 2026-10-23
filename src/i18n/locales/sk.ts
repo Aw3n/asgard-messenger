@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Odstrániť prílohu",
       "chat.historyLoadFailed": "Históriu sa nepodarilo načítať",
       "chat.pinnedMessages": "Pripnuté správy",
+      "search.moreResults": "Ďalšie výsledky sa nezobrazujú — spresnite vyhľadávanie.",
     }
 }

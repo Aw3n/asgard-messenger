@@ -7,10 +7,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSearch } from '@/hooks/useSearch'
+import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { useMessageStore } from '@/stores/messageStore'
-import type { Conversation, Group, Message } from '@/types'
+import type { Contact, Conversation, Group, Message } from '@/types'
 
 const CONV_ID = 'conv-1'
 const GROUP_ID = 'group-1'
@@ -25,6 +26,21 @@ function makeMessage(id: string, content: string, conversationId = CONV_ID): Mes
     content,
     timestamp: Date.now(),
     status: 'delivered',
+  }
+}
+
+function makeMessageAt(id: string, content: string, timestamp: number, conversationId = CONV_ID): Message {
+  return { ...makeMessage(id, content, conversationId), timestamp }
+}
+
+function makeContact(name: string, key: string): Contact {
+  return {
+    publicKey: key,
+    displayName: name,
+    status: 'offline',
+    relation: 'contact',
+    verified: false,
+    addedAt: 0,
   }
 }
 
@@ -69,6 +85,7 @@ beforeEach(() => {
   Object.assign(window.asgard.storage, { searchMessages })
   useConversationStore.setState({ conversations: { [CONV_ID]: conversation } })
   useGroupStore.setState({ groups: {} })
+  useContactStore.setState({ contacts: {} })
   useMessageStore.setState({
     messages: { [CONV_ID]: [makeMessage('m1', 'bonjour le monde')] },
     loading: {},
@@ -223,5 +240,65 @@ describe('useSearch — messages de groupe', () => {
       channelId: CHANNEL_ID,
       sourceLabel: 'Équipe · #général',
     })
+  })
+})
+
+describe('useSearch — plafonds par type et ordre', () => {
+  const BASE = 1_700_000_000_000
+
+  it('garde les messages quand des dizaines de contacts portent le même mot', () => {
+    // Une liste globale coupée à 50 faisait qu'un mot commun aux contacts ne
+    // remontait AUCUN message — même dans l'onglet Messages.
+    const contacts: Record<string, Contact> = {}
+    for (let i = 0; i < 40; i++) {
+      const key = i.toString(16).padStart(4, '0').repeat(16)
+      contacts[key] = makeContact(`bonjour ${i}`, key)
+    }
+    useContactStore.setState({ contacts })
+
+    const { result } = renderHook(() => useSearch('bonjour'))
+
+    expect(result.current.contactResults).toHaveLength(8)
+    expect(result.current.messageResults).toHaveLength(1)
+    expect(result.current.truncated.contacts).toBe(true)
+    expect(result.current.truncated.messages).toBe(false)
+  })
+
+  it('ordonne les messages du plus récent au plus ancien', () => {
+    act(() => {
+      useMessageStore.setState((state) => ({
+        messages: {
+          ...state.messages,
+          [CONV_ID]: [
+            makeMessageAt('ancien', 'bonjour ancien', BASE - 10),
+            makeMessageAt('recent', 'bonjour récent', BASE + 10),
+            makeMessageAt('milieu', 'bonjour milieu', BASE),
+          ],
+        },
+      }))
+    })
+
+    const { result } = renderHook(() => useSearch('bonjour'))
+
+    expect(result.current.messageResults.map((r) => r.message?.id)).toEqual(['recent', 'milieu', 'ancien'])
+  })
+
+  it('annonce la coupure au-delà de vingt-quatre messages', () => {
+    const many = Array.from({ length: 30 }, (_, i) => makeMessageAt(`x${i}`, `bonjour ${i}`, BASE + i))
+    act(() => {
+      useMessageStore.setState((state) => ({ messages: { ...state.messages, [CONV_ID]: many } }))
+    })
+
+    const { result } = renderHook(() => useSearch('bonjour'))
+
+    expect(result.current.messageResults).toHaveLength(24)
+    expect(result.current.messageResults[0].message?.id).toBe('x29')
+    expect(result.current.truncated.messages).toBe(true)
+  })
+
+  it('ne se dit pas coupée sous les plafonds', () => {
+    const { result } = renderHook(() => useSearch('bonjour'))
+
+    expect(result.current.truncated).toEqual({ contacts: false, groups: false, messages: false })
   })
 })

@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Odstrani prilogo",
       "chat.historyLoadFailed": "Zgodovine ni bilo mogoče naložiti",
       "chat.pinnedMessages": "Pripeta sporočila",
+      "search.moreResults": "Več rezultatov ni prikazanih — zožite iskanje.",
     }
 }

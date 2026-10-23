@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Poista liite",
       "chat.historyLoadFailed": "Historiaa ei voitu ladata",
       "chat.pinnedMessages": "Kiinnitetyt viestit",
+      "search.moreResults": "Lisää tuloksia ei näytetä — tarkenna hakua.",
     }
 }

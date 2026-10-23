@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Remover anexo",
       "chat.historyLoadFailed": "Não foi possível carregar o histórico",
       "chat.pinnedMessages": "Mensagens fixadas",
+      "search.moreResults": "Há mais resultados não exibidos — refine a pesquisa.",
     }
 }

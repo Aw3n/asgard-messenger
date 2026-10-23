@@ -884,5 +884,6 @@ export default {
       "messageInput.removeFile": "Rimuovi allegato",
       "chat.historyLoadFailed": "Impossibile caricare la cronologia",
       "chat.pinnedMessages": "Messaggi fissati",
+      "search.moreResults": "Altri risultati non sono visualizzati — affina la ricerca.",
     }
 }

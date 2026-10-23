@@ -885,5 +885,6 @@ export default {
       "messageInput.removeFile": "Fjern vedhæftning",
       "chat.historyLoadFailed": "Historikken kunne ikke indlæses",
       "chat.pinnedMessages": "Fastgjorte beskeder",
+      "search.moreResults": "Flere resultater vises ikke — præciser søgningen.",
     }
 }
