@@ -126,6 +126,31 @@ describe('liste des conversations', () => {
     expect(useConversationStore.getState().conversations[direct.id].muted).toBe(false)
   })
 
+  it('programme une sourdine d’une heure', () => {
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    const before = Date.now()
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    for (const label of ['chat.muteFor1Hour', 'chat.muteFor8Hours', 'chat.muteFor1Week']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+    fireEvent.click(screen.getByText('chat.muteFor1Hour'))
+
+    const conv = useConversationStore.getState().conversations[direct.id]
+    expect(conv.muted).toBe(true)
+    expect(conv.mutedUntil).toBeGreaterThanOrEqual(before + 60 * 60 * 1000)
+    expect(conv.mutedUntil).toBeLessThanOrEqual(Date.now() + 60 * 60 * 1000)
+
+    // Lève la minuterie d'une heure laissée par ce test.
+    act(() => {
+      useConversationStore.getState().muteConversation(direct.id, false)
+    })
+  })
+
   it('marque lu puis non lu depuis le menu contextuel', () => {
     useConversationStore.setState({
       conversations: { [direct.id]: { ...direct, unreadCount: 3 } },
@@ -277,7 +302,7 @@ describe('liste des conversations', () => {
 
     expect(screen.getByRole('menu')).toBeInTheDocument()
     const items = screen.getAllByRole('menuitem')
-    expect(items).toHaveLength(6)
+    expect(items).toHaveLength(9)
     expect(document.activeElement).toBe(items[0])
 
     fireEvent.keyDown(window, { key: 'ArrowDown' })

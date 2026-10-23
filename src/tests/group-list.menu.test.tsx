@@ -8,7 +8,7 @@
  * que lorsqu'il reste quelque chose à lire.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { GroupList } from '@/features/groups/components/GroupList'
 import { useGroupStore } from '@/stores/groupStore'
 import { useConversationStore } from '@/stores/conversationStore'
@@ -121,6 +121,28 @@ describe('menu contextuel des groupes', () => {
 
     expect(isMuted()).toBe(false)
     await waitFor(() => expect(screen.queryByTestId('group-muted')).toBeNull())
+  })
+
+  it('propose les durées de sourdine et programme huit heures', async () => {
+    render(<GroupList onCreateGroup={() => {}} />)
+
+    fireEvent.contextMenu(groupButton())
+    for (const label of ['chat.muteFor1Hour', 'chat.muteFor8Hours', 'chat.muteFor1Week']) {
+      expect(screen.getByRole('menuitem', { name: label })).toBeInTheDocument()
+    }
+    const before = Date.now()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'chat.muteFor8Hours' }))
+
+    const conv = useConversationStore.getState().conversations[GROUP_ID]
+    expect(conv.muted).toBe(true)
+    expect(conv.mutedUntil).toBeGreaterThanOrEqual(before + 8 * 60 * 60 * 1000)
+    expect(conv.mutedUntil).toBeLessThanOrEqual(Date.now() + 8 * 60 * 60 * 1000)
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+
+    // Lève la minuterie de huit heures laissée par ce test.
+    act(() => {
+      useConversationStore.getState().muteConversation(GROUP_ID, false)
+    })
   })
 
   it('s’ouvre au clavier, place le focus et le rend avec Échap', async () => {

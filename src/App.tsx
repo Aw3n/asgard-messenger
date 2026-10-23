@@ -126,6 +126,12 @@ const App: React.FC = () => {
     setTheme(theme)
   }, [theme, setTheme])
 
+  // Une sourdine temporisée survit aux redémarrages : solder celles expirées
+  // pendant l'arrêt et reprogrammer les autres dès l'ouverture.
+  useEffect(() => {
+    useConversationStore.getState().resumeMuteTimers()
+  }, [])
+
   // Apply font size to DOM
   useEffect(() => {
     const root = document.documentElement

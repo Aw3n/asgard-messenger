@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input'
 import { chatService } from '@/services/ChatService'
 import { formatConversationTime } from '@/utils/time'
 import { cn } from '@/utils/cn'
+import { MUTE_DURATIONS } from '@/utils/mute'
 import type { Conversation } from '@/types'
 import { useTranslation } from 'react-i18next'
 
@@ -84,7 +85,13 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
 
   const handleContextMenu = useCallback((e: React.MouseEvent, conv: Conversation) => {
     e.preventDefault()
-    setContextMenu({ conv, x: e.clientX, y: e.clientY })
+    // Neuf entrées : garder le menu entier dans la fenêtre même ouvert près
+    // du bas de la liste.
+    setContextMenu({
+      conv,
+      x: Math.max(8, Math.min(e.clientX, window.innerWidth - 200)),
+      y: Math.max(8, Math.min(e.clientY, window.innerHeight - 360)),
+    })
   }, [])
 
   // Maj+F10 et la touche Menu ouvrent le menu contextuel comme le clic droit.
@@ -97,7 +104,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
       setContextMenu({
         conv,
         x: Math.max(8, Math.min(rect.left + 16, window.innerWidth - 200)),
-        y: Math.max(8, Math.min(rect.top + 16, window.innerHeight - 280)),
+        y: Math.max(8, Math.min(rect.top + 16, window.innerHeight - 360)),
         fromKeyboard: true,
       })
     },
@@ -368,18 +375,38 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
                 setContextMenu(null)
               }}
             />
-            <ContextMenuItem
-              label={t(contextMenu.conv.muted ? 'chat.unmuteConversation' : 'chat.muteConversation')}
-              icon={
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-                </svg>
-              }
-              onClick={() => {
-                muteConversation(contextMenu.conv.id, !contextMenu.conv.muted)
-                setContextMenu(null)
-              }}
-            />
+            {contextMenu.conv.muted ? (
+              <ContextMenuItem
+                label={t('chat.unmuteConversation')}
+                icon={<MuteIcon />}
+                onClick={() => {
+                  muteConversation(contextMenu.conv.id, false)
+                  setContextMenu(null)
+                }}
+              />
+            ) : (
+              <>
+                {MUTE_DURATIONS.map(({ translationKey, durationMs }) => (
+                  <ContextMenuItem
+                    key={translationKey}
+                    label={t(translationKey)}
+                    icon={<MuteIcon />}
+                    onClick={() => {
+                      muteConversation(contextMenu.conv.id, true, durationMs)
+                      setContextMenu(null)
+                    }}
+                  />
+                ))}
+                <ContextMenuItem
+                  label={t('chat.muteConversation')}
+                  icon={<MuteIcon />}
+                  onClick={() => {
+                    muteConversation(contextMenu.conv.id, true)
+                    setContextMenu(null)
+                  }}
+                />
+              </>
+            )}
             <div className="h-px bg-asgard-border my-0.5" />
             <ContextMenuItem
               label={t('chat.clearMessages')}
@@ -577,6 +604,12 @@ const EmptyState: React.FC<{ hasSearch: boolean; onNewChat?: () => void }> = ({
 }
 
 // ─── Context Menu Item ───────────────────────────────────────────────────────
+
+const MuteIcon: React.FC = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+  </svg>
+)
 
 const ContextMenuItem: React.FC<{
   label: string

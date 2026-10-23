@@ -20,6 +20,8 @@ export interface Conversation {
   unreadCount: number
   /** Whether this conversation is muted */
   muted: boolean
+  /** Fin d'une sourdine temporisée (ms). Absent = sourdine sans échéance. */
+  mutedUntil?: number
   /** Whether this conversation is pinned */
   pinned: boolean
   /** Whether this conversation is archived */

@@ -3,6 +3,25 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import type { Conversation, ConversationFilter } from '@/types'
 
+// Une sourdine temporisée doit se lever même sans interaction. Les échéances
+// sont reprogrammées au démarrage à partir de `mutedUntil` (persisté).
+const muteTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function clearMuteTimer(id: string) {
+  const timer = muteTimers.get(id)
+  if (timer) clearTimeout(timer)
+  muteTimers.delete(id)
+}
+
+function scheduleMuteExpiry(id: string, until: number, onExpire: (id: string) => void) {
+  clearMuteTimer(id)
+  const timer = setTimeout(() => {
+    muteTimers.delete(id)
+    onExpire(id)
+  }, Math.max(0, until - Date.now()))
+  muteTimers.set(id, timer)
+}
+
 interface ConversationState {
   conversations: Record<string, Conversation>
   /**
@@ -29,7 +48,9 @@ interface ConversationState {
   clearUnread: (id: string) => void
   markAllConversationsRead: () => void
   pinConversation: (id: string, pinned: boolean) => void
-  muteConversation: (id: string, muted: boolean) => void
+  muteConversation: (id: string, muted: boolean, durationMs?: number) => void
+  /** Reprogramme les sourdines temporisées persistées et solde les expirées. */
+  resumeMuteTimers: () => void
   archiveConversation: (id: string, archived: boolean) => void
   setDraft: (id: string, draft: string) => void
   getDraft: (id: string) => string
@@ -71,6 +92,7 @@ export const useConversationStore = create<ConversationState>()(
       },
 
       removeConversation: (id) => {
+        clearMuteTimer(id)
         set((state) => {
           delete state.conversations[id]
           if (state.activeConversationId === id) {
@@ -128,12 +150,42 @@ export const useConversationStore = create<ConversationState>()(
         })
       },
 
-      muteConversation: (id, muted) => {
+      muteConversation: (id, muted, durationMs) => {
+        clearMuteTimer(id)
+        const until = muted && durationMs && durationMs > 0 ? Date.now() + durationMs : undefined
         set((state) => {
-          if (state.conversations[id]) {
-            state.conversations[id].muted = muted
-          }
+          const conv = state.conversations[id]
+          if (!conv) return
+          conv.muted = muted
+          if (until) conv.mutedUntil = until
+          else delete conv.mutedUntil
         })
+        if (until) {
+          scheduleMuteExpiry(id, until, (conversationId) => {
+            set((state) => {
+              const conv = state.conversations[conversationId]
+              if (!conv) return
+              conv.muted = false
+              delete conv.mutedUntil
+            })
+          })
+        }
+      },
+
+      resumeMuteTimers: () => {
+        const unmute = (id: string) => {
+          set((state) => {
+            const conv = state.conversations[id]
+            if (!conv) return
+            conv.muted = false
+            delete conv.mutedUntil
+          })
+        }
+        for (const [id, conv] of Object.entries(get().conversations)) {
+          if (!conv.muted || conv.mutedUntil == null) continue
+          if (conv.mutedUntil <= Date.now()) unmute(id)
+          else scheduleMuteExpiry(id, conv.mutedUntil, unmute)
+        }
       },
 
       archiveConversation: (id, archived) => {

@@ -7,6 +7,7 @@ import { GroupItem } from './GroupItem'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/utils/cn'
+import { MUTE_DURATIONS } from '@/utils/mute'
 import type { Group } from '@/types'
 
 interface GroupListProps {
@@ -53,8 +54,8 @@ export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
     e.preventDefault()
     setContextMenu({
       group,
-      x: e.clientX,
-      y: e.clientY,
+      x: Math.max(8, Math.min(e.clientX, window.innerWidth - 200)),
+      y: Math.max(8, Math.min(e.clientY, window.innerHeight - 200)),
       muted: useConversationStore.getState().getConversation(group.id)?.muted ?? false,
     })
   }, [])
@@ -86,11 +87,17 @@ export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
     setContextMenu(null)
   }, [contextMenu])
 
-  const toggleGroupMute = useCallback(() => {
+  const muteGroup = useCallback((durationMs?: number) => {
     if (!contextMenu) return
     useConversationStore
       .getState()
-      .muteConversation(contextMenu.group.id, !contextMenu.muted)
+      .muteConversation(contextMenu.group.id, true, durationMs)
+    setContextMenu(null)
+  }, [contextMenu])
+
+  const unmuteGroup = useCallback(() => {
+    if (!contextMenu) return
+    useConversationStore.getState().muteConversation(contextMenu.group.id, false)
     setContextMenu(null)
   }, [contextMenu])
 
@@ -255,24 +262,41 @@ export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
                 {t('chat.markAsRead')}
               </button>
             )}
-            <button
-              type="button"
-              role="menuitem"
-              tabIndex={-1}
-              onClick={toggleGroupMute}
-              className={cn(
-                'w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
-                'text-asgard-text-secondary hover:bg-asgard-surface-alt hover:text-asgard-text-primary'
-              )}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-              </svg>
-              {t(contextMenu.muted ? 'chat.unmuteConversation' : 'chat.muteConversation')}
-            </button>
+            {contextMenu.muted ? (
+              <MuteMenuItem label={t('chat.unmuteConversation')} onClick={unmuteGroup} />
+            ) : (
+              <>
+                {MUTE_DURATIONS.map(({ translationKey, durationMs }) => (
+                  <MuteMenuItem
+                    key={translationKey}
+                    label={t(translationKey)}
+                    onClick={() => muteGroup(durationMs)}
+                  />
+                ))}
+                <MuteMenuItem label={t('chat.muteConversation')} onClick={() => muteGroup()} />
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   )
 }
+
+const MuteMenuItem: React.FC<{ label: string; onClick: () => void }> = ({ label, onClick }) => (
+  <button
+    type="button"
+    role="menuitem"
+    tabIndex={-1}
+    onClick={onClick}
+    className={cn(
+      'w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
+      'text-asgard-text-secondary hover:bg-asgard-surface-alt hover:text-asgard-text-primary'
+    )}
+  >
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+    </svg>
+    {label}
+  </button>
+)
