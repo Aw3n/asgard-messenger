@@ -11,6 +11,7 @@ import { QRCodeModal } from '@/features/contacts/components/QRCodeModal'
 import { mediaDeviceService, type MediaDeviceInfo } from '@/services/MediaDeviceService'
 import { SUPPORTED_LANGUAGES, changeLanguage, getCurrentLanguage } from '@/i18n/config'
 import { PRESENCE_CHOICES, presenceMeta } from '@/utils/presence'
+import { isQuietNow } from '@/utils/quietHours'
 import { TrashManager } from './components/TrashManager'
 import { ThemeSelector } from './components/ThemeSelector'
 import { DownloadHistory } from './components/DownloadHistory'
@@ -421,6 +422,8 @@ const NotificationsSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
   const notif = settings.notifications
+  const quietFromId = React.useId()
+  const quietToId = React.useId()
 
 return (
       <div>
@@ -458,6 +461,46 @@ return (
             checked={notif.dndMode}
             onChange={(v) => updateSettings({ notifications: { ...notif, dndMode: v } })}
           />
+          <ToggleRow
+            label={t('settings.scheduledDnd')}
+            description={t('settings.scheduledDndDesc')}
+            checked={notif.scheduledDnd ?? false}
+            onChange={(v) => updateSettings({ notifications: { ...notif, scheduledDnd: v } })}
+            disabled={!notif.enabled}
+          />
+          <div className="flex flex-wrap items-end gap-4 pl-0.5">
+            <div>
+              <label htmlFor={quietFromId} className="text-xs text-asgard-text-secondary block mb-1">
+                {t('settings.scheduledDndFrom')}
+              </label>
+              <input
+                id={quietFromId}
+                type="time"
+                value={notif.dndFrom ?? ''}
+                disabled={!notif.enabled || !(notif.scheduledDnd ?? false)}
+                onChange={(e) => updateSettings({ notifications: { ...notif, dndFrom: e.target.value } })}
+                className="rounded-lg border border-asgard-border bg-asgard-surface px-2 py-1 text-sm text-asgard-text-primary disabled:opacity-50"
+              />
+            </div>
+            <div>
+              <label htmlFor={quietToId} className="text-xs text-asgard-text-secondary block mb-1">
+                {t('settings.scheduledDndTo')}
+              </label>
+              <input
+                id={quietToId}
+                type="time"
+                value={notif.dndTo ?? ''}
+                disabled={!notif.enabled || !(notif.scheduledDnd ?? false)}
+                onChange={(e) => updateSettings({ notifications: { ...notif, dndTo: e.target.value } })}
+                className="rounded-lg border border-asgard-border bg-asgard-surface px-2 py-1 text-sm text-asgard-text-primary disabled:opacity-50"
+              />
+            </div>
+            {/* Le calendrier doit se lire avant d'attendre une nuit muette :
+                « réglé » et « en cours » sont deux états différents. */}
+            <p className="text-xs text-asgard-text-muted">
+              {isQuietNow(notif) ? t('settings.scheduledDndActive') : t('settings.scheduledDndInactive')}
+            </p>
+          </div>
         </div>
       </div>
     )

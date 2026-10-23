@@ -12,6 +12,7 @@ import { storageService } from './StorageService'
 import { generateId } from '@/utils/id'
 import { sortMessagesByCursor } from '@/utils/messageGap'
 import { speakText } from '@/utils/speech'
+import { isQuietNow } from '@/utils/quietHours'
 import { ringtoneService } from './RingtoneService'
 import i18n from '@/i18n/config'
 import { buildGroupInvitePayload, groupFromInvite } from '@/utils/groupInvite'
@@ -1986,7 +1987,7 @@ class GroupService {
     if (!identity || message.senderId === identity.keyPair.publicKey) return
     const settings = useUIStore.getState().settings
     const notif = settings.notifications
-    if (!notif.enabled || notif.dndMode) return
+    if (!notif.enabled || isQuietNow(notif)) return
     // Sourdine de la conversation de groupe (même marqueur que le 1:1) : les
     // non-lus et les accusés continuent, seule l'alerte est coupée.
     if (useConversationStore.getState().getConversation(group.id)?.muted) return
@@ -2421,7 +2422,7 @@ class GroupService {
 
     const settings = useUIStore.getState().settings
     const notif = settings.notifications
-    if (!notif.enabled || notif.dndMode) return
+    if (!notif.enabled || isQuietNow(notif)) return
     if (useConversationStore.getState().getConversation(group.id)?.muted) return
 
     // The notifier names itself with its roster profile, not with a string

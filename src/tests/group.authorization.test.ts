@@ -112,6 +112,8 @@ afterEach(() => {
   vi.mocked(p2pService.broadcastToPeers).mockRestore()
   vi.mocked(storageService.saveMessage).mockRestore()
   vi.mocked(storageService.deleteMessage).mockRestore()
+  // Une heure fausse ne doit pas survivre au test qui l'a figée.
+  vi.useRealTimers()
 })
 
 describe('métadonnées', () => {
@@ -927,7 +929,10 @@ describe('notifications de groupe', () => {
 
   beforeEach(() => {
     useGroupStore.getState().setGroupViewVisible(false)
-    setNotifications({ enabled: true, sound: false, dndMode: false, showPreview: true, mentionsOnly: false })
+    setNotifications({
+      enabled: true, sound: false, dndMode: false, showPreview: true, mentionsOnly: false,
+      scheduledDnd: false, dndFrom: undefined, dndTo: undefined,
+    })
     show().mockClear()
   })
 
@@ -1028,6 +1033,43 @@ describe('notifications de groupe', () => {
 
     expect(show()).not.toHaveBeenCalled()
     expect(group().channels[0].unreadCount).toBe(1)
+  })
+
+  /**
+   * Le calendrier 22:00 → 07:00 doit couper l'alerte la nuit et la rendre au
+   * matin, sans que personne n'y pense le soir : c'est tout l'objet des deux
+   * heures réglables, restées sans lecteur depuis le premier commit.
+   */
+  it('coupe l’alerte pendant les heures silencieuses et la rend après', () => {
+    vi.useFakeTimers({ now: new Date(2026, 0, 15, 23, 30), toFake: ['Date'] })
+    setNotifications({ scheduledDnd: true, dndFrom: '22:00', dndTo: '07:00' })
+
+    receive('notif-14', 'Bonne nuit')
+    mention('notif-15', '@Alice')
+    expect(show()).not.toHaveBeenCalled()
+
+    vi.setSystemTime(new Date(2026, 0, 16, 9, 0))
+    receive('notif-16', 'Bonjour')
+    expect(show()).toHaveBeenCalledTimes(1)
+  })
+
+  /** Une plage posée mais non armée ne doit rien couper — l'inverse rendrait
+   *  le champ d'heure invisible-mais-malfaisant. */
+  it('ignore une plage que le calendrier n’a pas armée', () => {
+    vi.useFakeTimers({ now: new Date(2026, 0, 15, 23, 30), toFake: ['Date'] })
+    setNotifications({ scheduledDnd: false, dndFrom: '22:00', dndTo: '07:00' })
+
+    receive('notif-17', 'Minuit sonne')
+    expect(show()).toHaveBeenCalledTimes(1)
+  })
+
+  /** Les deux heures mal écrites ne doivent pas endormir toutes les alertes. */
+  it('notifie quand la plage réglée est fausse', () => {
+    vi.useFakeTimers({ now: new Date(2026, 0, 15, 23, 30), toFake: ['Date'] })
+    setNotifications({ scheduledDnd: true, dndFrom: '25:00', dndTo: '07:00' })
+
+    receive('notif-18', 'Heure inventée')
+    expect(show()).toHaveBeenCalledTimes(1)
   })
 })
 

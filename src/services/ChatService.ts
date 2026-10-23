@@ -15,6 +15,7 @@ import { useGroupStore } from '@/stores/groupStore'
 import { generateId } from '@/utils/id'
 import { sortMessagesByCursor } from '@/utils/messageGap'
 import { speakText } from '@/utils/speech'
+import { isQuietNow } from '@/utils/quietHours'
 import i18n from '@/i18n/config'
 import {
   toNetworkStatus,
@@ -3224,7 +3225,7 @@ class ChatService {
       const muted = convStore.getConversation(resolvedId)?.muted ?? false
       const notifSettings = useUIStore.getState().settings.notifications
       const a11ySettings = useUIStore.getState().settings.accessibility
-      if (!muted && notifSettings.enabled && !notifSettings.dndMode) {
+      if (!muted && notifSettings.enabled && !isQuietNow(notifSettings)) {
         const senderName = contact?.displayName ?? msg.from.slice(0, 8)
         const content = correctedMessage.content ?? ''
         // NOTIFICATION SETTINGS (mentionsOnly): only notify when the message

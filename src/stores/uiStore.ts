@@ -63,6 +63,7 @@ const defaultSettings: AppSettings = {
     enabled: true,
     sound: true,
     dndMode: false,
+    scheduledDnd: false,
     showPreview: true,
     mentionsOnly: false,
   },

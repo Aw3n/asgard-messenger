@@ -34,6 +34,8 @@ export interface NotificationSettings {
   enabled: boolean
   sound: boolean
   dndMode: boolean
+  /** Silence programmé : n'utilise la fenêtre dndFrom → dndTo que s'il est levé. */
+  scheduledDnd: boolean
   dndFrom?: string // HH:MM
   dndTo?: string   // HH:MM
   showPreview: boolean

@@ -182,4 +182,39 @@ describe('catalogues de langue', () => {
       expect(i18n.t('settings.downloadFolderChoose'), code).not.toBe(i18n.t('settings.downloadFolderReset'))
     }
   })
+
+  /**
+   * Le silence programmé se pose à deux heures et se lit dans un troisième
+   * champ : une table recopiée de travers rendrait « Jusqu'à » sur les deux
+   * bornes, ou pire, le texte français à un joueur estonien.
+   */
+  it('rend le silence programmé dans chacune des 25 langues', async () => {
+    await i18nReady
+    const keys = [
+      'settings.scheduledDnd', 'settings.scheduledDndDesc', 'settings.scheduledDndFrom',
+      'settings.scheduledDndTo', 'settings.scheduledDndActive', 'settings.scheduledDndInactive',
+    ] as const
+    for (const key of keys) {
+      for (const { code } of SUPPORTED_LANGUAGES) {
+        await changeLanguage(code)
+        const value = i18n.t(key)
+        expect(value, `${code} · ${key}`).toBe(translations[code].translation[key])
+        expect(value, `${code} · ${key}`).not.toBe(key)
+        if (code !== 'fr') expect(value, `${code} · ${key}`).not.toBe(translations.fr.translation[key])
+      }
+    }
+  })
+
+  /** Les deux bornes, les deux états et l'interrupteur manuel doivent se distinguer
+   *  à l'écran : quatre chaînes confondues rendraient le calendrier illisible. */
+  it('distingue les deux bornes et les deux états du silence dans chaque langue', async () => {
+    await i18nReady
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      expect(i18n.t('settings.scheduledDndFrom'), code).not.toBe(i18n.t('settings.scheduledDndTo'))
+      expect(i18n.t('settings.scheduledDndActive'), code).not.toBe(i18n.t('settings.scheduledDndInactive'))
+      expect(i18n.t('settings.scheduledDnd'), code).not.toBe(i18n.t('settings.doNotDisturb'))
+      expect(i18n.t('settings.scheduledDndDesc'), code).not.toBe(i18n.t('settings.doNotDisturbDesc'))
+    }
+  })
 })
