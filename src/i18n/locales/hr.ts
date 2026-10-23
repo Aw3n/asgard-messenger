@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Utišavanje člana poništeno",
       "groups.muteFailed": "Utišavanje člana nije bilo moguće promijeniti",
       "groups.mutedInGroup": "Utišani ste u ovoj grupi",
+      "groups.cannotPostInChannel": "Ne možete objavljivati u ovom kanalu",
     }
 }

@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Stlmenie člena zrušené",
       "groups.muteFailed": "Zmenu stlmenia člena sa nepodarilo",
       "groups.mutedInGroup": "V tejto skupine ste stlmený",
+      "groups.cannotPostInChannel": "V tomto kanáli nemôžete publikovať",
     }
 }

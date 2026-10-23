@@ -32,11 +32,11 @@ describe('catalogues de langue', () => {
 
   /**
    * Une clé nouvelle n'est livrée que rendue dans TOUTES les langues — vérifiée
-   * par i18n, pas relue dans la table. Quatre venues corriger du texte codé en
+   * par i18n, pas relue dans la table. Cinq venues corriger du texte codé en
    * dur dans le JSX ou une action sans visage : la barre des épinglés (français),
    * la mention de licence (« MIT License. » accolé à un nom déjà traduit),
    * l'annonce de résultats coupés, la sourdine d'un membre (six chaînes pour une
-   * action que seul le code savait poser).
+   * action que seul le code savait poser), le refus d'écrire dans un canal.
    */
   it('rend les livrées récentes dans chacune des 25 langues', async () => {
     await i18nReady
@@ -44,6 +44,7 @@ describe('catalogues de langue', () => {
       'chat.pinnedMessages', 'settings.openSourceLicense', 'search.moreResults',
       'groups.muteMember', 'groups.unmuteMember', 'groups.memberMuted',
       'groups.memberUnmuted', 'groups.muteFailed', 'groups.mutedInGroup',
+      'groups.cannotPostInChannel',
     ] as const
     for (const key of keys) {
       for (const { code } of SUPPORTED_LANGUAGES) {
@@ -68,6 +69,19 @@ describe('catalogues de langue', () => {
       await changeLanguage(code)
       expect(i18n.t('groups.muteMember'), code).not.toBe(i18n.t('groups.unmuteMember'))
       expect(i18n.t('groups.memberMuted'), code).not.toBe(i18n.t('groups.memberUnmuted'))
+    }
+  })
+
+  /**
+   * Deux raisons ferment le même composeur — la sourdine d'un admin et un canal
+   * qui n'ouvre l'écriture qu'à certains rôles. Un texte commun ferait croire au
+   * membre qu'on l'a tu lui, alors que c'est le canal.
+   */
+  it('distingue les deux raisons qui ferment un composeur dans chaque langue', async () => {
+    await i18nReady
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      expect(i18n.t('groups.cannotPostInChannel'), code).not.toBe(i18n.t('groups.mutedInGroup'))
     }
   })
 })

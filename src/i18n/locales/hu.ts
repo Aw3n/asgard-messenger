@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Tag némítása feloldva",
       "groups.muteFailed": "A tag némítását nem sikerült módosítani",
       "groups.mutedInGroup": "Ebben a csoportban le vagy némítva",
+      "groups.cannotPostInChannel": "Ebben a csatornában nem írhatsz",
     }
 }

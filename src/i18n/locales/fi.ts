@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Jäsenen mykistys poistettu",
       "groups.muteFailed": "Jäsenen mykistystä ei voitu muuttaa",
       "groups.mutedInGroup": "Sinut on mykistetty tässä ryhmässä",
+      "groups.cannotPostInChannel": "Et voi julkaista tähän kanavaan",
     }
 }

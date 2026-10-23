@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Nario nutildymas atšauktas",
       "groups.muteFailed": "Nario nutildymo pakeisti nepavyko",
       "groups.mutedInGroup": "Šioje grupėje esate nutildytas",
+      "groups.cannotPostInChannel": "Šiame kanale negalite skelbti",
     }
 }

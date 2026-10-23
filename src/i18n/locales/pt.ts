@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Membro reativado",
       "groups.muteFailed": "Não foi possível alterar o silêncio do membro",
       "groups.mutedInGroup": "Está silenciado neste grupo",
+      "groups.cannotPostInChannel": "Não pode publicar neste canal",
     }
 }

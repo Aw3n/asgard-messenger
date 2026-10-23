@@ -891,5 +891,6 @@ export default {
       "groups.memberUnmuted": "Stummschaltung des Mitglieds aufgehoben",
       "groups.muteFailed": "Stummschaltung des Mitglieds konnte nicht geändert werden",
       "groups.mutedInGroup": "Sie sind in dieser Gruppe stummgeschaltet",
+      "groups.cannotPostInChannel": "Sie können in diesem Kanal nicht posten",
     }
 }

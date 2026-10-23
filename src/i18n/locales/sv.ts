@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Medlem aktiverad igen",
       "groups.muteFailed": "Det gick inte att ändra tystnad för medlem",
       "groups.mutedInGroup": "Du är tystad i den här gruppen",
+      "groups.cannotPostInChannel": "Du kan inte publicera i den här kanalen",
     }
 }

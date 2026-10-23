@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Dalībnieka apklusināšana atcelta",
       "groups.muteFailed": "Dalībnieka apklusinājumu nevarēja mainīt",
       "groups.mutedInGroup": "Jūs esat apklusināts šajā grupā",
+      "groups.cannotPostInChannel": "Šajā kanālā nevar publicēt",
     }
 }

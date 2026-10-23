@@ -891,5 +891,6 @@ export default {
       "groups.memberUnmuted": "Membre rétabli",
       "groups.muteFailed": "Impossible de modifier la sourdine du membre",
       "groups.mutedInGroup": "Vous êtes en sourdine dans ce groupe",
+      "groups.cannotPostInChannel": "Vous ne pouvez pas publier dans ce canal",
     }
 }

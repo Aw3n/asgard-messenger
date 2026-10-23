@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "З учасника знято заглушення",
       "groups.muteFailed": "Не вдалося змінити заглушення учасника",
       "groups.mutedInGroup": "Ви заглушені в цій групі",
+      "groups.cannotPostInChannel": "Ви не можете писати в цьому каналі",
     }
 }

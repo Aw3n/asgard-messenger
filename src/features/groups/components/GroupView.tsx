@@ -24,6 +24,7 @@ import { watchWindowVisibility } from '@/utils/windowVisibility'
 import { countIncomingAfter } from '@/utils/incomingAfter'
 import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
 import { parseMessageJump } from '@/utils/messageJump'
+import { canPostInChannel } from '@/utils/groupPermissions'
 import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
@@ -140,9 +141,12 @@ export const GroupView: React.FC = () => {
   // Épingler est réservé aux mêmes rôles que côté service ; les autres membres
   // ne doivent pas voir une action qui échouerait.
   const canPin = !!currentMember && ['owner', 'admin', 'moderator'].includes(currentMember.role)
-  // Sourdine posée par un administrateur : le composeur se ferme ici, le
-  // service refuse l'envoi de toute façon.
+  // Sourdine posée par un administrateur, ou canal qui n'ouvre l'écriture qu'à
+  // certains rôles : le composeur se ferme, le service refuse l'envoi de toute
+  // façon. La phrase diffère parce que la raison diffère.
   const isMuted = currentMember?.canPost === false
+  const canPostHere = !!activeGroup && !!channelId
+    && canPostInChannel(activeGroup, channelId, identity?.keyPair.publicKey ?? '')
 
   const handleSend = useCallback(
     (content: string) => {
@@ -605,9 +609,9 @@ export const GroupView: React.FC = () => {
           onCancelEdit={() => setEditingMessage(undefined)}
           onFiles={handleFiles}
           onCancelReply={() => setReplyTo(undefined)}
-          disabled={isMuted}
-          placeholder={isMuted
-            ? t('groups.mutedInGroup')
+          disabled={!canPostHere}
+          placeholder={!canPostHere
+            ? (isMuted ? t('groups.mutedInGroup') : t('groups.cannotPostInChannel'))
             : t('groups.messageChannel', { channelName: activeChannel?.name ?? t('groups.general') })}
         />
       </div>

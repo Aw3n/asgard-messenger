@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Membrul a ieșit din tăcere",
       "groups.muteFailed": "Nu s-a putut modifica starea de tăcere a membrului",
       "groups.mutedInGroup": "Sunteți în tăcere în acest grup",
+      "groups.cannotPostInChannel": "Nu puteți publica în acest canal",
     }
 }

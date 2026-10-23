@@ -330,6 +330,23 @@ describe('transferts de groupe', () => {
     expect(messages()).toEqual([])
   })
 
+  it('écarte la pièce jointe d’un rôle que le canal n’admet pas', async () => {
+    // Une jointure de fichier est une publication au même titre qu'un message.
+    useGroupStore.getState().updateChannel(groupId, channelId, {
+      permissions: { send: ['owner', 'admin'], read: ['owner'], manage: ['owner'] },
+    })
+
+    await incoming(B, 'transfer-4006', {
+      binary: true,
+      totalChunks: 1,
+      conversationId: channelId,
+      groupTransferId,
+    }, { size: CHUNK })
+
+    expect(service.receiveBuffers.size).toBe(0)
+    expect(messages()).toEqual([])
+  })
+
   it('accepte un membre et rattache le fichier au canal, puis accuse avec le vrai groupId', async () => {
     await incoming(B, 'transfer-4003', {
       binary: true,

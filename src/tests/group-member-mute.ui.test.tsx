@@ -5,11 +5,11 @@
  * groupe et appliqués au roster — mais aucune interface ne les appelait : la
  * sourdine d'un membre se réglait dans le code. Ces tests fixent le bouton et
  * son contraire, leur annonce, l'absence de prise sur soi-même et sur le
- * propriétaire, le libellé de rôle traduit, et le composeur fermé au membre
- * muselé.
+ * propriétaire, le libellé de rôle traduit, et le composeur fermé — pour une
+ * sourdine comme pour un canal qui n'ouvre l'écriture qu'à certains rôles.
  */
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Group, GroupMember } from '@/types'
@@ -104,7 +104,7 @@ const makeGroup = (members: GroupMember[]): Group => ({
     name: 'général',
     type: 'text',
     position: 0,
-    permissions: { send: ['member'], read: ['member'], manage: ['owner'] },
+    permissions: { send: ['owner', 'admin', 'member'], read: ['member'], manage: ['owner'] },
     unreadCount: 0,
   }],
   createdAt: 0,
@@ -224,12 +224,19 @@ describe('réglages de groupe — modération des membres', () => {
   })
 })
 
-describe('composeur du membre en sourdine', () => {
+describe('composeur fermé : sourdine et rôles du canal', () => {
   const renderView = () => render(
     <MemoryRouter initialEntries={[`/groups/${GROUP_ID}/channels/${CHANNEL_ID}`]}>
       <GroupView />
     </MemoryRouter>,
   )
+
+  /** Le canal choisit les rôles qui y écrivent ; la vue lit le même état que le service. */
+  const restrictChannel = (send: GroupMember['role'][]) => {
+    useGroupStore.getState().updateChannel(GROUP_ID, CHANNEL_ID, {
+      permissions: { send, read: ['member'], manage: ['owner'] },
+    })
+  }
 
   it('ferme le composeur et le dit', () => {
     setMembers(member(ME, 'Moi', 'member', false))
@@ -240,6 +247,17 @@ describe('composeur du membre en sourdine', () => {
     expect(screen.getByTestId('composer-field')).toHaveAttribute('placeholder', 'groups.mutedInGroup')
   })
 
+  it('ferme le composeur d’un canal hors des rôles du membre et le dit', () => {
+    setMembers(member(ME, 'Moi', 'member'))
+    restrictChannel(['owner', 'admin'])
+
+    renderView()
+
+    expect(screen.getByTestId('composer-field')).toBeDisabled()
+    // Pas « vous êtes en sourdine » : c'est le canal qui est fermé, pas la personne.
+    expect(screen.getByTestId('composer-field')).toHaveAttribute('placeholder', 'groups.cannotPostInChannel')
+  })
+
   it('laisse la parole au membre autorisé', () => {
     renderView()
 
@@ -247,9 +265,25 @@ describe('composeur du membre en sourdine', () => {
     expect(screen.getByTestId('composer-field')).toHaveAttribute('placeholder', 'groups.messageChannel')
   })
 
+  it('rouvre le composeur quand le canal déclare à nouveau le rôle du membre', () => {
+    setMembers(member(ME, 'Moi', 'member'))
+    restrictChannel(['owner'])
+    renderView()
+    expect(screen.getByTestId('composer-field')).toBeDisabled()
+
+    // L'état du canal vient du réseau : la vue doit suivre sans rechargement.
+    act(() => {
+      useGroupStore.getState().updateChannel(GROUP_ID, CHANNEL_ID, {
+        permissions: { send: ['owner', 'member'], read: ['member'], manage: ['owner'] },
+      })
+    })
+
+    expect(screen.getByTestId('composer-field')).not.toBeDisabled()
+  })
+
   it('ne laisse pas l’échec d’envoi devenir une promesse non gérée', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.mocked(groupService.sendGroupMessage).mockRejectedValueOnce(new Error('Muted in this group'))
+    vi.mocked(groupService.sendGroupMessage).mockRejectedValueOnce(new Error('Cannot post in this channel'))
 
     renderView()
     fireEvent.click(screen.getByTestId('composer-send'))

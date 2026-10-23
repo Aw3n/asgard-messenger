@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Baineadh balbhacht den bhall",
       "groups.muteFailed": "Theip ar athrú balbhachta an bhalla",
       "groups.mutedInGroup": "Tá tú balbhaithe sa ngrúpa seo",
+      "groups.cannotPostInChannel": "Ní féidir leat a fhoilsiú sa chainéal seo",
     }
 }

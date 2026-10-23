@@ -5,7 +5,7 @@
  * Ces tests fixent la règle : métadonnées, rôles, exclusions, canaux, mutes et
  * messages ne s'appliquent que si l'émetteur est le membre concerné ou un
  * administrateur du groupe local — et un membre en sourdine ne publie plus, ni
- * chez lui ni chez les autres.
+ * chez lui ni chez les autres, pas plus qu'un rôle que le canal n'admet pas.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { groupService } from '@/services/GroupService'
@@ -403,6 +403,68 @@ describe('publication sous sourdine', () => {
     ).rejects.toThrow()
 
     expect(multicast).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * Les rôles qu'un canal laisse écrire (`permissions.send`) traversaient le
+ * réseau et survivaient dans le store sans qu'aucun chemin ne les lise : un
+ * canal « annonce » ou « lecture seule » restait publiable par tout le monde.
+ * Le droit se vérifie aux deux bouts — l'expéditeur ne publie pas, les autres
+ * n'affichent pas ce qu'un client modifié enverrait quand même.
+ */
+describe('rôles d’écriture d’un canal', () => {
+  const textOf = (id: string, sender: string, content: string): Record<string, unknown> => ({
+    groupId,
+    channelId,
+    message: { id, senderId: sender, content, type: 'text', timestamp: Date.now(), status: 'sent' },
+  })
+
+  const restrict = (send: GroupMember['role'][]) => {
+    useGroupStore.getState().updateChannel(groupId, channelId, {
+      permissions: { send, read: ['owner'], manage: ['owner'] },
+    })
+  }
+
+  it('écarte chez les autres un message d’un rôle que le canal n’admet pas', () => {
+    restrict(['owner', 'admin'])
+
+    dispatch('handleGroupMessage', textOf('m-role-drop', C, 'par un client modifié'), C, 'group:message')
+    expect(useMessageStore.getState().getMessage('m-role-drop', channelId)).toBeUndefined()
+
+    dispatch('handleGroupMessage', textOf('m-role-keep', B, 'post de la direction'), B, 'group:message')
+    expect(useMessageStore.getState().getMessage('m-role-keep', channelId)?.content).toBe('post de la direction')
+  })
+
+  it('refuse l’envoi depuis le client d’un rôle que le canal n’admet pas', async () => {
+    restrict(['owner', 'admin'])
+    useIdentityStore.setState((state) => ({
+      identity: { ...state.identity!, keyPair: { ...state.identity!.keyPair, publicKey: C } },
+    }))
+
+    await expect(groupService.sendGroupMessage(groupId, channelId, 'dans le canal annonce')).rejects.toThrow()
+
+    expect(useMessageStore.getState().messages[channelId] ?? []).toEqual([])
+    expect(p2pService.broadcastToPeers).not.toHaveBeenCalled()
+  })
+
+  it('laisse écrire quand le canal ne déclare aucun rôle', () => {
+    // Un canal venu d'un client plus ancien arrive avec une liste vide : la
+    // fermer reviendrait à couper la parole à tout le groupe.
+    restrict([])
+
+    dispatch('handleGroupMessage', textOf('m-role-open', C, 'toujours publiable'), C, 'group:message')
+    expect(useMessageStore.getState().getMessage('m-role-open', channelId)?.content).toBe('toujours publiable')
+  })
+
+  it('tient les invités hors du canal créé par défaut', () => {
+    useGroupStore.getState().addMember(groupId, member(E, 'Eve', 'guest'))
+
+    dispatch('handleGroupMessage', textOf('m-role-guest', E, 'invitée muette'), E, 'group:message')
+    expect(useMessageStore.getState().getMessage('m-role-guest', channelId)).toBeUndefined()
+
+    dispatch('handleGroupMessage', textOf('m-role-member', C, 'simple membre entendu'), C, 'group:message')
+    expect(useMessageStore.getState().getMessage('m-role-member', channelId)?.content).toBe('simple membre entendu')
   })
 })
 

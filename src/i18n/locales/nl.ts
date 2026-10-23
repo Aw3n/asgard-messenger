@@ -891,5 +891,6 @@ export default {
       "groups.memberUnmuted": "Dempen van lid opgeheven",
       "groups.muteFailed": "Dempen van lid wijzigen is mislukt",
       "groups.mutedInGroup": "Je bent gedempt in deze groep",
+      "groups.cannotPostInChannel": "Je kunt niet plaatsen in dit kanaal",
     }
 }

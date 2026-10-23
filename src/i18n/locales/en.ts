@@ -901,5 +901,6 @@ export default {
       "groups.memberUnmuted": "Member unmuted",
       "groups.muteFailed": "Couldn’t change the member’s mute",
       "groups.mutedInGroup": "You are muted in this group",
+      "groups.cannotPostInChannel": "You can’t post in this channel",
     }
 }

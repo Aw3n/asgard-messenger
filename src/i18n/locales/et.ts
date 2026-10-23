@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Liikme summutamine lõpetatud",
       "groups.muteFailed": "Liikme summutamist ei õnnestunud muuta",
       "groups.mutedInGroup": "Sind on selles rühmas summutatud",
+      "groups.cannotPostInChannel": "Sellesse kanalisse ei saa postitada",
     }
 }

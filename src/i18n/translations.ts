@@ -890,6 +890,7 @@ export const translations = {
       "groups.memberUnmuted": "Membre rétabli",
       "groups.muteFailed": "Impossible de modifier la sourdine du membre",
       "groups.mutedInGroup": "Vous êtes en sourdine dans ce groupe",
+      "groups.cannotPostInChannel": "Vous ne pouvez pas publier dans ce canal",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1783,6 +1784,7 @@ export const translations = {
       "groups.memberUnmuted": "Dempen van lid opgeheven",
       "groups.muteFailed": "Dempen van lid wijzigen is mislukt",
       "groups.mutedInGroup": "Je bent gedempt in deze groep",
+      "groups.cannotPostInChannel": "Je kunt niet plaatsen in dit kanaal",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2676,6 +2678,7 @@ export const translations = {
       "groups.memberUnmuted": "Stummschaltung des Mitglieds aufgehoben",
       "groups.muteFailed": "Stummschaltung des Mitglieds konnte nicht geändert werden",
       "groups.mutedInGroup": "Sie sind in dieser Gruppe stummgeschaltet",
+      "groups.cannotPostInChannel": "Sie können in diesem Kanal nicht posten",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3569,6 +3572,7 @@ export const translations = {
       "groups.memberUnmuted": "Membro riattivato",
       "groups.muteFailed": "Impossibile modificare il silenzio del membro",
       "groups.mutedInGroup": "Sei stato silenziato in questo gruppo",
+      "groups.cannotPostInChannel": "Non puoi pubblicare in questo canale",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4462,6 +4466,7 @@ export const translations = {
       "groups.memberUnmuted": "Miembro reactivado",
       "groups.muteFailed": "No se pudo cambiar el silencio del miembro",
       "groups.mutedInGroup": "Estás silenciado en este grupo",
+      "groups.cannotPostInChannel": "No puedes publicar en este canal",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5356,6 +5361,7 @@ export const translations = {
       "groups.memberUnmuted": "Membro reativado",
       "groups.muteFailed": "Não foi possível alterar o silêncio do membro",
       "groups.mutedInGroup": "Está silenciado neste grupo",
+      "groups.cannotPostInChannel": "Não pode publicar neste canal",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6250,6 +6256,7 @@ export const translations = {
       "groups.memberUnmuted": "Η σίγαση του μέλους άρθηκε",
       "groups.muteFailed": "Η αλλαγή σίγασης του μέλους απέτυχε",
       "groups.mutedInGroup": "Είστε σε σίγαση σε αυτή την ομάδα",
+      "groups.cannotPostInChannel": "Δεν μπορείτε να δημοσιεύσετε σε αυτό το κανάλι",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7144,6 +7151,7 @@ export const translations = {
       "groups.memberUnmuted": "Medlem kan skrive igen",
       "groups.muteFailed": "Ændring af stumhed for medlem mislykkedes",
       "groups.mutedInGroup": "Du er gjort stum i denne gruppe",
+      "groups.cannotPostInChannel": "Du kan ikke skrive i denne kanal",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -8038,6 +8046,7 @@ export const translations = {
       "groups.memberUnmuted": "Jäsenen mykistys poistettu",
       "groups.muteFailed": "Jäsenen mykistystä ei voitu muuttaa",
       "groups.mutedInGroup": "Sinut on mykistetty tässä ryhmässä",
+      "groups.cannotPostInChannel": "Et voi julkaista tähän kanavaan",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8932,6 +8941,7 @@ export const translations = {
       "groups.memberUnmuted": "Medlem aktiverad igen",
       "groups.muteFailed": "Det gick inte att ändra tystnad för medlem",
       "groups.mutedInGroup": "Du är tystad i den här gruppen",
+      "groups.cannotPostInChannel": "Du kan inte publicera i den här kanalen",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9826,6 +9836,7 @@ export const translations = {
       "groups.memberUnmuted": "Utišavanje člana poništeno",
       "groups.muteFailed": "Utišavanje člana nije bilo moguće promijeniti",
       "groups.mutedInGroup": "Utišani ste u ovoj grupi",
+      "groups.cannotPostInChannel": "Ne možete objavljivati u ovom kanalu",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10720,6 +10731,7 @@ export const translations = {
       "groups.memberUnmuted": "Liikme summutamine lõpetatud",
       "groups.muteFailed": "Liikme summutamist ei õnnestunud muuta",
       "groups.mutedInGroup": "Sind on selles rühmas summutatud",
+      "groups.cannotPostInChannel": "Sellesse kanalisse ei saa postitada",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11614,6 +11626,7 @@ export const translations = {
       "groups.memberUnmuted": "Tag némítása feloldva",
       "groups.muteFailed": "A tag némítását nem sikerült módosítani",
       "groups.mutedInGroup": "Ebben a csoportban le vagy némítva",
+      "groups.cannotPostInChannel": "Ebben a csatornában nem írhatsz",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12508,6 +12521,7 @@ export const translations = {
       "groups.memberUnmuted": "Dalībnieka apklusināšana atcelta",
       "groups.muteFailed": "Dalībnieka apklusinājumu nevarēja mainīt",
       "groups.mutedInGroup": "Jūs esat apklusināts šajā grupā",
+      "groups.cannotPostInChannel": "Šajā kanālā nevar publicēt",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13402,6 +13416,7 @@ export const translations = {
       "groups.memberUnmuted": "Nario nutildymas atšauktas",
       "groups.muteFailed": "Nario nutildymo pakeisti nepavyko",
       "groups.mutedInGroup": "Šioje grupėje esate nutildytas",
+      "groups.cannotPostInChannel": "Šiame kanale negalite skelbti",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14296,6 +14311,7 @@ export const translations = {
       "groups.memberUnmuted": "In-neħħiet il-ġibed mill-membru",
       "groups.muteFailed": "Ma setg'etx tinbidel il-ġibed tal-membru",
       "groups.mutedInGroup": "Int ġibed f’din il-gruppa",
+      "groups.cannotPostInChannel": "Ma tistgħx tippubblika f’dan il-kanal",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -15190,6 +15206,7 @@ export const translations = {
       "groups.memberUnmuted": "Wyciszenie członka wyłączone",
       "groups.muteFailed": "Nie udało się zmienić wyciszenia członka",
       "groups.mutedInGroup": "Jesteś wyciszony w tej grupie",
+      "groups.cannotPostInChannel": "Nie możesz publikować w tym kanale",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -16084,6 +16101,7 @@ export const translations = {
       "groups.memberUnmuted": "Stlmenie člena zrušené",
       "groups.muteFailed": "Zmenu stlmenia člena sa nepodarilo",
       "groups.mutedInGroup": "V tejto skupine ste stlmený",
+      "groups.cannotPostInChannel": "V tomto kanáli nemôžete publikovať",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16978,6 +16996,7 @@ export const translations = {
       "groups.memberUnmuted": "Utišanje člana odstranjeno",
       "groups.muteFailed": "Spremembe utišanja člana ni bilo mogoče izvesti",
       "groups.mutedInGroup": "V tej skupini ste utišani",
+      "groups.cannotPostInChannel": "V tem kanalu ne morete objavljati",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17872,6 +17891,7 @@ export const translations = {
       "groups.memberUnmuted": "Ztlumení člena zrušeno",
       "groups.muteFailed": "Změnu ztlumení člena se nepodařilo provést",
       "groups.mutedInGroup": "V této skupině jste ztlumeni",
+      "groups.cannotPostInChannel": "V tomto kanálu nemůžete publikovat",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18766,6 +18786,7 @@ export const translations = {
       "groups.memberUnmuted": "Заглушаването на члена е премахнато",
       "groups.muteFailed": "Промяната на заглушаването на члена не успя",
       "groups.mutedInGroup": "Вие сте заглушени в тази група",
+      "groups.cannotPostInChannel": "Не можете да публикувате в този канал",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19660,6 +19681,7 @@ export const translations = {
       "groups.memberUnmuted": "Baineadh balbhacht den bhall",
       "groups.muteFailed": "Theip ar athrú balbhachta an bhalla",
       "groups.mutedInGroup": "Tá tú balbhaithe sa ngrúpa seo",
+      "groups.cannotPostInChannel": "Ní féidir leat a fhoilsiú sa chainéal seo",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20554,6 +20576,7 @@ export const translations = {
       "groups.memberUnmuted": "Membrul a ieșit din tăcere",
       "groups.muteFailed": "Nu s-a putut modifica starea de tăcere a membrului",
       "groups.mutedInGroup": "Sunteți în tăcere în acest grup",
+      "groups.cannotPostInChannel": "Nu puteți publica în acest canal",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21457,6 +21480,7 @@ export const translations = {
       "groups.memberUnmuted": "Member unmuted",
       "groups.muteFailed": "Couldn’t change the member’s mute",
       "groups.mutedInGroup": "You are muted in this group",
+      "groups.cannotPostInChannel": "You can’t post in this channel",
     }
   },
 
@@ -22352,6 +22376,7 @@ export const translations = {
       "groups.memberUnmuted": "З учасника знято заглушення",
       "groups.muteFailed": "Не вдалося змінити заглушення учасника",
       "groups.mutedInGroup": "Ви заглушені в цій групі",
+      "groups.cannotPostInChannel": "Ви не можете писати в цьому каналі",
     }
   },
 }

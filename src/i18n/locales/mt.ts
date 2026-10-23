@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "In-neħħiet il-ġibed mill-membru",
       "groups.muteFailed": "Ma setg'etx tinbidel il-ġibed tal-membru",
       "groups.mutedInGroup": "Int ġibed f’din il-gruppa",
+      "groups.cannotPostInChannel": "Ma tistgħx tippubblika f’dan il-kanal",
     }
 }

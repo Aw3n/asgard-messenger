@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Ztlumení člena zrušeno",
       "groups.muteFailed": "Změnu ztlumení člena se nepodařilo provést",
       "groups.mutedInGroup": "V této skupině jste ztlumeni",
+      "groups.cannotPostInChannel": "V tomto kanálu nemůžete publikovat",
     }
 }

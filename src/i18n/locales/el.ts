@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Η σίγαση του μέλους άρθηκε",
       "groups.muteFailed": "Η αλλαγή σίγασης του μέλους απέτυχε",
       "groups.mutedInGroup": "Είστε σε σίγαση σε αυτή την ομάδα",
+      "groups.cannotPostInChannel": "Δεν μπορείτε να δημοσιεύσετε σε αυτό το κανάλι",
     }
 }

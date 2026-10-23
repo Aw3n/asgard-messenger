@@ -15,6 +15,7 @@ import { speakText } from '@/utils/speech'
 import { ringtoneService } from './RingtoneService'
 import i18n from '@/i18n/config'
 import { buildGroupInvitePayload, groupFromInvite } from '@/utils/groupInvite'
+import { canPostInChannel } from '@/utils/groupPermissions'
 import { toNetworkStatus, fromNetworkStatus, GROUP_PRESENCE_TIMEOUT, type NetworkStatus } from '@/utils/presence'
 
 /**
@@ -759,11 +760,11 @@ class GroupService {
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group) return
 
-    // Sourdine : un `canPost` false sur sa propre ligne du roster vient d'un
-    // administrateur et a été diffusé au groupe entier. Sans ce garde, le
-    // musellement restait une icône et le membre continuait de publier.
-    if (group.members.some((m) => m.publicKey === identity.keyPair.publicKey && m.canPost === false)) {
-      throw new Error('Muted in this group')
+    // Sourdine d'abord, puis les rôles que ce canal laisse écrire : les deux
+    // viennent de l'état que le groupe partage. Sans ce garde, le musellement
+    // et le type du canal restaient des icônes et le membre publiait quand même.
+    if (!canPostInChannel(group, channelId, identity.keyPair.publicKey)) {
+      throw new Error('Cannot post in this channel')
     }
 
     // Copie locale de la citation : le destinataire la résoudra par
@@ -955,8 +956,8 @@ class GroupService {
     if (!group) return
 
     // Même garde que l'envoi de texte : une pièce jointe est une publication.
-    if (group.members.some((m) => m.publicKey === identity.keyPair.publicKey && m.canPost === false)) {
-      throw new Error('Muted in this group')
+    if (!canPostInChannel(group, channelId, identity.keyPair.publicKey)) {
+      throw new Error('Cannot post in this channel')
     }
 
     // Get member public keys (excluding self)
@@ -1847,9 +1848,11 @@ class GroupService {
         useGroupStore.getState().setActiveChannel(channelId)
       }
     }
-    // Après un éventuel re-key, le canal doit exister dans le groupe : un
-    // membre ne choisit pas un channelId arbitraire pour déposer un message.
-    if (!useGroupStore.getState().getGroup(groupId)?.channels.some((channel) => channel.id === channelId)) return
+    // Après un éventuel re-key, le canal doit exister sous son id courant et
+    // l'expéditeur doit avoir le droit d'y écrire : un membre ne choisit ni un
+    // channelId arbitraire ni un rôle. Le groupe frais porte ces deux règles.
+    const settled = useGroupStore.getState().getGroup(groupId)
+    if (!settled || !canPostInChannel(settled, channelId, msg.from)) return
 
     // Ne recopie que les champs affichés : pièces jointes, réactions, accusés,
     // readBy et statut sont un état local que l'expéditeur n'a pas à imposer.

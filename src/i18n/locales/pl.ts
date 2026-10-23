@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Wyciszenie członka wyłączone",
       "groups.muteFailed": "Nie udało się zmienić wyciszenia członka",
       "groups.mutedInGroup": "Jesteś wyciszony w tej grupie",
+      "groups.cannotPostInChannel": "Nie możesz publikować w tym kanale",
     }
 }

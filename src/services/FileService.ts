@@ -9,6 +9,7 @@ import { useGroupStore } from '@/stores/groupStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { generateId } from '@/utils/id'
+import { canPostInChannel } from '@/utils/groupPermissions'
 import i18n from '@/i18n/config'
 import type { MessageAttachment, Message } from '@/types'
 import type { ProtocolMessage } from '@/types'
@@ -1178,11 +1179,9 @@ class FileService {
   private static findGroupChannel(channelId: unknown, sender: string): { groupId: string } | null {
     if (typeof channelId !== 'string' || channelId.length === 0 || channelId.length > 128) return null
     for (const group of Object.values(useGroupStore.getState().groups)) {
-      if (!group.channels.some((channel) => channel.id === channelId)) continue
-      const member = group.members.find((m) => m.publicKey === sender)
-      // Un membre en sourdine ne publie pas, même par pièce jointe : le roster
-      // est la seule autorité que le groupe partage.
-      if (!member || member.canPost === false) continue
+      // Une pièce jointe est une publication : la sourdine du roster et les
+      // rôles que ce canal laisse écrire décident ici comme dans le fil.
+      if (!canPostInChannel(group, channelId, sender)) continue
       return { groupId: group.id }
     }
     return null

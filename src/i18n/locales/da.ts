@@ -892,5 +892,6 @@ export default {
       "groups.memberUnmuted": "Medlem kan skrive igen",
       "groups.muteFailed": "Ændring af stumhed for medlem mislykkedes",
       "groups.mutedInGroup": "Du er gjort stum i denne gruppe",
+      "groups.cannotPostInChannel": "Du kan ikke skrive i denne kanal",
     }
 }
