@@ -7,14 +7,17 @@
  * un fil vide, incapable d'envoyer quoi que ce soit.
  */
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Contact, Conversation } from '@/types'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) =>
+      typeof options?.text === 'string' ? `${key} ${options.text}` : key,
+  }),
 }))
 
 // Virtuoso ne mesure pas de hauteur en jsdom : on rend les lignes directement.
@@ -79,6 +82,7 @@ beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
   useConversationStore.setState({
     conversations: { [direct.id]: direct, [group.id]: group },
+    drafts: {},
     activeConversationId: null,
     filter: {},
   })
@@ -172,6 +176,28 @@ describe('liste des conversations', () => {
     fireEvent.click(screen.getByText('chat.unarchiveConversation'))
     expect(useConversationStore.getState().conversations[direct.id].archived).toBe(false)
     expect(screen.queryByText('Bob')).toBeNull()
+  })
+
+  it('affiche le brouillon à la place du dernier message', () => {
+    useConversationStore.setState({ drafts: { [direct.id]: 'brouillon local' } })
+    const { rerender } = render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('chat.draft brouillon local')).toBeInTheDocument()
+
+    act(() => {
+      useConversationStore.getState().setDraft(direct.id, '')
+    })
+    rerender(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText('chat.draft brouillon local')).toBeNull()
+    expect(screen.getByText('chat.startConversation')).toBeInTheDocument()
   })
 
   it('ouvre le menu au clavier, navigue et le referme par Échap', async () => {

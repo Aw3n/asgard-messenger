@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Arkivjati",
       "settings.firewallManualHint": "Iftaħ Settings > Network biex tikkonfigura l-firewall manwalment.",
       "contacts.reloadedFromStorage": "Instabu {{total}} kuntatti fil-Hyperbee, ġew restawrati {{restored}} ġodda.",
+      "chat.draft": "Abbozz: {{text}}",
     }
 }

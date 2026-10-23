@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Архівовані",
       "settings.firewallManualHint": "Відкрийте Налаштування > Мережа, щоб налаштувати брандмауер вручну.",
       "contacts.reloadedFromStorage": "Знайдено {{total}} контактів у Hyperbee, відновлено {{restored}} нових.",
+      "chat.draft": "Чернетка: {{text}}",
     }
 }

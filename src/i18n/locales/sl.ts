@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Arhivirano",
       "settings.firewallManualHint": "Odprite Nastavitve > Omrežje, da ročno konfigurirate požarni zid.",
       "contacts.reloadedFromStorage": "V Hyperbee najdenih {{total}} stikov, obnovljenih {{restored}} novih.",
+      "chat.draft": "Osnutek: {{text}}",
     }
 }

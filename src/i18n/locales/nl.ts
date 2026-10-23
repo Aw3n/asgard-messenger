@@ -871,5 +871,6 @@ export default {
       "chat.archived": "Gearchiveerd",
       "settings.firewallManualHint": "Open Instellingen > Netwerk om de firewall handmatig te configureren.",
       "contacts.reloadedFromStorage": "{{total}} contacten gevonden in Hyperbee, {{restored}} nieuwe hersteld.",
+      "chat.draft": "Concept: {{text}}",
     }
 }

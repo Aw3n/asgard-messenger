@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Arkiverede",
       "settings.firewallManualHint": "Åbn Indstillinger > Netværk for at konfigurere firewallen manuelt.",
       "contacts.reloadedFromStorage": "{{total}} kontakter fundet i Hyperbee, {{restored}} nye gendannet.",
+      "chat.draft": "Kladde: {{text}}",
     }
 }

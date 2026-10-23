@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Zarchiwizowane",
       "settings.firewallManualHint": "Otwórz Ustawienia > Sieć, aby ręcznie skonfigurować zaporę.",
       "contacts.reloadedFromStorage": "Znaleziono {{total}} kontaktów w Hyperbee, przywrócono {{restored}} nowych.",
+      "chat.draft": "Szkic: {{text}}",
     }
 }

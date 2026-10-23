@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Arhivētās",
       "settings.firewallManualHint": "Atveriet Iestatījumi > Tīkls, lai manuāli konfigurētu ugunsmūri.",
       "contacts.reloadedFromStorage": "Hyperbee atrasti {{total}} kontakti, atjaunoti {{restored}} jauni.",
+      "chat.draft": "Melnraksts: {{text}}",
     }
 }

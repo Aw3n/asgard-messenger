@@ -33,6 +33,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     archiveConversation,
     clearUnread,
     incrementUnread,
+    drafts,
   } = useConversationStore()
 
   const navigate = useNavigate()
@@ -119,6 +120,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
         <ConversationItem
           key={conv.id}
           conversation={conv}
+          draft={drafts[conv.id]}
           contactName={contact?.displayName}
           contactAvatar={contact?.avatar}
           contactStatus={contact?.status}
@@ -130,7 +132,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
         />
       )
     },
-    [activeConversationId, contacts, handleSelectConversation, handleContextMenu, handleItemKeyDown]
+    [activeConversationId, contacts, drafts, handleSelectConversation, handleContextMenu, handleItemKeyDown]
   )
 
   // Ferme le menu au clic extérieur, gère Échap, flèches et Tab au clavier.
@@ -369,6 +371,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
 
 interface ConversationItemProps {
   conversation: Conversation
+  draft?: string
   contactName?: string
   contactAvatar?: string
   contactStatus?: string
@@ -381,6 +384,7 @@ interface ConversationItemProps {
 
 const ConversationItem: React.FC<ConversationItemProps> = ({
   conversation: conv,
+  draft,
   contactName,
   contactAvatar,
   contactStatus,
@@ -459,15 +463,20 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         </div>
 
         <div className="flex items-center justify-between">
-          <p className="text-xs text-asgard-text-muted truncate">
+          <p className={cn(
+            'text-xs truncate',
+            draft ? 'text-asgard-glacier/90' : 'text-asgard-text-muted'
+          )}>
             {conv.muted && (
               <svg className="inline w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
               </svg>
             )}
-            {lastMsg?.deleted
-              ? t('chat.messageDeleted')
-              : lastMsg?.content ?? t('chat.startConversation')}
+            {draft
+              ? t('chat.draft', { text: draft })
+              : lastMsg?.deleted
+                ? t('chat.messageDeleted')
+                : lastMsg?.content ?? t('chat.startConversation')}
           </p>
 
           {/* Unread badge */}

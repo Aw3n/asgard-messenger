@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Arhivirano",
       "settings.firewallManualHint": "Otvorite Postavke > Mreža da biste ručno konfigurirali vatrozid.",
       "contacts.reloadedFromStorage": "Pronađeno {{total}} kontakata u Hyperbeeju, obnovljeno {{restored}} novih.",
+      "chat.draft": "Skica: {{text}}",
     }
 }

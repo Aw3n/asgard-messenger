@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Archivované",
       "settings.firewallManualHint": "Otevřete Nastavení > Síť a ručně nakonfigurujte firewall.",
       "contacts.reloadedFromStorage": "V Hyperbee nalezeno {{total}} kontaktů, obnoveno {{restored}} nových.",
+      "chat.draft": "Koncept: {{text}}",
     }
 }

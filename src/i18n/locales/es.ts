@@ -871,5 +871,6 @@ export default {
       "chat.archived": "Archivadas",
       "settings.firewallManualHint": "Abre Ajustes > Red para configurar el cortafuegos manualmente.",
       "contacts.reloadedFromStorage": "{{total}} contactos encontrados en Hyperbee, {{restored}} nuevos restaurados.",
+      "chat.draft": "Borrador: {{text}}",
     }
 }

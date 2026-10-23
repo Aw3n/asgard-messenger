@@ -872,5 +872,6 @@ export default {
       "chat.archived": "Arhivate",
       "settings.firewallManualHint": "Deschideți Setări > Rețea pentru a configura manual paravanul de firewall.",
       "contacts.reloadedFromStorage": "{{total}} contacte găsite în Hyperbee, {{restored}} noi restaurate.",
+      "chat.draft": "Ciornă: {{text}}",
     }
 }
