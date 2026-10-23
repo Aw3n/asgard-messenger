@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Mesaj nou",
       "notifications.mentionedYou": "{{name}} te-a menționat",
       "chat.sendToStart": "Trimiteți un mesaj pentru a începe conversația cu {{name}}.",
+      "chat.unmuteConversation": "Reactivează sunetul conversației",
     }
 }

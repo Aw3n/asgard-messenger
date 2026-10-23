@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Νέο μήνυμα",
       "notifications.mentionedYou": "{{name}} σας ανέφερε",
       "chat.sendToStart": "Στείλτε ένα μήνυμα για να ξεκινήσετε συνομιλία με {{name}}.",
+      "chat.unmuteConversation": "Επανενεργοποίηση ήχου συνομιλίας",
     }
 }

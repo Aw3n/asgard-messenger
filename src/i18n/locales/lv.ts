@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Jauns ziņojums",
       "notifications.mentionedYou": "{{name}} jūs pieminēja",
       "chat.sendToStart": "Nosūtiet ziņojumu, lai sāktu sarunu ar {{name}}.",
+      "chat.unmuteConversation": "Ieslēgt sarunas skaņu",
     }
 }

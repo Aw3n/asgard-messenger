@@ -865,5 +865,6 @@ export default {
       "notifications.newMessage": "Neue Nachricht",
       "notifications.mentionedYou": "{{name}} hat dich erwähnt",
       "chat.sendToStart": "Sende eine Nachricht, um mit {{name}} zu chatten.",
+      "chat.unmuteConversation": "Stummschaltung der Unterhaltung aufheben",
     }
 }

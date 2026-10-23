@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Novo sporočilo",
       "notifications.mentionedYou": "{{name}} vas je omenil",
       "chat.sendToStart": "Pošljite sporočilo, da začnete pogovor s {{name}}.",
+      "chat.unmuteConversation": "Vklopi zvok pogovora",
     }
 }

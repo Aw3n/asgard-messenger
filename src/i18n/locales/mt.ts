@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Messaġġ ġdid",
       "notifications.mentionedYou": "{{name}} għamel referenza għalik",
       "chat.sendToStart": "Ibgħat messaġġ biex tibda titkellem ma' {{name}}.",
+      "chat.unmuteConversation": "Erġa' ixgħel il-ħoss tal-konverżazzjoni",
     }
 }

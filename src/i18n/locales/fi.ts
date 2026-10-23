@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Uusi viesti",
       "notifications.mentionedYou": "{{name}} mainitsi sinut",
       "chat.sendToStart": "Lähetä viesti aloittaaksesi keskustelun käyttäjän {{name}} kanssa.",
+      "chat.unmuteConversation": "Palauta keskustelun ääni",
     }
 }

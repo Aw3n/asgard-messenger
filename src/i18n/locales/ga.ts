@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Teachtaireacht nua",
       "notifications.mentionedYou": "Luaigh {{name}} thú",
       "chat.sendToStart": "Seol teachtaireacht chun tús a chur ag caint le {{name}}.",
+      "chat.unmuteConversation": "Cuir fuaim an chomhrá ar ais",
     }
 }

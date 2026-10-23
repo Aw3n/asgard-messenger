@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Nová správa",
       "notifications.mentionedYou": "{{name}} vás spomenul",
       "chat.sendToStart": "Pošlite správu, aby začať konverzáciu s {{name}}.",
+      "chat.unmuteConversation": "Zapnúť zvuk konverzácie",
     }
 }

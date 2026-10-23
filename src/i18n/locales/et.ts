@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Uus sõnum",
       "notifications.mentionedYou": "{{name}} mainis sind",
       "chat.sendToStart": "Saatke sõnum, et alustada vestlust kasutajaga {{name}}.",
+      "chat.unmuteConversation": "Lülita vestluse heli sisse",
     }
 }

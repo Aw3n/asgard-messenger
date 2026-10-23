@@ -14,11 +14,14 @@ import { getCurrentLanguage } from '@/i18n/config'
 export const ConversationInfoPanel: React.FC = () => {
   const { t } = useTranslation()
   const activeConversationId = useConversationStore((s) => s.activeConversationId)
-  const getConversation = useConversationStore((s) => s.getConversation)
+  // S'abonner à la table elle-même : couper le son doit réafficher l'état du
+  // bouton immédiatement (getConversation seul ne déclenche aucun rendu).
+  const conversations = useConversationStore((s) => s.conversations)
+  const muteConversation = useConversationStore((s) => s.muteConversation)
   // Subscribe to contacts object for reactive status updates
   const contacts = useContactStore((s) => s.contacts)
 
-  const conversation = activeConversationId ? getConversation(activeConversationId) : null
+  const conversation = activeConversationId ? conversations[activeConversationId] ?? null : null
   const contact = conversation?.participantId ? contacts[conversation.participantId] : null
   const displayName = contact?.displayName ?? activeConversationId?.slice(0, 16) ?? t('common.unknown')
 
@@ -57,6 +60,36 @@ export const ConversationInfoPanel: React.FC = () => {
           {t('panels.encryptionDescription')}
         </p>
       </div>
+
+      {/* Sourdine : ChatService ignore les notifications, le son et la TTS
+          tant que conversation.muted est vrai ; les non-lus continuent d'être
+          comptés. */}
+      {conversation && (
+        <div className="flex items-center justify-between px-3 py-2.5 bg-asgard-surface-alt/60 rounded-xl">
+          <span className="flex items-center gap-2 text-sm text-asgard-text-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
+              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+            </svg>
+            {t(conversation.muted ? 'chat.unmuteConversation' : 'chat.muteConversation')}
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={conversation.muted}
+            aria-label={t(conversation.muted ? 'chat.unmuteConversation' : 'chat.muteConversation')}
+            onClick={() => muteConversation(conversation.id, !conversation.muted)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${
+              conversation.muted ? 'bg-asgard-glacier' : 'bg-asgard-border'
+            } cursor-pointer`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                conversation.muted ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      )}
 
       {/* Details */}
       <div className="space-y-3">

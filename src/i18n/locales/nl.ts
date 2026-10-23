@@ -865,5 +865,6 @@ export default {
       "notifications.newMessage": "Nieuw bericht",
       "notifications.mentionedYou": "{{name}} heeft je vermeld",
       "chat.sendToStart": "Stuur een bericht om een gesprek te beginnen met {{name}}.",
+      "chat.unmuteConversation": "Geluid van gesprek herstellen",
     }
 }

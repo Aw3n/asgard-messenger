@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Нове повідомлення",
       "notifications.mentionedYou": "{{name}} згадав вас",
       "chat.sendToStart": "Надішліть повідомлення, щоб почати розмову з {{name}}.",
+      "chat.unmuteConversation": "Увімкнути звук розмови",
     }
 }

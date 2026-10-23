@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Új üzenet",
       "notifications.mentionedYou": "{{name}} megemlített téged",
       "chat.sendToStart": "Küldjön üzenetet, hogy beszélgetni kezdjen vele: {{name}}.",
+      "chat.unmuteConversation": "Beszélgetés némításának feloldása",
     }
 }

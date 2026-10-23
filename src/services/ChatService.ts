@@ -3162,9 +3162,10 @@ class ChatService {
 
     // Show notification if not active conversation AND notifications are allowed
     if (!viewingConversation) {
+      const muted = convStore.getConversation(resolvedId)?.muted ?? false
       const notifSettings = useUIStore.getState().settings.notifications
       const a11ySettings = useUIStore.getState().settings.accessibility
-      if (notifSettings.enabled && !notifSettings.dndMode) {
+      if (!muted && notifSettings.enabled && !notifSettings.dndMode) {
         const senderName = contact?.displayName ?? msg.from.slice(0, 8)
         const content = correctedMessage.content ?? ''
         // NOTIFICATION SETTINGS (mentionsOnly): only notify when the message

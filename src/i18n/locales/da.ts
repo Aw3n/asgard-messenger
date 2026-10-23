@@ -866,5 +866,6 @@ export default {
       "notifications.newMessage": "Ny besked",
       "notifications.mentionedYou": "{{name}} nævnte dig",
       "chat.sendToStart": "Send en besked for at begynde at tale med {{name}}.",
+      "chat.unmuteConversation": "Slå lyd til i samtale",
     }
 }
