@@ -7,6 +7,7 @@ import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { chatService } from '@/services/ChatService'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
+import { DIALOG_FOCUSABLE } from '@/hooks/useDialogBehavior'
 
 /**
  * ModalContainer — renders modals based on uiStore modal state.
@@ -57,9 +58,6 @@ export const ModalContainer: React.FC = () => {
 
 // ─── Modal Overlay ────────────────────────────────────────────────────────────
 
-const FOCUSABLE =
-  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
-
 const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }> = ({
   onClose,
   children,
@@ -89,7 +87,7 @@ const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }>
       // au dernier contrôle on revient au premier, et inversement.
       const root = dialogRef.current
       if (!root) return
-      const focusable = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE))
+      const focusable = Array.from(root.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE))
       if (focusable.length === 0) return
       const first = focusable[0]
       const last = focusable[focusable.length - 1]

@@ -7,6 +7,7 @@ import { useConversationStore } from '@/stores/conversationStore'
 import { useUIStore } from '@/stores/uiStore'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput } from '@/utils/invite'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { chatService } from '@/services/ChatService'
 import { useTranslation } from 'react-i18next'
 
@@ -27,6 +28,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
   const [pasteKey, setPasteKey] = useState('')
   const navigate = useNavigate()
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
+  const dialogRef = useDialogBehavior(onClose)
 
   // Generate QR code on mount
   useEffect(() => {
@@ -115,10 +117,15 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'show' ? t('contacts.myQRCode') : t('contacts.addFromKey')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal focus:outline-none"
       >
         {/* Tabs */}
         <div className="flex gap-2 mb-5">

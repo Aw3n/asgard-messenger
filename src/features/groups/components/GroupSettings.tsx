@@ -8,6 +8,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { groupService } from '@/services/GroupService'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import type { MemberRole } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { getCurrentLanguage } from '@/i18n/config'
@@ -23,6 +24,7 @@ export const GroupSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const isAdmin = useGroupStore((s) =>
     identity ? s.isAdmin(s.activeGroupId!, identity.keyPair.publicKey) : false
   )
+  const dialogRef = useDialogBehavior(onClose)
 
   if (!activeGroup) return null
 
@@ -35,10 +37,15 @@ export const GroupSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('groups.groupSettingsTitle')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-lg mx-4 shadow-modal max-h-[80vh] overflow-y-auto"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-lg mx-4 shadow-modal max-h-[80vh] overflow-y-auto focus:outline-none"
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-asgard-text-primary">{t('groups.groupSettingsTitle')}</h3>

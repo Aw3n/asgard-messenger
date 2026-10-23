@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
 import { getCurrentLanguage } from '@/i18n/config'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 
 // Icons
 const XIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -37,6 +38,7 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const dialogRef = useDialogBehavior(onClose)
 
   useEffect(() => {
     loadFavorites()
@@ -127,10 +129,15 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="w-full max-w-2xl max-h-[80vh] bg-[var(--bg-primary)] rounded-xl shadow-2xl border border-[var(--border-primary)] flex flex-col overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('settings.favoriteFiles')}
+        tabIndex={-1}
+        className="w-full max-w-2xl max-h-[80vh] bg-[var(--bg-primary)] rounded-xl shadow-2xl border border-[var(--border-primary)] flex flex-col overflow-hidden focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

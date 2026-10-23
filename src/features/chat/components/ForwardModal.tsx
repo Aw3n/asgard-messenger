@@ -9,6 +9,7 @@ import { chatService } from '@/services/ChatService'
 import { groupService } from '@/services/GroupService'
 import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { cn } from '@/utils/cn'
 import type { Message } from '@/types'
 
@@ -27,6 +28,7 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ message, onClose }) 
   const conversations = useConversationStore((s) => s.conversations)
   const getContact = useContactStore((s) => s.getContact)
   const groups = useGroupStore((s) => s.groups)
+  const dialogRef = useDialogBehavior(onClose)
 
   // Seules les conversations où l'on peut réellement écrire sont proposées :
   // un identifiant sans destinataire n'aurait aucun chemin d'envoi.
@@ -98,10 +100,15 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ message, onClose }) 
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('chat.forwardMessage')}
+        tabIndex={-1}
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="relative mica-card border border-asgard-border rounded-2xl shadow-modal p-6 w-full max-w-sm"
+        className="relative mica-card border border-asgard-border rounded-2xl shadow-modal p-6 w-full max-w-sm focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-semibold text-asgard-text-primary mb-4">{t('chat.forwardMessage')}</h3>

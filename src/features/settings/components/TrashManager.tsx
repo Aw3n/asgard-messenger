@@ -4,6 +4,7 @@ import { cn } from '@/utils/cn'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
 import { getCurrentLanguage } from '@/i18n/config'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 
 interface TrashEntry {
   blobKey: string
@@ -274,44 +275,71 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
       {/* Confirm empty dialog */}
       <AnimatePresence>
         {showConfirmEmpty && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowConfirmEmpty(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="mica-card border border-asgard-border rounded-2xl p-6 max-w-sm mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-semibold text-asgard-text-primary mb-2">
-                {t('settings.emptyTrashConfirm')}
-              </h3>
-              <p className="text-sm text-asgard-text-secondary mb-4">
-                {t('settings.emptyTrashWarning', { count: trashItems.length })}
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowConfirmEmpty(false)}
-                  className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={handleEmptyTrash}
-                  className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                >
-                  {t('settings.emptyTrash')}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <EmptyTrashConfirm
+            count={trashItems.length}
+            onClose={() => setShowConfirmEmpty(false)}
+            onConfirm={handleEmptyTrash}
+          />
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+/**
+ * La confirmation de vidage est un dialogue à part entière : posé par-dessus
+ * une page déjà utilisable, il doit se refermer sur Échap et ne pas laisser Tab
+ * repartir dans la liste qu'il recouvre.
+ */
+const EmptyTrashConfirm: React.FC<{ count: number; onClose: () => void; onConfirm: () => void }> = ({
+  count,
+  onClose,
+  onConfirm,
+}) => {
+  const { t } = useTranslation()
+  const dialogRef = useDialogBehavior(onClose)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        ref={dialogRef}
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trash-empty-confirm-title"
+        tabIndex={-1}
+        className="mica-card border border-asgard-border rounded-2xl p-6 max-w-sm mx-4 focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id="trash-empty-confirm-title" className="text-lg font-semibold text-asgard-text-primary mb-2">
+          {t('settings.emptyTrashConfirm')}
+        </h3>
+        <p className="text-sm text-asgard-text-secondary mb-4">
+          {t('settings.emptyTrashWarning', { count })}
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+          >
+            {t('settings.emptyTrash')}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   )
 }

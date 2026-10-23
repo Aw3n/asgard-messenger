@@ -4,6 +4,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { groupService } from '@/services/GroupService'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useTranslation } from 'react-i18next'
 
 interface CreateGroupModalProps {
@@ -21,6 +22,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
   const [isPublic, setIsPublic] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
+  const dialogRef = useDialogBehavior(onClose)
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -54,10 +56,15 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('groups.createGroup')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal focus:outline-none"
       >
         <h3 className="text-lg font-semibold text-asgard-text-primary mb-1">{t('groups.createGroup')}</h3>
         <p className="text-sm text-asgard-text-muted mb-5">

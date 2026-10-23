@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { asgardToZ32Id } from '@/utils/invite'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useTranslation } from 'react-i18next'
 
 interface ContactInviteModalProps {
@@ -18,6 +19,7 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
   const addToast = useUIStore((s) => s.addToast)
   const [copied, setCopied] = useState(false)
   const [copiedKeet, setCopiedKeet] = useState(false)
+  const dialogRef = useDialogBehavior(onClose)
 
   // Generate invite link from public key
   const inviteKey = identity?.keyPair.publicKey
@@ -60,10 +62,15 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('contacts.inviteTitle')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal focus:outline-none"
       >
         <h3 className="text-lg font-semibold text-asgard-text-primary mb-1">{t('contacts.inviteTitle')}</h3>
         <p className="text-sm text-asgard-text-muted mb-5">
