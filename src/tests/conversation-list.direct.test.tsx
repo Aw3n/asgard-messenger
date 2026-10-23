@@ -10,7 +10,7 @@ import React from 'react'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Contact, Conversation } from '@/types'
+import type { Contact, Conversation, Group } from '@/types'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
@@ -35,6 +35,7 @@ vi.mock('react-virtuoso', () => ({
 import { ConversationList } from '@/features/chat/components/ConversationList'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
+import { useGroupStore } from '@/stores/groupStore'
 
 const PEER = 'b'.repeat(64)
 
@@ -87,6 +88,7 @@ beforeEach(() => {
     filter: {},
   })
   useContactStore.setState({ contacts: { [PEER]: contact } })
+  useGroupStore.setState({ groups: {} })
 })
 
 afterEach(() => {
@@ -201,12 +203,31 @@ describe('liste des conversations', () => {
   })
 
   it('marque toutes les conversations comme lues', () => {
+    const groupUnread: Group = {
+      id: group.id,
+      name: 'Équipe',
+      members: [],
+      channels: [{
+        id: 'ch-general',
+        groupId: group.id,
+        name: 'général',
+        type: 'text',
+        position: 0,
+        permissions: { send: ['member'], read: ['member'], manage: ['admin'] },
+        unreadCount: 4,
+      }],
+      createdAt: 1,
+      ownerId: 'a'.repeat(64),
+      isPublic: false,
+      maxMembers: 100,
+    }
     useConversationStore.setState({
       conversations: {
         [direct.id]: { ...direct, unreadCount: 2 },
         [group.id]: { ...group, unreadCount: 1 },
       },
     })
+    useGroupStore.setState({ groups: { [group.id]: groupUnread } })
     render(
       <MemoryRouter>
         <ConversationList />
@@ -219,6 +240,7 @@ describe('liste des conversations', () => {
 
     expect(useConversationStore.getState().conversations[direct.id].unreadCount).toBe(0)
     expect(useConversationStore.getState().conversations[group.id].unreadCount).toBe(0)
+    expect(useGroupStore.getState().groups[group.id].channels[0].unreadCount).toBe(0)
     expect(button).toBeDisabled()
   })
 

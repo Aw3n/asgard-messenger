@@ -97,6 +97,9 @@ interface GroupState {
   /** Clear channel unread count */
   clearChannelUnread: (groupId: string, channelId: string) => void
 
+  /** Clear unread counts on every channel of every group */
+  clearAllChannelUnread: () => void
+
   /** Pin a message in a channel */
   pinChannelMessage: (groupId: string, channelId: string, messageId: string) => void
 
@@ -447,6 +450,16 @@ export const useGroupStore = create<GroupState>()(
           const channel = group.channels.find((ch) => ch.id === channelId)
           if (!channel) return
           channel.unreadCount = 0
+        })
+      },
+
+      clearAllChannelUnread: () => {
+        set((state) => {
+          for (const group of Object.values(state.groups)) {
+            for (const channel of group.channels) {
+              channel.unreadCount = 0
+            }
+          }
         })
       },
 

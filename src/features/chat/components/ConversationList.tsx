@@ -4,6 +4,7 @@ import { Virtuoso } from 'react-virtuoso'
 import { useNavigate } from 'react-router-dom'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
+import { useGroupStore } from '@/stores/groupStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { chatService } from '@/services/ChatService'
@@ -45,11 +46,19 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
   // By subscribing to `contacts`, Zustand re-renders whenever any contact is
   // updated (immer produces a new object reference on mutation).
   const contacts = useContactStore((s) => s.contacts)
+  const groups = useGroupStore((s) => s.groups)
   // Les groupes vivent dans leur propre page et leur propre liste : une entrée
   // de groupe ici s'affichait comme un identifiant brut et ouvrait ChatView
   // sans destinataire, donc un fil vide qui ne pouvait rien envoyer.
   const conversations = getFilteredConversations().filter((conv) => conv.type === 'direct')
-  const unreadTotal = Object.values(conversationsById).reduce((sum, conv) => sum + conv.unreadCount, 0)
+  // Les pastilles de groupe vivent dans le GroupStore : les compter ici évite
+  // un bouton désactivé alors que des canaux restent non lus.
+  const unreadTotal =
+    Object.values(conversationsById).reduce((sum, conv) => sum + conv.unreadCount, 0) +
+    Object.values(groups).reduce(
+      (sum, group) => sum + group.channels.reduce((n, channel) => n + channel.unreadCount, 0),
+      0
+    )
   const [contextMenu, setContextMenu] = useState<{
     conv: Conversation
     x: number
@@ -92,6 +101,11 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     },
     []
   )
+
+  const handleMarkAllRead = useCallback(() => {
+    markAllConversationsRead()
+    useGroupStore.getState().clearAllChannelUnread()
+  }, [markAllConversationsRead])
 
   const handleDeleteConversation = useCallback(async (conv: Conversation) => {
     setContextMenu(null)
@@ -207,7 +221,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <button
-            onClick={markAllConversationsRead}
+            onClick={handleMarkAllRead}
             disabled={unreadTotal === 0}
             aria-label={t('chat.markAllAsRead')}
             title={t('chat.markAllAsRead')}
