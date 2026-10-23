@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Mohú písať: {{roles}}",
       "groups.createChannel": "Vytvoriť kanál",
       "groups.deleteChannel": "Odstrániť kanál",
+      "calls.youOnHold": "Hovor je pozastavený",
+      "calls.peerOnHold": "{{name}} — pozastavený",
     }
 }

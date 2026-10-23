@@ -54,6 +54,7 @@ class P2PService extends EventEmitter {
     'call:accept',
     'call:reject',
     'call:end',
+    'call:hold',
     'call:participant:left',
     'call:participant:joined',
   ])

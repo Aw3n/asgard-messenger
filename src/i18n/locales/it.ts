@@ -909,5 +909,7 @@ export default {
       "groups.channelTypeWhoWrites": "Chi può scrivere: {{roles}}",
       "groups.createChannel": "Crea canale",
       "groups.deleteChannel": "Elimina canale",
+      "calls.youOnHold": "Sei in attesa",
+      "calls.peerOnHold": "{{name}} è in attesa",
     }
 }

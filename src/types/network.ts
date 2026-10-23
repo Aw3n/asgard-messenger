@@ -78,6 +78,7 @@ export type ProtocolMessageType =
   | 'call:reject'
   | 'call:ice'
   | 'call:end'
+  | 'call:hold'
   | 'call:participant:left'
   | 'call:participant:joined'
   | 'file:transfer'

@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Der kan skrives af: {{roles}}",
       "groups.createChannel": "Opret kanal",
       "groups.deleteChannel": "Slet kanal",
+      "calls.youOnHold": "Du er på pause",
+      "calls.peerOnHold": "{{name}} er på pause",
     }
 }

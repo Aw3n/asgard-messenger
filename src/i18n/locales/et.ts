@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Kirjutada saavad: {{roles}}",
       "groups.createChannel": "Loo kanal",
       "groups.deleteChannel": "Kustuta kanal",
+      "calls.youOnHold": "Olete ootel",
+      "calls.peerOnHold": "{{name}} on ootel",
     }
 }

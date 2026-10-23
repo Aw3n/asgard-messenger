@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Могат да пишат: {{roles}}",
       "groups.createChannel": "Създай канал",
       "groups.deleteChannel": "Изтрий канала",
+      "calls.youOnHold": "Разговорът е на изчакване",
+      "calls.peerOnHold": "{{name}} е на изчакване",
     }
 }

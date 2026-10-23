@@ -144,6 +144,8 @@ export const CallView: React.FC = () => {
   const peerVideoFullscreenId = useCallStore((s) => s.peerVideoFullscreenId)
   const setPeerVideoFullscreenId = useCallStore((s) => s.setPeerVideoFullscreenId)
   const endCall = useCallStore((s) => s.endCall)
+  const isOnHold = useCallStore((s) => s.isOnHold)
+  const holdingPeers = useCallStore((s) => s.holdingPeers)
   const [duration, setDuration] = useState(0)
   const [bandwidthQuality, setBandwidthQuality] = useState<'good' | 'medium' | 'poor'>('good')
   const [peerVideoReady, setPeerVideoReady] = useState(false)
@@ -364,6 +366,17 @@ export const CallView: React.FC = () => {
     isConnecting ? t('calls.connecting') :
     isConnected ? formatDuration(duration) : ''
 
+  // L'attente se dit : sans indication, le pair figé ressemble à une panne. En
+  // groupe, chaque partant est nommé — l'appel continue avec les autres.
+  const holdBadges: string[] = []
+  if (isOnHold) holdBadges.push(t('calls.youOnHold'))
+  for (const pk of holdingPeers) {
+    const name = peerTiles.find((tile) => tile.peerId === pk)?.name
+      ?? contacts[pk]?.displayName
+      ?? activeCall.peerName
+    holdBadges.push(t('calls.peerOnHold', { name }))
+  }
+
   const qualityColor = bandwidthQuality === 'good' ? 'text-green-400' :
     bandwidthQuality === 'medium' ? 'text-yellow-400' : 'text-red-400'
 
@@ -411,6 +424,9 @@ export const CallView: React.FC = () => {
             </p>
             <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>
               {isConnected ? formatDuration(duration) : statusText}
+              {holdBadges.map((text) => (
+                <span key={text} style={{ marginLeft: 6, color: '#fbbf24', fontWeight: 600 }}>{text}</span>
+              ))}
             </p>
           </div>
           <button
@@ -595,6 +611,9 @@ export const CallView: React.FC = () => {
             </p>
             <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
               {statusText}
+              {holdBadges.map((text) => (
+                <span key={text} className="ml-2 text-xs text-amber-400 font-medium">{text}</span>
+              ))}
               {activeCall.isGroupCall && activeCall.participants && (
                 <span className="ml-2 text-xs inline-flex items-center gap-1">
                   <Icon name="users" size={12} /> {t('calls.participantCount', { count: peerTiles.length + 1 })}
@@ -752,6 +771,9 @@ export const CallView: React.FC = () => {
                     {isOutgoing ? t('calls.ringing') : isConnecting ? t('calls.connecting') : formatDuration(duration)}
                   </span>
                 ) : ''}
+                {holdBadges.map((text) => (
+                  <span key={text} className="block mt-1 text-amber-400 font-medium">{text}</span>
+                ))}
               </p>
             </div>
           </div>

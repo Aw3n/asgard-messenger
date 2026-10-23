@@ -13,22 +13,14 @@ export const CallControls: React.FC = () => {
   const { t } = useTranslation()
   const { isMuted, isCameraOff, isScreenSharing } = useCallStore()
   const endCall = useCallStore((s) => s.endCall)
+  // L'attente est l'état de l'appel, pas celui du bouton : elle survit au
+  // remontage et se partage avec la carte réduite et l'en-tête.
+  const isOnHold = useCallStore((s) => s.isOnHold)
   const [showSettings, setShowSettings] = useState(false)
-  const [isOnHold, setIsOnHold] = useState(false)
 
   const handleEndCall = () => {
     callService.endCall()
     endCall()
-  }
-
-  const handleHold = () => {
-    const newState = !isOnHold
-    setIsOnHold(newState)
-    // Mute mic and disable camera when on hold
-    if (newState) {
-      if (!isMuted) callService.toggleMute()
-      if (!isCameraOff) callService.toggleCamera()
-    }
   }
 
   return (
@@ -97,7 +89,7 @@ export const CallControls: React.FC = () => {
 
       {/* Hold call */}
       <CallButton
-        onClick={handleHold}
+        onClick={() => callService.toggleHold()}
         active={isOnHold}
         activeColor="rgba(251,191,36,0.2)"
         activeBorder="rgba(251,191,36,0.5)"

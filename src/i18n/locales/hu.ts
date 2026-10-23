@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Írhatnak: {{roles}}",
       "groups.createChannel": "Csatorna létrehozása",
       "groups.deleteChannel": "Csatorna törlése",
+      "calls.youOnHold": "A hívás tartásban van",
+      "calls.peerOnHold": "{{name}} tartásban van",
     }
 }

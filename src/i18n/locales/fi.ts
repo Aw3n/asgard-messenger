@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Voivat kirjoittaa: {{roles}}",
       "groups.createChannel": "Luo kanava",
       "groups.deleteChannel": "Poista kanava",
+      "calls.youOnHold": "Puhelu on pidossa",
+      "calls.peerOnHold": "{{name}} on pidossa",
     }
 }

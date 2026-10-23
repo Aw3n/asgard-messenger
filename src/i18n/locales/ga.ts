@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Is féidir scríobh do: {{roles}}",
       "groups.createChannel": "Cruthaigh cainéal",
       "groups.deleteChannel": "Scrios cainéal",
+      "calls.youOnHold": "Tá an glao ar coinneáil",
+      "calls.peerOnHold": "{{name}} ar coinneáil",
     }
 }

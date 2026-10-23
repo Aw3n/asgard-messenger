@@ -908,6 +908,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Qui peut écrire : {{roles}}",
       "groups.createChannel": "Créer un canal",
       "groups.deleteChannel": "Supprimer le canal",
+      "calls.youOnHold": "Vous êtes en attente",
+      "calls.peerOnHold": "{{name}} est en attente",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1819,6 +1821,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Wie kunnen schrijven: {{roles}}",
       "groups.createChannel": "Kanaal maken",
       "groups.deleteChannel": "Kanaal verwijderen",
+      "calls.youOnHold": "Je staat in de wacht",
+      "calls.peerOnHold": "{{name}} staat in de wacht",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2730,6 +2734,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Wer schreiben kann: {{roles}}",
       "groups.createChannel": "Kanal erstellen",
       "groups.deleteChannel": "Kanal löschen",
+      "calls.youOnHold": "Ihr Anruf ist gehalten",
+      "calls.peerOnHold": "{{name}} hat den Anruf gehalten",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3641,6 +3647,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Chi può scrivere: {{roles}}",
       "groups.createChannel": "Crea canale",
       "groups.deleteChannel": "Elimina canale",
+      "calls.youOnHold": "Sei in attesa",
+      "calls.peerOnHold": "{{name}} è in attesa",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4552,6 +4560,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Quién puede escribir: {{roles}}",
       "groups.createChannel": "Crear canal",
       "groups.deleteChannel": "Eliminar canal",
+      "calls.youOnHold": "Estás en espera",
+      "calls.peerOnHold": "{{name}} está en espera",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5464,6 +5474,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Quem pode escrever: {{roles}}",
       "groups.createChannel": "Criar canal",
       "groups.deleteChannel": "Eliminar canal",
+      "calls.youOnHold": "Está em espera",
+      "calls.peerOnHold": "{{name}} está em espera",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6376,6 +6388,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Μπορούν να γράψουν: {{roles}}",
       "groups.createChannel": "Δημιουργία καναλιού",
       "groups.deleteChannel": "Διαγραφή καναλιού",
+      "calls.youOnHold": "Είστε σε αναμονή",
+      "calls.peerOnHold": "{{name}} είναι σε αναμονή",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7288,6 +7302,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Der kan skrives af: {{roles}}",
       "groups.createChannel": "Opret kanal",
       "groups.deleteChannel": "Slet kanal",
+      "calls.youOnHold": "Du er på pause",
+      "calls.peerOnHold": "{{name}} er på pause",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -8200,6 +8216,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Voivat kirjoittaa: {{roles}}",
       "groups.createChannel": "Luo kanava",
       "groups.deleteChannel": "Poista kanava",
+      "calls.youOnHold": "Puhelu on pidossa",
+      "calls.peerOnHold": "{{name}} on pidossa",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -9112,6 +9130,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Kan skriva: {{roles}}",
       "groups.createChannel": "Skapa kanal",
       "groups.deleteChannel": "Ta bort kanal",
+      "calls.youOnHold": "Du är på vänt",
+      "calls.peerOnHold": "{{name}} är på vänt",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -10024,6 +10044,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Pisati mogu: {{roles}}",
       "groups.createChannel": "Stvori kanal",
       "groups.deleteChannel": "Izbriši kanal",
+      "calls.youOnHold": "Vi ste na čekanju",
+      "calls.peerOnHold": "{{name}} je na čekanju",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10936,6 +10958,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Kirjutada saavad: {{roles}}",
       "groups.createChannel": "Loo kanal",
       "groups.deleteChannel": "Kustuta kanal",
+      "calls.youOnHold": "Olete ootel",
+      "calls.peerOnHold": "{{name}} on ootel",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11848,6 +11872,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Írhatnak: {{roles}}",
       "groups.createChannel": "Csatorna létrehozása",
       "groups.deleteChannel": "Csatorna törlése",
+      "calls.youOnHold": "A hívás tartásban van",
+      "calls.peerOnHold": "{{name}} tartásban van",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12760,6 +12786,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Var rakstīt: {{roles}}",
       "groups.createChannel": "Izveidot kanālu",
       "groups.deleteChannel": "Dzēst kanālu",
+      "calls.youOnHold": "Zvans ir aizturēts",
+      "calls.peerOnHold": "{{name}} — aizturēts",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13672,6 +13700,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Gali rašyti: {{roles}}",
       "groups.createChannel": "Sukurti kanalą",
       "groups.deleteChannel": "Ištrinti kanalą",
+      "calls.youOnHold": "Skambutis laikomas",
+      "calls.peerOnHold": "{{name}} — laikomas",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14584,6 +14614,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Jistgħu jiktbu: {{roles}}",
       "groups.createChannel": "Oħloq kanal",
       "groups.deleteChannel": "Ħassar il-kanal",
+      "calls.youOnHold": "Is-sejħa fil-pawża",
+      "calls.peerOnHold": "{{name}} fil-pawża",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -15496,6 +15528,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Mogą pisać: {{roles}}",
       "groups.createChannel": "Utwórz kanał",
       "groups.deleteChannel": "Usuń kanał",
+      "calls.youOnHold": "Połączenie wstrzymane",
+      "calls.peerOnHold": "{{name}} — połączenie wstrzymane",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -16408,6 +16442,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Mohú písať: {{roles}}",
       "groups.createChannel": "Vytvoriť kanál",
       "groups.deleteChannel": "Odstrániť kanál",
+      "calls.youOnHold": "Hovor je pozastavený",
+      "calls.peerOnHold": "{{name}} — pozastavený",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -17320,6 +17356,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Lahko pišejo: {{roles}}",
       "groups.createChannel": "Ustvari kanal",
       "groups.deleteChannel": "Izbriši kanal",
+      "calls.youOnHold": "Klic je zadržen",
+      "calls.peerOnHold": "{{name}} — zadržen",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -18232,6 +18270,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Mohou psát: {{roles}}",
       "groups.createChannel": "Vytvořit kanál",
       "groups.deleteChannel": "Odstranit kanál",
+      "calls.youOnHold": "Hovor je pozastaven",
+      "calls.peerOnHold": "{{name}} — pozastaven",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -19144,6 +19184,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Могат да пишат: {{roles}}",
       "groups.createChannel": "Създай канал",
       "groups.deleteChannel": "Изтрий канала",
+      "calls.youOnHold": "Разговорът е на изчакване",
+      "calls.peerOnHold": "{{name}} е на изчакване",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -20056,6 +20098,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Is féidir scríobh do: {{roles}}",
       "groups.createChannel": "Cruthaigh cainéal",
       "groups.deleteChannel": "Scrios cainéal",
+      "calls.youOnHold": "Tá an glao ar coinneáil",
+      "calls.peerOnHold": "{{name}} ar coinneáil",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20968,6 +21012,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Pot scrie: {{roles}}",
       "groups.createChannel": "Creează canal",
       "groups.deleteChannel": "Șterge canalul",
+      "calls.youOnHold": "Apelul este în așteptare",
+      "calls.peerOnHold": "{{name}} este în așteptare",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21889,6 +21935,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Who can write: {{roles}}",
       "groups.createChannel": "Create channel",
       "groups.deleteChannel": "Delete channel",
+      "calls.youOnHold": "You are on hold",
+      "calls.peerOnHold": "{{name}} is on hold",
     }
   },
 
@@ -22802,6 +22850,8 @@ export const translations = {
       "groups.channelTypeWhoWrites": "Можуть писати: {{roles}}",
       "groups.createChannel": "Створити канал",
       "groups.deleteChannel": "Видалити канал",
+      "calls.youOnHold": "Дзвінок на утриманні",
+      "calls.peerOnHold": "{{name}} на утриманні",
     }
   },
 }

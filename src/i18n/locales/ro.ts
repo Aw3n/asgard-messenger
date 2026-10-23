@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Pot scrie: {{roles}}",
       "groups.createChannel": "Creează canal",
       "groups.deleteChannel": "Șterge canalul",
+      "calls.youOnHold": "Apelul este în așteptare",
+      "calls.peerOnHold": "{{name}} este în așteptare",
     }
 }

@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Var rakstīt: {{roles}}",
       "groups.createChannel": "Izveidot kanālu",
       "groups.deleteChannel": "Dzēst kanālu",
+      "calls.youOnHold": "Zvans ir aizturēts",
+      "calls.peerOnHold": "{{name}} — aizturēts",
     }
 }

@@ -642,6 +642,20 @@ class CallService {
       }
     })
 
+    // Le pair signale son attente : sans indicateur, son côté ne paraît qu'une
+    // image figée. Seule la partie de cet appel a voix au chapitre.
+    p2pService.on('message:call:hold', (msg) => {
+      const { activeCall, incomingCall } = useCallStore.getState()
+      const call = activeCall ?? incomingCall
+      if (!call) return
+      const held = (msg.payload as { held?: unknown } | undefined)?.held
+      if (typeof held !== 'boolean') return
+      if (call.isGroupCall) {
+        if (!call.participants?.includes(msg.from)) return
+      } else if (msg.from !== call.peerId) return
+      useCallStore.getState().setPeerHolding(msg.from, held)
+    })
+
     // Listen for participant leaving a group call (graceful departure)
     // Per Hyperswarm mesh topology: each participant notifies others when leaving
     p2pService.on('message:call:participant:left', (msg) => {
@@ -1073,6 +1087,44 @@ class CallService {
     }
     useCallStore.getState().endCall()
     this.currentPeerId = null
+  }
+
+  /**
+   * Attente : les boucles d'envoi cessent tout média tant que le store la
+   * déclare active — les choix micro/caméra restent intacts, à la reprise ce
+   * qui était ouvert se rouvre tel quel. Le pair est prévenu, sinon son écran
+   * ne montre qu'une image figée sans explication.
+   */
+  setHold(onHold: boolean): void {
+    const { activeCall, isOnHold } = useCallStore.getState()
+    if (!activeCall || isOnHold === onHold) return
+    useCallStore.getState().setOnHold(onHold)
+    console.log(`[CallService] ${onHold ? '⏸ Call on hold' : '▶ Call resumed'}`)
+    this.sendHoldSignal(activeCall, onHold)
+  }
+
+  toggleHold(): void {
+    this.setHold(!useCallStore.getState().isOnHold)
+  }
+
+  /** Attente ou micro coupé : rien ne part, quelle que soit la piste. */
+  private isAudioSendSuppressed(): boolean {
+    const { isMuted, isOnHold } = useCallStore.getState()
+    return isMuted || isOnHold
+  }
+
+  private isVideoSendSuppressed(): boolean {
+    const { isCameraOff, isOnHold } = useCallStore.getState()
+    return isCameraOff || isOnHold
+  }
+
+  private sendHoldSignal(call: CallRecord, held: boolean): void {
+    const targets = call.isGroupCall && call.participants
+      ? this.remainingCallPeers(call.participants, '')
+      : [call.peerId]
+    for (const peerId of targets) {
+      p2pService.sendMessage(peerId, 'call:hold', { held }).catch(() => {})
+    }
   }
 
   /**
@@ -2001,7 +2053,7 @@ class CallService {
     // Check if we have anyone to send to (group or 1:1)
     const hasPeers = this.isGroupAudioCall || this.currentPeerId
     if (!hasPeers) return
-    if (useCallStore.getState().isMuted) return
+    if (this.isAudioSendSuppressed()) return
 
     // PERFORMANCE: Silence detection — saves ~40-60% bandwidth during pauses.
     if (rms < CallService.SILENCE_THRESHOLD) {
@@ -2807,7 +2859,7 @@ class CallService {
       const captureFrameWebCodecs = () => {
         if (generation !== this.videoTransportGeneration) return
         if (!this.currentPeerId || !this.tempVideo || !this.videoEncoder || this.videoEncoder.state !== 'configured') return
-        if (useCallStore.getState().isCameraOff) return
+        if (this.isVideoSendSuppressed()) return
         if (this.tempVideo.readyState < 2) return
         // PRO QUALITY: never pile frames onto a busy encoder — that only adds
         // latency and forces drops later on.
@@ -2870,8 +2922,8 @@ class CallService {
         if (generation !== this.videoTransportGeneration) return
         if (!this.currentPeerId || !this.sendCanvasCtx || !this.sendCanvas || !this.tempVideo) return
 
-        // CRITICAL: Skip frame capture when camera is off (save bandwidth)
-        if (useCallStore.getState().isCameraOff) {
+        // CRITICAL: Skip frame capture while the camera is off or the call is held
+        if (this.isVideoSendSuppressed()) {
           if (typeof videoWithCallback.requestVideoFrameCallback === 'function') {
             videoWithCallback.requestVideoFrameCallback(captureFrame)
           }
@@ -2963,8 +3015,8 @@ class CallService {
         if (generation !== this.videoTransportGeneration) return
         if (!this.currentPeerId || !this.sendCanvasCtx || !this.sendCanvas || !this.tempVideo) return
 
-        // CRITICAL: Skip frame capture when camera is off (save bandwidth)
-        if (useCallStore.getState().isCameraOff) return
+        // CRITICAL: Skip frame capture while the camera is off or the call is held
+        if (this.isVideoSendSuppressed()) return
 
         // CRITICAL: Check video is ready before drawing
         if (this.tempVideo.readyState < 2) return
@@ -3135,7 +3187,7 @@ class CallService {
       const captureFrameWebCodecs = () => {
         if (generation !== this.videoTransportGeneration) return
         if (!this.isGroupVideoTransportRunning || !this.tempVideo || !this.videoEncoder || this.videoEncoder.state !== 'configured') return
-        if (useCallStore.getState().isCameraOff) return
+        if (this.isVideoSendSuppressed()) return
         if (this.tempVideo.readyState < 2) return
         // PRO QUALITY: don't queue up on a saturated encoder (mesh CPU pressure)
         if (this.videoEncoder.encodeQueueSize > 2) return
@@ -3196,7 +3248,7 @@ class CallService {
     const captureLoop = () => {
       if (generation !== this.videoTransportGeneration) return
       if (!this.isGroupVideoTransportRunning || !this.sendCanvasCtx || !this.tempVideo) return
-      if (useCallStore.getState().isCameraOff) return
+      if (this.isVideoSendSuppressed()) return
       if (this.tempVideo.readyState < 2) return
 
       try {

@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Можуть писати: {{roles}}",
       "groups.createChannel": "Створити канал",
       "groups.deleteChannel": "Видалити канал",
+      "calls.youOnHold": "Дзвінок на утриманні",
+      "calls.peerOnHold": "{{name}} на утриманні",
     }
 }

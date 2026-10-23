@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Gali rašyti: {{roles}}",
       "groups.createChannel": "Sukurti kanalą",
       "groups.deleteChannel": "Ištrinti kanalą",
+      "calls.youOnHold": "Skambutis laikomas",
+      "calls.peerOnHold": "{{name}} — laikomas",
     }
 }

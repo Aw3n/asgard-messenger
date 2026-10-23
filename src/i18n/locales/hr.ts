@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Pisati mogu: {{roles}}",
       "groups.createChannel": "Stvori kanal",
       "groups.deleteChannel": "Izbriši kanal",
+      "calls.youOnHold": "Vi ste na čekanju",
+      "calls.peerOnHold": "{{name}} je na čekanju",
     }
 }

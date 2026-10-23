@@ -910,5 +910,7 @@ export default {
       "groups.channelTypeWhoWrites": "Jistgħu jiktbu: {{roles}}",
       "groups.createChannel": "Oħloq kanal",
       "groups.deleteChannel": "Ħassar il-kanal",
+      "calls.youOnHold": "Is-sejħa fil-pawża",
+      "calls.peerOnHold": "{{name}} fil-pawża",
     }
 }
