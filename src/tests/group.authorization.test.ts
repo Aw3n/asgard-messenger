@@ -14,6 +14,7 @@ import { useIdentityStore } from '@/stores/identityStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useMessageStore } from '@/stores/messageStore'
+import { useUIStore } from '@/stores/uiStore'
 import type { GroupMember, Message, ProtocolMessage } from '@/types'
 
 const A = 'a'.repeat(64)
@@ -670,5 +671,56 @@ describe('modification et suppression de message', () => {
     await groupService.deleteGroupMessageForMe(groupId, channelId, 'm-local')
     expect(useMessageStore.getState().getMessage('m-local', channelId)).toBeUndefined()
     expect(vi.mocked(p2pService.broadcastToPeers).mock.calls).toHaveLength(calls)
+  })
+})
+
+describe('accusé de lecture d’un message vu en direct', () => {
+  const receive = (id: string): void => {
+    dispatch('handleGroupMessage', {
+      groupId,
+      channelId,
+      message: { id, senderId: B, content: 'vu', timestamp: Date.now(), type: 'text' },
+    }, B, 'group:message')
+  }
+  const readReceiptSent = (): boolean => vi.mocked(p2pService.sendMessage).mock.calls.some(
+    ([, type, payload]) => type === 'group:receipt'
+      && (payload as Record<string, unknown>).status === 'read',
+  )
+  const setReadReceipts = (enabled: boolean): void => {
+    useUIStore.setState((state) => ({
+      settings: { ...state.settings, privacy: { ...state.settings.privacy, readReceipts: enabled } },
+    }))
+  }
+
+  it('accuse lecture quand le canal est affiché, sans incrémenter de non-lu', () => {
+    useGroupStore.getState().setActiveGroup(groupId)
+    useGroupStore.getState().setGroupViewVisible(true)
+    setReadReceipts(true)
+
+    receive('live-1')
+
+    expect(readReceiptSent()).toBe(true)
+    expect(group().channels[0].unreadCount).toBe(0)
+  })
+
+  it('n’accuse pas lecture quand les reçus de lecture sont désactivés', () => {
+    useGroupStore.getState().setActiveGroup(groupId)
+    useGroupStore.getState().setGroupViewVisible(true)
+    setReadReceipts(false)
+
+    receive('live-2')
+
+    expect(readReceiptSent()).toBe(false)
+    expect(useMessageStore.getState().getMessage('live-2', channelId)).toBeDefined()
+  })
+
+  it('compte comme non lu quand la page de groupe n’est pas montée', () => {
+    useGroupStore.getState().setActiveGroup(groupId)
+    useGroupStore.getState().setGroupViewVisible(false)
+
+    receive('live-3')
+
+    expect(readReceiptSent()).toBe(false)
+    expect(group().channels[0].unreadCount).toBe(1)
   })
 })

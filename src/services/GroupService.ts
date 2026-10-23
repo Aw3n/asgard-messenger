@@ -1803,10 +1803,30 @@ class GroupService {
       })
     }
 
-    // Increment unread count if not the active channel
-    const activeChannelId = useGroupStore.getState().activeChannelId
-    if (channelId !== activeChannelId) {
-      useGroupStore.getState().incrementChannelUnread(groupId, channelId)
+    // Un message n'est « non lu » que si son canal est réellement à l'écran :
+    // l'identifiant actif survit à la navigation. Et un message lu en direct
+    // mérite son accusé — sans cela l'expéditeur ne voyait que « remis ».
+    const groupState = useGroupStore.getState()
+    const viewingChannel = groupState.groupViewVisible
+      && groupState.activeGroupId === groupId
+      && groupState.activeChannelId === channelId
+    if (!viewingChannel) {
+      groupState.incrementChannelUnread(groupId, channelId)
+    } else if (
+      identity
+      && message.senderId !== identity.keyPair.publicKey
+      && useUIStore.getState().settings.privacy.readReceipts
+    ) {
+      p2pService.sendMessage(message.senderId, 'group:receipt', {
+        groupId,
+        channelId,
+        messageIds: [message.id],
+        status: 'read',
+        readerPublicKey: identity.keyPair.publicKey,
+        timestamp: Date.now(),
+      }).catch((err) => {
+        console.warn('[GroupService] Failed to send read receipt:', err)
+      })
     }
   }
 
