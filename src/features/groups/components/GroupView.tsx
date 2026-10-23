@@ -16,6 +16,7 @@ import { ForwardModal } from '@/features/chat/components/ForwardModal'
 import { callService } from '@/services/CallService'
 import { groupService } from '@/services/GroupService'
 import { useTranslation } from 'react-i18next'
+import { watchWindowVisibility } from '@/utils/windowVisibility'
 import type { Message } from '@/types'
 
 /**
@@ -26,6 +27,7 @@ export const GroupView: React.FC = () => {
   const { t } = useTranslation()
   const activeGroup = useGroupStore((s) => s.getActiveGroup())
   const activeChannel = useGroupStore((s) => s.getActiveChannel())
+  const groupViewVisible = useGroupStore((s) => s.groupViewVisible)
   const identity = useIdentityStore((s) => s.identity)
   const [showSettings, setShowSettings] = useState(false)
   const [showMembers, setShowMembers] = useState(true)
@@ -138,10 +140,16 @@ export const GroupView: React.FC = () => {
 
   // Le groupe et le canal sélectionnés survivent à la navigation : sans ce
   // drapeau, un message reçu après avoir quitté la page serait considéré comme
-  // lu parce que le canal était encore « actif » dans le store.
+  // lu parce que le canal était encore « actif » dans le store. Une fenêtre
+  // réduite ou sans focus ne montre rien : elle doit compter en non lus.
   useEffect(() => {
-    useGroupStore.getState().setGroupViewVisible(true)
-    return () => { useGroupStore.getState().setGroupViewVisible(false) }
+    const stopWatching = watchWindowVisibility((visible) => {
+      useGroupStore.getState().setGroupViewVisible(visible)
+    })
+    return () => {
+      stopWatching()
+      useGroupStore.getState().setGroupViewVisible(false)
+    }
   }, [])
 
   // Une citation ou une édition appartient au canal où elle a été choisie :
@@ -157,7 +165,7 @@ export const GroupView: React.FC = () => {
   // le compteur n'était incrémenté qu'en dehors du canal actif et rien ne le
   // remettait à zéro, donc sa pastille restait indéfiniment allumée.
   useEffect(() => {
-    if (!activeGroupId || !channelId) return
+    if (!activeGroupId || !channelId || !groupViewVisible) return
     let cancelled = false
     const openChannel = async () => {
       await groupService.loadChannelMessages(activeGroupId, channelId)
@@ -181,7 +189,7 @@ export const GroupView: React.FC = () => {
     }
     void openChannel()
     return () => { cancelled = true }
-  }, [activeGroupId, channelId])
+  }, [activeGroupId, channelId, groupViewVisible])
 
   // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
   // doit rendre le même nombre de hooks qu'avec, sinon React casse l'ordre.

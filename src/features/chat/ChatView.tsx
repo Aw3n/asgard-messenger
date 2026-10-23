@@ -22,6 +22,7 @@ import { callService } from '@/services/CallService'
 import { fileService, PeerUnreachableError, TransferCancelledError } from '@/services/FileService'
 import { RightPanel } from '@/components/panels/RightPanel'
 import { presenceMeta, isLivePresence } from '@/utils/presence'
+import { watchWindowVisibility } from '@/utils/windowVisibility'
 import type { Message } from '@/types'
 
 /**
@@ -40,6 +41,7 @@ export const ChatView: React.FC = () => {
 
   const identity = useIdentityStore((s) => s.identity)
   const getConversation = useConversationStore((s) => s.getConversation)
+  const chatViewVisible = useConversationStore((s) => s.chatViewVisible)
   // CRITICAL: Subscribe to the contacts OBJECT (not the getContact function).
   // This ensures ChatView re-renders when a contact's status changes,
   // keeping the header status indicator in sync with the conversation list.
@@ -91,9 +93,16 @@ export const ChatView: React.FC = () => {
 
   // Seul un ChatView monté prouve que le fil est visible : l'identifiant de
   // conversation, lui, reste sélectionné après un passage sur une autre page.
+  // Une fenêtre réduite ou sans focus ne rend rien à l'écran : elle doit donc
+  // compter les messages comme non lus et laisser passer les notifications.
   useEffect(() => {
-    useConversationStore.getState().setChatViewVisible(true)
-    return () => { useConversationStore.getState().setChatViewVisible(false) }
+    const stopWatching = watchWindowVisibility((visible) => {
+      useConversationStore.getState().setChatViewVisible(visible)
+    })
+    return () => {
+      stopWatching()
+      useConversationStore.getState().setChatViewVisible(false)
+    }
   }, [])
 
   // Load message history from Hyperbee storage when conversation opens
@@ -105,6 +114,7 @@ export const ChatView: React.FC = () => {
   // READ RECEIPTS: When the user opens a conversation, send read receipts for
   // all messages from the peer that aren't marked as 'read' yet.
   useEffect(() => {
+    if (!chatViewVisible) return
     if (!resolvedId || !conversation?.participantId || !identity || messages.length === 0) return
 
     const myPk = identity.keyPair.publicKey
@@ -123,7 +133,7 @@ export const ChatView: React.FC = () => {
     if (sendReadReceipts) {
       chatService.sendReadReceipt(resolvedId, conversation.participantId, unreadIds).catch(() => {})
     }
-  }, [resolvedId, conversation?.participantId, identity, messages.length, sendReadReceipts])
+  }, [resolvedId, conversation?.participantId, identity, messages.length, sendReadReceipts, chatViewVisible])
 
   // Join the Hyperswarm discovery topic for this conversation
   useEffect(() => {
