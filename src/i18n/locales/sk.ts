@@ -865,5 +865,6 @@ export default {
       "groups.noContactsToInvite": "Žiadne kontakty na pozvanie",
       "notifications.newMessage": "Nová správa",
       "notifications.mentionedYou": "{{name}} vás spomenul",
+      "chat.sendToStart": "Pošlite správu, aby začať konverzáciu s {{name}}.",
     }
 }

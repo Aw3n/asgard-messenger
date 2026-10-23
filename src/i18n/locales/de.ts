@@ -864,5 +864,6 @@ export default {
       "groups.noContactsToInvite": "Keine Kontakte zum Einladen",
       "notifications.newMessage": "Neue Nachricht",
       "notifications.mentionedYou": "{{name}} hat dich erwähnt",
+      "chat.sendToStart": "Sende eine Nachricht, um mit {{name}} zu chatten.",
     }
 }

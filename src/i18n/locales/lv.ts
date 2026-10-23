@@ -865,5 +865,6 @@ export default {
       "groups.noContactsToInvite": "Nav kontaktu, ko uzaicināt",
       "notifications.newMessage": "Jauns ziņojums",
       "notifications.mentionedYou": "{{name}} jūs pieminēja",
+      "chat.sendToStart": "Nosūtiet ziņojumu, lai sāktu sarunu ar {{name}}.",
     }
 }

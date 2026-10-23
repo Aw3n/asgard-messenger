@@ -865,5 +865,6 @@ export default {
       "groups.noContactsToInvite": "L-ebda kuntatt biex tistieden",
       "notifications.newMessage": "Messaġġ ġdid",
       "notifications.mentionedYou": "{{name}} għamel referenza għalik",
+      "chat.sendToStart": "Ibgħat messaġġ biex tibda titkellem ma' {{name}}.",
     }
 }

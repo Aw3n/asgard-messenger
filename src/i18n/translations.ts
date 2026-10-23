@@ -863,6 +863,7 @@ export const translations = {
       "groups.noContactsToInvite": "Aucun contact à inviter",
       "notifications.newMessage": "Nouveau message",
       "notifications.mentionedYou": "{{name}} vous a mentionné",
+      "chat.sendToStart": "Envoyez un message pour commencer à discuter avec {{name}}.",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1729,6 +1730,7 @@ export const translations = {
       "groups.noContactsToInvite": "Geen contacten om uit te nodigen",
       "notifications.newMessage": "Nieuw bericht",
       "notifications.mentionedYou": "{{name}} heeft je vermeld",
+      "chat.sendToStart": "Stuur een bericht om een gesprek te beginnen met {{name}}.",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2595,6 +2597,7 @@ export const translations = {
       "groups.noContactsToInvite": "Keine Kontakte zum Einladen",
       "notifications.newMessage": "Neue Nachricht",
       "notifications.mentionedYou": "{{name}} hat dich erwähnt",
+      "chat.sendToStart": "Sende eine Nachricht, um mit {{name}} zu chatten.",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3461,6 +3464,7 @@ export const translations = {
       "groups.noContactsToInvite": "Nessun contatto da invitare",
       "notifications.newMessage": "Nuovo messaggio",
       "notifications.mentionedYou": "{{name}} ti ha menzionato",
+      "chat.sendToStart": "Invia un messaggio per iniziare a parlare con {{name}}.",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4327,6 +4331,7 @@ export const translations = {
       "groups.noContactsToInvite": "No hay contactos para invitar",
       "notifications.newMessage": "Mensaje nuevo",
       "notifications.mentionedYou": "{{name}} te ha mencionado",
+      "chat.sendToStart": "Envía un mensaje para empezar a hablar con {{name}}.",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5194,6 +5199,7 @@ export const translations = {
       "groups.noContactsToInvite": "Nenhum contacto para convidar",
       "notifications.newMessage": "Nova mensagem",
       "notifications.mentionedYou": "{{name}} mencionou você",
+      "chat.sendToStart": "Envie uma mensagem para começar a conversar com {{name}}.",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6061,6 +6067,7 @@ export const translations = {
       "groups.noContactsToInvite": "Δεν υπάρχουν επαφές για πρόσκληση",
       "notifications.newMessage": "Νέο μήνυμα",
       "notifications.mentionedYou": "{{name}} σας ανέφερε",
+      "chat.sendToStart": "Στείλτε ένα μήνυμα για να ξεκινήσετε συνομιλία με {{name}}.",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6928,6 +6935,7 @@ export const translations = {
       "groups.noContactsToInvite": "Ingen kontakter at invitere",
       "notifications.newMessage": "Ny besked",
       "notifications.mentionedYou": "{{name}} nævnte dig",
+      "chat.sendToStart": "Send en besked for at begynde at tale med {{name}}.",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7795,6 +7803,7 @@ export const translations = {
       "groups.noContactsToInvite": "Ei kutsuttavia yhteystietoja",
       "notifications.newMessage": "Uusi viesti",
       "notifications.mentionedYou": "{{name}} mainitsi sinut",
+      "chat.sendToStart": "Lähetä viesti aloittaaksesi keskustelun käyttäjän {{name}} kanssa.",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8662,6 +8671,7 @@ export const translations = {
       "groups.noContactsToInvite": "Inga kontakter att bjuda in",
       "notifications.newMessage": "Nytt meddelande",
       "notifications.mentionedYou": "{{name}} nämnde dig",
+      "chat.sendToStart": "Skicka ett meddelande för att börja prata med {{name}}.",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9529,6 +9539,7 @@ export const translations = {
       "groups.noContactsToInvite": "Nema kontakata za pozivanje",
       "notifications.newMessage": "Nova poruka",
       "notifications.mentionedYou": "{{name}} vas je spomenuo",
+      "chat.sendToStart": "Pošaljite poruku da započnete razgovor s {{name}}.",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10396,6 +10407,7 @@ export const translations = {
       "groups.noContactsToInvite": "Pole kontakte, keda kutsuda",
       "notifications.newMessage": "Uus sõnum",
       "notifications.mentionedYou": "{{name}} mainis sind",
+      "chat.sendToStart": "Saatke sõnum, et alustada vestlust kasutajaga {{name}}.",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11263,6 +11275,7 @@ export const translations = {
       "groups.noContactsToInvite": "Nincs meghívható névjegy",
       "notifications.newMessage": "Új üzenet",
       "notifications.mentionedYou": "{{name}} megemlített téged",
+      "chat.sendToStart": "Küldjön üzenetet, hogy beszélgetni kezdjen vele: {{name}}.",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12130,6 +12143,7 @@ export const translations = {
       "groups.noContactsToInvite": "Nav kontaktu, ko uzaicināt",
       "notifications.newMessage": "Jauns ziņojums",
       "notifications.mentionedYou": "{{name}} jūs pieminēja",
+      "chat.sendToStart": "Nosūtiet ziņojumu, lai sāktu sarunu ar {{name}}.",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -12997,6 +13011,7 @@ export const translations = {
       "groups.noContactsToInvite": "Nėra kontaktų, kuriuos pakviesti",
       "notifications.newMessage": "Nauja žinutė",
       "notifications.mentionedYou": "{{name}} jus paminėjo",
+      "chat.sendToStart": "Išsiųskite žinutę, kad pradėtumėte pokalbį su {{name}}.",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13864,6 +13879,7 @@ export const translations = {
       "groups.noContactsToInvite": "L-ebda kuntatt biex tistieden",
       "notifications.newMessage": "Messaġġ ġdid",
       "notifications.mentionedYou": "{{name}} għamel referenza għalik",
+      "chat.sendToStart": "Ibgħat messaġġ biex tibda titkellem ma' {{name}}.",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14731,6 +14747,7 @@ export const translations = {
       "groups.noContactsToInvite": "Brak kontaktów do zaproszenia",
       "notifications.newMessage": "Nowa wiadomość",
       "notifications.mentionedYou": "{{name}} wspomniał o Tobie",
+      "chat.sendToStart": "Wyślij wiadomość, aby rozpocząć rozmowę z {{name}}.",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15598,6 +15615,7 @@ export const translations = {
       "groups.noContactsToInvite": "Žiadne kontakty na pozvanie",
       "notifications.newMessage": "Nová správa",
       "notifications.mentionedYou": "{{name}} vás spomenul",
+      "chat.sendToStart": "Pošlite správu, aby začať konverzáciu s {{name}}.",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16465,6 +16483,7 @@ export const translations = {
       "groups.noContactsToInvite": "Ni stikov za povabilo",
       "notifications.newMessage": "Novo sporočilo",
       "notifications.mentionedYou": "{{name}} vas je omenil",
+      "chat.sendToStart": "Pošljite sporočilo, da začnete pogovor s {{name}}.",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17332,6 +17351,7 @@ export const translations = {
       "groups.noContactsToInvite": "Žádné kontakty k pozvání",
       "notifications.newMessage": "Nová zpráva",
       "notifications.mentionedYou": "{{name}} vás zmínil",
+      "chat.sendToStart": "Pošlete zprávu a začněte konverzovat s {{name}}.",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18199,6 +18219,7 @@ export const translations = {
       "groups.noContactsToInvite": "Няма контакти за поканване",
       "notifications.newMessage": "Ново съобщение",
       "notifications.mentionedYou": "{{name}} ви спомена",
+      "chat.sendToStart": "Изпратете съобщение, за да започнете разговор с {{name}}.",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19066,6 +19087,7 @@ export const translations = {
       "groups.noContactsToInvite": "Níl aon teagmhálaithe le tabhairt cuireadh dóibh",
       "notifications.newMessage": "Teachtaireacht nua",
       "notifications.mentionedYou": "Luaigh {{name}} thú",
+      "chat.sendToStart": "Seol teachtaireacht chun tús a chur ag caint le {{name}}.",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -19933,6 +19955,7 @@ export const translations = {
       "groups.noContactsToInvite": "Niciun contact de invitat",
       "notifications.newMessage": "Mesaj nou",
       "notifications.mentionedYou": "{{name}} te-a menționat",
+      "chat.sendToStart": "Trimiteți un mesaj pentru a începe conversația cu {{name}}.",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20809,6 +20832,7 @@ export const translations = {
       "groups.noContactsToInvite": "No contacts to invite",
       "notifications.newMessage": "New message",
       "notifications.mentionedYou": "{{name}} mentioned you",
+      "chat.sendToStart": "Send a message to start talking with {{name}}.",
     }
   },
 
@@ -21677,6 +21701,7 @@ export const translations = {
       "groups.noContactsToInvite": "Немає контактів для запрошення",
       "notifications.newMessage": "Нове повідомлення",
       "notifications.mentionedYou": "{{name}} згадав вас",
+      "chat.sendToStart": "Надішліть повідомлення, щоб почати розмову з {{name}}.",
     }
   },
 }

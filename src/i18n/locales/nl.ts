@@ -864,5 +864,6 @@ export default {
       "groups.noContactsToInvite": "Geen contacten om uit te nodigen",
       "notifications.newMessage": "Nieuw bericht",
       "notifications.mentionedYou": "{{name}} heeft je vermeld",
+      "chat.sendToStart": "Stuur een bericht om een gesprek te beginnen met {{name}}.",
     }
 }

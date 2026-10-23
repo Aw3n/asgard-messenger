@@ -865,5 +865,6 @@ export default {
       "groups.noContactsToInvite": "Nėra kontaktų, kuriuos pakviesti",
       "notifications.newMessage": "Nauja žinutė",
       "notifications.mentionedYou": "{{name}} jus paminėjo",
+      "chat.sendToStart": "Išsiųskite žinutę, kad pradėtumėte pokalbį su {{name}}.",
     }
 }

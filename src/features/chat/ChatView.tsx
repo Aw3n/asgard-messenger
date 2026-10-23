@@ -626,7 +626,9 @@ const ChatEmptyState: React.FC = () => {
   )
 }
 
-const ConversationStart: React.FC<{ name: string }> = ({ name }) => (
+const ConversationStart: React.FC<{ name: string }> = ({ name }) => {
+  const { t } = useTranslation()
+  return (
   <div className="flex flex-col items-center justify-center h-full text-center px-8">
     <div className="mb-3 opacity-50">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
@@ -634,12 +636,13 @@ const ConversationStart: React.FC<{ name: string }> = ({ name }) => (
       </svg>
     </div>
     <p className="text-sm text-asgard-text-muted">
-      This conversation is end-to-end encrypted.
+      {t('panels.endToEndEncrypted')}.
       <br />
-      Send a message to start talking with <strong className="text-asgard-text-secondary">{name}</strong>.
+      {t('chat.sendToStart', { name })}
     </p>
   </div>
-)
+  )
+}
 
 const TypingIndicator: React.FC<{ users: string[]; contact?: string }> = ({ users, contact }) => {
   const { t } = useTranslation()

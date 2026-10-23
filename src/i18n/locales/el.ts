@@ -865,5 +865,6 @@ export default {
       "groups.noContactsToInvite": "Δεν υπάρχουν επαφές για πρόσκληση",
       "notifications.newMessage": "Νέο μήνυμα",
       "notifications.mentionedYou": "{{name}} σας ανέφερε",
+      "chat.sendToStart": "Στείλτε ένα μήνυμα για να ξεκινήσετε συνομιλία με {{name}}.",
     }
 }

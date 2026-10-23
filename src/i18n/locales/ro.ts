@@ -865,5 +865,6 @@ export default {
       "groups.noContactsToInvite": "Niciun contact de invitat",
       "notifications.newMessage": "Mesaj nou",
       "notifications.mentionedYou": "{{name}} te-a menționat",
+      "chat.sendToStart": "Trimiteți un mesaj pentru a începe conversația cu {{name}}.",
     }
 }
