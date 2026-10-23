@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -57,16 +57,41 @@ export const ModalContainer: React.FC = () => {
 
 // ─── Modal Overlay ────────────────────────────────────────────────────────────
 
+const FOCUSABLE =
+  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+
 const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }> = ({
   onClose,
   children,
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Échap qui annule une composition IME reste au champ ; le fermer
       // couperait la saisie en cours.
       if (e.isComposing || e.keyCode === 229) return
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab') return
+
+      // Un dialogue modal ne laisse pas Tab filer vers la page derrière lui :
+      // au dernier contrôle on revient au premier, et inversement.
+      const root = dialogRef.current
+      if (!root) return
+      const focusable = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE))
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -84,6 +109,7 @@ const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }>
       }}
     >
       <motion.div
+        ref={dialogRef}
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}

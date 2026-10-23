@@ -52,6 +52,19 @@ describe('modale d’ajout de contact', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
+  it('garde la tabulation dans le dialogue', () => {
+    openModal()
+    const close = screen.getByRole('button', { name: 'common.close' })
+    const add = screen.getByRole('button', { name: 'modal.add' })
+
+    add.focus()
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.activeElement).toBe(close)
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(add)
+  })
+
   it('annonce l’erreur et la rattache au champ de clé', () => {
     openModal()
     fireEvent.click(screen.getByRole('button', { name: 'modal.add' }))
