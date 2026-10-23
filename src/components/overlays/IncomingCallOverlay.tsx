@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCallStore } from '@/stores/callStore'
 import { callService } from '@/services/CallService'
@@ -18,13 +18,35 @@ export const IncomingCallOverlay: React.FC = () => {
   const { t } = useTranslation()
   const incomingCall = useCallStore((s) => s.incomingCall)
 
-  const handleAccept = async () => {
+  const handleAccept = useCallback(async () => {
     await callService.acceptCall()
-  }
+  }, [])
 
-  const handleReject = async () => {
+  const handleReject = useCallback(async () => {
     await callService.rejectCall()
-  }
+  }, [])
+
+  /**
+   * Raccourcis de réponse : Ctrl+Maj+A (répondre) / Ctrl+Maj+D (refuser),
+   * comme Signal. Le combo est indicatif — les boutons restent la source
+   * d'action, le clavier suit la même paire de gestes.
+   */
+  useEffect(() => {
+    if (!incomingCall) return
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey) return
+      const key = e.key.toLowerCase()
+      if (key === 'a') {
+        e.preventDefault()
+        void handleAccept()
+      } else if (key === 'd') {
+        e.preventDefault()
+        void handleReject()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [incomingCall, handleAccept, handleReject])
 
   return (
     <AnimatePresence>
@@ -155,6 +177,7 @@ export const IncomingCallOverlay: React.FC = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleReject}
+                  title="Ctrl+Shift+D"
                   className="w-16 h-16 rounded-full flex items-center justify-center transition-colors"
                   style={{
                     background: 'rgba(239,68,68,0.08)',
@@ -175,6 +198,7 @@ export const IncomingCallOverlay: React.FC = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleAccept}
+                  title="Ctrl+Shift+A"
                   className="w-16 h-16 rounded-full flex items-center justify-center transition-colors"
                   style={{
                     background: 'rgba(34,197,94,0.08)',

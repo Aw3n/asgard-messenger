@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useContactStore } from '@/stores/contactStore'
@@ -6,10 +7,8 @@ import { useConversationStore } from '@/stores/conversationStore'
 import { useUIStore } from '@/stores/uiStore'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput } from '@/utils/invite'
-import { cryptoService } from '@/services/CryptoService'
-import { p2pService } from '@/services/P2PService'
+import { chatService } from '@/services/ChatService'
 import { useTranslation } from 'react-i18next'
-import type { Contact } from '@/types'
 
 interface QRCodeModalProps {
   onClose: () => void
@@ -26,6 +25,8 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [mode, setMode] = useState<'show' | 'scan'>('show')
   const [pasteKey, setPasteKey] = useState('')
+  const navigate = useNavigate()
+  const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
 
   // Generate QR code on mount
   useEffect(() => {
@@ -79,59 +80,30 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
     }
     const key = parsed.publicKey
 
-    const { getContact, addContact } = useContactStore.getState()
-    if (getContact(key)) {
+    // Une demande en attente peut être relancée ; un contact confirmé est un doublon.
+    const existing = useContactStore.getState().getContact(key)
+    if (existing && existing.relation !== 'pending') {
       addToast({ type: 'error', title: t('modal.error.contactExists'), duration: 3000 })
       return
     }
 
-    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-    if (!myPk) {
+    if (!useIdentityStore.getState().identity) {
       addToast({ type: 'error', title: t('contacts.error.noIdentity'), duration: 3000 })
       return
     }
 
-    const contact: Contact = {
-      publicKey: key,
-      displayName: parsed.name || `User-${key.slice(24, 32)}`,
-      status: 'offline',
-      relation: 'contact',
-      verified: false,
-      addedAt: Date.now(),
-    }
-    addContact(contact)
-
     try {
-      await window.asgard.storage.saveContact(contact)
+      // Relation en attente + conversation + joinTopic + demande immédiate.
+      const convId = await chatService.registerContact(key, parsed.name ?? '')
+      addToast({ type: 'success', title: t('toast.contactAdded'), duration: 3000 })
+      onClose()
+      // La réponse qui confirme l'ajout se fait dans la conversation.
+      setActiveConversation(convId)
+      navigate(`/conversations/${convId}`)
     } catch (err) {
-      console.warn('[QRCodeModal] Hyperbee persistence failed (localStorage persist remains):', err)
+      console.error('[QRCodeModal] Failed to add contact:', err)
+      addToast({ type: 'error', title: t('toast.failedToAddContact'), duration: 4000 })
     }
-
-    // Conversation déterministe + discovery Hyperswarm (pattern ModalContainer)
-    try {
-      const convId = cryptoService.deriveConversationId(myPk, key)
-      const { addConversation } = useConversationStore.getState()
-      if (!useConversationStore.getState().conversations[convId]) {
-        addConversation({
-          id: convId,
-          type: 'direct',
-          participantId: key,
-          unreadCount: 0,
-          muted: false,
-          pinned: false,
-          archived: false,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        })
-      }
-      const topic = await cryptoService.deriveConversationTopic(myPk, key)
-      await p2pService.joinTopic(topic)
-    } catch (err) {
-      console.warn('[QRCodeModal] Failed to setup conversation/topic for new contact:', err)
-    }
-
-    addToast({ type: 'success', title: t('toast.contactAdded'), duration: 3000 })
-    onClose()
   }
 
   return (

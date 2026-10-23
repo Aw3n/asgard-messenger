@@ -4,6 +4,24 @@ import type { Theme, RightPanelView, ModalState, Toast, AppSettings, ThemePreset
 import { generateId } from '@/utils/id'
 import { hexToCssRgb, lightenColor, darkenColor, isColorDark, invertColorForLight } from '@/utils/color'
 
+interface ToastTimer {
+  handle: ReturnType<typeof setTimeout>
+  remaining: number
+  startedAt: number
+}
+
+const toastTimers = new Map<string, ToastTimer>()
+
+// Déclencheur de la modale : sans ce rappel, le focus retombe sur <body> à la
+// fermeture et l'utilisateur clavier perd sa place dans la page.
+let modalTrigger: HTMLElement | null = null
+
+export function restoreModalTriggerFocus() {
+  const trigger = modalTrigger
+  modalTrigger = null
+  if (trigger && document.contains(trigger)) trigger.focus()
+}
+
 interface UIState {
   theme: Theme
   sidebarCollapsed: boolean
@@ -23,6 +41,8 @@ interface UIState {
   closeModal: () => void
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
+  pauseToast: (id: string) => void
+  resumeToast: (id: string) => void
   updateSettings: (updates: Partial<AppSettings>) => void
   setMaximized: (maximized: boolean) => void
   toggleSearch: () => void
@@ -436,7 +456,15 @@ export const useUIStore = create<UIState>()(
         set({ rightPanelView: current === view ? null : view })
       },
 
-      openModal: (type, props) => set({ modal: { type, props } }),
+      openModal: (type, props) => {
+        // Capturé au clic, avant le montage du dialogue : quand l'effet
+        // arriverait, autoFocus a déjà déplacé le focus dans le champ.
+        if (!get().modal.type) {
+          const active = document.activeElement
+          modalTrigger = active instanceof HTMLElement ? active : null
+        }
+        set({ modal: { type, props } })
+      },
 
       closeModal: () => set({ modal: { type: null } }),
 
@@ -448,12 +476,34 @@ export const useUIStore = create<UIState>()(
         // Auto-remove after duration
         const duration = toast.duration ?? 4000
         if (duration > 0) {
-          setTimeout(() => get().removeToast(id), duration)
+          const handle = setTimeout(() => get().removeToast(id), duration)
+          toastTimers.set(id, { handle, remaining: duration, startedAt: Date.now() })
         }
       },
 
       removeToast: (id) => {
+        const timer = toastTimers.get(id)
+        if (timer) {
+          clearTimeout(timer.handle)
+          toastTimers.delete(id)
+        }
         set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
+      },
+
+      // Un toast survolé ou exploré au clavier ne doit pas s'évanouir sous les
+      // yeux de son lecteur : le temps restant est mis en attente puis repris.
+      pauseToast: (id) => {
+        const timer = toastTimers.get(id)
+        if (!timer) return
+        clearTimeout(timer.handle)
+        timer.remaining -= Date.now() - timer.startedAt
+      },
+
+      resumeToast: (id) => {
+        const timer = toastTimers.get(id)
+        if (!timer) return
+        timer.startedAt = Date.now()
+        timer.handle = setTimeout(() => get().removeToast(id), Math.max(timer.remaining, 0))
       },
 
       updateSettings: (updates) => {

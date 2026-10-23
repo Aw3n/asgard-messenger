@@ -62,6 +62,8 @@ export interface MessageAttachment {
   waveform?: number[]
   /** Progress of download (0-100) */
   downloadProgress?: number
+  /** Réception abandonnée (tampon incomplet) : les données tronquées ne sont jamais matérialisées */
+  failed?: boolean
   /** Whether the file has been deleted by the sender */
   deleted?: boolean
   /** Timestamp when the file was deleted */

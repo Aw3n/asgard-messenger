@@ -101,6 +101,11 @@ export interface Group {
   maxMembers: number
   /** Group invite link / key */
   inviteKey?: string
+  /**
+   * Members removed by an admin. A join notice or a stale invite must not
+   * resurrect them, otherwise a kicked peer simply re-announces itself.
+   */
+  kickedMembers?: string[]
   /** Activity log for the group */
   activityLog?: GroupActivity[]
 }

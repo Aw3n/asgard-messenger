@@ -1,19 +1,35 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 import { useGroupStore } from '@/stores/groupStore'
+import { useConversationStore } from '@/stores/conversationStore'
 import { useMessageStore } from '@/stores/messageStore'
 import { useIdentityStore } from '@/stores/identityStore'
-import { useNetworkStore } from '@/stores/networkStore'
+import { useUIStore } from '@/stores/uiStore'
 import { ChannelList } from './ChannelList'
 import { MemberList } from './MemberList'
 import { GroupSettings } from './GroupSettings'
 import { MessageBubble } from '@/features/chat/components/MessageBubble'
 import { MessageInput } from '@/features/chat/components/MessageInput'
 import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
+import { ForwardModal } from '@/features/chat/components/ForwardModal'
+import { UnreadDivider } from '@/components/ui/UnreadDivider'
+import { MuteButton } from '@/components/ui/MuteButton'
 import { callService } from '@/services/CallService'
 import { groupService } from '@/services/GroupService'
 import { useTranslation } from 'react-i18next'
+import { watchWindowVisibility } from '@/utils/windowVisibility'
+import { countIncomingAfter } from '@/utils/incomingAfter'
+import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
+import { parseMessageJump } from '@/utils/messageJump'
+import { useMessageJump } from '@/hooks/useMessageJump'
+import type { Message } from '@/types'
+
+const HISTORY_PAGE_SIZE = 50
+// Index de départ arbitrairement haut : Virtuoso s'en sert pour ancrer le
+// viewport quand des messages plus anciens sont insérés devant la liste.
+const FIRST_ITEM_INDEX = 100_000
 
 /**
  * GroupView — main view for a selected group.
@@ -23,27 +39,181 @@ export const GroupView: React.FC = () => {
   const { t } = useTranslation()
   const activeGroup = useGroupStore((s) => s.getActiveGroup())
   const activeChannel = useGroupStore((s) => s.getActiveChannel())
+  const groupViewVisible = useGroupStore((s) => s.groupViewVisible)
   const identity = useIdentityStore((s) => s.identity)
+  // S'abonner à la table : basculer la sourdine doit réafficher l'icône.
+  const groupMuted = useConversationStore((s) =>
+    activeGroup ? (s.conversations[activeGroup.id]?.muted ?? false) : false
+  )
+  const groupMutedUntil = useConversationStore((s) =>
+    activeGroup ? s.conversations[activeGroup.id]?.mutedUntil : undefined
+  )
   const [showSettings, setShowSettings] = useState(false)
   const [showMembers, setShowMembers] = useState(true)
+  const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
+  const [replyTo, setReplyTo] = useState<Message | undefined>()
+  const [editingMessage, setEditingMessage] = useState<Message | undefined>()
+  // Même suivi du bas que le fil 1:1 : lecture remontée + envoi qui ramène.
+  const [atBottom, setAtBottom] = useState(true)
+  const [newBelowCount, setNewBelowCount] = useState(0)
+  // Même ancre que le fil 1:1 : posée avant que le canal ne soit marqué lu.
+  const [firstUnreadId, setFirstUnreadId] = useState<string | undefined>(undefined)
+  const lastSeenMessageIdRef = React.useRef<string | undefined>(undefined)
+  const followOwnSendRef = React.useRef(false)
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
-
-  if (!activeGroup) {
-    return <GroupEmptyState />
-  }
+  const location = useLocation()
 
   const channelId = activeChannel?.id ?? ''
+  const activeGroupId = activeGroup?.id
   // CRITICAL: Select messages reactively from the store
   const messages = useMessageStore((s) => channelId ? (s.messages[channelId] ?? []) : [])
-  const typingUsers = useNetworkStore((s) => s.getTypingUsers(channelId))
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined
+  const historyKey = `${activeGroupId ?? ''}:${channelId}`
+  const [pagination, setPagination] = useState({
+    key: historyKey,
+    firstItemIndex: FIRST_ITEM_INDEX,
+    exhausted: false,
+  })
+  // Changer de canal ne doit pas transporter l'ancrage d'historique du canal
+  // précédent, alors que la vue reste montée.
+  const paginationState = pagination.key === historyKey
+    ? pagination
+    : { key: historyKey, firstItemIndex: FIRST_ITEM_INDEX, exhausted: false }
+  const loadingOlderRef = React.useRef(false)
+  const historyKeyRef = React.useRef(historyKey)
+  historyKeyRef.current = historyKey
+
+  // La frappe de groupe vit dans le GroupStore (par canal), pas dans le store
+  // réseau du fil 1:1 : lire le mauvais store rendait l'indicateur muet.
+  const channelTyping = useGroupStore((s) => s.channelTyping)
+  const [typingTick, setTypingTick] = useState(0)
+  const typingUsers = React.useMemo(
+    () => (activeGroup?.id && channelId
+      ? useGroupStore.getState().getChannelTypingUsers(activeGroup.id, channelId)
+      : []),
+    // channelTyping et typingTick forcent la ré-évaluation (arrivée, expiration).
+    [activeGroup?.id, channelId, channelTyping, typingTick],
+  )
+  // Une frappe expire après 5 s sans nouvel événement : tant qu'elle est
+  // affichée, un tick par seconde la fait disparaître sans attendre un autre
+  // message du réseau.
+  useEffect(() => {
+    if (typingUsers.length === 0) return
+    const timer = setTimeout(() => setTypingTick((n) => n + 1), 1000)
+    return () => clearTimeout(timer)
+  }, [typingUsers.length, typingTick])
+
+  // Changer de canal remet le suivi du bas à zéro.
+  useEffect(() => {
+    setAtBottom(true)
+    setNewBelowCount(0)
+    setFirstUnreadId(undefined)
+    lastSeenMessageIdRef.current = undefined
+  }, [historyKey])
+
+  // Un message qui arrive sous une lecture remontée s'annonce par une pastille.
+  useEffect(() => {
+    const previousId = lastSeenMessageIdRef.current
+    lastSeenMessageIdRef.current = lastMessageId
+    if (atBottom) {
+      setNewBelowCount(0)
+      return
+    }
+    if (previousId === undefined || previousId === lastMessageId) return
+    const added = countIncomingAfter(messages, previousId, identity?.keyPair.publicKey)
+    if (added > 0) setNewBelowCount((count) => count + added)
+  }, [lastMessageId, atBottom, messages, identity?.keyPair.publicKey])
+
+  // Envoyer depuis une position remontée ramène à sa propre bulle.
+  useEffect(() => {
+    if (!followOwnSendRef.current || messages.length === 0) return
+    followOwnSendRef.current = false
+    virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
+  }, [messages.length])
+  const currentMember = activeGroup?.members.find(
+    (member) => member.publicKey === identity?.keyPair.publicKey,
+  )
+  // Épingler est réservé aux mêmes rôles que côté service ; les autres membres
+  // ne doivent pas voir une action qui échouerait.
+  const canPin = !!currentMember && ['owner', 'admin', 'moderator'].includes(currentMember.role)
 
   const handleSend = useCallback(
     (content: string) => {
       // Send message via P2P to group members
       if (!identity || !channelId || !activeGroup) return
-      groupService.sendGroupMessage(activeGroup.id, channelId, content)
+      const quoted = replyTo
+      setReplyTo(undefined)
+      followOwnSendRef.current = true
+      groupService.sendGroupMessage(activeGroup.id, channelId, content, undefined, undefined, quoted?.id)
     },
-    [identity, channelId, activeGroup]
+    [identity, channelId, activeGroup, replyTo]
+  )
+
+  const handleTyping = useCallback(
+    (typing: boolean) => {
+      if (!activeGroup || !channelId) return
+      groupService.sendTypingIndicator(activeGroup.id, channelId, typing).catch(() => {})
+    },
+    [activeGroup, channelId],
+  )
+
+  const handleReaction = useCallback(
+    (message: Message, emoji: string) => {
+      if (!activeGroup || !channelId) return
+      groupService.toggleGroupReaction(activeGroup.id, channelId, message.id, emoji).catch((err) => {
+        console.warn('[GroupView] toggleGroupReaction failed:', err)
+      })
+    },
+    [activeGroup, channelId]
+  )
+
+  const handlePin = useCallback(
+    (message: Message) => {
+      if (!activeGroup || !channelId) return
+      const operation = message.pinned
+        ? groupService.unpinMessage(activeGroup.id, channelId, message.id)
+        : groupService.pinMessage(activeGroup.id, channelId, message.id)
+      operation.catch((err) => {
+        console.warn('[GroupView] pin operation failed:', err)
+      })
+    },
+    [activeGroup, channelId]
+  )
+
+  const handleEditSubmit = useCallback(
+    async (content: string) => {
+      const target = editingMessage
+      if (!target || !activeGroup || !channelId) return
+      setEditingMessage(undefined)
+      try {
+        await groupService.editGroupMessage(activeGroup.id, channelId, target.id, content)
+      } catch (err) {
+        console.error('[GroupView] editGroupMessage failed:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.editFailed') })
+      }
+    },
+    [editingMessage, activeGroup, channelId, t]
+  )
+
+  const handleDelete = useCallback(
+    (message: Message) => {
+      if (!activeGroup || !channelId) return
+      groupService.deleteGroupMessage(activeGroup.id, channelId, message.id).catch((err) => {
+        console.warn('[GroupView] deleteGroupMessage failed:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('common.failed') })
+      })
+    },
+    [activeGroup, channelId, t]
+  )
+
+  const handleDeleteForMe = useCallback(
+    (message: Message) => {
+      if (!activeGroup || !channelId) return
+      groupService.deleteGroupMessageForMe(activeGroup.id, channelId, message.id).catch((err) => {
+        console.warn('[GroupView] deleteGroupMessageForMe failed:', err)
+      })
+    },
+    [activeGroup, channelId]
   )
 
   // PERFORMANCE: Handle file sends to group using multicast
@@ -65,6 +235,138 @@ export const GroupView: React.FC = () => {
       groupService.announceGroupPresence(activeGroup.id)
     }
   }, [activeGroup?.id])
+
+  // Le groupe et le canal sélectionnés survivent à la navigation : sans ce
+  // drapeau, un message reçu après avoir quitté la page serait considéré comme
+  // lu parce que le canal était encore « actif » dans le store. Une fenêtre
+  // réduite ou sans focus ne montre rien : elle doit compter en non lus.
+  useEffect(() => {
+    const stopWatching = watchWindowVisibility((visible) => {
+      useGroupStore.getState().setGroupViewVisible(visible)
+    })
+    return () => {
+      stopWatching()
+      useGroupStore.getState().setGroupViewVisible(false)
+    }
+  }, [])
+
+  // Une citation ou une édition appartient au canal où elle a été choisie :
+  // changer de canal ne doit pas envoyer une réponse pointant vers un message
+  // invisible, ni valider une édition sur un autre canal.
+  useEffect(() => {
+    setReplyTo(undefined)
+    setEditingMessage(undefined)
+  }, [channelId])
+
+  // Ouvrir un canal recharge son historique depuis Hyperbee (il n'était relu
+  // qu'en 1:1, si bien qu'un redémarrage vidait les groupes) puis vaut lecture :
+  // le compteur n'était incrémenté qu'en dehors du canal actif et rien ne le
+  // remettait à zéro, donc sa pastille restait indéfiniment allumée.
+  const initialChannelLoadRef = React.useRef<Promise<unknown>>(Promise.resolve())
+  useEffect(() => {
+    if (!activeGroupId || !channelId || !groupViewVisible) return
+    let cancelled = false
+    const openChannel = async () => {
+      const load = groupService.loadChannelMessages(activeGroupId, channelId)
+      initialChannelLoadRef.current = load
+      await load
+      if (cancelled) return
+      const channel = useGroupStore.getState().getGroup(activeGroupId)?.channels.find((c) => c.id === channelId)
+      if (!channel?.unreadCount) return
+      const reader = useIdentityStore.getState().identity?.keyPair.publicKey
+      const channelMessages = useMessageStore.getState().messages[channelId] ?? []
+      // Le compteur est remis à zéro juste en dessous : l'ancre se pose ici.
+      if (reader) {
+        const anchor = findFirstUnreadMessageId(channelMessages, channel.unreadCount, reader)
+        if (anchor) setFirstUnreadId(anchor)
+      }
+      const messageIds = reader
+        ? channelMessages
+          .filter((message) => message.senderId !== reader)
+          .slice(-200)
+          .map((message) => message.id)
+        : []
+      if (messageIds.length > 0 && useUIStore.getState().settings.privacy.readReceipts) {
+        await groupService.markAsRead(activeGroupId, channelId, messageIds).catch((err) => {
+          console.warn('[GroupView] markAsRead failed:', err)
+        })
+      } else {
+        useGroupStore.getState().clearChannelUnread(activeGroupId, channelId)
+      }
+    }
+    void openChannel()
+    return () => { cancelled = true }
+  }, [activeGroupId, channelId, groupViewVisible])
+
+  // PAGINATION: l'ouverture ne charge que les derniers messages du canal ;
+  // remonter en haut doit aller chercher la suite dans Hyperbee.
+  const loadOlderMessages = useCallback(async () => {
+    if (!activeGroupId || !channelId || loadingOlderRef.current || paginationState.exhausted) return
+    const current = useMessageStore.getState().messages[channelId] ?? []
+    if (current.length === 0) return
+    loadingOlderRef.current = true
+    try {
+      const older = await groupService.loadOlderChannelMessages(
+        activeGroupId,
+        channelId,
+        current[0].timestamp + 1,
+        HISTORY_PAGE_SIZE,
+      )
+      if (historyKeyRef.current !== historyKey) return
+      const after = useMessageStore.getState().messages[channelId]?.length ?? current.length
+      const added = after - current.length
+      setPagination((state) => {
+        const base = state.key === historyKey ? state.firstItemIndex : FIRST_ITEM_INDEX
+        return {
+          key: historyKey,
+          firstItemIndex: Math.max(0, base - added),
+          exhausted: older.length < HISTORY_PAGE_SIZE || added === 0,
+        }
+      })
+    } finally {
+      loadingOlderRef.current = false
+    }
+  }, [activeGroupId, channelId, historyKey, paginationState.exhausted])
+
+  // Même saut que le fil 1:1 : un résultat de recherche profond doit ouvrir le
+  // canal sur son message, chargé depuis Hyperbee si nécessaire.
+  const jumpRequest = React.useMemo(
+    () => parseMessageJump(location.state, channelId || undefined),
+    [location.state, channelId]
+  )
+  const waitForInitialHistory = useCallback(() => initialChannelLoadRef.current, [])
+  const loadJumpContext = useCallback(async (timestamp: number) => {
+    if (!activeGroupId || !channelId) return
+    await groupService.loadChannelMessageContext(activeGroupId, channelId, timestamp)
+  }, [activeGroupId, channelId])
+  const handleJumpPrepended = useCallback((added: number) => {
+    setPagination((state) => {
+      const base = state.key === historyKey ? state.firstItemIndex : FIRST_ITEM_INDEX
+      return {
+        key: historyKey,
+        firstItemIndex: Math.max(0, base - added),
+        exhausted: state.key === historyKey ? state.exhausted : false,
+      }
+    })
+  }, [historyKey])
+  const handleJumpStart = useCallback(() => setAtBottom(false), [])
+  const highlightedMessageId = useMessageJump({
+    request: jumpRequest,
+    dataId: channelId || undefined,
+    messages,
+    firstItemIndex: paginationState.firstItemIndex,
+    virtuosoRef,
+    waitForInitialHistory,
+    loadContext: loadJumpContext,
+    onPrependedMessages: handleJumpPrepended,
+    onJumpStart: handleJumpStart,
+  })
+
+  // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
+  // doit rendre le même nombre de hooks qu'avec, sinon React casse l'ordre.
+  if (!activeGroup) {
+    return <GroupEmptyState />
+  }
 
   return (
     <div className="flex h-full">
@@ -131,6 +433,14 @@ export const GroupView: React.FC = () => {
                 <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
               </svg>
             </HeaderButton>
+            <MuteButton
+              muted={groupMuted}
+              mutedUntil={groupMutedUntil}
+              onToggle={() => {
+                if (!activeGroup) return
+                useConversationStore.getState().muteConversation(activeGroup.id, !groupMuted)
+              }}
+            />
             <HeaderButton
               aria-label={t('groups.groupSettings')}
               onClick={() => setShowSettings(true)}
@@ -143,7 +453,7 @@ export const GroupView: React.FC = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-hidden">
+        <div className="relative flex-1 overflow-hidden">
           {messages.length === 0 ? (
             <ChannelStartMessage
               channelName={activeChannel?.name ?? t('groups.general')}
@@ -153,25 +463,73 @@ export const GroupView: React.FC = () => {
             <Virtuoso
               ref={virtuosoRef}
               data={messages}
-              followOutput="smooth"
+              firstItemIndex={paginationState.firstItemIndex}
+              startReached={() => { void loadOlderMessages() }}
+              followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
+              atBottomStateChange={setAtBottom}
               className="h-full virtual-list"
               initialTopMostItemIndex={messages.length - 1}
               itemContent={(_, message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  isOwn={message.senderId === identity?.keyPair.publicKey}
-                  senderName={getMemberName(activeGroup, message.senderId)}
-                  showSender
-                />
+                <React.Fragment key={message.id}>
+                  {message.id === firstUnreadId && (
+                    <UnreadDivider label={t('chat.newMessages')} />
+                  )}
+                  <MessageBubble
+                    message={message}
+                    isOwn={message.senderId === identity?.keyPair.publicKey}
+                    senderName={getMemberName(activeGroup, message.senderId)}
+                    showSender
+                    highlighted={message.id === highlightedMessageId}
+                    onReply={(msg) => {
+                      setEditingMessage(undefined)
+                      setReplyTo(msg)
+                    }}
+                    onEdit={(msg) => {
+                      setReplyTo(undefined)
+                      setEditingMessage(msg)
+                    }}
+                    onDelete={handleDelete}
+                    onDeletePermanently={handleDeleteForMe}
+                    onReaction={handleReaction}
+                    onPin={canPin ? handlePin : undefined}
+                    onForward={setForwardMessage}
+                  />
+                </React.Fragment>
               )}
               components={{
                 Header: () => <div className="h-4" />,
                 Footer: () => (
-                  <TypingIndicator users={typingUsers} />
+                  <TypingIndicator users={typingUsers.map((u) => u.publicKey)} />
                 ),
               }}
             />
+          )}
+
+          {/* Retour au bas du fil : visible uniquement quand l'utilisateur lit
+              plus haut, avec le nombre de messages reçus en dessous. */}
+          {!atBottom && messages.length > 0 && (
+            <button
+              type="button"
+              aria-label={t('chat.scrollToLatest')}
+              title={t('chat.scrollToLatest')}
+              onClick={() => {
+                virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
+              }}
+              className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-asgard-border bg-asgard-surface text-asgard-glacier shadow-lg transition-colors hover:bg-asgard-nordic/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-asgard-glacier"
+            >
+              {newBelowCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1 -top-1 min-w-[18px] rounded-full px-1 text-center text-[10px] font-bold leading-[18px]"
+                  style={{ background: '#4FC3F7', color: '#0B0E1A' }}
+                >
+                  {newBelowCount > 99 ? '99+' : newBelowCount}
+                </span>
+              )}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+              </svg>
+            </button>
           )}
         </div>
 
@@ -183,8 +541,14 @@ export const GroupView: React.FC = () => {
         {/* Message input */}
         <MessageInput
           conversationId={channelId}
+          replyTo={replyTo}
+          editingMessage={editingMessage}
           onSend={handleSend}
+          onEditSubmit={handleEditSubmit}
+          onTyping={handleTyping}
+          onCancelEdit={() => setEditingMessage(undefined)}
           onFiles={handleFiles}
+          onCancelReply={() => setReplyTo(undefined)}
           placeholder={t('groups.messageChannel', { channelName: activeChannel?.name ?? t('groups.general') })}
         />
       </div>
@@ -198,6 +562,16 @@ export const GroupView: React.FC = () => {
       <AnimatePresence>
         {showSettings && (
           <GroupSettings onClose={() => setShowSettings(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Forward modal */}
+      <AnimatePresence>
+        {forwardMessage && (
+          <ForwardModal
+            message={forwardMessage}
+            onClose={() => setForwardMessage(undefined)}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -1,41 +1,87 @@
 import React, { useEffect, useCallback, useRef } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import { AppShell } from '@/components/layout/AppShell'
-import { OnboardingPage } from '@/features/onboarding/OnboardingPage'
 import { ConversationsPage } from '@/features/chat/ConversationsPage'
-import { ChatView } from '@/features/chat/ChatView'
-import { ContactsPage } from '@/features/contacts/ContactsPage'
-import { GroupsPage } from '@/features/groups/GroupsPage'
-import { CallsPage } from '@/features/calls/CallsPage'
-import { SettingsPage } from '@/features/settings/SettingsPage'
+
+// Pages secondaires chargées à la navigation : leur poids (réglages, groupes,
+// historique d'appels) ne retarde plus le premier rendu de la messagerie.
+const GroupsPage = React.lazy(() =>
+  import('@/features/groups/GroupsPage').then((m) => ({ default: m.GroupsPage }))
+)
+const CallsPage = React.lazy(() =>
+  import('@/features/calls/CallsPage').then((m) => ({ default: m.CallsPage }))
+)
+const SettingsPage = React.lazy(() =>
+  import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage }))
+)
+const ContactsPage = React.lazy(() =>
+  import('@/features/contacts/ContactsPage').then((m) => ({ default: m.ContactsPage }))
+)
+const OnboardingPage = React.lazy(() =>
+  import('@/features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage }))
+)
+const ChatView = React.lazy(() =>
+  import('@/features/chat/ChatView').then((m) => ({ default: m.ChatView }))
+)
+// Plein écran d'appel et recherche globale : absents du premier rendu, ils
+// n'entrent dans le bundle qu'au premier usage.
+const CallView = React.lazy(() =>
+  import('@/features/calls/components/CallView').then((m) => ({ default: m.CallView }))
+)
+const SearchModal = React.lazy(() =>
+  import('@/components/search/SearchModal').then((m) => ({ default: m.SearchModal }))
+)
+
+const RouteFallback: React.FC = () => <div style={{ flex: 1, height: '100%' }} />
+const lazyRoute = (page: React.ReactNode) => (
+  <React.Suspense fallback={<RouteFallback />}>{page}</React.Suspense>
+)
+
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useContactStore } from '@/stores/contactStore'
+import { useConversationStore } from '@/stores/conversationStore'
+import { useGroupStore } from '@/stores/groupStore'
 import { p2pService } from '@/services/P2PService'
 import { chatService } from '@/services/ChatService'
 import { cryptoService } from '@/services/CryptoService'
 import { bytesToHexSafe } from '@/utils/bytes'
-import { toNetworkStatus, fromNetworkStatus, presenceMessage } from '@/utils/presence'
+import { toNetworkStatus, presenceMessage } from '@/utils/presence'
+import { formatWindowTitle } from '@/utils/windowTitle'
 import { groupService } from '@/services/GroupService'
 import { callService } from '@/services/CallService'
 import { fileService } from '@/services/FileService'
 import { mediaDeviceService } from '@/services/MediaDeviceService'
 import { activityMonitor } from '@/services/ActivityMonitor'
-import { SearchModal } from '@/components/search/SearchModal'
 import { ModalContainer } from '@/components/modals/ModalContainer'
 import { IncomingCallOverlay } from '@/components/overlays/IncomingCallOverlay'
-import { CallView } from '@/features/calls/components/CallView'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useCallStore } from '@/stores/callStore'
+import i18n from '@/i18n/config'
+import type { Contact } from '@/types'
 
 /**
  * App — root component with routing and initialization.
  */
 const App: React.FC = () => {
+  const navigate = useNavigate()
   const { isSetup, loadIdentity, identity } = useIdentityStore()
   const { theme, setTheme, isSearchOpen, setSearchOpen, settings } = useUIStore()
   const activeCall = useCallStore((s) => s.activeCall)
+  // Total des non-lus (1:1 + canaux de groupe) pour le titre de fenêtre.
+  const directUnread = useConversationStore((s) =>
+    Object.values(s.conversations).reduce(
+      (sum, conv) => (conv.type === 'direct' ? sum + conv.unreadCount : sum),
+      0,
+    )
+  )
+  const groupUnread = useGroupStore((s) =>
+    Object.values(s.groups).reduce(
+      (sum, group) => sum + group.channels.reduce((n, channel) => n + channel.unreadCount, 0),
+      0,
+    )
+  )
   // Clé publique Ed25519 pour laquelle la session réseau courant est initialisée
   // (null = aucune). L'effet d'init ne DOIT se relancer que si cette clé change
   // (import d'une nouvelle identité) — surtout pas à chaque nouvelle référence de
@@ -55,6 +101,12 @@ const App: React.FC = () => {
   const sessionTeardown = useRef<(() => void) | null>(null)
   // Track whether we've verified the identity from disk
   const [identityVerified, setIdentityVerified] = React.useState(false)
+  // La recherche ne rejoint le bundle qu'après le premier Ctrl+K, puis reste
+  // montée pour laisser jouer son animation de fermeture.
+  const [searchMounted, setSearchMounted] = React.useState(false)
+  useEffect(() => {
+    if (isSearchOpen) setSearchMounted(true)
+  }, [isSearchOpen])
 
   useEffect(() => {
     const dlog = (m: string) => { console.log(m); try { window.asgard.debugLog(m) } catch {} }
@@ -74,12 +126,43 @@ const App: React.FC = () => {
     setTheme(theme)
   }, [theme, setTheme])
 
+  // Une sourdine temporisée survit aux redémarrages : solder celles expirées
+  // pendant l'arrêt et reprogrammer les autres dès l'ouverture.
+  useEffect(() => {
+    useConversationStore.getState().resumeMuteTimers()
+  }, [])
+
   // Apply font size to DOM
   useEffect(() => {
     const root = document.documentElement
     const sizes: Record<string, string> = { small: '13px', medium: '15px', large: '17px' }
     root.style.setProperty('--font-size-base', sizes[settings.fontSize] ?? '15px')
   }, [settings.fontSize])
+
+  // Titre de fenêtre : les non-lus restent visibles dans la barre des tâches,
+  // l'aperçu Alt+Tab et pour les lecteurs d'écran, même en arrière-plan.
+  useEffect(() => {
+    const total = directUnread + groupUnread
+    document.title = formatWindowTitle(i18n.t('titlebar.appName'), total)
+    if (typeof window.asgard?.window?.setUnreadCount === 'function') {
+      window.asgard.window.setUnreadCount(total)
+    }
+  }, [directUnread, groupUnread, i18n.language])
+
+  // Notification cliquée : sélectionner la destination avant de naviguer,
+  // sinon la page s'affiche en gardant l'ancien fil ou l'ancien canal.
+  useEffect(() => {
+    return window.asgard.notifications.onClick((target) => {
+      if (target.groupId && target.channelId) {
+        useGroupStore.getState().setActiveGroup(target.groupId)
+        useGroupStore.getState().setActiveChannel(target.channelId)
+        navigate(`/groups/${target.groupId}/channels/${target.channelId}`)
+      } else if (target.conversationId) {
+        useConversationStore.getState().setActiveConversation(target.conversationId)
+        navigate(`/conversations/${target.conversationId}`)
+      }
+    })
+  }, [navigate])
 
   // ACCESSIBILITY SETTINGS: toggle hook classes on <html> — the actual rules
   // live in globals.css (highContrast, reducedMotion, keyboardNav, large touch
@@ -134,6 +217,8 @@ const App: React.FC = () => {
     let dhtRepublishInterval: ReturnType<typeof setInterval> | undefined
     // DHT profile refresh interval — fetch contacts' profiles as fallback for presence
     let dhtProfileRefreshInterval: ReturnType<typeof setInterval> | undefined
+    // Retrait des sondes de présence déclenchées par le focus / le retour réseau
+    let removePresenceTriggers: (() => void) | undefined
 
     // Nettoyage de la session : stocké dans une ref pour n'être invoqué qu'au
     // démontage de App (ou changement d'identité), jamais par React à la suite
@@ -144,8 +229,10 @@ const App: React.FC = () => {
       chatService.destroy()
       if (dhtRepublishInterval) clearInterval(dhtRepublishInterval)
       if (dhtProfileRefreshInterval) clearInterval(dhtProfileRefreshInterval)
+      removePresenceTriggers?.()
       dhtRepublishInterval = undefined
       dhtProfileRefreshInterval = undefined
+      removePresenceTriggers = undefined
       sessionTeardown.current = null
     }
 
@@ -197,9 +284,10 @@ const App: React.FC = () => {
         derr('[App] Failed to set network identity:', err)
       }
 
-      // CRITICAL: Publish profile + status to DHT IN PARALLEL for faster startup.
-      // Both operations wait for DHT bootstrap internally; running them concurrently
-      // saves ~1-2s vs sequential awaits.
+      // CRITICAL: Publish profile + status to DHT IN PARALLEL.
+      // NON BLOQUANT : la publication attend le bootstrap DHT ; la garder en
+      // await retardait d'autant le joinPeer/les topics, donc la connexion aux
+      // contacts. On publie en tâche de fond et on enchaîne la découverte.
       const statusMessage = presenceMessage(identity.profile)
       // PRIVACY + single mapping (src/utils/presence.ts): the DHT record is public,
       // so it has to honour `privacy.onlineStatus` exactly like the P2P channel.
@@ -209,55 +297,23 @@ const App: React.FC = () => {
         identity.profile.status,
         !useUIStore.getState().settings.privacy.onlineStatus,
       )
-      dlog('[App] Publishing profile + status to DHT (parallel): ' + identity.profile.displayName)
-      const [profilePub, statusPub] = await Promise.allSettled([
+      dlog('[App] Publishing profile + status to DHT (background): ' + identity.profile.displayName)
+      void Promise.allSettled([
         window.asgard.network.publishProfile(identity.profile.displayName),
         window.asgard.network.publishStatus(networkStatus, statusMessage),
-      ])
-      // HONNÊTETÉ DU DIAGNOSTIC : un `mutablePut` rejeté par les nœuds DHT
-      // (SEQ_REUSED / SEQ_TOO_LOW) ne JAMAIS d'erreur côté hyperdht — la promise
-      // se résout quelle que soit l'issue. Seul le booléen retourné par le
-      // service (qui relit l'enregistrement pour vérifier l'atterrissage) dit la
-      // vérité. Sans ce contrôle, un statut gelé côté réseau reste invisible.
-      const pubOk = (r: PromiseSettledResult<boolean>) => r.status === 'fulfilled' && r.value === true
-      if (pubOk(profilePub) && pubOk(statusPub)) {
-        dlog('[App] Profile + status published to DHT: ' + networkStatus)
-      } else {
-        dlog('[App] ⚠️ DHT publish INCOMPLETE | profile=' + pubOk(profilePub) + ' status=' + pubOk(statusPub) + ' — nos contacts ne nous verront pas à jour (vérifier la connexion DHT/pare-feu)')
-      }
-
-      // ── PHASE 2.1: Fetch contacts' DHT profiles for fast presence detection ──
-      // OPTIMIZATION: Fetch DHT profiles IN PARALLEL right after publishing ours.
-      // This gives us the last known status of each contact BEFORE P2P connects.
-      // When P2P eventually connects, the real presence:update will override this.
-      // But for the first few seconds (while P2P negotiates NAT), contacts will
-      // show their DHT status instead of 'offline'.
-      dlog('[App] ═══ PHASE 2.1: Fetch contacts DHT profiles ═══')
-      // NB: on ne passe PAS par getFilteredContacts() — cette liste dépend de la
-      // recherche en cours dans l'UI, ce qui ferait disparaître la présence de
-      // nos contacts le temps d'une frappe.
-      const contactsForDht = Object.values(useContactStore.getState().contacts)
-        .filter((c) => c.relation !== 'blocked')
-      const dhtProfileResults = new Map<string, { status?: string; displayName?: string; timestamp?: number; identityPk?: string }>()
-      if (contactsForDht.length > 0) {
-        await Promise.allSettled(contactsForDht.map(async (contact) => {
-          try {
-            const profile = await window.asgard.network.fetchProfile(contact.publicKey)
-            if (profile) {
-              dhtProfileResults.set(contact.publicKey, profile)
-              dlog('[App] DHT profile for ' + contact.publicKey.slice(0, 16) + ': ' + (profile.displayName || '?') + ' | status: ' + (profile.status || 'unknown') + (profile.timestamp ? ' | age: ' + Math.round((Date.now() - profile.timestamp) / 1000) + 's' : ''))
-              // DIAGNOSTIC identité : l'enregistrement trouvé à la clé de ce
-              // contact est signé par cette clé, donc écrit par le porteur de
-              // CETTE identité. S'il ne s'auto-déclare plus la même clé, la
-              // signature ne colle pas → on le loge explicitement.
-              if (profile.identityPk && profile.identityPk !== contact.publicKey) {
-                dlog('[App] ⚠️ DHT record key mismatch for contact ' + contact.publicKey.slice(0, 16) + ' — record claims ' + profile.identityPk.slice(0, 16) + ': entrée de contact obsolète (identité régénérée de son côté), demander une nouvelle invitation')
-              }
-            }
-          } catch {}
-        }))
-        dlog('[App] Fetched ' + dhtProfileResults.size + '/' + contactsForDht.length + ' DHT profiles')
-      }
+      ]).then(([profilePub, statusPub]) => {
+        // HONNÊTETÉ DU DIAGNOSTIC : un `mutablePut` rejeté par les nœuds DHT
+        // (SEQ_REUSED / SEQ_TOO_LOW) ne remonte JAMAIS d'erreur côté hyperdht —
+        // la promise se résout quelle que soit l'issue. Seul le booléen retourné
+        // par le service (qui relit l'enregistrement pour vérifier l'atterrissage)
+        // dit la vérité. Sans ce contrôle, un statut gelé côté réseau reste invisible.
+        const pubOk = (r: PromiseSettledResult<boolean>) => r.status === 'fulfilled' && r.value === true
+        if (pubOk(profilePub) && pubOk(statusPub)) {
+          dlog('[App] Profile + status published to DHT: ' + networkStatus)
+        } else {
+          dlog('[App] ⚠️ DHT publish INCOMPLETE | profile=' + pubOk(profilePub) + ' status=' + pubOk(statusPub) + ' — nos contacts ne nous verront pas à jour (vérifier la connexion DHT/pare-feu)')
+        }
+      })
 
       // Now initialize all services (peers may connect from here on)
       dlog('[App] Initializing services...')
@@ -278,36 +334,8 @@ const App: React.FC = () => {
       // interne est encore vide alors que la connexion existe.
       void p2pService.syncPeersFromMain(true).catch(() => {})
 
-      // ── PHASE 2.3: Check firewall status (non-blocking) ──
-      // Automatically notify user if the firewall is not configured for P2P.
-      try {
-        const fwStatus = await window.asgard.firewall.getStatus()
-        if (fwStatus === 'not-configured') {
-          dlog('[App] Firewall not configured — attempting automatic configuration...')
-          // Try silent configuration first (works if app has admin rights)
-          await window.asgard.firewall.configure()
-          // Re-check after configuration attempt
-          const fwStatusAfter = await window.asgard.firewall.getStatus()
-          if (fwStatusAfter === 'not-configured') {
-            // Still not configured — try UAC elevation automatically
-            dlog('[App] Silent config failed — trying UAC elevation...')
-            const uacResult = await window.asgard.firewall.runAsAdmin()
-            if (uacResult) {
-              dlog('[App] Firewall configured successfully via UAC elevation')
-              const addToast = useUIStore.getState().addToast
-              addToast({ type: 'success', title: 'Firewall configuré', message: 'Les connexions P2P sont maintenant autorisées.' })
-            } else {
-              dlog('[App] Firewall UAC elevation failed or was cancelled')
-              const addToast = useUIStore.getState().addToast
-              addToast({ type: 'warning', title: 'Firewall non configuré', message: 'Ouvrez les Paramètres > Réseau pour configurer le firewall manuellement.' })
-            }
-          } else {
-            dlog('[App] Firewall configured successfully (silent)')
-          }
-        }
-      } catch (err) {
-        console.warn('[App] Firewall check failed:', err)
-      }
+      // Le contrôle du pare-feu (potentiellement une élévation UAC) est lancé
+      // APRÈS la découverte : il ne doit jamais retarder la connexion aux pairs.
 
       // ── PHASE 2.5: Restore contacts from Hyperbee storage ──
       dlog('[App] ═══ PHASE 2.5: Restore contacts from Hyperbee ═══')
@@ -317,6 +345,7 @@ const App: React.FC = () => {
           displayName: string
           status?: string
           relation?: string
+          requestDirection?: 'incoming' | 'outgoing'
           verified?: boolean
           addedAt?: number
           lastSeen?: number
@@ -336,7 +365,8 @@ const App: React.FC = () => {
                 // peer actually connects. Restoring the last-known status (e.g.
                 // 'online') creates ghost contacts that appear online when they're not.
                 status: 'offline',
-                relation: (c.relation as 'contact' | 'favorite' | 'blocked') || 'contact',
+                relation: (c.relation as Contact['relation']) || 'contact',
+                requestDirection: c.requestDirection,
                 verified: c.verified ?? false,
                 addedAt: c.addedAt ?? Date.now(),
                 lastSeen: c.lastSeen,
@@ -352,48 +382,45 @@ const App: React.FC = () => {
         derr('[App] Failed to restore contacts from Hyperbee:', err)
       }
 
-      // CRITICAL: Reset contacts to 'offline' at startup, BUT use DHT profile
-      // status if available and recent (within 2 minutes). This provides fast
-      // presence detection: contacts who were online recently will show their
-      // DHT status immediately, while P2P connection establishes in background.
-      // When P2P connects, the real presence:update will override the DHT status.
-      // CRITICAL: Use 2 minute threshold — contacts republish every 30s,
-      // so a 2-minute window allows for 4 missed publishes before considering stale.
-      // A 1-hour threshold would show contacts as 'online' even when they closed
-      // the app long ago (their last DHT publish remains valid for too long).
+      // CRITICAL: Reset contacts to 'offline' at startup. Le statut DHT, lu en
+      // tâche de fond juste après, pourra les repasser en ligne sans jamais
+      // contredire un signal P2P frais (voir ChatService.applyDhtProfile).
       {
-        const allContacts = useContactStore.getState().contacts
+        const contacts = useContactStore.getState().contacts
         let resetCount = 0
-        let dhtStatusCount = 0
-        const TWO_MINUTES = 2 * 60 * 1000 // 2 minutes — matches periodic refresh threshold
-        for (const publicKey of Object.keys(allContacts)) {
-          const dhtProfile = dhtProfileResults.get(publicKey)
-          if (dhtProfile && dhtProfile.status && dhtProfile.timestamp &&
-              (Date.now() - dhtProfile.timestamp) < TWO_MINUTES) {
-            // DHT profile is recent — use its status as initial value
-            const mappedStatus = fromNetworkStatus(dhtProfile.status)
-            const ageSec = Math.round((Date.now() - dhtProfile.timestamp) / 1000)
-            dlog('[App] DHT status for ' + publicKey.slice(0, 16) + ': ' + dhtProfile.status + ' → ' + mappedStatus + ' (age: ' + ageSec + 's, name: ' + (dhtProfile.displayName || '?') + ')')
-            if (allContacts[publicKey].status !== mappedStatus) {
-              useContactStore.getState().setContactStatus(publicKey, mappedStatus)
-              dhtStatusCount++
-            }
-          } else {
-            if (dhtProfile) {
-              const ageSec = Math.round((Date.now() - (dhtProfile.timestamp || 0)) / 1000)
-              dlog('[App] DHT profile for ' + publicKey.slice(0, 16) + ' too old (' + ageSec + 's) or no status — setting offline')
-            } else {
-              dlog('[App] No DHT profile for ' + publicKey.slice(0, 16) + ' — setting offline')
-            }
-            if (allContacts[publicKey].status !== 'offline') {
-              useContactStore.getState().setContactStatus(publicKey, 'offline')
-              resetCount++
-            }
+        for (const [publicKey, contact] of Object.entries(contacts)) {
+          if (contact.relation === 'blocked') continue
+          if (contact.status !== 'offline') {
+            useContactStore.getState().setContactStatus(publicKey, 'offline')
+            resetCount++
           }
         }
-        if (resetCount > 0 || dhtStatusCount > 0) {
-          dlog('[App] Reset ' + resetCount + ' contacts to offline, ' + dhtStatusCount + ' contacts set from DHT profile')
-        }
+        if (resetCount > 0) dlog('[App] Reset ' + resetCount + ' contacts to offline')
+      }
+
+      // Rafraîchit la présence des contacts que le P2P n'atteint pas : un pair
+      // connecté ou qui vient de déclarer son statut est ignoré (le heartbeat
+      // 5 s fait autorité, inutile d'interroger le DHT).
+      const refreshContactsFromDht = async (): Promise<void> => {
+        const contacts = Object.values(useContactStore.getState().contacts)
+          .filter((c) => c.relation !== 'blocked' && !chatService.isPeerReachable(c.publicKey))
+        if (contacts.length === 0) return
+        await Promise.allSettled(contacts.map(async (contact) => {
+          try {
+            const profile = await window.asgard.network.fetchProfile(contact.publicKey)
+            if (profile?.identityPk && profile.identityPk !== contact.publicKey) {
+              const warn = '[App] ⚠️ DHT record key mismatch for ' + contact.publicKey.slice(0, 16) + ' — entrée obsolète (identité régénérée de son côté), demander une nouvelle invitation'
+              console.warn(warn)
+              try { window.asgard.debugLog(warn) } catch {}
+            }
+            if (chatService.applyDhtProfile(contact.publicKey, profile)) {
+              const status = useContactStore.getState().getContact(contact.publicKey)?.status
+              dlog('[App] DHT presence: ' + contact.publicKey.slice(0, 16) + ' → ' + status)
+            }
+          } catch (err) {
+            console.warn('[App] DHT fetch failed for', contact.publicKey.slice(0, 16) + ':', err)
+          }
+        }))
       }
 
       // Replay identities and presence events that arrived before contacts were hydrated.
@@ -406,9 +433,14 @@ const App: React.FC = () => {
       // join all topics in parallel. This cuts startup time from O(n) sequential
       // joins to O(1) parallel.
       dlog('[App] ═══ PHASE 3: Fast peer discovery + connection ═══')
-      const allContacts = useContactStore.getState().getFilteredContacts()
+      // Tous les contacts non bloqués, y compris les demandes en attente (leur
+      // réponse doit pouvoir arriver), et jamais la liste filtrée par la
+      // recherche UI.
+      const allContacts = Object.values(useContactStore.getState().contacts)
+        .filter((c) => c.relation !== 'blocked')
 
-      // STEP 1: joinPeer for ALL contacts using the CORRECT Noise public key.
+      // STEP 1: joinPeer for ALL contacts using the CORRECT Noise public key,
+      // in parallel — the IPC round-trip per derivation used to be sequential.
       // Per Hyperswarm docs: "joinPeer will ensure that peer connections are
       // reestablished in the event of failures" — ideal for auto-reconnect.
       //
@@ -416,22 +448,22 @@ const App: React.FC = () => {
       // It is HyperDHT.keyPair(sha256(ed25519PublicKey)).publicKey — an Ed25519
       // keypair derived from the seed. Using the raw sha256 hash means joinPeer()
       // connects to a non-existent peer and peers NEVER discover each other.
-      let joinPeerCount = 0
-      for (const contact of allContacts) {
-        try {
-          const noiseKeyHex = await window.asgard.network.deriveNoisePublicKey(contact.publicKey)
-          console.log('[App] joinPeer: ed25519:', contact.publicKey.slice(0, 16), '→ noise:', noiseKeyHex.slice(0, 16))
-          p2pService.joinPeer(noiseKeyHex).catch((err) => {
-            console.warn('[App] joinPeer failed for contact:', contact.publicKey.slice(0, 16), err)
-          })
-          joinPeerCount++
-        } catch (err) {
-          console.warn('[App] Failed to deriveNoisePublicKey for contact:', contact.publicKey.slice(0, 16), err)
-        }
-      }
+      const joinResults = await Promise.allSettled(allContacts.map(async (contact) => {
+        const noiseKeyHex = await window.asgard.network.deriveNoisePublicKey(contact.publicKey)
+        await p2pService.joinPeer(noiseKeyHex)
+      }))
+      const joinPeerCount = joinResults.filter((r) => r.status === 'fulfilled').length
       if (joinPeerCount > 0) {
-        console.log('[App] joinPeer initiated for', joinPeerCount, 'contacts (direct connections)')
+        dlog('[App] joinPeer initiated for ' + joinPeerCount + '/' + allContacts.length + ' contacts (parallel)')
       }
+      for (const r of joinResults) {
+        if (r.status === 'rejected') console.warn('[App] joinPeer failed for a contact:', r.reason)
+      }
+
+      // LECTURE DHT EN TÂCHE DE FOND : elle n'a plus besoin de précéder la
+      // connexion P2P. Chaque profil reçu est appliqué sans écraser un signal
+      // P2P plus frais.
+      void refreshContactsFromDht()
 
       // STEP 2: Join GLOBAL discovery topic + all conversation topics IN PARALLEL
       // Each joinTopic awaits discovery.flushed() internally, so running them
@@ -470,6 +502,15 @@ const App: React.FC = () => {
         })())
       }
 
+      // Groupes existants : leurs topics de découverte ne vivaient que le temps
+      // d'une session. Sans ce re-join, les membres qui ne sont pas aussi des
+      // contacts 1:1 ne pouvaient pas se retrouver après un redémarrage.
+      topicPromises.push(
+        groupService.joinAllGroupTopics().catch((err) => {
+          console.warn('[App] Failed to join group discovery topics:', err)
+        })
+      )
+
       await Promise.allSettled(topicPromises)
       if (allContacts.length > 0) {
         console.log('[App] Joined Hyperswarm topics for', allContacts.length, 'contacts (parallel)')
@@ -486,6 +527,8 @@ const App: React.FC = () => {
 
       // Broadcast initial presence to all connected peers
       chatService.broadcastPresence().catch(console.error)
+      // Groupes : annonce immédiate plutôt qu'au premier tick de 30 s.
+      groupService.announcePresenceNow()
 
       // ── PHASE 4: Delayed re-identify + presence broadcast (multi-pass) ──
       // OPTIMIZATION: Three fast passes instead of one slow pass.
@@ -543,80 +586,72 @@ const App: React.FC = () => {
       }, 30 * 1000) // Every 30 seconds
 
       // ── PERIODIC DHT PROFILE REFRESH ──
-      // Fetch contacts' DHT profiles every 1 minute as the PRIMARY presence signal.
-      // CRITICAL: This is the MULTIDIRECTIONAL presence detection mechanism.
-      // Each contact publishes their status to DHT every 30 seconds.
-      // We fetch their status every 1 minute to detect online/offline changes.
-      // This works even when P2P is broken (one-way NAT, firewall, etc.)
-      dhtProfileRefreshInterval = setInterval(async () => {
+      // Toutes les 30 s, mais uniquement pour les contacts que le P2P n'atteint
+      // pas : un pair connecté rejoue sa présence toutes les 5 s. Le DHT reste
+      // le filet de sécurité (NAT à sens unique, pare-feu) et son cache de 20 s
+      // ne masque plus un cycle sur deux.
+      dhtProfileRefreshInterval = setInterval(() => {
+        void refreshContactsFromDht()
+      }, 30 * 1000)
+
+      // Retour réseau / retour au premier plan : interroge immédiatement les
+      // contacts non joignables au lieu d'attendre le prochain tick de 30 s.
+      const handleOnline = () => {
+        chatService.publishDhtStatus().catch(() => {})
+        void refreshContactsFromDht()
+      }
+      const handleVisibility = () => {
+        if (document.visibilityState !== 'visible') return
+        chatService.publishDhtStatus().catch(() => {})
+        void refreshContactsFromDht()
+      }
+      // Revenir sur la fenêtre (sans changement de visibilité) doit aussi
+      // rafraîchir la présence : le cache DHT de 20 s évite toute rafale.
+      const handleFocus = () => {
+        void refreshContactsFromDht()
+      }
+      window.addEventListener('online', handleOnline)
+      document.addEventListener('visibilitychange', handleVisibility)
+      window.addEventListener('focus', handleFocus)
+      removePresenceTriggers = () => {
+        window.removeEventListener('online', handleOnline)
+        document.removeEventListener('visibilitychange', handleVisibility)
+        window.removeEventListener('focus', handleFocus)
+      }
+
+      // ── PHASE 2.3: Firewall (tâche de fond) ──
+      // Le contrôle peut déclencher une élévation UAC : il ne doit jamais
+      // retarder la connexion aux pairs, désormais lancée.
+      void (async () => {
         try {
-          const contacts = Object.values(useContactStore.getState().contacts)
-            .filter((c) => c.relation !== 'blocked')
-          if (contacts.length === 0) return
-          console.log('[App] DHT profile refresh: fetching', contacts.length, 'contacts')
-          await Promise.allSettled(contacts.map(async (contact) => {
-            try {
-              const profile = await window.asgard.network.fetchProfile(contact.publicKey)
-              if (profile && profile.status && profile.timestamp) {
-                // CRITICAL: Use 2 minute threshold — contacts republish every 30s,
-                // so a 2-minute window allows for 4 missed publishes before marking offline.
-                const TWO_MINUTES = 2 * 60 * 1000
-                const ageMs = Date.now() - profile.timestamp
-                const ageSeconds = Math.round(ageMs / 1000)
-                console.log('[App] DHT profile for', contact.publicKey.slice(0, 16) + ':', profile.displayName, '| status:', profile.status, '| age:', ageSeconds + 's')
-                if (profile.identityPk && profile.identityPk !== contact.publicKey) {
-                  console.warn('[App] ⚠️ DHT record key mismatch for', contact.displayName + ' (' + contact.publicKey.slice(0, 16) + ') — cet enregistrement appartient à une autre identité: la clé publique du contact a changé, il faut le ré-inviter')
-                }
-                
-                if (ageMs < TWO_MINUTES) {
-                  const mappedStatus = fromNetworkStatus(profile.status)
-                  const currentContact = useContactStore.getState().getContact(contact.publicKey)
-                  // PRECEDENCE: a P2P presence:update is the peer's latest word and is
-                  // re-sent every 5 s while their socket is up; this DHT record is the
-                  // same declaration republished every 30 s and read only every 60 s.
-                  // An older copy may inform us about a peer we cannot reach, never
-                  // contradict a live one — which is what used to flip a declared
-                  // « absent » / « occupé » back to « hors ligne » at each refresh.
-                  if (currentContact && chatService.hasFreshPresence(contact.publicKey)) {
-                    console.log('[App] DHT refresh skipped for ' + contact.publicKey.slice(0, 16) + ' — presence P2P récente fait autorité')
-                  } else if (currentContact && currentContact.status !== mappedStatus) {
-                    useContactStore.getState().updateContact(contact.publicKey, { status: mappedStatus })
-                    console.log('[App] DHT refresh: ' + contact.publicKey.slice(0, 16) + ' → ' + mappedStatus + ' (age: ' + ageSeconds + 's)')
-                  }
-                } else {
-                  // Profile is stale — mark as offline, BUT only if the peer has not
-                  // declared anything recently over P2P. A live P2P declaration proves
-                  // presence even when the DHT record expired (TTL, SEQ reuse, ...).
-                  const currentContact = useContactStore.getState().getContact(contact.publicKey)
-                  const hasLivePresence = chatService.hasFreshPresence(contact.publicKey)
-                  if (currentContact && currentContact.status !== 'offline' && !hasLivePresence) {
-                    useContactStore.getState().updateContact(contact.publicKey, { status: 'offline' })
-                    console.log('[App] DHT profile for', contact.publicKey.slice(0, 16), 'too old (' + ageSeconds + 's) → setting offline')
-                  } else if (hasLivePresence) {
-                    console.log('[App] DHT profile for', contact.publicKey.slice(0, 16), 'stale (' + ageSeconds + 's) but P2P presence is fresh — keeping declared status')
-                  }
-                }
+          const fwStatus = await window.asgard.firewall.getStatus()
+          if (fwStatus === 'not-configured') {
+            dlog('[App] Firewall not configured — attempting automatic configuration...')
+            // Try silent configuration first (works if app has admin rights)
+            await window.asgard.firewall.configure()
+            // Re-check after configuration attempt
+            const fwStatusAfter = await window.asgard.firewall.getStatus()
+            if (fwStatusAfter === 'not-configured') {
+              // Still not configured — try UAC elevation automatically
+              dlog('[App] Silent config failed — trying UAC elevation...')
+              const uacResult = await window.asgard.firewall.runAsAdmin()
+              if (uacResult) {
+                dlog('[App] Firewall configured successfully via UAC elevation')
+                const addToast = useUIStore.getState().addToast
+                addToast({ type: 'success', title: i18n.t('settings.firewallSuccess'), message: i18n.t('settings.firewallConfigured') })
               } else {
-                // No profile found — mark as offline, BUT only if the peer has not
-                // declared anything recently over P2P (same rule as the stale case:
-                // a live declaration outranks an absent DHT record).
-                const currentContact = useContactStore.getState().getContact(contact.publicKey)
-                const hasLivePresence = chatService.hasFreshPresence(contact.publicKey)
-                if (currentContact && currentContact.status !== 'offline' && !hasLivePresence) {
-                  useContactStore.getState().updateContact(contact.publicKey, { status: 'offline' })
-                  console.log('[App] DHT profile for', contact.publicKey.slice(0, 16), 'not found → setting offline')
-                } else if (hasLivePresence) {
-                  console.log('[App] DHT profile for', contact.publicKey.slice(0, 16), 'not found but P2P presence is fresh — keeping declared status')
-                }
+                dlog('[App] Firewall UAC elevation failed or was cancelled')
+                const addToast = useUIStore.getState().addToast
+                addToast({ type: 'warning', title: i18n.t('settings.firewallNotConfigured'), message: i18n.t('settings.firewallManualHint') })
               }
-            } catch (err) {
-              console.warn('[App] DHT fetch failed for', contact.publicKey.slice(0, 16) + ':', err)
+            } else {
+              dlog('[App] Firewall configured successfully (silent)')
             }
-          }))
+          }
         } catch (err) {
-          console.warn('[App] DHT profile refresh failed:', err)
+          console.warn('[App] Firewall check failed:', err)
         }
-      }, 60 * 1000) // Every 1 minute
+      })()
     }
 
     init().catch((err) => {
@@ -628,6 +663,8 @@ const App: React.FC = () => {
       activityMonitor.stop()
       if (dhtRepublishInterval) clearInterval(dhtRepublishInterval)
       if (dhtProfileRefreshInterval) clearInterval(dhtProfileRefreshInterval)
+      removePresenceTriggers?.()
+      removePresenceTriggers = undefined
       sessionTeardown.current = null
       if (initDone.current === pk) initDone.current = null
     })
@@ -669,16 +706,24 @@ const App: React.FC = () => {
 
   return (
     <MotionConfig reducedMotion={settings.accessibility.reducedMotion ? 'always' : 'never'}>
-      <SearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} />
+      {searchMounted && (
+        <React.Suspense fallback={null}>
+          <SearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} />
+        </React.Suspense>
+      )}
       <ModalContainer />
       <IncomingCallOverlay />
-      {activeCall && <CallView />}
+      {activeCall && (
+        <React.Suspense fallback={null}>
+          <CallView />
+        </React.Suspense>
+      )}
       <ErrorBoundary>
         <Routes>
           {/* Onboarding — no shell */}
           <Route
             path="/onboarding"
-            element={isSetup ? <Navigate to="/conversations" replace /> : <OnboardingPage />}
+            element={isSetup ? <Navigate to="/conversations" replace /> : lazyRoute(<OnboardingPage />)}
           />
 
           {/* Main app — with shell */}
@@ -687,15 +732,15 @@ const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/conversations" replace />} />
             <Route path="/conversations" element={<ConversationsPage />}>
-              <Route path=":conversationId" element={<ChatView />} />
+              <Route path=":conversationId" element={lazyRoute(<ChatView />)} />
             </Route>
-            <Route path="/contacts" element={<ContactsPage />} />
-            <Route path="/groups" element={<GroupsPage />}>
-              <Route path=":groupId" element={<GroupsPage />} />
-              <Route path=":groupId/channels/:channelId" element={<GroupsPage />} />
+            <Route path="/contacts" element={lazyRoute(<ContactsPage />)} />
+            <Route path="/groups" element={lazyRoute(<GroupsPage />)}>
+              <Route path=":groupId" element={lazyRoute(<GroupsPage />)} />
+              <Route path=":groupId/channels/:channelId" element={lazyRoute(<GroupsPage />)} />
             </Route>
-            <Route path="/calls" element={<CallsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/calls" element={lazyRoute(<CallsPage />)} />
+            <Route path="/settings" element={lazyRoute(<SettingsPage />)} />
             <Route path="/profile" element={<Navigate to="/settings" replace />} />
           </Route>
 

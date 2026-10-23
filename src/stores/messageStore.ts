@@ -134,6 +134,12 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
 
   sendMessage: async (outgoing, senderId) => {
     const id = generateId()
+    // La citation est affichée dans sa propre bulle aussi : sans la copie du
+    // message visé, l'auteur verrait « ??? » sur une réponse qu'il vient
+    // d'écrire alors que le destinataire, lui, reçoit l'aperçu complet.
+    const quoted = outgoing.replyTo
+      ? get().getMessage(outgoing.replyTo, outgoing.conversationId)
+      : undefined
     const message: Message = {
       id,
       conversationId: outgoing.conversationId,
@@ -145,9 +151,9 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
       replyTo: outgoing.replyTo
         ? {
             id: outgoing.replyTo,
-            senderId: '',
-            content: '',
-            type: 'text',
+            senderId: quoted?.senderId ?? '',
+            content: quoted?.content ?? '',
+            type: quoted?.type ?? 'text',
           }
         : undefined,
     }

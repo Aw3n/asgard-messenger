@@ -54,6 +54,10 @@ export const OnboardingPage: React.FC = () => {
     setStep('done')
   }
 
+  const handleAvatarChange = async (avatar: string) => {
+    await updateProfile({ avatar })
+  }
+
   const handleFinish = () => {
     navigate('/conversations')
   }
@@ -84,6 +88,7 @@ export const OnboardingPage: React.FC = () => {
             identity={identity}
             onDisplayNameChange={setDisplayName}
             onAboutChange={setAbout}
+            onAvatarChange={handleAvatarChange}
             onSave={handleSaveProfile}
           />
         )}
@@ -269,6 +274,7 @@ interface ProfileStepProps {
   identity: import('@/types').LocalIdentity | null
   onDisplayNameChange: (v: string) => void
   onAboutChange: (v: string) => void
+  onAvatarChange: (dataUrl: string) => void
   onSave: () => void
 }
 
@@ -278,6 +284,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
   identity,
   onDisplayNameChange,
   onAboutChange,
+  onAvatarChange,
   onSave,
 }) => {
   const { t } = useTranslation()
@@ -295,22 +302,19 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
         {t('onboarding.setUpProfile')}
       </h2>
 
-      {/* Avatar preview */}
+      {/* Avatar preview — l'upload appartient à Avatar, le crayon décoratif
+          qui ne déclenchait rien laissait croire le contraire. */}
       <div className="flex justify-center mb-6">
-        <div className="relative">
-          <Avatar
-            name={displayName || t('onboarding.you')}
-            publicKey={identity?.keyPair.publicKey}
-            size="xl"
-            status="online"
-            showStatus
-          />
-          <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-asgard-nordic border-2 border-asgard-surface flex items-center justify-center hover:bg-asgard-nordic-light transition-colors">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-            </svg>
-          </button>
-        </div>
+        <Avatar
+          src={identity?.profile.avatar}
+          name={displayName || t('onboarding.you')}
+          publicKey={identity?.keyPair.publicKey}
+          size="xl"
+          status="online"
+          showStatus
+          editable
+          onUpload={onAvatarChange}
+        />
       </div>
 
       <div className="space-y-4 mb-6">

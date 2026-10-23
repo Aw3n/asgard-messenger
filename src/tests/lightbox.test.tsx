@@ -17,9 +17,19 @@
  * viewer looked like it was cropping the image.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import i18n from '@/i18n/config'
 import { ImageLightbox, type LightboxItem } from '@/features/chat/components/ImageLightbox'
+
+/**
+ * jsdom n'expose pas toujours PointerEvent : un substitut minimal dérivé de
+ * MouseEvent suffit au balayage (clientX/clientY/button), le pointerId absent
+ * étant comparé à lui-même.
+ */
+if (typeof window.PointerEvent === 'undefined') {
+  class PointerEventShim extends MouseEvent {}
+  window.PointerEvent = PointerEventShim as unknown as typeof PointerEvent
+}
 
 const THUMB = 'data:image/png;base64,thumb'
 const FULL = 'data:image/png;base64,full'
@@ -37,6 +47,9 @@ const stageOf = () => {
   const img = screen.getByAltText('photo.png')
   return img.parentElement as HTMLElement
 }
+
+/** Conteneur plein écran : c'est lui qui porte les gestes (balayage, fond). */
+const containerOf = () => stageOf().parentElement as HTMLElement
 
 const imgOf = () => screen.getByAltText('photo.png') as HTMLImageElement
 
@@ -183,5 +196,151 @@ describe('ImageLightbox', () => {
 
     unmount()
     expect(document.body.style.overflow).toBe('')
+  })
+
+  it('navigue directement par la bande de vignettes, absente pour une photo isolée', async () => {
+    const items = [item({ id: 'a' }), item({ id: 'b' }), item({ id: 'c' })]
+    const { unmount } = render(<ImageLightbox items={items} onClose={vi.fn()} />)
+    const strip = screen.getByTestId('lightbox-filmstrip')
+    const thumbs = within(strip).getAllByRole('button')
+    expect(thumbs).toHaveLength(3)
+
+    fireEvent.click(thumbs[2])
+    await waitFor(() => expect(screen.getByText('3 / 3')).toBeInTheDocument())
+
+    unmount()
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    expect(screen.queryByTestId('lightbox-filmstrip')).toBeNull()
+  })
+
+  it('change de photo par balayage horizontal, sans fermer la visionneuse au relâchement', async () => {
+    const items = [item({ id: 'a' }), item({ id: 'b' }), item({ id: 'c' })]
+    const onClose = vi.fn()
+    render(<ImageLightbox items={items} startIndex={1} onClose={onClose} />)
+    const container = containerOf()
+
+    fireEvent.pointerDown(container, { button: 0, pointerId: 1, clientX: 300, clientY: 200 })
+    fireEvent.pointerMove(container, { pointerId: 1, clientX: 100, clientY: 205 })
+    fireEvent.pointerUp(container, { pointerId: 1, clientX: 100, clientY: 205 })
+    await waitFor(() => expect(screen.getByText('3 / 3')).toBeInTheDocument())
+
+    // Le clic de relâchement du balayage ne doit pas être relu comme un clic de fond.
+    fireEvent.click(container)
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('change de photo avec une molette horizontale quand la photo n’est pas zoomée', async () => {
+    const items = [item({ id: 'a' }), item({ id: 'b' }), item({ id: 'c' })]
+    render(<ImageLightbox items={items} onClose={vi.fn()} />)
+
+    act(() => {
+      fireEvent.wheel(stageOf(), { deltaX: 120, deltaY: 0 })
+    })
+    await waitFor(() => expect(screen.getByText('2 / 3')).toBeInTheDocument())
+  })
+
+  it('gèle la navigation pendant un zoom : la bande disparaît, les flèches s’effacent', () => {
+    render(<ImageLightbox items={[item({ id: 'a' }), item({ id: 'b' })]} onClose={vi.fn()} />)
+    expect(screen.getByTestId('lightbox-filmstrip')).toBeInTheDocument()
+
+    act(() => {
+      fireEvent.wheel(stageOf(), { deltaY: -120, clientX: 10, clientY: 10 })
+    })
+    expect(screen.queryByTestId('lightbox-filmstrip')).toBeNull()
+    const prev = screen.getByLabelText(label('lightbox.previous'), { selector: 'button' })
+    expect(prev.className).toContain('pointer-events-none')
+  })
+
+  /**
+   * « Toucher Signal » : au-delà des bornes le glisser s'étire au lieu de se
+   * bloquer net (on sent le bord), et le relâchement ramène la photo dans le
+   * cadre. jsdom n'ayant pas de mise en page, la borne vaut PAN_EDGE_MARGIN.
+   */
+  it('étire le pan au-delà du bord, puis le ramène au relâchement', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    act(() => {
+      fireEvent.wheel(stageOf(), { deltaY: -120, clientX: 10, clientY: 10 })
+    })
+    const container = containerOf()
+    fireEvent.pointerDown(container, { button: 0, pointerId: 1, clientX: 300, clientY: 300 })
+    fireEvent.pointerMove(container, { pointerId: 1, clientX: 700, clientY: 300 })
+
+    const draggedX = Number(/translate\((-?[\d.]+)px/.exec(imgOf().style.transform)?.[1])
+    expect(draggedX).toBeGreaterThan(32)
+
+    fireEvent.pointerUp(container, { pointerId: 1, clientX: 700, clientY: 300 })
+    const releasedX = Number(/translate\((-?[\d.]+)px/.exec(imgOf().style.transform)?.[1])
+    expect(releasedX).toBe(32)
+  })
+
+  it('ferme au glisser-vers-le-bas, mais pas sur un petit mouvement', () => {
+    const onClose = vi.fn()
+    render(<ImageLightbox items={[item()]} onClose={onClose} />)
+    const container = containerOf()
+
+    // Course courte : la scène suit le doigt puis revient, sans fermer.
+    fireEvent.pointerDown(container, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(container, { pointerId: 1, clientX: 200, clientY: 260 })
+    expect(stageOf().style.transform).toContain('translate(0px, 60px)')
+    fireEvent.pointerUp(container, { pointerId: 1, clientX: 200, clientY: 260 })
+    expect(stageOf().style.transform).toBe('')
+
+    // Le clic de relâchement du geste ne ferme pas non plus (on est sur le fond).
+    fireEvent.click(container)
+    expect(onClose).not.toHaveBeenCalled()
+
+    // Descente franche : fermeture.
+    fireEvent.pointerDown(container, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(container, { pointerId: 1, clientX: 200, clientY: 400 })
+    fireEvent.pointerUp(container, { pointerId: 1, clientX: 200, clientY: 400 })
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('zoome au double-clic à 2,5× puis revient à l’ajustement', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    fireEvent.doubleClick(imgOf())
+    expect(imgOf().style.transform).toContain('scale(2.5)')
+    fireEvent.doubleClick(imgOf())
+    expect(imgOf().style.transform).toContain('scale(1)')
+  })
+
+  it('applique le pincement sans transition de transform', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    const root = containerOf().parentElement as HTMLElement
+    fireEvent.touchStart(root, {
+      touches: [{ clientX: 100, clientY: 100 }, { clientX: 200, clientY: 200 }],
+    })
+    expect(imgOf().style.transition).not.toContain('transform')
+
+    fireEvent.touchEnd(root, { touches: [] })
+    expect(imgOf().style.transition).toContain('transform')
+  })
+
+  /**
+   * La visionneuse vit dans une ligne virtualisée : sans piège, Tab ressort
+   * derrière le fond. Et un bandeau effacé ne doit pas rester dans le cycle.
+   */
+  it('piège Tab dans le dialogue et ignore les contrôles masqués', () => {
+    render(<ImageLightbox items={[item(), item({ id: 'b' })]} onClose={vi.fn()} />)
+    const dialog = screen.getByRole('dialog')
+    const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>('button:not([disabled])'))
+    const first = buttons[0]
+    const last = buttons[buttons.length - 1]
+
+    last.focus()
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.activeElement).toBe(first)
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(last)
+
+    // Clic sur la photo : les bandeaux s'effacent, leurs boutons sortent du cycle.
+    fireEvent.click(imgOf())
+    const visible = buttons.filter((el) => !el.closest('[aria-hidden="true"]'))
+    expect(visible.length).toBeLessThan(buttons.length)
+    const lastVisible = visible[visible.length - 1]
+    lastVisible.focus()
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.activeElement).toBe(visible[0])
   })
 })

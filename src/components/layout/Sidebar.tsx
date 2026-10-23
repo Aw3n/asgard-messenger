@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Avatar } from '@/components/ui/Avatar'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useConversationStore } from '@/stores/conversationStore'
+import { useGroupStore } from '@/stores/groupStore'
 import { cn } from '@/utils/cn'
 
 interface NavItem {
@@ -13,6 +14,8 @@ interface NavItem {
   label: string
   icon: React.ReactNode
   badge?: number
+  /** Non-lus formulés pour les lecteurs d’écran : la pastille visuelle seule se tait. */
+  badgeLabel?: string
 }
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -57,9 +60,17 @@ export const Sidebar: React.FC = () => {
   const { t } = useTranslation()
   const identity = useIdentityStore((s) => s.identity)
   const conversations = useConversationStore((s) => s.conversations)
+  const groups = useGroupStore((s) => s.groups)
 
+  // Les conversations de groupe sont suivies par le GroupStore (par canal) :
+  // les additionner ici compterait deux fois un jour, et la liste Messages ne
+  // montre que les 1:1.
   const totalUnread = Object.values(conversations).reduce(
-    (sum, c) => sum + (c.unreadCount ?? 0),
+    (sum, c) => (c.type === 'direct' ? sum + (c.unreadCount ?? 0) : sum),
+    0
+  )
+  const groupsUnread = Object.values(groups).reduce(
+    (sum, group) => sum + group.channels.reduce((n, channel) => n + channel.unreadCount, 0),
     0
   )
 
@@ -70,9 +81,17 @@ export const Sidebar: React.FC = () => {
       label: t('nav.messages'),
       icon: <ChatIcon />,
       badge: totalUnread > 0 ? totalUnread : undefined,
+      badgeLabel: totalUnread > 0 ? t('nav.unreadCount', { count: totalUnread }) : undefined,
     },
     { id: 'contacts',  path: '/contacts',  label: t('nav.contacts'), icon: <ContactsIcon /> },
-    { id: 'groups',    path: '/groups',    label: t('nav.groups'),  icon: <GroupsIcon /> },
+    {
+      id: 'groups',
+      path: '/groups',
+      label: t('nav.groups'),
+      icon: <GroupsIcon />,
+      badge: groupsUnread > 0 ? groupsUnread : undefined,
+      badgeLabel: groupsUnread > 0 ? t('nav.unreadCount', { count: groupsUnread }) : undefined,
+    },
     { id: 'calls',     path: '/calls',     label: t('nav.calls'),   icon: <CallsIcon /> },
   ]
 
@@ -158,7 +177,8 @@ const NavButton: React.FC<NavButtonProps> = ({ item, isActive, onClick }) => (
     <motion.button
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
-      aria-label={item.label}
+      aria-label={item.badgeLabel ? `${item.label}, ${item.badgeLabel}` : item.label}
+      aria-current={isActive ? 'page' : undefined}
       className={cn(
         'relative w-full h-11 flex items-center justify-center rounded-xl',
         'transition-all duration-150',

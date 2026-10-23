@@ -12,54 +12,124 @@ export interface SearchResult {
   contact?: Contact
   message?: Message
   group?: Group
+  /** Groupe et canal d'un message de groupe — la navigation doit rouvrir le canal, pas un fil 1:1. */
+  groupId?: string
+  channelId?: string
+  /** Origine affichée (« Équipe · #général ») pour un message de groupe. */
+  sourceLabel?: string
   highlight: string
 }
 
+/** Résultat de recherche profonde, avec son canal d'origine. */
+interface StoredMatch {
+  message: Message
+  groupId?: string
+  channelId?: string
+  sourceLabel?: string
+}
+
+interface SearchTarget {
+  id: string
+  groupId?: string
+  channelId?: string
+  sourceLabel?: string
+}
+
+/** Laisse le temps de finir un mot avant d'interroger Hyperbee (IPC par conversation). */
+const STORAGE_SEARCH_DEBOUNCE_MS = 250
+const MAX_IN_MEMORY_MESSAGE_RESULTS = 20
+const STORAGE_RESULTS_PER_CONVERSATION = 5
+
 /**
  * useSearch — multi-source search hook for contacts, messages, and groups.
- * OPTIMIZATION: Also searches Hyperbee storage for messages not loaded in memory.
+ * Also searches Hyperbee storage for messages not loaded in memory, debounced
+ * and cancelled so a slow reply for an old query never overwrites the current one.
  */
 export function useSearch(query: string) {
   const contacts = useContactStore((s) => Object.values(s.contacts))
   const conversations = useConversationStore((s) => s.conversations)
   const groups = useGroupStore((s) => s.groups)
-  const getMessages = useMessageStore((s) => s.getMessages)
-  // OPTIMIZATION: Store results from Hyperbee deep search
-  const [storageMessages, setStorageMessages] = useState<Message[]>([])
+  // Abonnement réactif : un message reçu pendant la frappe doit apparaître
+  // dans les résultats, pas seulement au prochain changement de requête.
+  const messagesByConversation = useMessageStore((s) => s.messages)
+  const [storageMessages, setStorageMessages] = useState<StoredMatch[]>([])
+  // La recherche Hyperbee est un IPC par conversation : pendant ce temps la
+  // modale ne doit pas annoncer « aucun résultat » comme si elle avait fini.
+  const [isSearching, setIsSearching] = useState(false)
 
-  // Deep search in Hyperbee storage when query changes
+  // Identité stable des conversations : évite de relancer la recherche à
+  // chaque mise à jour d'aperçu ou de compteur non lu. Les canaux de groupe
+  // sont joints à l'identique pour que leur historique soit fouillé aussi.
+  const conversationIdsKey = Object.keys(conversations).join('|')
+  const groupChannelsKey = Object.values(groups)
+    .flatMap((group) => group.channels.map((channel) => `${group.id}:${group.name}:${channel.id}:${channel.name}`))
+    .join('|')
+
   useEffect(() => {
-    if (!query.trim() || !window.asgard?.storage?.searchMessages) {
+    const q = query.toLowerCase().trim()
+    if (!q || !window.asgard?.storage?.searchMessages) {
       setStorageMessages([])
+      setIsSearching(false)
       return
     }
 
-    const q = query.toLowerCase().trim()
-    const allResults: Message[] = []
-    const convIds = Object.keys(conversations)
-
-    // Search each conversation in Hyperbee storage
-    const searchPromises = convIds.map(async (convId) => {
-      try {
-        const results = await window.asgard.storage.searchMessages(convId, q, 5)
-        return results as unknown as Message[]
-      } catch {
-        return []
+    const targets: SearchTarget[] = conversationIdsKey ? conversationIdsKey.split('|').map((id) => ({ id })) : []
+    for (const group of Object.values(groups)) {
+      for (const channel of group.channels) {
+        targets.push({
+          id: channel.id,
+          groupId: group.id,
+          channelId: channel.id,
+          sourceLabel: `${group.name} · #${channel.name}`,
+        })
       }
-    })
+    }
+    if (targets.length === 0) {
+      setStorageMessages([])
+      setIsSearching(false)
+      return
+    }
+    let cancelled = false
+    setIsSearching(true)
 
-    Promise.all(searchPromises).then((results) => {
-      for (const msgs of results) {
-        for (const msg of msgs) {
-          // Avoid duplicates with in-memory messages
-          if (!allResults.find((m) => m.id === msg.id)) {
-            allResults.push(msg)
+    const timer = setTimeout(() => {
+      const searchPromises = targets.map(async (target) => {
+        try {
+          const matches = (await window.asgard.storage.searchMessages(
+            target.id,
+            q,
+            STORAGE_RESULTS_PER_CONVERSATION
+          )) as unknown as Message[]
+          return matches.map((message) => ({
+            message,
+            groupId: target.groupId,
+            channelId: target.channelId,
+            sourceLabel: target.sourceLabel,
+          }))
+        } catch {
+          return []
+        }
+      })
+
+      void Promise.all(searchPromises).then((results) => {
+        if (cancelled) return
+        const byKey = new Map<string, StoredMatch>()
+        for (const matches of results) {
+          for (const match of matches) {
+            const key = `${match.channelId ?? match.message.conversationId}:${match.message.id}`
+            if (!byKey.has(key)) byKey.set(key, match)
           }
         }
-      }
-      setStorageMessages(allResults)
-    }).catch(() => {})
-  }, [query, conversations])
+        setStorageMessages(Array.from(byKey.values()))
+        setIsSearching(false)
+      })
+    }, STORAGE_SEARCH_DEBOUNCE_MS)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [query, conversationIdsKey, groupChannelsKey])
 
   const results = useMemo<SearchResult[]>(() => {
     if (!query.trim()) return []
@@ -95,41 +165,68 @@ export function useSearch(query: string) {
       }
     }
 
-    // Search messages (in-memory)
-    const inMemoryMsgIds = new Set<string>()
+    // Search messages (in-memory), fils 1:1 puis canaux de groupe
+    const inMemoryMsgKeys = new Set<string>()
+    let messageCount = 0
     for (const conv of Object.values(conversations)) {
-      const messages = getMessages(conv.id)
+      if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+      const messages = messagesByConversation[conv.id] ?? []
       for (const msg of messages) {
-        if (!msg.deleted && msg.content.toLowerCase().includes(q)) {
-          results.push({
-            type: 'message',
-            message: msg,
-            highlight: msg.content.slice(0, 100),
-          })
-          inMemoryMsgIds.add(msg.id)
-        }
-        // Limit in-memory message results
-        if (results.filter((r) => r.type === 'message').length >= 20) break
-      }
-    }
-
-    // OPTIMIZATION: Add messages found in Hyperbee storage (deep search)
-    for (const msg of storageMessages) {
-      if (!msg.deleted && !inMemoryMsgIds.has(msg.id) && msg.content?.toLowerCase().includes(q)) {
+        if (msg.deleted || !msg.content?.toLowerCase().includes(q)) continue
         results.push({
           type: 'message',
           message: msg,
+          highlight: msg.content.slice(0, 100),
+        })
+        inMemoryMsgKeys.add(`${conv.id}:${msg.id}`)
+        messageCount++
+        if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+      }
+    }
+    for (const group of Object.values(groups)) {
+      if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+      for (const channel of group.channels) {
+        if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+        const messages = messagesByConversation[channel.id] ?? []
+        for (const msg of messages) {
+          if (msg.deleted || !msg.content?.toLowerCase().includes(q)) continue
+          results.push({
+            type: 'message',
+            message: msg,
+            groupId: group.id,
+            channelId: channel.id,
+            sourceLabel: `${group.name} · #${channel.name}`,
+            highlight: msg.content.slice(0, 100),
+          })
+          inMemoryMsgKeys.add(`${channel.id}:${msg.id}`)
+          messageCount++
+          if (messageCount >= MAX_IN_MEMORY_MESSAGE_RESULTS) break
+        }
+      }
+    }
+
+    // Add messages found in Hyperbee storage (deep search), sans doublon
+    for (const match of storageMessages) {
+      const msg = match.message
+      const key = `${match.channelId ?? msg.conversationId}:${msg.id}`
+      if (!msg.deleted && !inMemoryMsgKeys.has(key) && msg.content?.toLowerCase().includes(q)) {
+        results.push({
+          type: 'message',
+          message: msg,
+          groupId: match.groupId,
+          channelId: match.channelId,
+          sourceLabel: match.sourceLabel,
           highlight: msg.content.slice(0, 100),
         })
       }
     }
 
     return results.slice(0, 50)
-  }, [query, contacts, groups, conversations, getMessages, storageMessages])
+  }, [query, contacts, groups, conversations, messagesByConversation, storageMessages])
 
   const contactResults = useMemo(() => results.filter((r) => r.type === 'contact'), [results])
   const messageResults = useMemo(() => results.filter((r) => r.type === 'message'), [results])
   const groupResults = useMemo(() => results.filter((r) => r.type === 'group'), [results])
 
-  return { results, contactResults, messageResults, groupResults }
+  return { results, contactResults, messageResults, groupResults, isSearching }
 }

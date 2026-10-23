@@ -22,6 +22,9 @@ class P2PService extends EventEmitter {
   private cleanup: (() => void)[] = []
   private initialized = false
   private statusInterval: ReturnType<typeof setInterval> | null = null
+  // Les joins de démarrage partent en parallèle : un seul flush pour la rafale.
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
+  private static readonly FLUSH_COALESCE_MS = 150
   private _mediaSendLogged = false // DIAGNOSTICS: Track first media send
   // Reverse mapping: Ed25519 public key → Hyperswarm Noise peer ID
   // Populated by peer:identified events from NetworkService
@@ -268,9 +271,19 @@ class P2PService extends EventEmitter {
     store.updateStatus({
       topics: [...store.status.topics, topicHex],
     })
-    // CONNECTIVITY: Flush after joining topic for faster peer discovery
-    // swarm.flush() waits for all DHT announces + pending peer connections
-    window.asgard.network.flush().catch(() => {})
+    // CONNECTIVITY: Flush after joining topics for faster peer discovery.
+    // Une rafale de joins (démarrage) ne déclenche qu'un seul swarm.flush() :
+    // il attend déjà toutes les annonces en cours, en répéter un par topic
+    // ne faisait qu'empiler des attentes identiques.
+    this.scheduleFlush()
+  }
+
+  private scheduleFlush(): void {
+    if (this.flushTimer) return
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null
+      window.asgard.network.flush().catch(() => {})
+    }, P2PService.FLUSH_COALESCE_MS)
   }
 
   /**
@@ -629,6 +642,10 @@ class P2PService extends EventEmitter {
     if (this.statusInterval) {
       clearInterval(this.statusInterval)
       this.statusInterval = null
+    }
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
     }
     this.cleanup.forEach((fn) => fn())
     this.cleanup = []

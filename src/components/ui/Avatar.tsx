@@ -267,7 +267,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       {editable && (
         <button
           onClick={handleUploadClick}
-          className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-full"
+          className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded-full"
           aria-label={t('avatar.uploadPhoto')}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="white">

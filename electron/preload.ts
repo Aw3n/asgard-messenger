@@ -26,6 +26,7 @@ export interface AsgardAPI {
     close: () => void
     isMaximized: () => Promise<boolean>
     onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
+    setUnreadCount: (count: number) => void
   }
   // Identity & Crypto
   identity: {
@@ -213,12 +214,17 @@ export interface AsgardAPI {
   notifications: {
     show: (title: string, body: string, options?: NotificationOptions) => void
     requestPermission: () => Promise<boolean>
+    onClick: (callback: (target: NotificationClickTarget) => void) => () => void
   }
   // File operations
   file: {
     saveAs: (blobId: string, suggestedName: string) => Promise<
       | { success: true; filePath: string }
       | { success: false; reason: 'not-found' | 'canceled' | 'error'; message?: string }
+    >
+    open: (blobId: string, suggestedName: string) => Promise<
+      | { success: true }
+      | { success: false; reason: 'not-found' | 'blocked' | 'error'; message?: string }
     >
   }
   // App info
@@ -232,6 +238,8 @@ export interface AsgardAPI {
     getPendingDeepLink: () => Promise<string | null>
     // DEEP LINK: liens reçus pendant que l'app tourne
     onDeepLink: (callback: (url: string) => void) => () => void
+    // APPEL ENTRANT: clignotement de l'icône de la barre des tâches
+    flashFrame: (flag: boolean) => void
     // PRIVACY SETTINGS (privacy.linkPreviews): métadonnées OG récupérées côté main
     fetchLinkPreview: (url: string) => Promise<{
       url: string
@@ -267,6 +275,7 @@ contextBridge.exposeInMainWorld('asgard', {
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
     onMaximizeChange: (callback: (isMaximized: boolean) => void) =>
       createListener('window:maximizeChange', callback),
+    setUnreadCount: (count: number) => ipcRenderer.send('window:set-unread', count),
   },
   identity: {
     create: () => ipcRenderer.invoke('identity:create'),
@@ -540,9 +549,12 @@ contextBridge.exposeInMainWorld('asgard', {
     show: (title: string, body: string, options?: NotificationOptions) =>
       ipcRenderer.send('notifications:show', title, body, options),
     requestPermission: () => ipcRenderer.invoke('notifications:requestPermission'),
+    onClick: (callback: (target: NotificationClickTarget) => void) =>
+      createListener('notifications:click', callback),
   },
   file: {
     saveAs: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:save-as', blobId, suggestedName),
+    open: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:open', blobId, suggestedName),
   },
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
@@ -554,6 +566,7 @@ contextBridge.exposeInMainWorld('asgard', {
     getPendingDeepLink: () => ipcRenderer.invoke('app:getPendingDeepLink'),
     onDeepLink: (callback: (url: string) => void) =>
       createListener('app:deepLink', callback),
+    flashFrame: (flag: boolean) => ipcRenderer.send('window:flash-frame', flag),
     fetchLinkPreview: (url: string) => ipcRenderer.invoke('app:fetchLinkPreview', url),
   },
 } satisfies AsgardAPI)
@@ -614,4 +627,13 @@ interface NotificationOptions {
   icon?: string
   silent?: boolean
   urgency?: 'normal' | 'critical' | 'low'
+  /** Destination ouverte au clic : fil 1:1, ou canal d'un groupe. */
+  conversationId?: string
+  groupId?: string
+  channelId?: string
 }
+
+type NotificationClickTarget = Pick<
+  NotificationOptions,
+  'conversationId' | 'groupId' | 'channelId'
+>

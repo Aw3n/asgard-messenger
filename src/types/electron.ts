@@ -19,6 +19,7 @@ export interface AsgardElectronAPI {
     close: () => void
     isMaximized: () => Promise<boolean>
     onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
+    setUnreadCount: (count: number) => void
   }
   identity: {
     create: () => Promise<IdentityAPIResult>
@@ -214,11 +215,16 @@ export interface AsgardElectronAPI {
   notifications: {
     show: (title: string, body: string, options?: NotificationAPIOptions) => void
     requestPermission: () => Promise<boolean>
+    onClick: (callback: (target: NotificationClickTarget) => void) => () => void
   }
   file: {
     saveAs: (blobId: string, suggestedName: string) => Promise<
       | { success: true; filePath: string }
       | { success: false; reason: 'not-found' | 'canceled' | 'error'; message?: string }
+    >
+    open: (blobId: string, suggestedName: string) => Promise<
+      | { success: true }
+      | { success: false; reason: 'not-found' | 'blocked' | 'error'; message?: string }
     >
   }
   app: {
@@ -231,6 +237,9 @@ export interface AsgardElectronAPI {
     getPendingDeepLink: () => Promise<string | null>
     // DEEP LINK: liens reçus pendant que l'app tourne
     onDeepLink: (callback: (url: string) => void) => () => void
+    // APPEL ENTRANT: fait clignoter l'icône de la barre des tâches (le verrou
+    // de remise à zéro est posé côté renderer, au moment de la réponse).
+    flashFrame: (flag: boolean) => void
     // PRIVACY SETTINGS (privacy.linkPreviews): métadonnées OG récupérées côté main
     fetchLinkPreview: (url: string) => Promise<{
       url: string
@@ -287,7 +296,16 @@ interface NetworkAPIStatus {
 interface NotificationAPIOptions {
   icon?: string
   silent?: boolean
+  /** Destination ouverte au clic : fil 1:1, ou canal d'un groupe. */
+  conversationId?: string
+  groupId?: string
+  channelId?: string
 }
+
+type NotificationClickTarget = Pick<
+  NotificationAPIOptions,
+  'conversationId' | 'groupId' | 'channelId'
+>
 
 interface DHTProfileData {
   displayName: string

@@ -144,6 +144,8 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
           </div>
           <button
             onClick={onClose}
+            aria-label={t('common.close')}
+            title={t('common.close')}
             className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
           >
             <span className="text-[var(--text-secondary)]"><XIcon /></span>

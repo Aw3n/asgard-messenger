@@ -22,9 +22,10 @@ export const FileTransferManager: React.FC<{ onClose?: () => void }> = ({ onClos
   const [filter, setFilter] = useState<'all' | 'uploading' | 'downloading' | 'complete' | 'error'>('all')
 
   useEffect(() => {
+    // FileService notifie déjà les changements (coalescés à 100 ms) : cet
+    // intervalle de 500 ms ne faisait que relire le même état.
     loadTransfers()
-    const interval = setInterval(loadTransfers, 500)
-    return () => clearInterval(interval)
+    return fileService.subscribeTransfers(loadTransfers)
   }, [])
 
   const loadTransfers = () => {
@@ -125,6 +126,8 @@ export const FileTransferManager: React.FC<{ onClose?: () => void }> = ({ onClos
         {onClose && (
           <button
             onClick={onClose}
+            aria-label={t('common.close')}
+            title={t('common.close')}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-asgard-surface-alt transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-secondary">

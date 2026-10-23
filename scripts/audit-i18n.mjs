@@ -21,7 +21,6 @@ const targetFiles = [
   'src/features/chat/components/MessageEditModal.tsx',
   'src/features/chat/components/ForwardModal.tsx',
   'src/features/chat/components/FileAttachment.tsx',
-  'src/features/chat/components/FileTransferProgress.tsx',
   'src/features/chat/components/VoiceMessageRecorder.tsx',
   'src/features/chat/components/MarkdownRenderer.tsx',
   'src/components/overlays/IncomingCallOverlay.tsx',

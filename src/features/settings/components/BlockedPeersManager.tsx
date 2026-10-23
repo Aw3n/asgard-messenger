@@ -33,6 +33,19 @@ export const BlockedPeersManager: React.FC<{ onClose?: () => void }> = ({ onClos
     try {
       await window.asgard.network.blockPeer(peerKey, false)
       setBlockedPeers((prev) => prev.filter((p) => p !== peerKey))
+      // La liste ne connaît que la clé Noise : on retrouve le contact dont la
+      // clé Ed25519 la dérive, sinon son état local resterait « bloqué ».
+      for (const c of Object.values(contacts)) {
+        if (c.relation !== 'blocked') continue
+        try {
+          if (await window.asgard.network.deriveNoisePublicKey(c.publicKey) === peerKey) {
+            useContactStore.getState().unblockContact(c.publicKey)
+            break
+          }
+        } catch {
+          // Clé non dérivable : ce pair n'est pas un contact local.
+        }
+      }
     } catch (err) {
       console.error('[BlockedPeersManager] Failed to unblock peer:', err)
     }
@@ -61,7 +74,12 @@ export const BlockedPeersManager: React.FC<{ onClose?: () => void }> = ({ onClos
           {t('settings.blockedPeers')}
         </h3>
         {onClose && (
-          <button onClick={onClose} className="text-asgard-text-muted hover:text-asgard-text-primary">
+          <button
+            onClick={onClose}
+            aria-label={t('common.close')}
+            title={t('common.close')}
+            className="text-asgard-text-muted hover:text-asgard-text-primary"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
             </svg>

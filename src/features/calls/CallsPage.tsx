@@ -6,7 +6,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { formatPublicKey } from '@/utils/id'
 import { PageTransition } from '@/components/ui/PageTransition'
-import type { CallRecord } from '@/stores/callStore'
+import type { CallRecord, CallType } from '@/stores/callStore'
 import { useTranslation } from 'react-i18next'
 import { getCurrentLanguage } from '@/i18n/config'
 
@@ -27,7 +27,9 @@ interface GroupedCallEntry {
 export const CallsPage: React.FC = () => {
   const history = useCallStore((s) => s.history)
   const clearHistory = useCallStore((s) => s.clearHistory)
-  const contacts = useContactStore((s) => Object.values(s.contacts).filter((c) => c.relation !== 'blocked'))
+  const contacts = useContactStore((s) =>
+    Object.values(s.contacts).filter((c) => c.relation === 'contact' || c.relation === 'favorite')
+  )
   const [search, setSearch] = useState('')
   const [expandedPeer, setExpandedPeer] = useState<string | null>(null)
 
@@ -169,6 +171,17 @@ export const CallsPage: React.FC = () => {
       console.log('[CallsPage] Server refreshed')
     } catch (err) {
       console.error('[CallsPage] Failed to refresh server:', err)
+    }
+  }
+
+  /** Rappel : relance un appel 1:1, ou reforme le groupe si ses participants
+   *  sont connus (un appel de groupe sans liste ne peut pas être relancé). */
+  const recall = (group: GroupedCallEntry, type: CallType) => {
+    const call = group.latestCall
+    if (call.isGroupCall) {
+      callService.startGroupCall(call.groupId ?? group.peerId, group.peerName, call.participants ?? [], type)
+    } else {
+      callService.startCall(group.peerId, group.peerName, type, group.peerAvatar)
     }
   }
 
@@ -371,11 +384,13 @@ export const CallsPage: React.FC = () => {
                         <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
                       </svg>
                     )}
-                    {/* Quick re-call button */}
-                    {!group.latestCall.missed && !group.latestCall.isGroupCall && (
+                    {/* Rappel direct — vaut aussi pour un appel manqué, le cas
+                        le plus fréquent. Un appel de groupe n'est reformable
+                        que si la liste de ses participants est connue. */}
+                    {(!group.latestCall.isGroupCall || (group.latestCall.participants?.length ?? 0) > 0) && (
                       <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => callService.startCall(group.peerId, group.peerName, 'audio', group.peerAvatar)}
+                          onClick={() => recall(group, 'audio')}
                           className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                           title={t('calls.audioCall')}
                         >
@@ -384,7 +399,7 @@ export const CallsPage: React.FC = () => {
                           </svg>
                         </button>
                         <button
-                          onClick={() => callService.startCall(group.peerId, group.peerName, 'video', group.peerAvatar)}
+                          onClick={() => recall(group, 'video')}
                           className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                           title={t('calls.videoCall')}
                         >

@@ -1,14 +1,19 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 import { useUIStore } from '@/stores/uiStore'
+import { useConversationStore } from '@/stores/conversationStore'
 import type { Message } from '@/types'
 
 interface MessageInputProps {
   conversationId: string
   replyTo?: Message
+  /** Message en cours de modification : le composer passe en mode édition. */
+  editingMessage?: Message
   onSend: (content: string, type?: 'text') => void
+  onEditSubmit?: (content: string) => void
+  onCancelEdit?: () => void
   onFiles?: (files: File[]) => void
   onCancelReply?: () => void
   onTyping?: (typing: boolean) => void
@@ -19,11 +24,66 @@ interface MessageInputProps {
 }
 
 /**
+ * Vignette d'une pièce jointe en attente. L'URL blob appartient à la vignette :
+ * créée avant peinture et révoquée au démontage. La créer au rendu du
+ * composeur fuyait une URL à chaque frappe.
+ */
+const PendingFileChip: React.FC<{ file: File; onRemove: () => void }> = ({ file, onRemove }) => {
+  const { t } = useTranslation()
+  const [preview, setPreview] = useState<string | null>(null)
+
+  useLayoutEffect(() => {
+    if (!file.type.startsWith('image/')) {
+      setPreview(null)
+      return
+    }
+    const url = URL.createObjectURL(file)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+
+  return (
+    <div className="flex items-center gap-2 bg-asgard-surface-alt border border-asgard-border rounded-lg px-2 py-1.5">
+      {preview ? (
+        <div className="w-8 h-8 rounded bg-asgard-surface-alt overflow-hidden flex-shrink-0">
+          <img
+            src={preview}
+            alt={file.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="w-8 h-8 rounded bg-asgard-nordic/20 flex items-center justify-center flex-shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
+            <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/>
+          </svg>
+        </div>
+      )}
+      <span className="text-xs text-asgard-text-secondary truncate max-w-[120px]">{file.name}</span>
+      <button
+        onClick={onRemove}
+        className="text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
+        aria-label={`${t('messageInput.removeFile')} — ${file.name}`}
+        title={t('messageInput.removeFile')}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+/**
  * MessageInput — rich text input with reply, emoji, and file attachment support.
  */
 export const MessageInput: React.FC<MessageInputProps> = ({
+  conversationId,
   replyTo,
+  editingMessage,
   onSend,
+  onEditSubmit,
+  onCancelEdit,
   onFiles,
   onCancelReply,
   onTyping,
@@ -35,14 +95,109 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const effectivePlaceholder = placeholder ?? t('chat.typeMessage')
   // CHAT SETTINGS: Enter sends the message, or requires Ctrl+Enter when disabled
   const sendOnEnter = useUIStore((s) => s.settings.chat.sendOnEnter)
-  const [content, setContent] = useState('')
+  const [content, setContent] = useState(
+    () => useConversationStore.getState().getDraft(conversationId)
+  )
   const [showEmoji, setShowEmoji] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestContentRef = useRef(content)
+  const conversationIdRef = useRef(conversationId)
   const isTypingRef = useRef(false)
+  const editingIdRef = useRef<string | null>(null)
+
+  const setComposerContent = useCallback((value: string) => {
+    latestContentRef.current = value
+    setContent(value)
+  }, [])
+
+  const queueDraft = useCallback(
+    (value: string) => {
+      if (editingMessage) return
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+      const id = conversationId
+      draftTimerRef.current = setTimeout(() => {
+        draftTimerRef.current = null
+        useConversationStore.getState().setDraft(id, value)
+      }, 300)
+    },
+    [conversationId, editingMessage]
+  )
+
+  /**
+   * Le champ appartient au fil affiché : en changeant de fil, sauver le texte
+   * du précédent puis charger son brouillon. Sans cela, la frappe restait dans
+   * le composeur et pouvait partir vers un autre destinataire.
+   */
+  useEffect(() => {
+    if (conversationIdRef.current !== conversationId) {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current)
+        draftTimerRef.current = null
+      }
+      if (editingIdRef.current === null) {
+        useConversationStore.getState().setDraft(conversationIdRef.current, latestContentRef.current)
+      }
+      conversationIdRef.current = conversationId
+      setPendingFiles([])
+      setShowEmoji(false)
+    }
+    setComposerContent(useConversationStore.getState().getDraft(conversationId))
+  }, [conversationId, setComposerContent])
+
+  useEffect(() => {
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+      if (editingIdRef.current === null) {
+        useConversationStore.getState().setDraft(conversationIdRef.current, latestContentRef.current)
+      }
+    }
+  }, [])
+
+  /**
+   * Entrée en édition : préremplir une seule fois par message. Comparer
+   * seulement l'identifiant évite d'écraser la saisie quand le message reçoit
+   * un nouvel objet (accusé de livraison, réaction) pendant la frappe.
+   */
+  useEffect(() => {
+    const nextId = editingMessage?.id ?? null
+    if (nextId === editingIdRef.current) return
+    const wasEditing = editingIdRef.current !== null
+    editingIdRef.current = nextId
+    if (!editingMessage) {
+      // Fin d'édition (validation, annulation ou changement de conversation) :
+      // restaurer le brouillon du fil affiché, jamais le texte édité.
+      if (wasEditing) {
+        setComposerContent(useConversationStore.getState().getDraft(conversationIdRef.current))
+      }
+      return
+    }
+    // Entrer en édition ne doit pas perdre la frappe déjà saisie.
+    if (!wasEditing) {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current)
+        draftTimerRef.current = null
+      }
+      useConversationStore.getState().setDraft(conversationIdRef.current, latestContentRef.current)
+    }
+    const text = editingMessage.content ?? ''
+    setComposerContent(text)
+    setShowEmoji(false)
+    const el = textareaRef.current
+    el?.focus()
+    el?.setSelectionRange(text.length, text.length)
+  }, [editingMessage, setComposerContent])
+
+  const cancelEdit = useCallback(() => {
+    onCancelEdit?.()
+    setComposerContent('')
+    setPendingFiles([])
+    textareaRef.current?.focus()
+  }, [onCancelEdit, setComposerContent])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -53,7 +208,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, [content])
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value)
+    const value = e.target.value
+    setComposerContent(value)
+    queueDraft(value)
     handleTyping(true)
   }
 
@@ -80,7 +237,20 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleSend = useCallback(() => {
     const trimmed = content.trim()
-    if ((!trimmed && pendingFiles.length === 0) || disabled) return
+    if (disabled) return
+
+    // En édition, le même geste valide la modification au lieu d'envoyer un
+    // nouveau message : les pièces jointes en attente restent pour plus tard.
+    if (editingMessage) {
+      if (!trimmed || !onEditSubmit) return
+      onEditSubmit(trimmed)
+      setComposerContent('')
+      handleTyping(false)
+      textareaRef.current?.focus()
+      return
+    }
+
+    if (!trimmed && pendingFiles.length === 0) return
 
     // Send files first if any
     if (pendingFiles.length > 0 && onFiles) {
@@ -90,13 +260,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
     if (trimmed) {
       onSend(trimmed)
-      setContent('')
+      setComposerContent('')
+      // Effacer tout de suite : un enregistrement différé réécrirait le texte
+      // envoyé comme brouillon.
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current)
+        draftTimerRef.current = null
+      }
+      useConversationStore.getState().setDraft(conversationId, '')
     }
     handleTyping(false)
     textareaRef.current?.focus()
-  }, [content, pendingFiles, disabled, onSend, onFiles, handleTyping])
+  }, [content, editingMessage, pendingFiles, disabled, onSend, onEditSubmit, onFiles, handleTyping, conversationId, setComposerContent])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter qui valide une composition IME (japonais, chinois, coréen…) :
+    // l'envoyer couperait la saisie en cours. Certains IME ne renseignent que
+    // keyCode 229.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return
     if (e.key === 'Enter') {
       // Ctrl+Enter always sends (explicit user intent)
       if (e.ctrlKey || e.metaKey) {
@@ -111,12 +292,22 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         handleSend()
       }
     }
-    if (e.key === 'Escape' && replyTo) {
-      onCancelReply?.()
+    if (e.key === 'Escape') {
+      if (editingMessage) {
+        e.preventDefault()
+        cancelEdit()
+      } else if (replyTo) {
+        onCancelReply?.()
+      }
     }
   }
 
   const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉', '✅']
+  // En édition, seuls les fichiers déjà en attente ne suffisent pas : il faut
+  // un texte pour valider la modification.
+  const canSubmit = editingMessage
+    ? content.trim().length > 0
+    : content.trim().length > 0 || pendingFiles.length > 0
 
   // File handling
   const handleFileSelect = useCallback(() => {
@@ -194,9 +385,43 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         onChange={handleFileChange}
         className="hidden"
       />
+      {/* Editing banner — same slot and affordance as the reply preview */}
+      <AnimatePresence>
+        {editingMessage && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-3 px-4 py-2 border-l-2 border-asgard-glacier mx-3 mt-2 bg-asgard-border/30 rounded-lg">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-asgard-glacier mb-0.5">
+                  {t('chat.editMessage')}
+                </p>
+                <p className="text-xs text-asgard-text-muted truncate">
+                  {editingMessage.content}
+                </p>
+              </div>
+              <button
+                onClick={cancelEdit}
+                className="flex-shrink-0 text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
+                aria-label={t('common.cancel')}
+                title={t('common.cancel')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Reply preview */}
       <AnimatePresence>
-        {replyTo && (
+        {!editingMessage && replyTo && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -239,7 +464,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             {quickEmojis.map((emoji) => (
               <button
                 key={emoji}
-                onClick={() => setContent((c) => c + emoji)}
+                onClick={() => {
+                  const next = latestContentRef.current + emoji
+                  setComposerContent(next)
+                  queueDraft(next)
+                }}
                 className="text-xl hover:scale-125 transition-transform"
               >
                 {emoji}
@@ -260,32 +489,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           >
             <div className="flex flex-wrap gap-2 px-4 py-2 border-b border-asgard-border/30">
               {pendingFiles.map((file, index) => (
-                <div key={index} className="flex items-center gap-2 bg-asgard-surface-alt border border-asgard-border rounded-lg px-2 py-1.5">
-                  {file.type.startsWith('image/') ? (
-                    <div className="w-8 h-8 rounded bg-asgard-surface-alt overflow-hidden flex-shrink-0">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 rounded bg-asgard-nordic/20 flex items-center justify-center flex-shrink-0">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
-                        <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/>
-                      </svg>
-                    </div>
-                  )}
-                  <span className="text-xs text-asgard-text-secondary truncate max-w-[120px]">{file.name}</span>
-                  <button
-                    onClick={() => removePendingFile(index)}
-                    className="text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                  </button>
-                </div>
+                <PendingFileChip key={index} file={file} onRemove={() => removePendingFile(index)} />
               ))}
             </div>
           </motion.div>
@@ -314,12 +518,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       {/* Input row - hidden in broadcast read-only mode */}
       {!broadcastReadOnly && (
         <div className="flex items-end gap-2 px-3 py-3">
-          {/* Attachment button */}
-          <ActionButton aria-label={t('messageInput.attachFile')} onClick={handleFileSelect}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
-            </svg>
-          </ActionButton>
+          {/* Attachment button — masqué en édition : on valide une correction
+              de texte, pas un nouvel envoi */}
+          {!editingMessage && (
+            <ActionButton aria-label={t('messageInput.attachFile')} onClick={handleFileSelect}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
+              </svg>
+            </ActionButton>
+          )}
 
           {/* Text area */}
           <div className={cn(
@@ -359,11 +566,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleSend}
-            disabled={(!content.trim() && pendingFiles.length === 0) || disabled}
-            aria-label={t('messageInput.send')}
+            disabled={!canSubmit || disabled}
+            aria-label={editingMessage ? t('common.save') : t('messageInput.send')}
+            title={editingMessage ? t('common.save') : t('messageInput.send')}
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
-              (content.trim() || pendingFiles.length > 0) && !disabled
+              canSubmit && !disabled
                 ? 'bg-gradient-to-br from-asgard-nordic to-asgard-nordic-light text-white shadow-md hover:shadow-asgard-nordic/40'
                 : 'bg-asgard-surface-alt text-asgard-text-muted cursor-not-allowed'
             )}

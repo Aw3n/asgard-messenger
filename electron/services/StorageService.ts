@@ -211,7 +211,13 @@ export class StorageService {
 
   /**
    * Delete all messages in a conversation efficiently.
-   * OPTIMIZATION: Uses batch delete + Hypercore core.clear() to reclaim storage.
+   *
+   * Le batch Hyperbee suffit. Surtout, NE PAS appeler `core.clear()` sur les
+   * blocs du Bee : Hypercore documente `clear` comme une éviction de cache
+   * locale, pas comme une troncature. Les blocs effacés restent référencés par
+   * l'arbre, donc après redémarrage `bee.get()` lève BLOCK_NOT_AVAILABLE et les
+   * écritures suivantes se bloquent (le cache du processus en cours masque le
+   * problème jusqu'au prochain lancement).
    */
   async clearMessages(conversationId: string): Promise<void> {
     const bee = await this.getMessagesBee(conversationId)
@@ -222,17 +228,6 @@ export class StorageService {
       await batch.del(key)
     }
     await batch.flush()
-
-    // OPTIMIZATION: Reclaim storage at the Hypercore level
-    // core.clear() removes stored blocks, freeing disk space
-    const core = (bee as unknown as { core: HypercoreLike }).core
-    if (core && typeof core.clear === 'function') {
-      try {
-        await core.clear(0, core.length)
-      } catch {
-        // Ignore clear errors — batch del already removed the entries
-      }
-    }
   }
 
   /**

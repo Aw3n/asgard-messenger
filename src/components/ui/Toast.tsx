@@ -40,11 +40,19 @@ const borderColors: Record<ToastType['type'], string> = {
  */
 const ToastItem: React.FC<{ toast: ToastType }> = ({ toast }) => {
   const removeToast = useUIStore((s) => s.removeToast)
+  const pauseToast = useUIStore((s) => s.pauseToast)
+  const resumeToast = useUIStore((s) => s.resumeToast)
   const { t } = useTranslation()
 
   return (
     <motion.div
       layout
+      onMouseEnter={() => pauseToast(toast.id)}
+      onMouseLeave={() => resumeToast(toast.id)}
+      onFocus={() => pauseToast(toast.id)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) resumeToast(toast.id)
+      }}
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -89,20 +97,31 @@ const ToastItem: React.FC<{ toast: ToastType }> = ({ toast }) => {
  */
 export const ToastContainer: React.FC = () => {
   const toasts = useUIStore((s) => s.toasts)
+  // Une erreur ne doit pas attendre derrière une file de succès : elle part
+  // dans une zone assertive, le reste dans la zone polie habituelle.
+  const errors = toasts.filter((toast) => toast.type === 'error')
+  const others = toasts.filter((toast) => toast.type !== 'error')
 
   return (
-    <div
-      className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
-      aria-live="polite"
-      aria-atomic="false"
-    >
-      <AnimatePresence mode="popLayout">
-        {toasts.map((toast) => (
-          <div key={toast.id} className="pointer-events-auto">
-            <ToastItem toast={toast} />
-          </div>
-        ))}
-      </AnimatePresence>
+    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+      <div className="flex flex-col gap-2" aria-live="assertive" aria-atomic="true">
+        <AnimatePresence mode="popLayout">
+          {errors.map((toast) => (
+            <div key={toast.id} className="pointer-events-auto">
+              <ToastItem toast={toast} />
+            </div>
+          ))}
+        </AnimatePresence>
+      </div>
+      <div className="flex flex-col gap-2" aria-live="polite" aria-atomic="false">
+        <AnimatePresence mode="popLayout">
+          {others.map((toast) => (
+            <div key={toast.id} className="pointer-events-auto">
+              <ToastItem toast={toast} />
+            </div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

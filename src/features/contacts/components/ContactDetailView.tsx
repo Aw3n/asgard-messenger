@@ -41,27 +41,30 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
   const isFavorite = contact.relation === 'favorite'
   const isBlocked = contact.relation === 'blocked'
 
-  // Fetch profile from DHT
+  // Fetch profile from DHT. The contact is re-read from the store at call time
+  // rather than captured: a captured `lastSeen` / `displayName` changed the
+  // callback identity on every presence tick, re-arming the effect and turning
+  // the 60 s refresh into a fetch every few seconds.
   const fetchDHTProfile = useCallback(async () => {
     if (!window.asgard?.network?.fetchProfile) return
     setProfileLoading(true)
     try {
       const profile = await window.asgard.network.fetchProfile(contact.publicKey)
+      const current = useContactStore.getState().getContact(contact.publicKey)
       if (profile) {
         setDhtProfile(profile)
         // Update contact with DHT profile info if different
         const updates: Partial<Contact> = {}
-        if (profile.displayName && profile.displayName !== contact.displayName) {
+        if (profile.displayName && profile.displayName !== current?.displayName) {
           updates.remoteName = profile.displayName
         }
         // CRITICAL: Never update contact status from DHT — DHT mutable records
         // have no TTL and can be stale long after a peer has gone offline.
         // Status must only be updated via real-time P2P events (presence:update,
         // peer:identified) which prove the peer is actually connected right now.
-        // if (profile.status && profile.status !== contact.status) {
-        //   updates.status = profile.status
-        // }
-        if (profile.lastSeen && profile.lastSeen !== contact.lastSeen) {
+        // Le classement P2P-prioritaire du statut est centralisé dans
+        // ChatService.applyDhtProfile (appelé par probeContact ci-dessous).
+        if (profile.lastSeen && profile.lastSeen !== current?.lastSeen) {
           updates.lastSeen = profile.lastSeen
         }
         if (Object.keys(updates).length > 0) {
@@ -77,20 +80,19 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
     } finally {
       setProfileLoading(false)
     }
-  }, [contact.publicKey, contact.displayName, contact.status, contact.lastSeen, updateContact])
+  }, [contact.publicKey, updateContact])
 
-  // Auto-fetch profile on mount and refresh periodically
+  // Auto-fetch profile on mount and refresh periodically. Opening the detail
+  // view is an explicit intent to see that contact: probeContact re-dials the
+  // Noise key and applies a fresh DHT status (throttled) without waiting for
+  // the heartbeat or the 30 s refresh loop.
   useEffect(() => {
     if (isBlocked) return
-    // Small delay to avoid blocking initial render
-    const timer = setTimeout(() => fetchDHTProfile(), 500)
-    // Refresh DHT profile every 60s while the detail view is open
-    const interval = setInterval(() => fetchDHTProfile(), 60000)
-    return () => {
-      clearTimeout(timer)
-      clearInterval(interval)
-    }
-  }, [isBlocked, fetchDHTProfile])
+    chatService.probeContact(contact.publicKey)
+    void fetchDHTProfile()
+    const interval = setInterval(() => { void fetchDHTProfile() }, 60000)
+    return () => clearInterval(interval)
+  }, [isBlocked, contact.publicKey, fetchDHTProfile])
 
   const handleMessage = () => {
     const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
@@ -144,13 +146,22 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
     })
   }
 
-  const handleToggleBlock = () => {
-    if (isBlocked) {
-      unblockContact(contact.publicKey)
-      addToast({ type: 'info', title: t('contacts.unblocked'), duration: 2000 })
-    } else {
+  const handleToggleBlock = async () => {
+    const blocked = !isBlocked
+    // L'état local bascule tout de suite ; le réseau suit, car le blocage
+    // n'est effectif que si le firewall connaît la clé Noise du contact.
+    if (blocked) {
       blockContact(contact.publicKey)
       addToast({ type: 'warning', title: t('contacts.blocked'), duration: 2000 })
+    } else {
+      unblockContact(contact.publicKey)
+      addToast({ type: 'info', title: t('contacts.unblocked'), duration: 2000 })
+    }
+    try {
+      const noiseKey = await window.asgard.network.deriveNoisePublicKey(contact.publicKey)
+      await window.asgard.network.blockPeer(noiseKey, blocked)
+    } catch (err) {
+      console.error('[ContactDetailView] Failed to apply network block:', err)
     }
   }
 

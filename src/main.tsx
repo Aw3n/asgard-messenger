@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import App from './App'
-import '@/i18n/config'
+import { i18nReady } from '@/i18n/config'
 import '@/styles/globals.css'
 
 /**
@@ -17,10 +17,14 @@ if (window.location.hash === '' || window.location.hash === '#/' || window.locat
   window.location.hash = '#/conversations'
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <HashRouter>
-      <App />
-    </HashRouter>
-  </React.StrictMode>
-)
+// La langue enregistrée arrive dans un chunk séparé : on attend sa résolution
+// pour que le premier rendu ne montre pas de clés brutes.
+i18nReady.finally(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <HashRouter>
+        <App />
+      </HashRouter>
+    </React.StrictMode>
+  )
+})

@@ -2,10 +2,12 @@ import { p2pService } from './P2PService'
 import { useCallStore } from '@/stores/callStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useContactStore } from '@/stores/contactStore'
+import { useGroupStore } from '@/stores/groupStore'
 import { useUIStore } from '@/stores/uiStore'
 import { mediaDeviceService } from './MediaDeviceService'
 import { ringtoneService } from './RingtoneService'
 import { toNetworkStatus } from '@/utils/presence'
+import i18n from '@/i18n/config'
 import type { CallRecord, CallType } from '@/stores/callStore'
 
 /**
@@ -286,6 +288,41 @@ class CallService {
   private static readonly BANDWIDTH_CHECK_INTERVAL = 3000 // Check every 3s
   private static readonly LOW_BANDWIDTH_THRESHOLD = 50000 // 50KB/s threshold
 
+  // Call signaling is signed at the envelope level but its fields are free-form:
+  // bound every value that ends up in the call UI, in history or in a media peer
+  // set. Avatars travel in the same image formats as everywhere else.
+  private static readonly MAX_CALL_NAME = 200
+  private static readonly MAX_CALL_GROUP_ID = 128
+  private static readonly MAX_CALL_AVATAR_CHARS = 2 * 1024 * 1024
+  private static readonly CALL_AVATAR_DATA_URL = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/
+  private static readonly HEX_PUBLIC_KEY = /^[0-9a-f]{64}$/i
+
+  private static callName(value: unknown, fallback: string): string {
+    if (typeof value !== 'string') return fallback
+    const trimmed = value.trim()
+    return trimmed ? trimmed.slice(0, CallService.MAX_CALL_NAME) : fallback
+  }
+
+  private static callAvatar(value: unknown): string | undefined {
+    if (typeof value !== 'string' || value.length === 0) return undefined
+    if (value.length > CallService.MAX_CALL_AVATAR_CHARS) return undefined
+    return CallService.CALL_AVATAR_DATA_URL.test(value) ? value : undefined
+  }
+
+  /** Keys of the local roster for a group call, or null when the group is unknown. */
+  private groupCallMembers(groupId: unknown): Set<string> | null {
+    if (typeof groupId !== 'string' || !groupId || groupId.length > CallService.MAX_CALL_GROUP_ID) return null
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group) return null
+    return new Set(group.members.map((member) => member.publicKey))
+  }
+
+  /** Other call participants still present after `leaving` hangs up. */
+  private remainingCallPeers(participants: string[], leaving: string): string[] {
+    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+    return participants.filter((peer) => peer !== leaving && peer !== myPk)
+  }
+
   /**
    * Initialize call listeners for incoming calls and media data.
    */
@@ -300,22 +337,60 @@ class CallService {
     // Listen for incoming call offers
     p2pService.on('message:call:offer', (msg) => {
       console.log(`[CallService] 📞 Incoming call:offer received from ${msg.from?.slice(0, 16)}`, msg.payload)
-      const { type, callerName, callerAvatar, isGroupCall, groupId, groupName, participants } = msg.payload as {
-        type: CallType
-        callerName: string
-        callerAvatar?: string
-        isGroupCall?: boolean
-        groupId?: string
-        groupName?: string
-        participants?: string[]
+      const payload = msg.payload as {
+        type?: unknown
+        callerName?: unknown
+        callerAvatar?: unknown
+        isGroupCall?: unknown
+        groupId?: unknown
+        groupName?: unknown
+        participants?: unknown
       }
+      if (!msg.from || !payload || typeof payload !== 'object') return
+      if (payload.type !== 'audio' && payload.type !== 'video') return
+      const type = payload.type
 
       const contact = useContactStore.getState().getContact(msg.from)
+      // Le blocage coupait déjà les messages, la présence et la saisie ; un
+      // contact bloqué pouvait encore faire sonner et ouvrir la fenêtre d'appel.
+      if (contact?.relation === 'blocked') {
+        p2pService.sendMessage(msg.from, 'call:reject', { reason: 'blocked' }).catch(() => {})
+        return
+      }
+      const callerName = CallService.callName(payload.callerName, msg.from.slice(0, 8))
+
+      // A group call names a group and a roster: accept it only from a member of
+      // a group we know, and keep only participants that belong to that roster.
+      // Otherwise a peer could list strangers and make us send them our media.
+      const isGroupCall = payload.isGroupCall === true
+      let groupId: string | undefined
+      let groupName: string | undefined
+      let participants: string[] | undefined
+      if (isGroupCall) {
+        const members = this.groupCallMembers(payload.groupId)
+        if (!members || !members.has(msg.from)) {
+          console.warn('[CallService] Group call offer refused: sender is not a member of', String(payload.groupId ?? '').slice(0, 16))
+          return
+        }
+        groupId = payload.groupId as string
+        const group = useGroupStore.getState().getGroup(groupId)
+        groupName = CallService.callName(payload.groupName, group?.name ?? 'Group Call')
+        const declared = Array.isArray(payload.participants) ? payload.participants : []
+        participants = [...new Set([
+          msg.from,
+          ...declared.filter(
+            (peer): peer is string => typeof peer === 'string'
+              && CallService.HEX_PUBLIC_KEY.test(peer)
+              && members.has(peer),
+          ),
+        ])]
+      }
+
       const call: CallRecord = {
         id: `call-${Date.now()}`,
         peerId: msg.from,
-        peerName: isGroupCall ? (groupName ?? 'Group Call') : (contact?.displayName ?? callerName ?? msg.from.slice(0, 8)),
-        peerAvatar: contact?.avatar ?? callerAvatar,
+        peerName: isGroupCall ? (groupName ?? 'Group Call') : (contact?.displayName ?? callerName),
+        peerAvatar: contact?.avatar ?? CallService.callAvatar(payload.callerAvatar),
         type,
         status: 'incoming',
         direction: 'incoming',
@@ -326,7 +401,15 @@ class CallService {
         groupName,
         // Store the full participant list so we know who else is in the call
         // (mesh topology — each participant can connect to others directly)
-        participants: participants ?? (isGroupCall ? [msg.from] : undefined),
+        participants: isGroupCall ? participants : undefined,
+      }
+
+      // Already ringing or already in a call: decline instead of silently
+      // replacing the current one (receiveCall() overwrites the ring).
+      if (useCallStore.getState().activeCall || useCallStore.getState().incomingCall) {
+        p2pService.sendMessage(msg.from, 'call:reject', { reason: 'busy' }).catch(() => {})
+        useCallStore.getState().addToHistory({ ...call, status: 'ended', missed: true, endedAt: Date.now() })
+        return
       }
 
       console.log(`[CallService] 📞 Setting up incoming call: ${call.peerName} (${type})`)
@@ -353,11 +436,23 @@ class CallService {
       // Start ringtone for incoming call
       ringtoneService.startRingtone()
 
+      // Attention système quand la fenêtre n'a pas le focus : sans cela, un
+      // appel entrant pendant qu'on travaille ailleurs n'existait qu'en son
+      // (l'overlay et la sonnerie ne se voient pas depuis une autre fenêtre).
+      if (!document.hasFocus()) {
+        window.asgard?.app?.flashFrame(true)
+        const body = isGroupCall
+          ? `${i18n.t('calls.groupCall')}${groupName ? ` · ${groupName}` : ''}`
+          : i18n.t(type === 'video' ? 'calls.incomingVideoCall' : 'calls.incomingAudioCall')
+        window.asgard?.notifications?.show(call.peerName, body)
+      }
+
       // PERFORMANCE: Auto-timeout incoming call after 30s — mark as missed
       if (this._incomingTimeout) clearTimeout(this._incomingTimeout)
       this._incomingTimeout = setTimeout(() => {
         console.log('[CallService] ⏰ Incoming call timed out after 30s — marking as missed')
         ringtoneService.stopRingtone()
+        window.asgard?.app?.flashFrame(false)
         // Send call:reject to let the caller know we didn't answer
         p2pService.sendMessage(msg.from, 'call:reject', {}).catch(() => {})
         useCallStore.getState().endIncomingCall()
@@ -374,6 +469,24 @@ class CallService {
         console.warn('[CallService] ⚠️ call:accept received but no activeCall! Ignoring.')
         return
       }
+
+      // A group call is already connected when its first invitee answers; later
+      // accepts only record attendance. Re-acquiring local media per accept
+      // would cut the camera for everyone already in the call.
+      if (activeCall.isGroupCall) {
+        const members = this.groupCallMembers(activeCall.groupId)
+        const listed = activeCall.participants?.includes(msg.from) ?? false
+        if (!members?.has(msg.from) || !listed) return
+        if (activeCall.status !== 'connected') {
+          useCallStore.getState().setCallStatus('connected')
+        }
+        return
+      }
+
+      // Only the peer we called may turn the call on. Otherwise any connected
+      // contact could start our camera and microphone.
+      if (msg.from !== activeCall.peerId) return
+      if (activeCall.status === 'connected') return
 
       // Cancel incoming call timeout on our side too (shouldn't be set for caller,
       // but safety in case of race conditions)
@@ -393,6 +506,7 @@ class CallService {
       useCallStore.getState().setCallStatus('connected')
       // Stop ringtone and play connect beep
       ringtoneService.stopRingtone()
+      window.asgard?.app?.flashFrame(false)
       ringtoneService.playBeep(800, 150)
 
       // Release any existing local media tracks before acquiring new ones
@@ -446,28 +560,32 @@ class CallService {
 
     // Listen for call rejection
     p2pService.on('message:call:reject', (msg) => {
+      const { activeCall, incomingCall } = useCallStore.getState()
+
+      // GROUP CALL: If a participant rejects, remove them — the call continues.
+      if (activeCall?.isGroupCall) {
+        if (!activeCall.participants?.includes(msg.from)) return
+        ringtoneService.stopRingtone()
+        window.asgard?.app?.flashFrame(false)
+        console.log(`[CallService] Group call participant rejected: ${msg.from.slice(0, 16)}`)
+        useCallStore.getState().removeParticipant(msg.from)
+        this.groupVideoPeers.delete(msg.from)
+        this.groupAudioPeers.delete(msg.from)
+        this.removePeerAudioState(msg.from)
+        this.removePeerVideoState(msg.from)
+        return
+      }
+
+      // A reject only concerns the peer we are calling or waiting for.
+      const peerCall = activeCall ?? incomingCall
+      if (!peerCall || msg.from !== peerCall.peerId) return
+
       ringtoneService.stopRingtone()
+      window.asgard?.app?.flashFrame(false)
       // Cancel incoming call timeout — peer rejected, no need for timeout
       if (this._incomingTimeout) {
         clearTimeout(this._incomingTimeout)
         this._incomingTimeout = null
-      }
-
-      const { activeCall, incomingCall } = useCallStore.getState()
-
-      // GROUP CALL: If a participant rejects, remove them — the call continues.
-      // Only end the call if it's a 1:1 call or if the caller rejects.
-      if (activeCall?.isGroupCall && activeCall.participants) {
-        const senderIsParticipant = activeCall.participants.includes(msg.from) || msg.from === activeCall.peerId
-        if (senderIsParticipant) {
-          console.log(`[CallService] Group call participant rejected: ${msg.from.slice(0, 16)}`)
-          useCallStore.getState().removeParticipant(msg.from)
-          this.groupVideoPeers.delete(msg.from)
-          this.groupAudioPeers.delete(msg.from)
-          this.removePeerAudioState(msg.from)
-          this.removePeerVideoState(msg.from)
-          return
-        }
       }
 
       this.stopMedia()
@@ -480,27 +598,37 @@ class CallService {
 
     // Listen for call end
     p2pService.on('message:call:end', (msg) => {
+      const { activeCall, incomingCall } = useCallStore.getState()
+
+      // GROUP CALL: a participant leaving only removes that participant; the
+      // call survives as long as someone else is still in the mesh.
+      if (activeCall?.isGroupCall) {
+        if (!activeCall.participants?.includes(msg.from)) return
+        ringtoneService.stopRingtone()
+        window.asgard?.app?.flashFrame(false)
+        const remaining = this.remainingCallPeers(activeCall.participants, msg.from)
+        console.log(`[CallService] Group call participant left: ${msg.from.slice(0, 16)}`)
+        useCallStore.getState().removeParticipant(msg.from)
+        this.groupVideoPeers.delete(msg.from)
+        this.groupAudioPeers.delete(msg.from)
+        this.removePeerAudioState(msg.from)
+        this.removePeerVideoState(msg.from)
+        if (remaining.length === 0) {
+          this.stopMedia()
+          useCallStore.getState().endCall()
+        }
+        return
+      }
+
+      // A hangup only concerns the peer we are talking to or waiting for.
+      const peerCall = activeCall ?? incomingCall
+      if (!peerCall || msg.from !== peerCall.peerId) return
+
       ringtoneService.stopRingtone()
-      // Cancel incoming call timeout — call is ending, no need for timeout
+      window.asgard?.app?.flashFrame(false)
       if (this._incomingTimeout) {
         clearTimeout(this._incomingTimeout)
         this._incomingTimeout = null
-      }
-
-      const { activeCall, incomingCall } = useCallStore.getState()
-
-      // GROUP CALL: If this is a group call and the sender is a participant,
-      // remove just that participant — the call continues with remaining members.
-      // Only end the entire call if no participants remain or if it's a 1:1 call.
-      if (activeCall?.isGroupCall && activeCall.participants) {
-        const senderIsParticipant = activeCall.participants.includes(msg.from) || msg.from === activeCall.peerId
-        if (senderIsParticipant && activeCall.participants.length > 1) {
-          console.log(`[CallService] Group call participant left: ${msg.from.slice(0, 16)}`)
-          useCallStore.getState().removeParticipant(msg.from)
-          // Remove from group video peers if active
-          this.groupVideoPeers.delete(msg.from)
-          return
-        }
       }
 
       this.stopMedia()
@@ -519,8 +647,10 @@ class CallService {
     p2pService.on('message:call:participant:left', (msg) => {
       const { activeCall } = useCallStore.getState()
       if (!activeCall?.isGroupCall || !activeCall.participants) return
+      if (!activeCall.participants.includes(msg.from)) return
 
       console.log(`[CallService] Participant left group call: ${msg.from.slice(0, 16)}`)
+      const remaining = this.remainingCallPeers(activeCall.participants, msg.from)
       useCallStore.getState().removeParticipant(msg.from)
 
       // Remove from group video transport
@@ -535,6 +665,11 @@ class CallService {
       this.removePeerAudioState(msg.from)
       console.log(`[CallService] Removed peer from mesh: ${msg.from.slice(0, 16)} (audio: ${this.groupAudioPeers.size}, video: ${this.groupVideoPeers.size})`)
 
+      if (remaining.length === 0) {
+        this.stopMedia()
+        useCallStore.getState().endCall()
+      }
+
       // If this was the current peer for 1:1 transport, we don't need to stop
       // it explicitly — removing from groupVideoPeers is sufficient since the
       // capture loop checks the set before sending frames.
@@ -548,6 +683,14 @@ class CallService {
     p2pService.on('message:call:participant:joined', (msg) => {
       const { activeCall } = useCallStore.getState()
       if (!activeCall?.isGroupCall) return
+
+      // Joining a mesh means receiving our media: only a member of the called
+      // group may do it, and only for the call we are actually in.
+      const payload = msg.payload as { groupId?: unknown } | null
+      if (payload && typeof payload === 'object' && typeof payload.groupId === 'string'
+        && payload.groupId !== activeCall.groupId) return
+      const members = this.groupCallMembers(activeCall.groupId)
+      if (!members?.has(msg.from)) return
 
       console.log(`[CallService] Participant joined group call: ${msg.from.slice(0, 16)}`)
 
@@ -594,7 +737,15 @@ class CallService {
     // Listen for incoming media data from peer
     p2pService.on('media:data', (data: { from: string; data: Uint8Array }) => {
       // Ignore media traffic when no call is active (e.g. file-transfer chunks on shared channel)
-      if (!useCallStore.getState().activeCall) return
+      const activeCall = useCallStore.getState().activeCall
+      if (!activeCall || !data?.from) return
+      // Only the peer, or a member of the group call roster, may feed our call
+      // pipeline: a third contact could otherwise inject audio/video into an
+      // ongoing call.
+      const allowed = activeCall.isGroupCall
+        ? (activeCall.participants?.includes(data.from) ?? false)
+        : data.from === activeCall.peerId
+      if (!allowed) return
       this.handleIncomingMedia(data.data, data.from)
     })
 
@@ -743,6 +894,7 @@ class CallService {
 
     // Stop ringtone immediately when user accepts
     ringtoneService.stopRingtone()
+    window.asgard?.app?.flashFrame(false)
 
     // CRITICAL: Cancel the incoming call auto-timeout — the call is being answered.
     // Without this, the 30s timeout fires during the call, sending call:reject
@@ -854,6 +1006,7 @@ class CallService {
 
     // Stop ringtone when user rejects
     ringtoneService.stopRingtone()
+    window.asgard?.app?.flashFrame(false)
 
     // Cancel incoming call timeout — call is being rejected, not timed out
     if (this._incomingTimeout) {
@@ -896,6 +1049,7 @@ class CallService {
 
     // Stop ringtone in case it's still playing (shouldn't be, but safety)
     ringtoneService.stopRingtone()
+    window.asgard?.app?.flashFrame(false)
 
     this.stopMedia()
 
@@ -1650,11 +1804,11 @@ class CallService {
   private showMissedCallNotification(call: CallRecord): void {
     useUIStore.getState().addToast({
       type: 'warning',
-      title: 'Appel manqué',
-      message: `${call.peerName} a essayé de vous appeler (${call.type === 'video' ? 'vidéo' : 'audio'})`,
+      title: i18n.t('calls.missedCall'),
+      message: i18n.t('calls.missedCallBody', { name: call.peerName }),
       duration: 8000,
       action: {
-        label: 'Rappeler',
+        label: i18n.t('calls.callBack'),
         onClick: () => {
           this.startCall(call.peerId, call.peerName, call.type, call.peerAvatar)
         },
