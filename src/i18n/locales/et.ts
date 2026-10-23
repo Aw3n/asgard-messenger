@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} on ootel",
       "chat.pauseRecording": "Peata salvestamine",
       "chat.resumeRecording": "Jätka salvestamist",
+      "settings.cacheLimitLabel": "Puhvri piirmäär",
+      "settings.cacheLimitDesc": "Sellest piirist üle uute manuste automaatne allalaadimine peatub. Midagi ei kustutata — need on endiselt klõpsuga kättesaadavad.",
+      "settings.cacheLimitReached": "Puhver on täis ({{limit}} MB): uued manused ootavad klõpsu.",
+      "settings.autoDownloadDocumentsDesc": "Laadi dokumendid automaatselt alla",
     }
 }

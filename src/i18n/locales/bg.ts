@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} е на изчакване",
       "chat.pauseRecording": "Пауза на записа",
       "chat.resumeRecording": "Възобновяване на записа",
+      "settings.cacheLimitLabel": "Лимит на кеша",
+      "settings.cacheLimitDesc": "Над този лимит новите прикачени файлове вече не се изтеглят автоматично. Нищо не се изтрива — те си остават достъпни с кликване.",
+      "settings.cacheLimitReached": "Кешът е пълен ({{limit}} MB): новите файлове чакат кликване.",
+      "settings.autoDownloadDocumentsDesc": "Автоматично изтегляне на документи",
     }
 }

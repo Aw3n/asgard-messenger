@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} — laikomas",
       "chat.pauseRecording": "Pristabdyti įrašymą",
       "chat.resumeRecording": "Tęsti įrašymą",
+      "settings.cacheLimitLabel": "Podėlio apribojimas",
+      "settings.cacheLimitDesc": "Viršijus šį apribojimą nauji priedai nebeparsisiunami automatiškai. Niekas nepašalinama — jie vis tiek pasiekiami vienu spustelėjimu.",
+      "settings.cacheLimitReached": "Podėlis pilnas ({{limit}} MB): nauji priedai laukia spustelėjimo.",
+      "settings.autoDownloadDocumentsDesc": "Automatiškai parsisiųsti dokumentus",
     }
 }

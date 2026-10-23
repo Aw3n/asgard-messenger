@@ -913,5 +913,9 @@ export default {
       "calls.peerOnHold": "{{name}} staat in de wacht",
       "chat.pauseRecording": "Opname onderbreken",
       "chat.resumeRecording": "Opname hervatten",
+      "settings.cacheLimitLabel": "Cachelimiet",
+      "settings.cacheLimitDesc": "Boven deze limiet worden nieuwe bijlagen niet meer automatisch gedownload. Er wordt niets verwijderd — ze blijven met een klik beschikbaar.",
+      "settings.cacheLimitReached": "Cache vol ({{limit}} MB): nieuwe bijlagen wachten op een klik.",
+      "settings.autoDownloadDocumentsDesc": "Documenten automatisch downloaden",
     }
 }

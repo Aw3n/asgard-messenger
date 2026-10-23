@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} ar coinneáil",
       "chat.pauseRecording": "Cuir an taifeadadh ar sos",
       "chat.resumeRecording": "Lean den taifeadadh",
+      "settings.cacheLimitLabel": "Teorainn an taoide",
+      "settings.cacheLimitDesc": "Thar an teorainn seo ní íoslódáilte greamáin nua go huathoibríoch a thuilleadh. Ní scriostar aon rud — tá siad ar fáil fós le cliceáil.",
+      "settings.cacheLimitReached": "Tá an taoide lán ({{limit}} MB): cliceáil chun greamáin nua a íoslódáil.",
+      "settings.autoDownloadDocumentsDesc": "Íoslódáil doiciméid go huathoibríoch",
     }
 }

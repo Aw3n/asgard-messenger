@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} — zadržen",
       "chat.pauseRecording": "Začasno ustavi snemanje",
       "chat.resumeRecording": "Nadaljuj snemanje",
+      "settings.cacheLimitLabel": "Meja predpomnilnika",
+      "settings.cacheLimitDesc": "Nad to mejo se nove priponke ne prenašajo samodejno. Nič se ne izbriše — še vedno so na voljo z enim klikom.",
+      "settings.cacheLimitReached": "Predpomnilnik je poln ({{limit}} MB): nove priponke čakajo na klik.",
+      "settings.autoDownloadDocumentsDesc": "Samodejno prenese dokumente",
     }
 }

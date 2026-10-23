@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} fil-pawża",
       "chat.pauseRecording": "Pawża r-reġistrazzjoni",
       "chat.resumeRecording": "Kompli r-reġistrazzjoni",
+      "settings.cacheLimitLabel": "Limitu tal-cache",
+      "settings.cacheLimitDesc": "Overs dan il-limitu, l-anness ġodda ma jitniżżlu awtomatikament aktar. Xejn ma jitħassar — jibqgħu disponibbli b’klikk.",
+      "settings.cacheLimitReached": "Il-cache mimlija ({{limit}} MB): l-anness ġodda jistennew klikk.",
+      "settings.autoDownloadDocumentsDesc": "Niżżel id-dokumenti awtomatikament",
     }
 }

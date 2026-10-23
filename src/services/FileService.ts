@@ -32,6 +32,13 @@ const FILE_TRANSFER_MARKER = 0x04
 const SPEED_WINDOW_MS = 3000
 
 /**
+ * Fraîcheur de la mesure du stockage local. Le plafond réglé se compare à la
+ * taille réelle, et cette taille coûte un appel IPC : une salve de pièces
+ * jointes entrantes ne doit pas le payer fichier après fichier.
+ */
+const CACHE_SIZE_FRESH_MS = 30_000
+
+/**
  * Bornes des transferts entrants. Une metadata est une déclaration du pair :
  * sans plafonds, un `size` ou un `totalChunks` arbitraire faisait accumuler en
  * RAM tout ce que l'expéditeur voulait bien annoncer. 2 Gio couvre les fichiers
@@ -346,6 +353,11 @@ class FileService {
   // URL réellement résolvable d'un fantôme et de relire le blob.
   private liveUrls = new Set<string>()
   private urlByBlobKey = new Map<string, string>()
+  // PLAFOND DE CACHE : dernière mesure du stockage local (null = jamais mesuré
+  // ou mesure ratée) et franchissement déjà annoncé ou non.
+  private cacheBytes: number | null = null
+  private cacheMeasuredAt = 0
+  private cacheLimitAnnounced = false
 
   initialize(): void {
     p2pService.on('message:file:transfer', (msg: ProtocolMessage) => {
@@ -1344,9 +1356,10 @@ class FileService {
     try {
       const blobId = await storageService.putBlob(bytes.buffer as ArrayBuffer)
       attachment.blobKey = blobId
-      // STORAGE SETTINGS (autoDownload): small inline files resolve inline for
-      // images; other types follow the auto-download toggles.
-      if (this.shouldAutoDownload(attachment.type, bytes.length, !!attachment.thumbnail)) {
+      this.creditCacheBytes(bytes.length)
+      // STORAGE SETTINGS (autoDownload + cacheSize): les bascules par type et le
+      // plafond mesuré décident ensemble de la matérialisation immédiate.
+      if (await this.willAutoDownload(attachment.type, bytes.length)) {
         attachment.localUrl = this.createLocalUrl(bytes, attachment.mimeType, blobId)
       }
     } catch (err) {
@@ -1522,20 +1535,88 @@ class FileService {
   }
 
   /**
-   * STORAGE SETTINGS (autoDownload): decide whether a received attachment is
-   * materialized as a local blob URL immediately. Images (and anything with a
-   * thumbnail) always render inline; other types follow the per-type toggles
-   * and the maxSize threshold (MB).
+   * STORAGE SETTINGS (autoDownload): ce que les bascules de l'utilisateur disent
+   * de ce type de pièce jointe, plafond de cache non compris. La bascule
+   * « images » n'était pas lue : les images se matérialisaient toujours, et une
+   * vignette forcée le même sort pour les types refusés. Les seuils par type
+   * décident donc désormais seuls ; `maxSize` reste le plafond des fichiers
+   * lourds, les images y échappent comme avant.
    */
-  private shouldAutoDownload(type: string, size: number, hasThumbnail: boolean): boolean {
-    if (type === 'image' || hasThumbnail) return true
+  private autoDownloadBySetting(type: string, size: number): boolean {
     const autoDl = useUIStore.getState().settings.storage.autoDownload
+    if (type === 'image') return autoDl.images
     const maxBytes = (autoDl.maxSize ?? 50) * 1024 * 1024
     if (size > maxBytes) return false
     if (type === 'video') return autoDl.videos
     if (type === 'audio' || type === 'voice') return autoDl.audio
     if (type === 'document') return autoDl.documents
     return false
+  }
+
+  /**
+   * STORAGE SETTINGS (cacheSize): le plafond affiché sous la barre de stockage
+   * doit peser quelque chose. Il se compare à la taille réellement mesurée. Une
+   * mesure qui échoue ne refuse rien : l'utilisateur ne doit pas perdre ses
+   * téléchargements automatiques parce qu'un sondage a raté. Redescendre sous le
+   * plafond réarme l'annonce, sans quoi un plafond relevé puis retraversé
+   * resterait muet.
+   */
+  private async isCacheAtLimit(): Promise<boolean> {
+    const limitMb = useUIStore.getState().settings.storage.cacheSize
+    if (!(limitMb > 0)) return false
+    const now = Date.now()
+    if (this.cacheBytes === null || now - this.cacheMeasuredAt >= CACHE_SIZE_FRESH_MS) {
+      try {
+        this.cacheBytes = await storageService.getSize()
+        this.cacheMeasuredAt = now
+      } catch {
+        this.cacheBytes = null
+        return false
+      }
+    }
+    const atLimit = this.cacheBytes >= limitMb * 1024 * 1024
+    if (!atLimit) this.cacheLimitAnnounced = false
+    return atLimit
+  }
+
+  /**
+   * Une seule annonce par franchissement : trente pièces jointes refusées ne
+   * valent pas trente toasts identiques.
+   */
+  private announceCacheLimit(): void {
+    if (this.cacheLimitAnnounced) return
+    this.cacheLimitAnnounced = true
+    const limitMb = useUIStore.getState().settings.storage.cacheSize
+    useUIStore.getState().addToast({
+      type: 'warning',
+      title: i18n.t('settings.storage'),
+      message: i18n.t('settings.cacheLimitReached', { limit: limitMb }),
+      duration: 8000,
+    })
+  }
+
+  /**
+   * Décision finale, commune aux deux chemins de réception (inline et binaire).
+   * Le plafond refuse : il ne purge rien. Le blob reçu reste sur disque et la
+   * bulle propose de le charger au clic — supprimer du média déjà reçu serait
+   * une décision bien plus lourde qu'un réglage de confort.
+   */
+  private async willAutoDownload(type: string, size: number): Promise<boolean> {
+    if (!this.autoDownloadBySetting(type, size)) return false
+    if (await this.isCacheAtLimit()) {
+      this.announceCacheLimit()
+      return false
+    }
+    return true
+  }
+
+  /**
+   * Le blob qu'on vient d'écrire agrandit la mesure : sans ce crédit, la valeur
+   * en mémoire sous-estimerait le cache pendant toute sa fenêtre de fraîcheur et
+   * une salve de fichiers traverserait le plafond sans le voir.
+   */
+  private creditCacheBytes(size: number): void {
+    if (this.cacheBytes !== null) this.cacheBytes += size
   }
 
   private async handleFileComplete(msg: ProtocolMessage): Promise<void> {
@@ -1608,10 +1689,12 @@ class FileService {
       console.log('[FileService] Storing received blob:', transferId, 'size:', assembled.length)
       const blobId = await storageService.putBlob(assembled.buffer as ArrayBuffer)
       buf.attachment.blobKey = blobId
+      this.creditCacheBytes(assembled.length)
       console.log('[FileService] ✅ Received blob stored:', transferId, 'blobId:', blobId)
-      // STORAGE SETTINGS (autoDownload): materialize the blob URL immediately
-      // for images (always inline) and for types the user auto-downloads.
-      if (this.shouldAutoDownload(buf.attachment.type, assembled.length, !!buf.attachment.thumbnail)) {
+      // STORAGE SETTINGS (autoDownload + cacheSize): matérialisation immédiate
+      // seulement si les bascules le veulent et si le cache n'a pas atteint son
+      // plafond ; sinon la bulle attend un clic.
+      if (await this.willAutoDownload(buf.attachment.type, assembled.length)) {
         buf.attachment.localUrl = this.createLocalUrl(assembled, buf.attachment.mimeType, blobId)
       }
     } catch (err) {

@@ -912,6 +912,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} est en attente",
       "chat.pauseRecording": "Mettre en pause l’enregistrement",
       "chat.resumeRecording": "Reprendre l’enregistrement",
+      "settings.cacheLimitLabel": "Plafond du cache",
+      "settings.cacheLimitDesc": "Au-delà de ce plafond, les nouvelles pièces jointes ne se téléchargent plus automatiquement. Rien n’est supprimé : elles restent accessibles au clic.",
+      "settings.cacheLimitReached": "Cache plein ({{limit}} Mo) : les nouvelles pièces jointes attendront un clic.",
+      "settings.autoDownloadDocumentsDesc": "Télécharger automatiquement les documents",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1827,6 +1831,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} staat in de wacht",
       "chat.pauseRecording": "Opname onderbreken",
       "chat.resumeRecording": "Opname hervatten",
+      "settings.cacheLimitLabel": "Cachelimiet",
+      "settings.cacheLimitDesc": "Boven deze limiet worden nieuwe bijlagen niet meer automatisch gedownload. Er wordt niets verwijderd — ze blijven met een klik beschikbaar.",
+      "settings.cacheLimitReached": "Cache vol ({{limit}} MB): nieuwe bijlagen wachten op een klik.",
+      "settings.autoDownloadDocumentsDesc": "Documenten automatisch downloaden",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2742,6 +2750,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} hat den Anruf gehalten",
       "chat.pauseRecording": "Aufnahme pausieren",
       "chat.resumeRecording": "Aufnahme fortsetzen",
+      "settings.cacheLimitLabel": "Grenze für den Cache",
+      "settings.cacheLimitDesc": "Oberhalb dieser Grenze werden neue Anhänge nicht mehr automatisch heruntergeladen. Es wird nichts gelöscht — sie bleiben per Klick verfügbar.",
+      "settings.cacheLimitReached": "Cache voll ({{limit}} MB): neue Anhänge warten auf einen Klick.",
+      "settings.autoDownloadDocumentsDesc": "Dokumente automatisch herunterladen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3657,6 +3669,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} è in attesa",
       "chat.pauseRecording": "Metti in pausa la registrazione",
       "chat.resumeRecording": "Riprendi la registrazione",
+      "settings.cacheLimitLabel": "Limite della cache",
+      "settings.cacheLimitDesc": "Oltre questo limite i nuovi allegati non si scaricano più automaticamente. Nulla viene eliminato: restano disponibili con un clic.",
+      "settings.cacheLimitReached": "Cache piena ({{limit}} MB): i nuovi allegati aspetteranno un clic.",
+      "settings.autoDownloadDocumentsDesc": "Scarica automaticamente i documenti",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4572,6 +4588,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} está en espera",
       "chat.pauseRecording": "Pausar grabación",
       "chat.resumeRecording": "Reanudar grabación",
+      "settings.cacheLimitLabel": "Límite de la caché",
+      "settings.cacheLimitDesc": "Por encima de este límite, los archivos nuevos ya no se descargan automáticamente. No se borra nada: siguen disponibles con un clic.",
+      "settings.cacheLimitReached": "Caché llena ({{limit}} MB): los archivos nuevos esperarán un clic.",
+      "settings.autoDownloadDocumentsDesc": "Descargar automáticamente los documentos",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5488,6 +5508,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} está em espera",
       "chat.pauseRecording": "Pausar gravação",
       "chat.resumeRecording": "Retomar gravação",
+      "settings.cacheLimitLabel": "Limite da cache",
+      "settings.cacheLimitDesc": "Acima deste limite, os novos anexos deixam de ser transferidos automaticamente. Nada é apagado: continuam disponíveis com um clique.",
+      "settings.cacheLimitReached": "Cache cheia ({{limit}} MB): os novos anexos aguardarão um clique.",
+      "settings.autoDownloadDocumentsDesc": "Transferir automaticamente os documentos",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6404,6 +6428,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} είναι σε αναμονή",
       "chat.pauseRecording": "Παύση εγγραφής",
       "chat.resumeRecording": "Συνέχιση εγγραφής",
+      "settings.cacheLimitLabel": "Όριο προσωρινής μνήμης",
+      "settings.cacheLimitDesc": "Πάνω από αυτό το όριο, τα νέα συνημμένα δεν κατεβαίνουν αυτόματα. Τίποτα δεν διαγράφεται: παραμένουν διαθέσιμα με ένα κλικ.",
+      "settings.cacheLimitReached": "Η προσωρινή μνήμη είναι γεμάτη ({{limit}} MB): τα νέα συνημμένα περιμένουν κλικ.",
+      "settings.autoDownloadDocumentsDesc": "Αυτόματη λήψη εγγράφων",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7320,6 +7348,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} er på pause",
       "chat.pauseRecording": "Sæt optagelsen på pause",
       "chat.resumeRecording": "Genoptag optagelsen",
+      "settings.cacheLimitLabel": "Cache-grænse",
+      "settings.cacheLimitDesc": "Over denne grænse bliver nye vedhæftede filer ikke downloadet automatisk længere. Intet slettes — de er stadig tilgængelige med et klik.",
+      "settings.cacheLimitReached": "Cachen er fuld ({{limit}} MB): nye vedhæftede filer venter på et klik.",
+      "settings.autoDownloadDocumentsDesc": "Download dokumenter automatisk",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -8236,6 +8268,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} on pidossa",
       "chat.pauseRecording": "Keskeytä tallennus",
       "chat.resumeRecording": "Jatka tallennusta",
+      "settings.cacheLimitLabel": "Välimuistin raja",
+      "settings.cacheLimitDesc": "Tämän rajan ylittäviä uusia liitteitä ei enää ladata automaattisesti. Mitään ei poisteta — ne ovat yhä ladattavissa napautuksella.",
+      "settings.cacheLimitReached": "Välimuisti on täynnä ({{limit}} MB): uudet liitteet odottavat napautusta.",
+      "settings.autoDownloadDocumentsDesc": "Lataa asiakirjat automaattisesti",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -9152,6 +9188,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} är på vänt",
       "chat.pauseRecording": "Pausa inspelningen",
       "chat.resumeRecording": "Återuppta inspelningen",
+      "settings.cacheLimitLabel": "Cachegräns",
+      "settings.cacheLimitDesc": "Över denna gräns hämtas nya bilagor inte automatiskt längre. Inget raderas — de finns kvar att öppna med ett klick.",
+      "settings.cacheLimitReached": "Cachen är full ({{limit}} MB): nya bilagor väntar på ett klick.",
+      "settings.autoDownloadDocumentsDesc": "Ladda ner dokument automatiskt",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -10068,6 +10108,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} je na čekanju",
       "chat.pauseRecording": "Zaustavi snimanje",
       "chat.resumeRecording": "Nastavi snimanje",
+      "settings.cacheLimitLabel": "Granica predmemorije",
+      "settings.cacheLimitDesc": "Iznad tog ograničenja se nove privitke više ne preuzimaju automatski. Ništa se ne briše — i dalje su dostupne jednim klikom.",
+      "settings.cacheLimitReached": "Predmemorija je puna ({{limit}} MB): nove privitke čekaju klik.",
+      "settings.autoDownloadDocumentsDesc": "Automatski preuzmi dokumente",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10984,6 +11028,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} on ootel",
       "chat.pauseRecording": "Peata salvestamine",
       "chat.resumeRecording": "Jätka salvestamist",
+      "settings.cacheLimitLabel": "Puhvri piirmäär",
+      "settings.cacheLimitDesc": "Sellest piirist üle uute manuste automaatne allalaadimine peatub. Midagi ei kustutata — need on endiselt klõpsuga kättesaadavad.",
+      "settings.cacheLimitReached": "Puhver on täis ({{limit}} MB): uued manused ootavad klõpsu.",
+      "settings.autoDownloadDocumentsDesc": "Laadi dokumendid automaatselt alla",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11900,6 +11948,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} tartásban van",
       "chat.pauseRecording": "Felvétel szüneteltetése",
       "chat.resumeRecording": "Felvétel folytatása",
+      "settings.cacheLimitLabel": "Gyorsítótár korlátja",
+      "settings.cacheLimitDesc": "Ezen a korláton túl az új csatolmányok nem töltődnek le automatikusan. Semmi sem törlődik — egy kattintással továbbra is elérhetők.",
+      "settings.cacheLimitReached": "A gyorsítótár tele van ({{limit}} MB): az új csatolmányok kattintásra várnak.",
+      "settings.autoDownloadDocumentsDesc": "Dokumentumok automatikus letöltése",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12816,6 +12868,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} — aizturēts",
       "chat.pauseRecording": "Pauzēt ierakstu",
       "chat.resumeRecording": "Turpināt ierakstu",
+      "settings.cacheLimitLabel": "Kešatmiņas limits",
+      "settings.cacheLimitDesc": "Pārsniedzot šo limitu, jaunās pievienotnes vairs netiek lejupielādētas automātiski. Nekas netiek dzēsts — tās joprojām ir pieejamas ar klikšķi.",
+      "settings.cacheLimitReached": "Kešatmiņa ir pilna ({{limit}} MB): jaunās pievienotnes gaida klikšķi.",
+      "settings.autoDownloadDocumentsDesc": "Automātiski lejupielādēt dokumentus",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13732,6 +13788,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} — laikomas",
       "chat.pauseRecording": "Pristabdyti įrašymą",
       "chat.resumeRecording": "Tęsti įrašymą",
+      "settings.cacheLimitLabel": "Podėlio apribojimas",
+      "settings.cacheLimitDesc": "Viršijus šį apribojimą nauji priedai nebeparsisiunami automatiškai. Niekas nepašalinama — jie vis tiek pasiekiami vienu spustelėjimu.",
+      "settings.cacheLimitReached": "Podėlis pilnas ({{limit}} MB): nauji priedai laukia spustelėjimo.",
+      "settings.autoDownloadDocumentsDesc": "Automatiškai parsisiųsti dokumentus",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14648,6 +14708,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} fil-pawża",
       "chat.pauseRecording": "Pawża r-reġistrazzjoni",
       "chat.resumeRecording": "Kompli r-reġistrazzjoni",
+      "settings.cacheLimitLabel": "Limitu tal-cache",
+      "settings.cacheLimitDesc": "Overs dan il-limitu, l-anness ġodda ma jitniżżlu awtomatikament aktar. Xejn ma jitħassar — jibqgħu disponibbli b’klikk.",
+      "settings.cacheLimitReached": "Il-cache mimlija ({{limit}} MB): l-anness ġodda jistennew klikk.",
+      "settings.autoDownloadDocumentsDesc": "Niżżel id-dokumenti awtomatikament",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -15564,6 +15628,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} — połączenie wstrzymane",
       "chat.pauseRecording": "Wstrzymaj nagrywanie",
       "chat.resumeRecording": "Wznów nagrywanie",
+      "settings.cacheLimitLabel": "Limit pamięci podręcznej",
+      "settings.cacheLimitDesc": "Powyżej tego limitu nowe załączniki nie pobierają się automatycznie. Nic nie jest usuwane — nadal są dostępne po kliknięciu.",
+      "settings.cacheLimitReached": "Pamięć podręczna pełna ({{limit}} MB): nowe załączniki wymagają kliknięcia.",
+      "settings.autoDownloadDocumentsDesc": "Automatycznie pobieraj dokumenty",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -16480,6 +16548,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} — pozastavený",
       "chat.pauseRecording": "Pozastaviť nahrávanie",
       "chat.resumeRecording": "Pokračovať v nahrávaní",
+      "settings.cacheLimitLabel": "Limit cache",
+      "settings.cacheLimitDesc": "Nad tento limit sa nové prílohy už nesťahujú automaticky. Nič sa neodstraňuje — stále sú dostupné kliknutím.",
+      "settings.cacheLimitReached": "Cache je plná ({{limit}} MB): nové prílohy čakajú na kliknutie.",
+      "settings.autoDownloadDocumentsDesc": "Automaticky sťahovať dokumenty",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -17396,6 +17468,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} — zadržen",
       "chat.pauseRecording": "Začasno ustavi snemanje",
       "chat.resumeRecording": "Nadaljuj snemanje",
+      "settings.cacheLimitLabel": "Meja predpomnilnika",
+      "settings.cacheLimitDesc": "Nad to mejo se nove priponke ne prenašajo samodejno. Nič se ne izbriše — še vedno so na voljo z enim klikom.",
+      "settings.cacheLimitReached": "Predpomnilnik je poln ({{limit}} MB): nove priponke čakajo na klik.",
+      "settings.autoDownloadDocumentsDesc": "Samodejno prenese dokumente",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -18312,6 +18388,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} — pozastaven",
       "chat.pauseRecording": "Pozastavit nahrávání",
       "chat.resumeRecording": "Pokračovat v nahrávání",
+      "settings.cacheLimitLabel": "Limit cache",
+      "settings.cacheLimitDesc": "Nad tento limit se nové přílohy již nestahují automaticky. Nic se nemaže — stále jsou dostupné jedním kliknutím.",
+      "settings.cacheLimitReached": "Cache je plná ({{limit}} MB): nové přílohy čekají na kliknutí.",
+      "settings.autoDownloadDocumentsDesc": "Automaticky stahovat dokumenty",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -19228,6 +19308,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} е на изчакване",
       "chat.pauseRecording": "Пауза на записа",
       "chat.resumeRecording": "Възобновяване на записа",
+      "settings.cacheLimitLabel": "Лимит на кеша",
+      "settings.cacheLimitDesc": "Над този лимит новите прикачени файлове вече не се изтеглят автоматично. Нищо не се изтрива — те си остават достъпни с кликване.",
+      "settings.cacheLimitReached": "Кешът е пълен ({{limit}} MB): новите файлове чакат кликване.",
+      "settings.autoDownloadDocumentsDesc": "Автоматично изтегляне на документи",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -20144,6 +20228,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} ar coinneáil",
       "chat.pauseRecording": "Cuir an taifeadadh ar sos",
       "chat.resumeRecording": "Lean den taifeadadh",
+      "settings.cacheLimitLabel": "Teorainn an taoide",
+      "settings.cacheLimitDesc": "Thar an teorainn seo ní íoslódáilte greamáin nua go huathoibríoch a thuilleadh. Ní scriostar aon rud — tá siad ar fáil fós le cliceáil.",
+      "settings.cacheLimitReached": "Tá an taoide lán ({{limit}} MB): cliceáil chun greamáin nua a íoslódáil.",
+      "settings.autoDownloadDocumentsDesc": "Íoslódáil doiciméid go huathoibríoch",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -21060,6 +21148,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} este în așteptare",
       "chat.pauseRecording": "Pune în pauză înregistrarea",
       "chat.resumeRecording": "Reia înregistrarea",
+      "settings.cacheLimitLabel": "Limita cache-ului",
+      "settings.cacheLimitDesc": "Peste această limită, atașamentele noi nu se mai descarcă automat. Nimic nu se șterge — rămân la un clic distanță.",
+      "settings.cacheLimitReached": "Cache plin ({{limit}} MB): atașamentele noi așteaptă un clic.",
+      "settings.autoDownloadDocumentsDesc": "Descarcă automat documentele",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21985,6 +22077,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} is on hold",
       "chat.pauseRecording": "Pause recording",
       "chat.resumeRecording": "Resume recording",
+      "settings.cacheLimitLabel": "Cache limit",
+      "settings.cacheLimitDesc": "Above this limit, new attachments no longer download automatically. Nothing is deleted — they stay available with a click.",
+      "settings.cacheLimitReached": "Cache full ({{limit}} MB): new attachments will wait for a click.",
+      "settings.autoDownloadDocumentsDesc": "Automatically download documents",
     }
   },
 
@@ -22902,6 +22998,10 @@ export const translations = {
       "calls.peerOnHold": "{{name}} на утриманні",
       "chat.pauseRecording": "Призупинити запис",
       "chat.resumeRecording": "Відновити запис",
+      "settings.cacheLimitLabel": "Обмеження кешу",
+      "settings.cacheLimitDesc": "Після цього обмеження нові вкладення вже не завантажуються автоматично. Ніщо не видаляється — вони залишаються доступними одним клацанням.",
+      "settings.cacheLimitReached": "Кеш заповнено ({{limit}} MB): нові вкладення чекатимуть на клацання.",
+      "settings.autoDownloadDocumentsDesc": "Автоматично завантажувати документи",
     }
   },
 }

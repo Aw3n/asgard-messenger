@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} je na čekanju",
       "chat.pauseRecording": "Zaustavi snimanje",
       "chat.resumeRecording": "Nastavi snimanje",
+      "settings.cacheLimitLabel": "Granica predmemorije",
+      "settings.cacheLimitDesc": "Iznad tog ograničenja se nove privitke više ne preuzimaju automatski. Ništa se ne briše — i dalje su dostupne jednim klikom.",
+      "settings.cacheLimitReached": "Predmemorija je puna ({{limit}} MB): nove privitke čekaju klik.",
+      "settings.autoDownloadDocumentsDesc": "Automatski preuzmi dokumente",
     }
 }

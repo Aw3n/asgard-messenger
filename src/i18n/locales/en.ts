@@ -923,5 +923,9 @@ export default {
       "calls.peerOnHold": "{{name}} is on hold",
       "chat.pauseRecording": "Pause recording",
       "chat.resumeRecording": "Resume recording",
+      "settings.cacheLimitLabel": "Cache limit",
+      "settings.cacheLimitDesc": "Above this limit, new attachments no longer download automatically. Nothing is deleted — they stay available with a click.",
+      "settings.cacheLimitReached": "Cache full ({{limit}} MB): new attachments will wait for a click.",
+      "settings.autoDownloadDocumentsDesc": "Automatically download documents",
     }
 }

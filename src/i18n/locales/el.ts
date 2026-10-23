@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} είναι σε αναμονή",
       "chat.pauseRecording": "Παύση εγγραφής",
       "chat.resumeRecording": "Συνέχιση εγγραφής",
+      "settings.cacheLimitLabel": "Όριο προσωρινής μνήμης",
+      "settings.cacheLimitDesc": "Πάνω από αυτό το όριο, τα νέα συνημμένα δεν κατεβαίνουν αυτόματα. Τίποτα δεν διαγράφεται: παραμένουν διαθέσιμα με ένα κλικ.",
+      "settings.cacheLimitReached": "Η προσωρινή μνήμη είναι γεμάτη ({{limit}} MB): τα νέα συνημμένα περιμένουν κλικ.",
+      "settings.autoDownloadDocumentsDesc": "Αυτόματη λήψη εγγράφων",
     }
 }

@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} — pozastavený",
       "chat.pauseRecording": "Pozastaviť nahrávanie",
       "chat.resumeRecording": "Pokračovať v nahrávaní",
+      "settings.cacheLimitLabel": "Limit cache",
+      "settings.cacheLimitDesc": "Nad tento limit sa nové prílohy už nesťahujú automaticky. Nič sa neodstraňuje — stále sú dostupné kliknutím.",
+      "settings.cacheLimitReached": "Cache je plná ({{limit}} MB): nové prílohy čakajú na kliknutie.",
+      "settings.autoDownloadDocumentsDesc": "Automaticky sťahovať dokumenty",
     }
 }

@@ -913,5 +913,9 @@ export default {
       "calls.peerOnHold": "{{name}} hat den Anruf gehalten",
       "chat.pauseRecording": "Aufnahme pausieren",
       "chat.resumeRecording": "Aufnahme fortsetzen",
+      "settings.cacheLimitLabel": "Grenze für den Cache",
+      "settings.cacheLimitDesc": "Oberhalb dieser Grenze werden neue Anhänge nicht mehr automatisch heruntergeladen. Es wird nichts gelöscht — sie bleiben per Klick verfügbar.",
+      "settings.cacheLimitReached": "Cache voll ({{limit}} MB): neue Anhänge warten auf einen Klick.",
+      "settings.autoDownloadDocumentsDesc": "Dokumente automatisch herunterladen",
     }
 }

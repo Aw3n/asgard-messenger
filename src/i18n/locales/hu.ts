@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} tartásban van",
       "chat.pauseRecording": "Felvétel szüneteltetése",
       "chat.resumeRecording": "Felvétel folytatása",
+      "settings.cacheLimitLabel": "Gyorsítótár korlátja",
+      "settings.cacheLimitDesc": "Ezen a korláton túl az új csatolmányok nem töltődnek le automatikusan. Semmi sem törlődik — egy kattintással továbbra is elérhetők.",
+      "settings.cacheLimitReached": "A gyorsítótár tele van ({{limit}} MB): az új csatolmányok kattintásra várnak.",
+      "settings.autoDownloadDocumentsDesc": "Dokumentumok automatikus letöltése",
     }
 }

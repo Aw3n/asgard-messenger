@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} er på pause",
       "chat.pauseRecording": "Sæt optagelsen på pause",
       "chat.resumeRecording": "Genoptag optagelsen",
+      "settings.cacheLimitLabel": "Cache-grænse",
+      "settings.cacheLimitDesc": "Over denne grænse bliver nye vedhæftede filer ikke downloadet automatisk længere. Intet slettes — de er stadig tilgængelige med et klik.",
+      "settings.cacheLimitReached": "Cachen er fuld ({{limit}} MB): nye vedhæftede filer venter på et klik.",
+      "settings.autoDownloadDocumentsDesc": "Download dokumenter automatisk",
     }
 }

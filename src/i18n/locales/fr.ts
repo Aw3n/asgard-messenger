@@ -913,5 +913,9 @@ export default {
       "calls.peerOnHold": "{{name}} est en attente",
       "chat.pauseRecording": "Mettre en pause l’enregistrement",
       "chat.resumeRecording": "Reprendre l’enregistrement",
+      "settings.cacheLimitLabel": "Plafond du cache",
+      "settings.cacheLimitDesc": "Au-delà de ce plafond, les nouvelles pièces jointes ne se téléchargent plus automatiquement. Rien n’est supprimé : elles restent accessibles au clic.",
+      "settings.cacheLimitReached": "Cache plein ({{limit}} Mo) : les nouvelles pièces jointes attendront un clic.",
+      "settings.autoDownloadDocumentsDesc": "Télécharger automatiquement les documents",
     }
 }

@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} на утриманні",
       "chat.pauseRecording": "Призупинити запис",
       "chat.resumeRecording": "Відновити запис",
+      "settings.cacheLimitLabel": "Обмеження кешу",
+      "settings.cacheLimitDesc": "Після цього обмеження нові вкладення вже не завантажуються автоматично. Ніщо не видаляється — вони залишаються доступними одним клацанням.",
+      "settings.cacheLimitReached": "Кеш заповнено ({{limit}} MB): нові вкладення чекатимуть на клацання.",
+      "settings.autoDownloadDocumentsDesc": "Автоматично завантажувати документи",
     }
 }

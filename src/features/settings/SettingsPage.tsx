@@ -1123,6 +1123,7 @@ const StorageSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
+  const cacheLimitId = React.useId()
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [realStorageSize, setRealStorageSize] = useState<number | null>(null)
@@ -1216,6 +1217,34 @@ return (
             <p className="text-xs text-asgard-text-muted">
               {realStorageSize !== null ? formatBytes(usedBytes) : '...'} {t('settings.usedOf')} {settings.storage.cacheSize} MB ({usedPercent}%)
             </p>
+            <div className="mt-4">
+              <label htmlFor={cacheLimitId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
+                {t('settings.cacheLimitLabel')}
+              </label>
+              <input
+                id={cacheLimitId}
+                type="range"
+                min={100}
+                max={5000}
+                step={100}
+                value={settings.storage.cacheSize}
+                onChange={(e) =>
+                  updateSettings({
+                    storage: { ...settings.storage, cacheSize: parseInt(e.target.value) },
+                  })
+                }
+                className="w-full accent-asgard-glacier"
+              />
+              <div className="flex justify-between text-xs text-asgard-text-muted mt-1">
+                <span>100</span>
+                <span className="text-asgard-glacier font-medium">{settings.storage.cacheSize} {t('settings.mbLimit')}</span>
+                <span>5000</span>
+              </div>
+              <p className="text-xs text-asgard-text-muted mt-2">{t('settings.cacheLimitDesc')}</p>
+              {usedPercent >= 100 && (
+                <p className="text-xs text-asgard-busy mt-2">{t('settings.cacheLimitReached', { limit: settings.storage.cacheSize })}</p>
+              )}
+            </div>
           </div>
 
           <div>
@@ -1256,6 +1285,19 @@ return (
                     storage: {
                       ...settings.storage,
                       autoDownload: { ...settings.storage.autoDownload, videos: v },
+                    },
+                  })
+                }
+              />
+              <ToggleRow
+                label={t('settings.documents')}
+                description={t('settings.autoDownloadDocumentsDesc')}
+                checked={settings.storage.autoDownload.documents}
+                onChange={(v) =>
+                  updateSettings({
+                    storage: {
+                      ...settings.storage,
+                      autoDownload: { ...settings.storage.autoDownload, documents: v },
                     },
                   })
                 }
@@ -1747,6 +1789,9 @@ const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, checked, onCh
     </div>
     <button
       role="switch"
+      // Le titre est un <p> côte à côte, pas un <label> : sans nom, chaque
+      // interrupteur de la page s'annonçait « commutateur » tout seul.
+      aria-label={label}
       aria-checked={checked}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}

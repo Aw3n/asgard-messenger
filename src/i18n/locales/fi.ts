@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} on pidossa",
       "chat.pauseRecording": "Keskeytä tallennus",
       "chat.resumeRecording": "Jatka tallennusta",
+      "settings.cacheLimitLabel": "Välimuistin raja",
+      "settings.cacheLimitDesc": "Tämän rajan ylittäviä uusia liitteitä ei enää ladata automaattisesti. Mitään ei poisteta — ne ovat yhä ladattavissa napautuksella.",
+      "settings.cacheLimitReached": "Välimuisti on täynnä ({{limit}} MB): uudet liitteet odottavat napautusta.",
+      "settings.autoDownloadDocumentsDesc": "Lataa asiakirjat automaattisesti",
     }
 }

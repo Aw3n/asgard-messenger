@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} — połączenie wstrzymane",
       "chat.pauseRecording": "Wstrzymaj nagrywanie",
       "chat.resumeRecording": "Wznów nagrywanie",
+      "settings.cacheLimitLabel": "Limit pamięci podręcznej",
+      "settings.cacheLimitDesc": "Powyżej tego limitu nowe załączniki nie pobierają się automatycznie. Nic nie jest usuwane — nadal są dostępne po kliknięciu.",
+      "settings.cacheLimitReached": "Pamięć podręczna pełna ({{limit}} MB): nowe załączniki wymagają kliknięcia.",
+      "settings.autoDownloadDocumentsDesc": "Automatycznie pobieraj dokumenty",
     }
 }

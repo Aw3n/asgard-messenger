@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} — aizturēts",
       "chat.pauseRecording": "Pauzēt ierakstu",
       "chat.resumeRecording": "Turpināt ierakstu",
+      "settings.cacheLimitLabel": "Kešatmiņas limits",
+      "settings.cacheLimitDesc": "Pārsniedzot šo limitu, jaunās pievienotnes vairs netiek lejupielādētas automātiski. Nekas netiek dzēsts — tās joprojām ir pieejamas ar klikšķi.",
+      "settings.cacheLimitReached": "Kešatmiņa ir pilna ({{limit}} MB): jaunās pievienotnes gaida klikšķi.",
+      "settings.autoDownloadDocumentsDesc": "Automātiski lejupielādēt dokumentus",
     }
 }

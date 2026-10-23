@@ -913,5 +913,9 @@ export default {
       "calls.peerOnHold": "{{name}} è in attesa",
       "chat.pauseRecording": "Metti in pausa la registrazione",
       "chat.resumeRecording": "Riprendi la registrazione",
+      "settings.cacheLimitLabel": "Limite della cache",
+      "settings.cacheLimitDesc": "Oltre questo limite i nuovi allegati non si scaricano più automaticamente. Nulla viene eliminato: restano disponibili con un clic.",
+      "settings.cacheLimitReached": "Cache piena ({{limit}} MB): i nuovi allegati aspetteranno un clic.",
+      "settings.autoDownloadDocumentsDesc": "Scarica automaticamente i documenti",
     }
 }

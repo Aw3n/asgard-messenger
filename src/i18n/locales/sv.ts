@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} är på vänt",
       "chat.pauseRecording": "Pausa inspelningen",
       "chat.resumeRecording": "Återuppta inspelningen",
+      "settings.cacheLimitLabel": "Cachegräns",
+      "settings.cacheLimitDesc": "Över denna gräns hämtas nya bilagor inte automatiskt längre. Inget raderas — de finns kvar att öppna med ett klick.",
+      "settings.cacheLimitReached": "Cachen är full ({{limit}} MB): nya bilagor väntar på ett klick.",
+      "settings.autoDownloadDocumentsDesc": "Ladda ner dokument automatiskt",
     }
 }

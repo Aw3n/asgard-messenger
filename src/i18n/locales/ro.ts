@@ -914,5 +914,9 @@ export default {
       "calls.peerOnHold": "{{name}} este în așteptare",
       "chat.pauseRecording": "Pune în pauză înregistrarea",
       "chat.resumeRecording": "Reia înregistrarea",
+      "settings.cacheLimitLabel": "Limita cache-ului",
+      "settings.cacheLimitDesc": "Peste această limită, atașamentele noi nu se mai descarcă automat. Nimic nu se șterge — rămân la un clic distanță.",
+      "settings.cacheLimitReached": "Cache plin ({{limit}} MB): atașamentele noi așteaptă un clic.",
+      "settings.autoDownloadDocumentsDesc": "Descarcă automat documentele",
     }
 }
