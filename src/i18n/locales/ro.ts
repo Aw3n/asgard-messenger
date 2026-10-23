@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Peste această limită, atașamentele noi nu se mai descarcă automat. Nimic nu se șterge — rămân la un clic distanță.",
       "settings.cacheLimitReached": "Cache plin ({{limit}} MB): atașamentele noi așteaptă un clic.",
       "settings.autoDownloadDocumentsDesc": "Descarcă automat documentele",
+      "settings.autoDownloadMaxLabel": "Dimensiune maximă",
+      "settings.autoDownloadMaxDesc": "Peste această dimensiune, atașamentul rămâne disponibil la clic.",
+      "settings.downloadFolder": "Folder de salvare",
+      "settings.downloadFolderNone": "Folderul implicit al sistemului",
+      "settings.downloadFolderDesc": "Unde se deschid casetele de salvare ale atașamentelor. Dacă folderul dispare, sistemul revine la locația obișnuită.",
+      "settings.downloadFolderChoose": "Alege un folder…",
+      "settings.downloadFolderReset": "Înapoi la folderul implicit",
     }
 }

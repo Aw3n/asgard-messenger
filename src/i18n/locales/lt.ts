@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Viršijus šį apribojimą nauji priedai nebeparsisiunami automatiškai. Niekas nepašalinama — jie vis tiek pasiekiami vienu spustelėjimu.",
       "settings.cacheLimitReached": "Podėlis pilnas ({{limit}} MB): nauji priedai laukia spustelėjimo.",
       "settings.autoDownloadDocumentsDesc": "Automatiškai parsisiųsti dokumentus",
+      "settings.autoDownloadMaxLabel": "Didžiausias dydis",
+      "settings.autoDownloadMaxDesc": "Didesni priedai lieka pasiekiami spustelėjus.",
+      "settings.downloadFolder": "Išsaugojimo aplankas",
+      "settings.downloadFolderNone": "Sistemos numatytasis aplankas",
+      "settings.downloadFolderDesc": "Kur atsidaro priedų išsaugojimo langai. Jei aplankas dingsta, sistema grįžta į įprastą vietą.",
+      "settings.downloadFolderChoose": "Pasirinkti aplanką…",
+      "settings.downloadFolderReset": "Grįžti į numatytąjį aplanką",
     }
 }

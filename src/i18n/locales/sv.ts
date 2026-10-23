@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Över denna gräns hämtas nya bilagor inte automatiskt längre. Inget raderas — de finns kvar att öppna med ett klick.",
       "settings.cacheLimitReached": "Cachen är full ({{limit}} MB): nya bilagor väntar på ett klick.",
       "settings.autoDownloadDocumentsDesc": "Ladda ner dokument automatiskt",
+      "settings.autoDownloadMaxLabel": "Maximal storlek",
+      "settings.autoDownloadMaxDesc": "Över denna storlek finns bilagan kvar med ett klick.",
+      "settings.downloadFolder": "Sparmapp",
+      "settings.downloadFolderNone": "Systemets standardmapp",
+      "settings.downloadFolderDesc": "Var dialogrutorna för att spara bilagor öppnas. Om mappen försvinner återgår systemet till sin vanliga plats.",
+      "settings.downloadFolderChoose": "Välj mapp…",
+      "settings.downloadFolderReset": "Tillbaka till standardmappen",
     }
 }

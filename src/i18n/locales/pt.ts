@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Acima deste limite, os novos anexos deixam de ser transferidos automaticamente. Nada é apagado: continuam disponíveis com um clique.",
       "settings.cacheLimitReached": "Cache cheia ({{limit}} MB): os novos anexos aguardarão um clique.",
       "settings.autoDownloadDocumentsDesc": "Transferir automaticamente os documentos",
+      "settings.autoDownloadMaxLabel": "Tamanho máximo",
+      "settings.autoDownloadMaxDesc": "Acima deste tamanho, o anexo continua disponível com um clique.",
+      "settings.downloadFolder": "Pasta de destino",
+      "settings.downloadFolderNone": "Pasta predefinida do sistema",
+      "settings.downloadFolderDesc": "Onde as janelas de gravação dos anexos se abrem. Se a pasta desaparecer, o sistema volta à sua localização habitual.",
+      "settings.downloadFolderChoose": "Escolher pasta…",
+      "settings.downloadFolderReset": "Voltar à pasta predefinida",
     }
 }

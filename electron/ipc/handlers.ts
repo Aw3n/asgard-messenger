@@ -7,6 +7,7 @@ import { NetworkService } from '../services/NetworkService'
 import { StorageService } from '../services/StorageService'
 import { configureFirewall, checkFirewallRule, runFirewallHelperAsAdmin, getFirewallStatus } from '../services/FirewallService'
 import { AsgardTray } from '../tray'
+import { dialogLabels, normalizeDownloadDir, saveDefaultPath, SUPPORTED_LANGUAGES } from '../utils/dialogLabels'
 import { openExternalSafe } from '../utils/openExternal'
 import { isDisallowedIpAddress, isIpLiteral, isSafePreviewUrl } from '../utils/previewUrlSafety'
 
@@ -16,6 +17,11 @@ import { isDisallowedIpAddress, isIpLiteral, isSafePreviewUrl } from '../utils/p
  */
 let storageService: StorageService | null = null
 let networkServiceRef: NetworkService | null = null
+/**
+ * Langue courante du renderer, tenue à jour par 'ui:setLanguage'. Les boîtes de
+ * dialogue natives s'affichent dans cette langue (cf. electron/utils/dialogLabels).
+ */
+let uiLanguage = 'en'
 
 /** Extensions qu'un clic « ouvrir » ne doit jamais lancer directement. */
 const OPEN_BLOCKED_EXTENSIONS = new Set([
@@ -73,6 +79,15 @@ function getStorage(): StorageService {
     storageService = new StorageService()
   }
   return storageService
+}
+
+/** Un chemin enregistré dans les réglages peut avoir été déplacé ou supprimé depuis. */
+async function isExistingDirectory(dir: string): Promise<boolean> {
+  try {
+    return (await fs.stat(dir)).isDirectory()
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -194,6 +209,7 @@ function setupWindowHandlers(win: BrowserWindow, tray?: AsgardTray): void {
   // Language sync: renderer → main. Localizes the native tray menu
   // (the main process has no access to i18next, see electron/tray.ts).
   ipcMain.handle('ui:setLanguage', (_event, lang: string) => {
+    if (typeof lang === 'string' && SUPPORTED_LANGUAGES.includes(lang)) uiLanguage = lang
     tray?.setLanguage(lang)
     return true
   })
@@ -1320,7 +1336,10 @@ async function setupStorageHandlers(): Promise<void> {
 
   // File save dialog — allows user to save a blob to a local folder.
   // Uses the SAME initialized storage instance as all other blob handlers.
-  ipcMain.handle('file:save-as', async (_event, blobId: string, suggestedName: string) => {
+  // `downloadDir` est le réglage storage.downloadPath, porté par le renderer
+  // (source de vérité des réglages) : sans lui la boîte de dialogue ouvrait
+  // toujours son emplacement système, réglage affiché mais jamais appliqué.
+  ipcMain.handle('file:save-as', async (_event, blobId: string, suggestedName: string, downloadDir?: string) => {
     try {
       console.log(`[file:save-as] Requested blobId=${blobId}, name=${suggestedName}`)
       const data = await storage.getBlob(blobId)
@@ -1332,10 +1351,14 @@ async function setupStorageHandlers(): Promise<void> {
 
       const ext = path.extname(suggestedName) || ''
       const parentWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+      const preferredDir = normalizeDownloadDir(downloadDir)
+      const dir = preferredDir && (await isExistingDirectory(preferredDir)) ? preferredDir : undefined
+      if (preferredDir && !dir) console.warn('[file:save-as] Download folder unavailable:', preferredDir)
+      const labels = dialogLabels(uiLanguage)
       const { canceled, filePath } = await dialog.showSaveDialog(parentWindow, {
-        title: 'Enregistrer le fichier',
-        defaultPath: suggestedName,
-        filters: ext ? [{ name: 'Fichiers', extensions: [ext.slice(1)] }] : undefined,
+        title: labels.saveTitle,
+        defaultPath: saveDefaultPath(dir, suggestedName),
+        filters: ext ? [{ name: labels.filterName, extensions: [ext.slice(1)] }] : undefined,
       })
       if (canceled || !filePath) return { success: false, reason: 'canceled' }
 
@@ -1381,6 +1404,24 @@ async function setupStorageHandlers(): Promise<void> {
       return { success: true }
     } catch (err) {
       console.error('[file:open] Failed:', err)
+      return { success: false, reason: 'error', message: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  // Sélecteur de dossier pour le réglage storage.downloadPath : le renderer ne
+  // voit pas le système de fichiers, et un chemin tapé à la main n'ouvrirait que
+  // des erreurs au premier enregistrement.
+  ipcMain.handle('dialog:pick-folder', async () => {
+    try {
+      const parentWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+      const { canceled, filePaths } = await dialog.showOpenDialog(parentWindow, {
+        title: dialogLabels(uiLanguage).pickFolderTitle,
+        properties: ['openDirectory', 'createDirectory'],
+      })
+      if (canceled || filePaths.length === 0) return { success: false, reason: 'canceled' }
+      return { success: true, path: filePaths[0] }
+    } catch (err) {
+      console.error('[dialog:pick-folder] Failed:', err)
       return { success: false, reason: 'error', message: err instanceof Error ? err.message : String(err) }
     }
   })

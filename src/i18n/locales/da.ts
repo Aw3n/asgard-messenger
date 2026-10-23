@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Over denne grænse bliver nye vedhæftede filer ikke downloadet automatisk længere. Intet slettes — de er stadig tilgængelige med et klik.",
       "settings.cacheLimitReached": "Cachen er fuld ({{limit}} MB): nye vedhæftede filer venter på et klik.",
       "settings.autoDownloadDocumentsDesc": "Download dokumenter automatisk",
+      "settings.autoDownloadMaxLabel": "Maksimal størrelse",
+      "settings.autoDownloadMaxDesc": "Over denne størrelse forbliver vedhæftningen tilgængelig med et klik.",
+      "settings.downloadFolder": "Mappe til gemte filer",
+      "settings.downloadFolderNone": "Systemets standardmappe",
+      "settings.downloadFolderDesc": "Hvor dialogerne til at gemme vedhæftninger åbner. Forsvinder mappen, vender systemet tilbage til sin vanlige placering.",
+      "settings.downloadFolderChoose": "Vælg mappe…",
+      "settings.downloadFolderReset": "Tilbage til standardmappen",
     }
 }

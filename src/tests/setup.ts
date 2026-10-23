@@ -48,6 +48,9 @@ const mockAsgardAPI = {
     saveAs: vi.fn().mockResolvedValue({ success: false, reason: 'canceled' }),
     open: vi.fn().mockResolvedValue({ success: false, reason: 'not-found' }),
   },
+  dialog: {
+    pickFolder: vi.fn().mockResolvedValue({ success: false, reason: 'canceled' }),
+  },
   notifications: {
     show: vi.fn(),
     requestPermission: vi.fn().mockResolvedValue(true),

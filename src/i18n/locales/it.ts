@@ -917,5 +917,12 @@ export default {
       "settings.cacheLimitDesc": "Oltre questo limite i nuovi allegati non si scaricano più automaticamente. Nulla viene eliminato: restano disponibili con un clic.",
       "settings.cacheLimitReached": "Cache piena ({{limit}} MB): i nuovi allegati aspetteranno un clic.",
       "settings.autoDownloadDocumentsDesc": "Scarica automaticamente i documenti",
+      "settings.autoDownloadMaxLabel": "Dimensione massima",
+      "settings.autoDownloadMaxDesc": "Oltre questa dimensione, l’allegato resta disponibile al clic.",
+      "settings.downloadFolder": "Cartella di salvataggio",
+      "settings.downloadFolderNone": "Cartella predefinita del sistema",
+      "settings.downloadFolderDesc": "Dove si aprono le finestre di salvataggio degli allegati. Se la cartella non c’è più, il sistema torna alla sua posizione abituale.",
+      "settings.downloadFolderChoose": "Scegli una cartella…",
+      "settings.downloadFolderReset": "Torna alla cartella predefinita",
     }
 }

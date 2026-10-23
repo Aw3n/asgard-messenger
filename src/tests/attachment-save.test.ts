@@ -6,7 +6,7 @@
  * est désormais partagée, et ces tests fixent ce que chaque retour du dialogue
  * doit produire à l'écran.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { useUIStore } from '@/stores/uiStore'
 import type { MessageAttachment } from '@/types'
@@ -27,9 +27,21 @@ function attachment(overrides: Partial<MessageAttachment> = {}): MessageAttachme
 
 const toasts = () => useUIStore.getState().toasts.map((toast) => `${toast.type}:${toast.title}`)
 
+const beforeStorage = useUIStore.getState().settings.storage
+
+const setDownloadPath = (downloadPath: string) =>
+  useUIStore.getState().updateSettings({
+    storage: { ...useUIStore.getState().settings.storage, downloadPath },
+  })
+
 beforeEach(() => {
   useUIStore.setState({ toasts: [] })
+  setDownloadPath('')
   vi.mocked(window.asgard.file.saveAs).mockReset()
+})
+
+afterEach(() => {
+  useUIStore.getState().updateSettings({ storage: beforeStorage })
 })
 
 describe('saveAttachmentToDisk', () => {
@@ -67,5 +79,24 @@ describe('saveAttachmentToDisk', () => {
     await expect(saveAttachmentToDisk(attachment({ blobKey: undefined }), t)).resolves.toBe(false)
     expect(toasts()).toEqual(['error:chat.downloadUnavailable'])
     expect(window.asgard.file.saveAs).not.toHaveBeenCalled()
+  })
+
+  it('porte le dossier réglé jusqu’au dialogue natif', async () => {
+    setDownloadPath('D:\\Asgard\\Reçus')
+    vi.mocked(window.asgard.file.saveAs).mockResolvedValue({ success: true, filePath: 'D:\\Asgard\\Reçus\\note.txt' })
+
+    await saveAttachmentToDisk(attachment(), t)
+
+    // Le réglage était écrit par l'utilisateur et jeté par le pont : sans
+    // l'argument, la boîte de dialogue repartait de son emplacement système.
+    expect(window.asgard.file.saveAs).toHaveBeenCalledWith('blob-1', 'note.txt', 'D:\\Asgard\\Reçus')
+  })
+
+  it('laisse le dossier vide tel quel quand rien n’est réglé', async () => {
+    vi.mocked(window.asgard.file.saveAs).mockResolvedValue({ success: true, filePath: 'C:\\note.txt' })
+
+    await saveAttachmentToDisk(attachment(), t)
+
+    expect(window.asgard.file.saveAs).toHaveBeenCalledWith('blob-1', 'note.txt', '')
   })
 })

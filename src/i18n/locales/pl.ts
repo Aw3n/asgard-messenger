@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Powyżej tego limitu nowe załączniki nie pobierają się automatycznie. Nic nie jest usuwane — nadal są dostępne po kliknięciu.",
       "settings.cacheLimitReached": "Pamięć podręczna pełna ({{limit}} MB): nowe załączniki wymagają kliknięcia.",
       "settings.autoDownloadDocumentsDesc": "Automatycznie pobieraj dokumenty",
+      "settings.autoDownloadMaxLabel": "Maksymalny rozmiar",
+      "settings.autoDownloadMaxDesc": "Powyżej tego rozmiaru załącznik pozostaje dostępny po kliknięciu.",
+      "settings.downloadFolder": "Folder zapisu",
+      "settings.downloadFolderNone": "Domyślny folder systemu",
+      "settings.downloadFolderDesc": "Gdzie otwierają się okna zapisu załączników. Jeśli folder zniknie, system wraca do swojej zwykłej lokalizacji.",
+      "settings.downloadFolderChoose": "Wybierz folder…",
+      "settings.downloadFolderReset": "Wróć do domyślnego folderu",
     }
 }

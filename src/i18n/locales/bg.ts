@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Над този лимит новите прикачени файлове вече не се изтеглят автоматично. Нищо не се изтрива — те си остават достъпни с кликване.",
       "settings.cacheLimitReached": "Кешът е пълен ({{limit}} MB): новите файлове чакат кликване.",
       "settings.autoDownloadDocumentsDesc": "Автоматично изтегляне на документи",
+      "settings.autoDownloadMaxLabel": "Максимален размер",
+      "settings.autoDownloadMaxDesc": "Над този размер прикаченият файл си остава достъпен с клик.",
+      "settings.downloadFolder": "Папка за запис",
+      "settings.downloadFolderNone": "Папката по подразбиране на системата",
+      "settings.downloadFolderDesc": "Къде се отварят прозорците за запис на прикачените файлове. Ако папката изчезне, системата се връща на обичайното си място.",
+      "settings.downloadFolderChoose": "Изберете папка…",
+      "settings.downloadFolderReset": "Връщане в папката по подразбиране",
     }
 }

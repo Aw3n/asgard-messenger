@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Nad tento limit se nové přílohy již nestahují automaticky. Nic se nemaže — stále jsou dostupné jedním kliknutím.",
       "settings.cacheLimitReached": "Cache je plná ({{limit}} MB): nové přílohy čekají na kliknutí.",
       "settings.autoDownloadDocumentsDesc": "Automaticky stahovat dokumenty",
+      "settings.autoDownloadMaxLabel": "Maximální velikost",
+      "settings.autoDownloadMaxDesc": "Nad touto velikostí zůstává příloha dostupná po kliknutí.",
+      "settings.downloadFolder": "Složka pro ukládání",
+      "settings.downloadFolderNone": "Výchozí složka systému",
+      "settings.downloadFolderDesc": "Kde se otevírají dialogy pro uložení příloh. Pokud složka zmizí, systém se vrátí na své obvyklé místo.",
+      "settings.downloadFolderChoose": "Vybrat složku…",
+      "settings.downloadFolderReset": "Vrátit se do výchozí složky",
     }
 }

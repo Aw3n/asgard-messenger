@@ -147,4 +147,39 @@ describe('catalogues de langue', () => {
       expect(i18n.t('groups.addChannel'), code).not.toBe(i18n.t('groups.deleteChannel'))
     }
   })
+
+  /**
+   * Téléchargement : sept chaînes pour deux réglages que le code lisait déjà sans
+   * que personne ne puisse les poser. Le libellé de taille ne doit pas se
+   * confondre avec celui du plafond de cache (deux curseurs sur la même carte) et
+   * les deux gestes du dossier — choisir, revenir en arrière — sont contraires.
+   */
+  it('rend le lot téléchargement dans chacune des 25 langues', async () => {
+    await i18nReady
+    const keys = [
+      'settings.autoDownloadMaxLabel', 'settings.autoDownloadMaxDesc',
+      'settings.downloadFolder', 'settings.downloadFolderNone', 'settings.downloadFolderDesc',
+      'settings.downloadFolderChoose', 'settings.downloadFolderReset',
+    ] as const
+    for (const key of keys) {
+      for (const { code } of SUPPORTED_LANGUAGES) {
+        await changeLanguage(code)
+        const value = i18n.t(key)
+        expect(value, `${code} · ${key}`).toBe(translations[code].translation[key])
+        expect(value, `${code} · ${key}`).not.toBe(key)
+        if (code !== 'fr') expect(value, `${code} · ${key}`).not.toBe(translations.fr.translation[key])
+      }
+    }
+  })
+
+  it('distingue les deux curseurs de la carte Stockage dans chaque langue', async () => {
+    await i18nReady
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      expect(i18n.t('settings.autoDownloadMaxLabel'), code).not.toBe(i18n.t('settings.cacheLimitLabel'))
+      expect(i18n.t('settings.autoDownloadMaxDesc'), code).not.toBe(i18n.t('settings.cacheLimitDesc'))
+      expect(i18n.t('settings.downloadFolder'), code).not.toBe(i18n.t('settings.downloadFolderNone'))
+      expect(i18n.t('settings.downloadFolderChoose'), code).not.toBe(i18n.t('settings.downloadFolderReset'))
+    }
+  })
 })

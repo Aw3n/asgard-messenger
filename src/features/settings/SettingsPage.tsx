@@ -1124,6 +1124,7 @@ const StorageSection: React.FC = () => {
   const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
   const cacheLimitId = React.useId()
+  const maxSizeId = React.useId()
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [realStorageSize, setRealStorageSize] = useState<number | null>(null)
@@ -1195,6 +1196,23 @@ const StorageSection: React.FC = () => {
     } catch {
       addToast({ type: 'error', title: t('toast.failedToClearCache') })
     }
+  }
+
+  // Le chemin est choisi par le système, jamais tapé : un réglage inventé ne
+  // produirait qu'un échec d'écriture au premier « enregistrer ».
+  const handlePickFolder = async () => {
+    const picked = await window.asgard.dialog.pickFolder()
+    if (!picked.success) {
+      if (picked.reason === 'error') {
+        addToast({ type: 'error', title: t('settings.downloadFolder'), message: picked.message })
+      }
+      return
+    }
+    updateSettings({ storage: { ...settings.storage, downloadPath: picked.path } })
+  }
+
+  const handleResetDownloadFolder = () => {
+    updateSettings({ storage: { ...settings.storage, downloadPath: '' } })
   }
 
 return (
@@ -1302,6 +1320,56 @@ return (
                   })
                 }
               />
+            </div>
+            <div className="mt-4">
+              <label htmlFor={maxSizeId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
+                {t('settings.autoDownloadMaxLabel')}
+              </label>
+              <input
+                id={maxSizeId}
+                type="range"
+                min={5}
+                max={500}
+                step={5}
+                value={settings.storage.autoDownload.maxSize ?? 50}
+                onChange={(e) =>
+                  updateSettings({
+                    storage: {
+                      ...settings.storage,
+                      autoDownload: { ...settings.storage.autoDownload, maxSize: parseInt(e.target.value) },
+                    },
+                  })
+                }
+                className="w-full accent-asgard-glacier"
+              />
+              <div className="flex justify-between text-xs text-asgard-text-muted mt-1">
+                <span>5</span>
+                <span className="text-asgard-glacier font-medium">
+                  {settings.storage.autoDownload.maxSize ?? 50} {t('settings.mbLimit')}
+                </span>
+                <span>500</span>
+              </div>
+              <p className="text-xs text-asgard-text-muted mt-2">{t('settings.autoDownloadMaxDesc')}</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-asgard-text-primary mb-2">{t('settings.downloadFolder')}</p>
+            <p
+              className={`text-xs break-all ${settings.storage.downloadPath ? 'text-asgard-text-secondary' : 'text-asgard-text-muted italic'}`}
+            >
+              {settings.storage.downloadPath || t('settings.downloadFolderNone')}
+            </p>
+            <p className="text-xs text-asgard-text-muted mt-2">{t('settings.downloadFolderDesc')}</p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Button variant="secondary" size="sm" onClick={handlePickFolder}>
+                {t('settings.downloadFolderChoose')}
+              </Button>
+              {settings.storage.downloadPath && (
+                <Button variant="ghost" size="sm" onClick={handleResetDownloadFolder}>
+                  {t('settings.downloadFolderReset')}
+                </Button>
+              )}
             </div>
           </div>
 

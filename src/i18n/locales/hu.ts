@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Ezen a korláton túl az új csatolmányok nem töltődnek le automatikusan. Semmi sem törlődik — egy kattintással továbbra is elérhetők.",
       "settings.cacheLimitReached": "A gyorsítótár tele van ({{limit}} MB): az új csatolmányok kattintásra várnak.",
       "settings.autoDownloadDocumentsDesc": "Dokumentumok automatikus letöltése",
+      "settings.autoDownloadMaxLabel": "Maximális méret",
+      "settings.autoDownloadMaxDesc": "E felett a csatolmány csak kattintással érhető el.",
+      "settings.downloadFolder": "Mentési mappa",
+      "settings.downloadFolderNone": "A rendszer alapértelmezett mappája",
+      "settings.downloadFolderDesc": "Hol jelennek meg a csatolmányok mentési párbeszédpaneljei. Ha a mappa eltűnik, a rendszer a szokásos helyre tér vissza.",
+      "settings.downloadFolderChoose": "Mappa kiválasztása…",
+      "settings.downloadFolderReset": "Vissza az alapértelmezett mappára",
     }
 }

@@ -917,5 +917,12 @@ export default {
       "settings.cacheLimitDesc": "Por encima de este límite, los archivos nuevos ya no se descargan automáticamente. No se borra nada: siguen disponibles con un clic.",
       "settings.cacheLimitReached": "Caché llena ({{limit}} MB): los archivos nuevos esperarán un clic.",
       "settings.autoDownloadDocumentsDesc": "Descargar automáticamente los documentos",
+      "settings.autoDownloadMaxLabel": "Tamaño máximo",
+      "settings.autoDownloadMaxDesc": "Por encima de este tamaño, el archivo adjunto sigue disponible con un clic.",
+      "settings.downloadFolder": "Carpeta de guardado",
+      "settings.downloadFolderNone": "Carpeta predeterminada del sistema",
+      "settings.downloadFolderDesc": "Dónde se abren los cuadros de guardado de los archivos adjuntos. Si la carpeta desaparece, el sistema vuelve a su ubicación habitual.",
+      "settings.downloadFolderChoose": "Elegir carpeta…",
+      "settings.downloadFolderReset": "Volver a la carpeta predeterminada",
     }
 }

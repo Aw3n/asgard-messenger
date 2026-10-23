@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Overs dan il-limitu, l-anness ġodda ma jitniżżlu awtomatikament aktar. Xejn ma jitħassar — jibqgħu disponibbli b’klikk.",
       "settings.cacheLimitReached": "Il-cache mimlija ({{limit}} MB): l-anness ġodda jistennew klikk.",
       "settings.autoDownloadDocumentsDesc": "Niżżel id-dokumenti awtomatikament",
+      "settings.autoDownloadMaxLabel": "Daqs massimu",
+      "settings.autoDownloadMaxDesc": "Ogħla minn daqs hekk, l-allegat jibqa’ disponibbli b’klikk.",
+      "settings.downloadFolder": "Fowlier tal-ħażna",
+      "settings.downloadFolderNone": "Il-fowlier predefinit tas-sistema",
+      "settings.downloadFolderDesc": "Fejn jinfetħu d-djalogi tal-ħażna tal-allegati. Jekk il-fowlier jisparixxi, is-sistema tirritorna fil-post abitwali tagħha.",
+      "settings.downloadFolderChoose": "Agħżel fowlier…",
+      "settings.downloadFolderReset": "Lura għall-fowlier predefinit",
     }
 }

@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Nad tento limit sa nové prílohy už nesťahujú automaticky. Nič sa neodstraňuje — stále sú dostupné kliknutím.",
       "settings.cacheLimitReached": "Cache je plná ({{limit}} MB): nové prílohy čakajú na kliknutie.",
       "settings.autoDownloadDocumentsDesc": "Automaticky sťahovať dokumenty",
+      "settings.autoDownloadMaxLabel": "Maximálna veľkosť",
+      "settings.autoDownloadMaxDesc": "Nad touto veľkosťou zostáva príloha dostupná kliknutím.",
+      "settings.downloadFolder": "Priečinok na ukladanie",
+      "settings.downloadFolderNone": "Predvolený priečinok systému",
+      "settings.downloadFolderDesc": "Kde sa otvárajú dialógové okná uloženia príloh. Ak priečinok zmizne, systém sa vráti na svoje obvyklé miesto.",
+      "settings.downloadFolderChoose": "Vybrať priečinok…",
+      "settings.downloadFolderReset": "Vrátiť sa k predvolenému priečinku",
     }
 }

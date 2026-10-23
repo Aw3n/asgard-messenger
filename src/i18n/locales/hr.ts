@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Iznad tog ograničenja se nove privitke više ne preuzimaju automatski. Ništa se ne briše — i dalje su dostupne jednim klikom.",
       "settings.cacheLimitReached": "Predmemorija je puna ({{limit}} MB): nove privitke čekaju klik.",
       "settings.autoDownloadDocumentsDesc": "Automatski preuzmi dokumente",
+      "settings.autoDownloadMaxLabel": "Najveća veličina",
+      "settings.autoDownloadMaxDesc": "Iznad ove veličine privitak ostaje dostupan klikom.",
+      "settings.downloadFolder": "Mapa za spremanje",
+      "settings.downloadFolderNone": "Zadana mapa sustava",
+      "settings.downloadFolderDesc": "Gdje se otvaraju dijalozi za spremanje privitaka. Ako mapa nestane, sustav se vraća na uobičajeno mjesto.",
+      "settings.downloadFolderChoose": "Odaberi mapu…",
+      "settings.downloadFolderReset": "Vrati zadanu mapu",
     }
 }

@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Πάνω από αυτό το όριο, τα νέα συνημμένα δεν κατεβαίνουν αυτόματα. Τίποτα δεν διαγράφεται: παραμένουν διαθέσιμα με ένα κλικ.",
       "settings.cacheLimitReached": "Η προσωρινή μνήμη είναι γεμάτη ({{limit}} MB): τα νέα συνημμένα περιμένουν κλικ.",
       "settings.autoDownloadDocumentsDesc": "Αυτόματη λήψη εγγράφων",
+      "settings.autoDownloadMaxLabel": "Μέγιστο μέγεθος",
+      "settings.autoDownloadMaxDesc": "Πάνω από αυτό το μέγεθος, το συνημμένο παραμένει διαθέσιμο με κλικ.",
+      "settings.downloadFolder": "Φάκελος αποθήκευσης",
+      "settings.downloadFolderNone": "Προεπιλεγμένος φάκελος του συστήματος",
+      "settings.downloadFolderDesc": "Όπου ανοίγουν τα παράθυρα αποθήκευσης των συνημμένων. Αν ο φάκελος εκλείψει, το σύστημα επιστρέφει στη συνήθη τοποθεσία του.",
+      "settings.downloadFolderChoose": "Επιλογή φακέλου…",
+      "settings.downloadFolderReset": "Επιστροφή στον προεπιλεγμένο φάκελο",
     }
 }

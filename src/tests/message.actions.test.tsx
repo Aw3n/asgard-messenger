@@ -302,7 +302,7 @@ describe('enregistrer sous depuis le menu du message', () => {
     // Le menu téléchargeait sans rien dire : la panne doit se voir ici comme
     // dans le widget de pièce jointe.
     await waitFor(() => expect(titles()).toEqual(['chat.downloadFailed']))
-    expect(saveAs()).toHaveBeenCalledWith('blob-1', 'note.txt')
+    expect(saveAs()).toHaveBeenCalledWith('blob-1', 'note.txt', '')
   })
 
   it('annonce le chemin écrit', async () => {

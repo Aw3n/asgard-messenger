@@ -218,13 +218,20 @@ export interface AsgardElectronAPI {
     onClick: (callback: (target: NotificationClickTarget) => void) => () => void
   }
   file: {
-    saveAs: (blobId: string, suggestedName: string) => Promise<
+    saveAs: (blobId: string, suggestedName: string, downloadDir?: string) => Promise<
       | { success: true; filePath: string }
       | { success: false; reason: 'not-found' | 'canceled' | 'error'; message?: string }
     >
     open: (blobId: string, suggestedName: string) => Promise<
       | { success: true }
       | { success: false; reason: 'not-found' | 'blocked' | 'error'; message?: string }
+    >
+  }
+  // Boîtes de dialogue natives (dossier de destination du réglage storage.downloadPath)
+  dialog: {
+    pickFolder: () => Promise<
+      | { success: true; path: string }
+      | { success: false; reason: 'canceled' | 'error'; message?: string }
     >
   }
   app: {

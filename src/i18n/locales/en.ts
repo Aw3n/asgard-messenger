@@ -927,5 +927,12 @@ export default {
       "settings.cacheLimitDesc": "Above this limit, new attachments no longer download automatically. Nothing is deleted — they stay available with a click.",
       "settings.cacheLimitReached": "Cache full ({{limit}} MB): new attachments will wait for a click.",
       "settings.autoDownloadDocumentsDesc": "Automatically download documents",
+      "settings.autoDownloadMaxLabel": "Maximum size",
+      "settings.autoDownloadMaxDesc": "Above this size, the attachment stays available with a click.",
+      "settings.downloadFolder": "Save folder",
+      "settings.downloadFolderNone": "System default folder",
+      "settings.downloadFolderDesc": "Where the attachments’ save dialogs open. If the folder disappears, the system goes back to its usual location.",
+      "settings.downloadFolderChoose": "Choose a folder…",
+      "settings.downloadFolderReset": "Back to the default folder",
     }
 }

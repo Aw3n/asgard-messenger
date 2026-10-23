@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Tämän rajan ylittäviä uusia liitteitä ei enää ladata automaattisesti. Mitään ei poisteta — ne ovat yhä ladattavissa napautuksella.",
       "settings.cacheLimitReached": "Välimuisti on täynnä ({{limit}} MB): uudet liitteet odottavat napautusta.",
       "settings.autoDownloadDocumentsDesc": "Lataa asiakirjat automaattisesti",
+      "settings.autoDownloadMaxLabel": "Enimmäiskoko",
+      "settings.autoDownloadMaxDesc": "Tätä suuremmat liitteet pysyvät saatavilla napsautuksella.",
+      "settings.downloadFolder": "Tallennuskansio",
+      "settings.downloadFolderNone": "Järjestelmän oletuskansio",
+      "settings.downloadFolderDesc": "Missä liitteiden tallennusvalikot avautuvat. Jos kansiota ei ole, järjestelmä palaa taviseen sijaintiinsa.",
+      "settings.downloadFolderChoose": "Valitse kansio…",
+      "settings.downloadFolderReset": "Palaa oletuskansioon",
     }
 }

@@ -916,6 +916,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Au-delà de ce plafond, les nouvelles pièces jointes ne se téléchargent plus automatiquement. Rien n’est supprimé : elles restent accessibles au clic.",
       "settings.cacheLimitReached": "Cache plein ({{limit}} Mo) : les nouvelles pièces jointes attendront un clic.",
       "settings.autoDownloadDocumentsDesc": "Télécharger automatiquement les documents",
+      "settings.autoDownloadMaxLabel": "Taille maximale",
+      "settings.autoDownloadMaxDesc": "Au-delà de cette taille, la pièce jointe reste disponible au clic.",
+      "settings.downloadFolder": "Dossier d’enregistrement",
+      "settings.downloadFolderNone": "Dossier par défaut du système",
+      "settings.downloadFolderDesc": "Où s’ouvrent les boîtes d’enregistrement des pièces jointes. Si le dossier disparaît, le système reprend son emplacement habituel.",
+      "settings.downloadFolderChoose": "Choisir un dossier…",
+      "settings.downloadFolderReset": "Revenir au dossier par défaut",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1835,6 +1842,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Boven deze limiet worden nieuwe bijlagen niet meer automatisch gedownload. Er wordt niets verwijderd — ze blijven met een klik beschikbaar.",
       "settings.cacheLimitReached": "Cache vol ({{limit}} MB): nieuwe bijlagen wachten op een klik.",
       "settings.autoDownloadDocumentsDesc": "Documenten automatisch downloaden",
+      "settings.autoDownloadMaxLabel": "Maximale grootte",
+      "settings.autoDownloadMaxDesc": "Voorbij deze grootte blijft de bijlage beschikbaar met een klik.",
+      "settings.downloadFolder": "Opslagmap",
+      "settings.downloadFolderNone": "Standaardmap van het systeem",
+      "settings.downloadFolderDesc": "Waar de opslagvensters van bijlagen zich openen. Als de map verdwijnt, valt het systeem terug op zijn gebruikelijke locatie.",
+      "settings.downloadFolderChoose": "Map kiezen…",
+      "settings.downloadFolderReset": "Terug naar de standaardmap",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2754,6 +2768,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Oberhalb dieser Grenze werden neue Anhänge nicht mehr automatisch heruntergeladen. Es wird nichts gelöscht — sie bleiben per Klick verfügbar.",
       "settings.cacheLimitReached": "Cache voll ({{limit}} MB): neue Anhänge warten auf einen Klick.",
       "settings.autoDownloadDocumentsDesc": "Dokumente automatisch herunterladen",
+      "settings.autoDownloadMaxLabel": "Maximale Größe",
+      "settings.autoDownloadMaxDesc": "Oberhalb dieser Größe bleibt der Anhang per Klick verfügbar.",
+      "settings.downloadFolder": "Zielordner",
+      "settings.downloadFolderNone": "Standardordner des Systems",
+      "settings.downloadFolderDesc": "Wo die Speicherdialoge der Anhänge geöffnet werden. Fehlt der Ordner, nutzt das System wieder seinen üblichen Speicherort.",
+      "settings.downloadFolderChoose": "Ordner auswählen…",
+      "settings.downloadFolderReset": "Zurück zum Standardordner",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3673,6 +3694,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Oltre questo limite i nuovi allegati non si scaricano più automaticamente. Nulla viene eliminato: restano disponibili con un clic.",
       "settings.cacheLimitReached": "Cache piena ({{limit}} MB): i nuovi allegati aspetteranno un clic.",
       "settings.autoDownloadDocumentsDesc": "Scarica automaticamente i documenti",
+      "settings.autoDownloadMaxLabel": "Dimensione massima",
+      "settings.autoDownloadMaxDesc": "Oltre questa dimensione, l’allegato resta disponibile al clic.",
+      "settings.downloadFolder": "Cartella di salvataggio",
+      "settings.downloadFolderNone": "Cartella predefinita del sistema",
+      "settings.downloadFolderDesc": "Dove si aprono le finestre di salvataggio degli allegati. Se la cartella non c’è più, il sistema torna alla sua posizione abituale.",
+      "settings.downloadFolderChoose": "Scegli una cartella…",
+      "settings.downloadFolderReset": "Torna alla cartella predefinita",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4592,6 +4620,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Por encima de este límite, los archivos nuevos ya no se descargan automáticamente. No se borra nada: siguen disponibles con un clic.",
       "settings.cacheLimitReached": "Caché llena ({{limit}} MB): los archivos nuevos esperarán un clic.",
       "settings.autoDownloadDocumentsDesc": "Descargar automáticamente los documentos",
+      "settings.autoDownloadMaxLabel": "Tamaño máximo",
+      "settings.autoDownloadMaxDesc": "Por encima de este tamaño, el archivo adjunto sigue disponible con un clic.",
+      "settings.downloadFolder": "Carpeta de guardado",
+      "settings.downloadFolderNone": "Carpeta predeterminada del sistema",
+      "settings.downloadFolderDesc": "Dónde se abren los cuadros de guardado de los archivos adjuntos. Si la carpeta desaparece, el sistema vuelve a su ubicación habitual.",
+      "settings.downloadFolderChoose": "Elegir carpeta…",
+      "settings.downloadFolderReset": "Volver a la carpeta predeterminada",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5512,6 +5547,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Acima deste limite, os novos anexos deixam de ser transferidos automaticamente. Nada é apagado: continuam disponíveis com um clique.",
       "settings.cacheLimitReached": "Cache cheia ({{limit}} MB): os novos anexos aguardarão um clique.",
       "settings.autoDownloadDocumentsDesc": "Transferir automaticamente os documentos",
+      "settings.autoDownloadMaxLabel": "Tamanho máximo",
+      "settings.autoDownloadMaxDesc": "Acima deste tamanho, o anexo continua disponível com um clique.",
+      "settings.downloadFolder": "Pasta de destino",
+      "settings.downloadFolderNone": "Pasta predefinida do sistema",
+      "settings.downloadFolderDesc": "Onde as janelas de gravação dos anexos se abrem. Se a pasta desaparecer, o sistema volta à sua localização habitual.",
+      "settings.downloadFolderChoose": "Escolher pasta…",
+      "settings.downloadFolderReset": "Voltar à pasta predefinida",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6432,6 +6474,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Πάνω από αυτό το όριο, τα νέα συνημμένα δεν κατεβαίνουν αυτόματα. Τίποτα δεν διαγράφεται: παραμένουν διαθέσιμα με ένα κλικ.",
       "settings.cacheLimitReached": "Η προσωρινή μνήμη είναι γεμάτη ({{limit}} MB): τα νέα συνημμένα περιμένουν κλικ.",
       "settings.autoDownloadDocumentsDesc": "Αυτόματη λήψη εγγράφων",
+      "settings.autoDownloadMaxLabel": "Μέγιστο μέγεθος",
+      "settings.autoDownloadMaxDesc": "Πάνω από αυτό το μέγεθος, το συνημμένο παραμένει διαθέσιμο με κλικ.",
+      "settings.downloadFolder": "Φάκελος αποθήκευσης",
+      "settings.downloadFolderNone": "Προεπιλεγμένος φάκελος του συστήματος",
+      "settings.downloadFolderDesc": "Όπου ανοίγουν τα παράθυρα αποθήκευσης των συνημμένων. Αν ο φάκελος εκλείψει, το σύστημα επιστρέφει στη συνήθη τοποθεσία του.",
+      "settings.downloadFolderChoose": "Επιλογή φακέλου…",
+      "settings.downloadFolderReset": "Επιστροφή στον προεπιλεγμένο φάκελο",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7352,6 +7401,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Over denne grænse bliver nye vedhæftede filer ikke downloadet automatisk længere. Intet slettes — de er stadig tilgængelige med et klik.",
       "settings.cacheLimitReached": "Cachen er fuld ({{limit}} MB): nye vedhæftede filer venter på et klik.",
       "settings.autoDownloadDocumentsDesc": "Download dokumenter automatisk",
+      "settings.autoDownloadMaxLabel": "Maksimal størrelse",
+      "settings.autoDownloadMaxDesc": "Over denne størrelse forbliver vedhæftningen tilgængelig med et klik.",
+      "settings.downloadFolder": "Mappe til gemte filer",
+      "settings.downloadFolderNone": "Systemets standardmappe",
+      "settings.downloadFolderDesc": "Hvor dialogerne til at gemme vedhæftninger åbner. Forsvinder mappen, vender systemet tilbage til sin vanlige placering.",
+      "settings.downloadFolderChoose": "Vælg mappe…",
+      "settings.downloadFolderReset": "Tilbage til standardmappen",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -8272,6 +8328,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Tämän rajan ylittäviä uusia liitteitä ei enää ladata automaattisesti. Mitään ei poisteta — ne ovat yhä ladattavissa napautuksella.",
       "settings.cacheLimitReached": "Välimuisti on täynnä ({{limit}} MB): uudet liitteet odottavat napautusta.",
       "settings.autoDownloadDocumentsDesc": "Lataa asiakirjat automaattisesti",
+      "settings.autoDownloadMaxLabel": "Enimmäiskoko",
+      "settings.autoDownloadMaxDesc": "Tätä suuremmat liitteet pysyvät saatavilla napsautuksella.",
+      "settings.downloadFolder": "Tallennuskansio",
+      "settings.downloadFolderNone": "Järjestelmän oletuskansio",
+      "settings.downloadFolderDesc": "Missä liitteiden tallennusvalikot avautuvat. Jos kansiota ei ole, järjestelmä palaa taviseen sijaintiinsa.",
+      "settings.downloadFolderChoose": "Valitse kansio…",
+      "settings.downloadFolderReset": "Palaa oletuskansioon",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -9192,6 +9255,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Över denna gräns hämtas nya bilagor inte automatiskt längre. Inget raderas — de finns kvar att öppna med ett klick.",
       "settings.cacheLimitReached": "Cachen är full ({{limit}} MB): nya bilagor väntar på ett klick.",
       "settings.autoDownloadDocumentsDesc": "Ladda ner dokument automatiskt",
+      "settings.autoDownloadMaxLabel": "Maximal storlek",
+      "settings.autoDownloadMaxDesc": "Över denna storlek finns bilagan kvar med ett klick.",
+      "settings.downloadFolder": "Sparmapp",
+      "settings.downloadFolderNone": "Systemets standardmapp",
+      "settings.downloadFolderDesc": "Var dialogrutorna för att spara bilagor öppnas. Om mappen försvinner återgår systemet till sin vanliga plats.",
+      "settings.downloadFolderChoose": "Välj mapp…",
+      "settings.downloadFolderReset": "Tillbaka till standardmappen",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -10112,6 +10182,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Iznad tog ograničenja se nove privitke više ne preuzimaju automatski. Ništa se ne briše — i dalje su dostupne jednim klikom.",
       "settings.cacheLimitReached": "Predmemorija je puna ({{limit}} MB): nove privitke čekaju klik.",
       "settings.autoDownloadDocumentsDesc": "Automatski preuzmi dokumente",
+      "settings.autoDownloadMaxLabel": "Najveća veličina",
+      "settings.autoDownloadMaxDesc": "Iznad ove veličine privitak ostaje dostupan klikom.",
+      "settings.downloadFolder": "Mapa za spremanje",
+      "settings.downloadFolderNone": "Zadana mapa sustava",
+      "settings.downloadFolderDesc": "Gdje se otvaraju dijalozi za spremanje privitaka. Ako mapa nestane, sustav se vraća na uobičajeno mjesto.",
+      "settings.downloadFolderChoose": "Odaberi mapu…",
+      "settings.downloadFolderReset": "Vrati zadanu mapu",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -11032,6 +11109,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Sellest piirist üle uute manuste automaatne allalaadimine peatub. Midagi ei kustutata — need on endiselt klõpsuga kättesaadavad.",
       "settings.cacheLimitReached": "Puhver on täis ({{limit}} MB): uued manused ootavad klõpsu.",
       "settings.autoDownloadDocumentsDesc": "Laadi dokumendid automaatselt alla",
+      "settings.autoDownloadMaxLabel": "Maksimaalsuurus",
+      "settings.autoDownloadMaxDesc": "Sellest suureman manus jääb klõpsamisega kättesaadavaks.",
+      "settings.downloadFolder": "Salvestuskaust",
+      "settings.downloadFolderNone": "Süsteemi vaikenekaust",
+      "settings.downloadFolderDesc": "Kus manuste salvestamise dialoogid avanevad. Kui kaust kaob, naaseb süsteem oma tavalise asukoha juurde.",
+      "settings.downloadFolderChoose": "Vali kaust…",
+      "settings.downloadFolderReset": "Naase vaikenekausta juurde",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11952,6 +12036,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Ezen a korláton túl az új csatolmányok nem töltődnek le automatikusan. Semmi sem törlődik — egy kattintással továbbra is elérhetők.",
       "settings.cacheLimitReached": "A gyorsítótár tele van ({{limit}} MB): az új csatolmányok kattintásra várnak.",
       "settings.autoDownloadDocumentsDesc": "Dokumentumok automatikus letöltése",
+      "settings.autoDownloadMaxLabel": "Maximális méret",
+      "settings.autoDownloadMaxDesc": "E felett a csatolmány csak kattintással érhető el.",
+      "settings.downloadFolder": "Mentési mappa",
+      "settings.downloadFolderNone": "A rendszer alapértelmezett mappája",
+      "settings.downloadFolderDesc": "Hol jelennek meg a csatolmányok mentési párbeszédpaneljei. Ha a mappa eltűnik, a rendszer a szokásos helyre tér vissza.",
+      "settings.downloadFolderChoose": "Mappa kiválasztása…",
+      "settings.downloadFolderReset": "Vissza az alapértelmezett mappára",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12872,6 +12963,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Pārsniedzot šo limitu, jaunās pievienotnes vairs netiek lejupielādētas automātiski. Nekas netiek dzēsts — tās joprojām ir pieejamas ar klikšķi.",
       "settings.cacheLimitReached": "Kešatmiņa ir pilna ({{limit}} MB): jaunās pievienotnes gaida klikšķi.",
       "settings.autoDownloadDocumentsDesc": "Automātiski lejupielādēt dokumentus",
+      "settings.autoDownloadMaxLabel": "Maksimālais izmērs",
+      "settings.autoDownloadMaxDesc": "Virpā šo izmēru pielikums paliek pieejams, noklikšķinot.",
+      "settings.downloadFolder": "Saglabāšanas mape",
+      "settings.downloadFolderNone": "Sistēmas noklusējuma mape",
+      "settings.downloadFolderDesc": "Kur atveras pielikumu saglabāšanas logi. Ja mape pazūd, sistēma atgriežas ierastajā vietā.",
+      "settings.downloadFolderChoose": "Izvēlēties mapi…",
+      "settings.downloadFolderReset": "Atgriezties noklusējuma mapē",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13792,6 +13890,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Viršijus šį apribojimą nauji priedai nebeparsisiunami automatiškai. Niekas nepašalinama — jie vis tiek pasiekiami vienu spustelėjimu.",
       "settings.cacheLimitReached": "Podėlis pilnas ({{limit}} MB): nauji priedai laukia spustelėjimo.",
       "settings.autoDownloadDocumentsDesc": "Automatiškai parsisiųsti dokumentus",
+      "settings.autoDownloadMaxLabel": "Didžiausias dydis",
+      "settings.autoDownloadMaxDesc": "Didesni priedai lieka pasiekiami spustelėjus.",
+      "settings.downloadFolder": "Išsaugojimo aplankas",
+      "settings.downloadFolderNone": "Sistemos numatytasis aplankas",
+      "settings.downloadFolderDesc": "Kur atsidaro priedų išsaugojimo langai. Jei aplankas dingsta, sistema grįžta į įprastą vietą.",
+      "settings.downloadFolderChoose": "Pasirinkti aplanką…",
+      "settings.downloadFolderReset": "Grįžti į numatytąjį aplanką",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14712,6 +14817,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Overs dan il-limitu, l-anness ġodda ma jitniżżlu awtomatikament aktar. Xejn ma jitħassar — jibqgħu disponibbli b’klikk.",
       "settings.cacheLimitReached": "Il-cache mimlija ({{limit}} MB): l-anness ġodda jistennew klikk.",
       "settings.autoDownloadDocumentsDesc": "Niżżel id-dokumenti awtomatikament",
+      "settings.autoDownloadMaxLabel": "Daqs massimu",
+      "settings.autoDownloadMaxDesc": "Ogħla minn daqs hekk, l-allegat jibqa’ disponibbli b’klikk.",
+      "settings.downloadFolder": "Fowlier tal-ħażna",
+      "settings.downloadFolderNone": "Il-fowlier predefinit tas-sistema",
+      "settings.downloadFolderDesc": "Fejn jinfetħu d-djalogi tal-ħażna tal-allegati. Jekk il-fowlier jisparixxi, is-sistema tirritorna fil-post abitwali tagħha.",
+      "settings.downloadFolderChoose": "Agħżel fowlier…",
+      "settings.downloadFolderReset": "Lura għall-fowlier predefinit",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -15632,6 +15744,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Powyżej tego limitu nowe załączniki nie pobierają się automatycznie. Nic nie jest usuwane — nadal są dostępne po kliknięciu.",
       "settings.cacheLimitReached": "Pamięć podręczna pełna ({{limit}} MB): nowe załączniki wymagają kliknięcia.",
       "settings.autoDownloadDocumentsDesc": "Automatycznie pobieraj dokumenty",
+      "settings.autoDownloadMaxLabel": "Maksymalny rozmiar",
+      "settings.autoDownloadMaxDesc": "Powyżej tego rozmiaru załącznik pozostaje dostępny po kliknięciu.",
+      "settings.downloadFolder": "Folder zapisu",
+      "settings.downloadFolderNone": "Domyślny folder systemu",
+      "settings.downloadFolderDesc": "Gdzie otwierają się okna zapisu załączników. Jeśli folder zniknie, system wraca do swojej zwykłej lokalizacji.",
+      "settings.downloadFolderChoose": "Wybierz folder…",
+      "settings.downloadFolderReset": "Wróć do domyślnego folderu",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -16552,6 +16671,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Nad tento limit sa nové prílohy už nesťahujú automaticky. Nič sa neodstraňuje — stále sú dostupné kliknutím.",
       "settings.cacheLimitReached": "Cache je plná ({{limit}} MB): nové prílohy čakajú na kliknutie.",
       "settings.autoDownloadDocumentsDesc": "Automaticky sťahovať dokumenty",
+      "settings.autoDownloadMaxLabel": "Maximálna veľkosť",
+      "settings.autoDownloadMaxDesc": "Nad touto veľkosťou zostáva príloha dostupná kliknutím.",
+      "settings.downloadFolder": "Priečinok na ukladanie",
+      "settings.downloadFolderNone": "Predvolený priečinok systému",
+      "settings.downloadFolderDesc": "Kde sa otvárajú dialógové okná uloženia príloh. Ak priečinok zmizne, systém sa vráti na svoje obvyklé miesto.",
+      "settings.downloadFolderChoose": "Vybrať priečinok…",
+      "settings.downloadFolderReset": "Vrátiť sa k predvolenému priečinku",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -17472,6 +17598,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Nad to mejo se nove priponke ne prenašajo samodejno. Nič se ne izbriše — še vedno so na voljo z enim klikom.",
       "settings.cacheLimitReached": "Predpomnilnik je poln ({{limit}} MB): nove priponke čakajo na klik.",
       "settings.autoDownloadDocumentsDesc": "Samodejno prenese dokumente",
+      "settings.autoDownloadMaxLabel": "Največja velikost",
+      "settings.autoDownloadMaxDesc": "Nad to velikostjo je priponka še vedno na voljo s klikom.",
+      "settings.downloadFolder": "Mapa za shranjevanje",
+      "settings.downloadFolderNone": "Privzeta mapa sistema",
+      "settings.downloadFolderDesc": "Kje se odprejo pogovorna okna za shranjevanje priponk. Če mapa izgine, se sistem vrne na običajno mesto.",
+      "settings.downloadFolderChoose": "Izberi mapo…",
+      "settings.downloadFolderReset": "Vrni se v privzeto mapo",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -18392,6 +18525,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Nad tento limit se nové přílohy již nestahují automaticky. Nic se nemaže — stále jsou dostupné jedním kliknutím.",
       "settings.cacheLimitReached": "Cache je plná ({{limit}} MB): nové přílohy čekají na kliknutí.",
       "settings.autoDownloadDocumentsDesc": "Automaticky stahovat dokumenty",
+      "settings.autoDownloadMaxLabel": "Maximální velikost",
+      "settings.autoDownloadMaxDesc": "Nad touto velikostí zůstává příloha dostupná po kliknutí.",
+      "settings.downloadFolder": "Složka pro ukládání",
+      "settings.downloadFolderNone": "Výchozí složka systému",
+      "settings.downloadFolderDesc": "Kde se otevírají dialogy pro uložení příloh. Pokud složka zmizí, systém se vrátí na své obvyklé místo.",
+      "settings.downloadFolderChoose": "Vybrat složku…",
+      "settings.downloadFolderReset": "Vrátit se do výchozí složky",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -19312,6 +19452,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Над този лимит новите прикачени файлове вече не се изтеглят автоматично. Нищо не се изтрива — те си остават достъпни с кликване.",
       "settings.cacheLimitReached": "Кешът е пълен ({{limit}} MB): новите файлове чакат кликване.",
       "settings.autoDownloadDocumentsDesc": "Автоматично изтегляне на документи",
+      "settings.autoDownloadMaxLabel": "Максимален размер",
+      "settings.autoDownloadMaxDesc": "Над този размер прикаченият файл си остава достъпен с клик.",
+      "settings.downloadFolder": "Папка за запис",
+      "settings.downloadFolderNone": "Папката по подразбиране на системата",
+      "settings.downloadFolderDesc": "Къде се отварят прозорците за запис на прикачените файлове. Ако папката изчезне, системата се връща на обичайното си място.",
+      "settings.downloadFolderChoose": "Изберете папка…",
+      "settings.downloadFolderReset": "Връщане в папката по подразбиране",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -20232,6 +20379,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Thar an teorainn seo ní íoslódáilte greamáin nua go huathoibríoch a thuilleadh. Ní scriostar aon rud — tá siad ar fáil fós le cliceáil.",
       "settings.cacheLimitReached": "Tá an taoide lán ({{limit}} MB): cliceáil chun greamáin nua a íoslódáil.",
       "settings.autoDownloadDocumentsDesc": "Íoslódáil doiciméid go huathoibríoch",
+      "settings.autoDownloadMaxLabel": "Méid uasta",
+      "settings.autoDownloadMaxDesc": "Thar an méid sin, fanann an ceangailín ar fáil le cliceáil.",
+      "settings.downloadFolder": "Fillteán sábhála",
+      "settings.downloadFolderNone": "Fillteán réamhshocraithe an chórais",
+      "settings.downloadFolderDesc": "Áit a osclaíonn na dialóga sábhála do na ceangailíní. Má imíonn an fillteán, filleann an córas ar a ghnáthshuíomh.",
+      "settings.downloadFolderChoose": "Roghnaigh fillteán…",
+      "settings.downloadFolderReset": "Fill ar an bhfillteán réamhshocraithe",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -21152,6 +21306,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Peste această limită, atașamentele noi nu se mai descarcă automat. Nimic nu se șterge — rămân la un clic distanță.",
       "settings.cacheLimitReached": "Cache plin ({{limit}} MB): atașamentele noi așteaptă un clic.",
       "settings.autoDownloadDocumentsDesc": "Descarcă automat documentele",
+      "settings.autoDownloadMaxLabel": "Dimensiune maximă",
+      "settings.autoDownloadMaxDesc": "Peste această dimensiune, atașamentul rămâne disponibil la clic.",
+      "settings.downloadFolder": "Folder de salvare",
+      "settings.downloadFolderNone": "Folderul implicit al sistemului",
+      "settings.downloadFolderDesc": "Unde se deschid casetele de salvare ale atașamentelor. Dacă folderul dispare, sistemul revine la locația obișnuită.",
+      "settings.downloadFolderChoose": "Alege un folder…",
+      "settings.downloadFolderReset": "Înapoi la folderul implicit",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -22081,6 +22242,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Above this limit, new attachments no longer download automatically. Nothing is deleted — they stay available with a click.",
       "settings.cacheLimitReached": "Cache full ({{limit}} MB): new attachments will wait for a click.",
       "settings.autoDownloadDocumentsDesc": "Automatically download documents",
+      "settings.autoDownloadMaxLabel": "Maximum size",
+      "settings.autoDownloadMaxDesc": "Above this size, the attachment stays available with a click.",
+      "settings.downloadFolder": "Save folder",
+      "settings.downloadFolderNone": "System default folder",
+      "settings.downloadFolderDesc": "Where the attachments’ save dialogs open. If the folder disappears, the system goes back to its usual location.",
+      "settings.downloadFolderChoose": "Choose a folder…",
+      "settings.downloadFolderReset": "Back to the default folder",
     }
   },
 
@@ -23002,6 +23170,13 @@ export const translations = {
       "settings.cacheLimitDesc": "Після цього обмеження нові вкладення вже не завантажуються автоматично. Ніщо не видаляється — вони залишаються доступними одним клацанням.",
       "settings.cacheLimitReached": "Кеш заповнено ({{limit}} MB): нові вкладення чекатимуть на клацання.",
       "settings.autoDownloadDocumentsDesc": "Автоматично завантажувати документи",
+      "settings.autoDownloadMaxLabel": "Максимальний розмір",
+      "settings.autoDownloadMaxDesc": "Понад цей розмір долучення лишається доступним за кліком.",
+      "settings.downloadFolder": "Тека для збереження",
+      "settings.downloadFolderNone": "Типова тека системи",
+      "settings.downloadFolderDesc": "Де відкриваються діалоги збереження долучень. Якщо тека зникне, система повертається до звичайного місця.",
+      "settings.downloadFolderChoose": "Вибрати теку…",
+      "settings.downloadFolderReset": "Повернутися до типової теки",
     }
   },
 }

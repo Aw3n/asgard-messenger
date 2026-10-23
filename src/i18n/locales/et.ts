@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Sellest piirist üle uute manuste automaatne allalaadimine peatub. Midagi ei kustutata — need on endiselt klõpsuga kättesaadavad.",
       "settings.cacheLimitReached": "Puhver on täis ({{limit}} MB): uued manused ootavad klõpsu.",
       "settings.autoDownloadDocumentsDesc": "Laadi dokumendid automaatselt alla",
+      "settings.autoDownloadMaxLabel": "Maksimaalsuurus",
+      "settings.autoDownloadMaxDesc": "Sellest suureman manus jääb klõpsamisega kättesaadavaks.",
+      "settings.downloadFolder": "Salvestuskaust",
+      "settings.downloadFolderNone": "Süsteemi vaikenekaust",
+      "settings.downloadFolderDesc": "Kus manuste salvestamise dialoogid avanevad. Kui kaust kaob, naaseb süsteem oma tavalise asukoha juurde.",
+      "settings.downloadFolderChoose": "Vali kaust…",
+      "settings.downloadFolderReset": "Naase vaikenekausta juurde",
     }
 }

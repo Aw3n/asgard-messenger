@@ -218,13 +218,20 @@ export interface AsgardAPI {
   }
   // File operations
   file: {
-    saveAs: (blobId: string, suggestedName: string) => Promise<
+    saveAs: (blobId: string, suggestedName: string, downloadDir?: string) => Promise<
       | { success: true; filePath: string }
       | { success: false; reason: 'not-found' | 'canceled' | 'error'; message?: string }
     >
     open: (blobId: string, suggestedName: string) => Promise<
       | { success: true }
       | { success: false; reason: 'not-found' | 'blocked' | 'error'; message?: string }
+    >
+  }
+  // Native dialogs
+  dialog: {
+    pickFolder: () => Promise<
+      | { success: true; path: string }
+      | { success: false; reason: 'canceled' | 'error'; message?: string }
     >
   }
   // App info
@@ -553,8 +560,12 @@ contextBridge.exposeInMainWorld('asgard', {
       createListener('notifications:click', callback),
   },
   file: {
-    saveAs: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:save-as', blobId, suggestedName),
+    saveAs: (blobId: string, suggestedName: string, downloadDir?: string) =>
+      ipcRenderer.invoke('file:save-as', blobId, suggestedName, downloadDir),
     open: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:open', blobId, suggestedName),
+  },
+  dialog: {
+    pickFolder: () => ipcRenderer.invoke('dialog:pick-folder'),
   },
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),

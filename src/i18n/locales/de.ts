@@ -917,5 +917,12 @@ export default {
       "settings.cacheLimitDesc": "Oberhalb dieser Grenze werden neue Anhänge nicht mehr automatisch heruntergeladen. Es wird nichts gelöscht — sie bleiben per Klick verfügbar.",
       "settings.cacheLimitReached": "Cache voll ({{limit}} MB): neue Anhänge warten auf einen Klick.",
       "settings.autoDownloadDocumentsDesc": "Dokumente automatisch herunterladen",
+      "settings.autoDownloadMaxLabel": "Maximale Größe",
+      "settings.autoDownloadMaxDesc": "Oberhalb dieser Größe bleibt der Anhang per Klick verfügbar.",
+      "settings.downloadFolder": "Zielordner",
+      "settings.downloadFolderNone": "Standardordner des Systems",
+      "settings.downloadFolderDesc": "Wo die Speicherdialoge der Anhänge geöffnet werden. Fehlt der Ordner, nutzt das System wieder seinen üblichen Speicherort.",
+      "settings.downloadFolderChoose": "Ordner auswählen…",
+      "settings.downloadFolderReset": "Zurück zum Standardordner",
     }
 }

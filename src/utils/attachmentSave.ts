@@ -16,7 +16,7 @@ export async function saveAttachmentToDisk(
   attachment: MessageAttachment,
   t: Translate,
 ): Promise<boolean> {
-  const { addToast } = useUIStore.getState()
+  const { addToast, settings } = useUIStore.getState()
 
   if (!attachment.blobKey) {
     addToast({
@@ -27,7 +27,7 @@ export async function saveAttachmentToDisk(
     return false
   }
 
-  const result = await window.asgard.file.saveAs(attachment.blobKey, attachment.name)
+  const result = await window.asgard.file.saveAs(attachment.blobKey, attachment.name, settings.storage.downloadPath)
 
   if (result.success) {
     addToast({ type: 'success', title: t('chat.fileSaved'), message: result.filePath, duration: 3000 })

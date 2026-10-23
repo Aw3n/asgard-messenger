@@ -917,5 +917,12 @@ export default {
       "settings.cacheLimitDesc": "Au-delà de ce plafond, les nouvelles pièces jointes ne se téléchargent plus automatiquement. Rien n’est supprimé : elles restent accessibles au clic.",
       "settings.cacheLimitReached": "Cache plein ({{limit}} Mo) : les nouvelles pièces jointes attendront un clic.",
       "settings.autoDownloadDocumentsDesc": "Télécharger automatiquement les documents",
+      "settings.autoDownloadMaxLabel": "Taille maximale",
+      "settings.autoDownloadMaxDesc": "Au-delà de cette taille, la pièce jointe reste disponible au clic.",
+      "settings.downloadFolder": "Dossier d’enregistrement",
+      "settings.downloadFolderNone": "Dossier par défaut du système",
+      "settings.downloadFolderDesc": "Où s’ouvrent les boîtes d’enregistrement des pièces jointes. Si le dossier disparaît, le système reprend son emplacement habituel.",
+      "settings.downloadFolderChoose": "Choisir un dossier…",
+      "settings.downloadFolderReset": "Revenir au dossier par défaut",
     }
 }

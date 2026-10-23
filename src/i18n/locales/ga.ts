@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Thar an teorainn seo ní íoslódáilte greamáin nua go huathoibríoch a thuilleadh. Ní scriostar aon rud — tá siad ar fáil fós le cliceáil.",
       "settings.cacheLimitReached": "Tá an taoide lán ({{limit}} MB): cliceáil chun greamáin nua a íoslódáil.",
       "settings.autoDownloadDocumentsDesc": "Íoslódáil doiciméid go huathoibríoch",
+      "settings.autoDownloadMaxLabel": "Méid uasta",
+      "settings.autoDownloadMaxDesc": "Thar an méid sin, fanann an ceangailín ar fáil le cliceáil.",
+      "settings.downloadFolder": "Fillteán sábhála",
+      "settings.downloadFolderNone": "Fillteán réamhshocraithe an chórais",
+      "settings.downloadFolderDesc": "Áit a osclaíonn na dialóga sábhála do na ceangailíní. Má imíonn an fillteán, filleann an córas ar a ghnáthshuíomh.",
+      "settings.downloadFolderChoose": "Roghnaigh fillteán…",
+      "settings.downloadFolderReset": "Fill ar an bhfillteán réamhshocraithe",
     }
 }

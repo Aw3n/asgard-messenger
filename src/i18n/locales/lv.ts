@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Pārsniedzot šo limitu, jaunās pievienotnes vairs netiek lejupielādētas automātiski. Nekas netiek dzēsts — tās joprojām ir pieejamas ar klikšķi.",
       "settings.cacheLimitReached": "Kešatmiņa ir pilna ({{limit}} MB): jaunās pievienotnes gaida klikšķi.",
       "settings.autoDownloadDocumentsDesc": "Automātiski lejupielādēt dokumentus",
+      "settings.autoDownloadMaxLabel": "Maksimālais izmērs",
+      "settings.autoDownloadMaxDesc": "Virpā šo izmēru pielikums paliek pieejams, noklikšķinot.",
+      "settings.downloadFolder": "Saglabāšanas mape",
+      "settings.downloadFolderNone": "Sistēmas noklusējuma mape",
+      "settings.downloadFolderDesc": "Kur atveras pielikumu saglabāšanas logi. Ja mape pazūd, sistēma atgriežas ierastajā vietā.",
+      "settings.downloadFolderChoose": "Izvēlēties mapi…",
+      "settings.downloadFolderReset": "Atgriezties noklusējuma mapē",
     }
 }

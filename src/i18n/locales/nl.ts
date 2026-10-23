@@ -917,5 +917,12 @@ export default {
       "settings.cacheLimitDesc": "Boven deze limiet worden nieuwe bijlagen niet meer automatisch gedownload. Er wordt niets verwijderd — ze blijven met een klik beschikbaar.",
       "settings.cacheLimitReached": "Cache vol ({{limit}} MB): nieuwe bijlagen wachten op een klik.",
       "settings.autoDownloadDocumentsDesc": "Documenten automatisch downloaden",
+      "settings.autoDownloadMaxLabel": "Maximale grootte",
+      "settings.autoDownloadMaxDesc": "Voorbij deze grootte blijft de bijlage beschikbaar met een klik.",
+      "settings.downloadFolder": "Opslagmap",
+      "settings.downloadFolderNone": "Standaardmap van het systeem",
+      "settings.downloadFolderDesc": "Waar de opslagvensters van bijlagen zich openen. Als de map verdwijnt, valt het systeem terug op zijn gebruikelijke locatie.",
+      "settings.downloadFolderChoose": "Map kiezen…",
+      "settings.downloadFolderReset": "Terug naar de standaardmap",
     }
 }

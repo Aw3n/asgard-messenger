@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Nad to mejo se nove priponke ne prenašajo samodejno. Nič se ne izbriše — še vedno so na voljo z enim klikom.",
       "settings.cacheLimitReached": "Predpomnilnik je poln ({{limit}} MB): nove priponke čakajo na klik.",
       "settings.autoDownloadDocumentsDesc": "Samodejno prenese dokumente",
+      "settings.autoDownloadMaxLabel": "Največja velikost",
+      "settings.autoDownloadMaxDesc": "Nad to velikostjo je priponka še vedno na voljo s klikom.",
+      "settings.downloadFolder": "Mapa za shranjevanje",
+      "settings.downloadFolderNone": "Privzeta mapa sistema",
+      "settings.downloadFolderDesc": "Kje se odprejo pogovorna okna za shranjevanje priponk. Če mapa izgine, se sistem vrne na običajno mesto.",
+      "settings.downloadFolderChoose": "Izberi mapo…",
+      "settings.downloadFolderReset": "Vrni se v privzeto mapo",
     }
 }

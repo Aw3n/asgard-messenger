@@ -918,5 +918,12 @@ export default {
       "settings.cacheLimitDesc": "Після цього обмеження нові вкладення вже не завантажуються автоматично. Ніщо не видаляється — вони залишаються доступними одним клацанням.",
       "settings.cacheLimitReached": "Кеш заповнено ({{limit}} MB): нові вкладення чекатимуть на клацання.",
       "settings.autoDownloadDocumentsDesc": "Автоматично завантажувати документи",
+      "settings.autoDownloadMaxLabel": "Максимальний розмір",
+      "settings.autoDownloadMaxDesc": "Понад цей розмір долучення лишається доступним за кліком.",
+      "settings.downloadFolder": "Тека для збереження",
+      "settings.downloadFolderNone": "Типова тека системи",
+      "settings.downloadFolderDesc": "Де відкриваються діалоги збереження долучень. Якщо тека зникне, система повертається до звичайного місця.",
+      "settings.downloadFolderChoose": "Вибрати теку…",
+      "settings.downloadFolderReset": "Повернутися до типової теки",
     }
 }
