@@ -48,6 +48,7 @@ import { chatService } from '@/services/ChatService'
 import { cryptoService } from '@/services/CryptoService'
 import { bytesToHexSafe } from '@/utils/bytes'
 import { toNetworkStatus, presenceMessage } from '@/utils/presence'
+import { formatWindowTitle } from '@/utils/windowTitle'
 import { groupService } from '@/services/GroupService'
 import { callService } from '@/services/CallService'
 import { fileService } from '@/services/FileService'
@@ -68,6 +69,19 @@ const App: React.FC = () => {
   const { isSetup, loadIdentity, identity } = useIdentityStore()
   const { theme, setTheme, isSearchOpen, setSearchOpen, settings } = useUIStore()
   const activeCall = useCallStore((s) => s.activeCall)
+  // Total des non-lus (1:1 + canaux de groupe) pour le titre de fenêtre.
+  const directUnread = useConversationStore((s) =>
+    Object.values(s.conversations).reduce(
+      (sum, conv) => (conv.type === 'direct' ? sum + conv.unreadCount : sum),
+      0,
+    )
+  )
+  const groupUnread = useGroupStore((s) =>
+    Object.values(s.groups).reduce(
+      (sum, group) => sum + group.channels.reduce((n, channel) => n + channel.unreadCount, 0),
+      0,
+    )
+  )
   // Clé publique Ed25519 pour laquelle la session réseau courant est initialisée
   // (null = aucune). L'effet d'init ne DOIT se relancer que si cette clé change
   // (import d'une nouvelle identité) — surtout pas à chaque nouvelle référence de
@@ -118,6 +132,12 @@ const App: React.FC = () => {
     const sizes: Record<string, string> = { small: '13px', medium: '15px', large: '17px' }
     root.style.setProperty('--font-size-base', sizes[settings.fontSize] ?? '15px')
   }, [settings.fontSize])
+
+  // Titre de fenêtre : les non-lus restent visibles dans la barre des tâches,
+  // l'aperçu Alt+Tab et pour les lecteurs d'écran, même en arrière-plan.
+  useEffect(() => {
+    document.title = formatWindowTitle(i18n.t('titlebar.appName'), directUnread + groupUnread)
+  }, [directUnread, groupUnread, i18n.language])
 
   // Notification cliquée : sélectionner la destination avant de naviguer,
   // sinon la page s'affiche en gardant l'ancien fil ou l'ancien canal.
