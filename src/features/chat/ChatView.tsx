@@ -25,6 +25,11 @@ import { presenceMeta, isLivePresence } from '@/utils/presence'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
 import type { Message } from '@/types'
 
+const HISTORY_PAGE_SIZE = 50
+// Index de départ arbitrairement haut : Virtuoso s'en sert pour ancrer le
+// viewport quand des messages plus anciens sont insérés devant la liste.
+const FIRST_ITEM_INDEX = 100_000
+
 /**
  * ChatView — main conversation view.
  * Renders virtualized message list + input bar + header.
@@ -75,6 +80,19 @@ export const ChatView: React.FC = () => {
   // not the data. The component would never re-render when new messages arrive.
   // By selecting state.messages[dataId] directly, Zustand subscribes to changes.
   const messages = useMessageStore((s) => dataId ? (s.messages[dataId] ?? []) : [])
+  const [pagination, setPagination] = useState({
+    dataId,
+    firstItemIndex: FIRST_ITEM_INDEX,
+    exhausted: false,
+  })
+  // La conversation peut changer sans démonter la vue : l'état d'ancrage
+  // d'anciens messages ne doit pas suivre le nouveau fil.
+  const paginationState = pagination.dataId === dataId
+    ? pagination
+    : { dataId, firstItemIndex: FIRST_ITEM_INDEX, exhausted: false }
+  const loadingOlderRef = useRef(false)
+  const dataIdRef = useRef(dataId)
+  dataIdRef.current = dataId
   const pinnedMessages = useMessageStore((s) => dataId ? s.getPinnedMessages(dataId) : [])
   const contact = conversation?.participantId ? contacts[conversation.participantId] : undefined
   const typingUsers = dataId ? getTypingUsers(dataId) : []
@@ -110,6 +128,38 @@ export const ChatView: React.FC = () => {
     if (!resolvedId) return
     chatService.loadMessages(resolvedId).catch(console.error)
   }, [resolvedId])
+
+  // PAGINATION: l'ouverture ne charge que les derniers messages ; remonter en
+  // haut du fil doit aller chercher la suite au lieu de laisser un trou.
+  const loadOlderMessages = useCallback(async () => {
+    if (!resolvedId || loadingOlderRef.current || paginationState.exhausted) return
+    const current = useMessageStore.getState().messages[resolvedId] ?? []
+    if (current.length === 0) return
+    loadingOlderRef.current = true
+    try {
+      // +1 ms inclut les messages qui partagent l'horodatage du plus ancien.
+      const older = await chatService.loadOlderMessages(
+        resolvedId,
+        current[0].timestamp + 1,
+        HISTORY_PAGE_SIZE,
+      )
+      if (dataIdRef.current !== dataId) return
+      const after = useMessageStore.getState().messages[resolvedId]?.length ?? current.length
+      const added = after - current.length
+      setPagination((state) => {
+        const base = state.dataId === dataId ? state.firstItemIndex : FIRST_ITEM_INDEX
+        return {
+          dataId,
+          firstItemIndex: Math.max(0, base - added),
+          // Une page incomplète, ou une page qui n'a rien ajouté (doublons),
+          // signifie qu'il n'y a plus rien à remonter : ne pas boucler.
+          exhausted: older.length < HISTORY_PAGE_SIZE || added === 0,
+        }
+      })
+    } finally {
+      loadingOlderRef.current = false
+    }
+  }, [resolvedId, dataId, paginationState.exhausted])
 
   // READ RECEIPTS: When the user opens a conversation, send read receipts for
   // all messages from the peer that aren't marked as 'read' yet.
@@ -389,6 +439,8 @@ export const ChatView: React.FC = () => {
           <Virtuoso
             ref={virtuosoRef}
             data={messages}
+            firstItemIndex={paginationState.firstItemIndex}
+            startReached={() => { void loadOlderMessages() }}
             // Ne suit le bas que si l'utilisateur y est déjà : remonter pour
             // relire l'historique ne doit pas être annulé par chaque arrivée.
             followOutput={(atBottom) => (atBottom ? 'smooth' : false)}

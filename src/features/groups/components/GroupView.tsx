@@ -19,6 +19,11 @@ import { useTranslation } from 'react-i18next'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
 import type { Message } from '@/types'
 
+const HISTORY_PAGE_SIZE = 50
+// Index de départ arbitrairement haut : Virtuoso s'en sert pour ancrer le
+// viewport quand des messages plus anciens sont insérés devant la liste.
+const FIRST_ITEM_INDEX = 100_000
+
 /**
  * GroupView — main view for a selected group.
  * Shows channel list (left), messages (center), and member list (right).
@@ -40,6 +45,20 @@ export const GroupView: React.FC = () => {
   const activeGroupId = activeGroup?.id
   // CRITICAL: Select messages reactively from the store
   const messages = useMessageStore((s) => channelId ? (s.messages[channelId] ?? []) : [])
+  const historyKey = `${activeGroupId ?? ''}:${channelId}`
+  const [pagination, setPagination] = useState({
+    key: historyKey,
+    firstItemIndex: FIRST_ITEM_INDEX,
+    exhausted: false,
+  })
+  // Changer de canal ne doit pas transporter l'ancrage d'historique du canal
+  // précédent, alors que la vue reste montée.
+  const paginationState = pagination.key === historyKey
+    ? pagination
+    : { key: historyKey, firstItemIndex: FIRST_ITEM_INDEX, exhausted: false }
+  const loadingOlderRef = React.useRef(false)
+  const historyKeyRef = React.useRef(historyKey)
+  historyKeyRef.current = historyKey
   const typingUsers = useNetworkStore((s) => s.getTypingUsers(channelId))
   const currentMember = activeGroup?.members.find(
     (member) => member.publicKey === identity?.keyPair.publicKey,
@@ -191,6 +210,36 @@ export const GroupView: React.FC = () => {
     return () => { cancelled = true }
   }, [activeGroupId, channelId, groupViewVisible])
 
+  // PAGINATION: l'ouverture ne charge que les derniers messages du canal ;
+  // remonter en haut doit aller chercher la suite dans Hyperbee.
+  const loadOlderMessages = useCallback(async () => {
+    if (!activeGroupId || !channelId || loadingOlderRef.current || paginationState.exhausted) return
+    const current = useMessageStore.getState().messages[channelId] ?? []
+    if (current.length === 0) return
+    loadingOlderRef.current = true
+    try {
+      const older = await groupService.loadOlderChannelMessages(
+        activeGroupId,
+        channelId,
+        current[0].timestamp + 1,
+        HISTORY_PAGE_SIZE,
+      )
+      if (historyKeyRef.current !== historyKey) return
+      const after = useMessageStore.getState().messages[channelId]?.length ?? current.length
+      const added = after - current.length
+      setPagination((state) => {
+        const base = state.key === historyKey ? state.firstItemIndex : FIRST_ITEM_INDEX
+        return {
+          key: historyKey,
+          firstItemIndex: Math.max(0, base - added),
+          exhausted: older.length < HISTORY_PAGE_SIZE || added === 0,
+        }
+      })
+    } finally {
+      loadingOlderRef.current = false
+    }
+  }, [activeGroupId, channelId, historyKey, paginationState.exhausted])
+
   // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
   // doit rendre le même nombre de hooks qu'avec, sinon React casse l'ordre.
   if (!activeGroup) {
@@ -284,7 +333,9 @@ export const GroupView: React.FC = () => {
             <Virtuoso
               ref={virtuosoRef}
               data={messages}
-              followOutput="smooth"
+              firstItemIndex={paginationState.firstItemIndex}
+              startReached={() => { void loadOlderMessages() }}
+              followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
               className="h-full virtual-list"
               initialTopMostItemIndex={messages.length - 1}
               itemContent={(_, message) => (

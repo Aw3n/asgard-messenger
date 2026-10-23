@@ -1216,6 +1216,37 @@ class GroupService {
   }
 
   /**
+   * Remonte l'historique d'un canal avant une date (pagination).
+   * Mêmes contrôles d'appartenance que le chargement initial : un canal
+   * inconnu de ce client ne doit pas être lu depuis le stockage.
+   */
+  async loadOlderChannelMessages(
+    groupId: string,
+    channelId: string,
+    beforeTimestamp: number,
+    limit = 50,
+  ): Promise<Message[]> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return []
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return []
+    if (!group.channels.some((channel) => channel.id === channelId)) return []
+
+    try {
+      const stored = await storageService.getMessages(channelId, {
+        before: beforeTimestamp,
+        limit,
+        reverse: true,
+      })
+      if (stored.length > 0) useMessageStore.getState().addMessages(channelId, stored)
+      return stored
+    } catch (err) {
+      console.error('[GroupService] Failed to load older channel messages:', err)
+      return []
+    }
+  }
+
+  /**
    * Mark messages as read in a group channel and notify peers.
    */
   async markAsRead(groupId: string, channelId: string, messageIds: string[]): Promise<void> {

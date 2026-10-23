@@ -104,6 +104,44 @@ describe('rechargement de l’historique d’un canal', () => {
   })
 })
 
+describe('remonter l’historique d’un canal', () => {
+  it('demande les messages avant la date et les rend dans l’ordre du temps', async () => {
+    const getMessages = vi.spyOn(storageService, 'getMessages').mockResolvedValue([
+      message('m-3', B, 3_000),
+      message('m-2', A, 2_000),
+    ])
+
+    const returned = await groupService.loadOlderChannelMessages(groupId, channelId, 3_001, 50)
+
+    expect(getMessages).toHaveBeenCalledWith(channelId, { before: 3_001, limit: 50, reverse: true })
+    expect(returned.map((m) => m.id)).toEqual(['m-3', 'm-2'])
+    expect(useMessageStore.getState().messages[channelId]?.map((m) => m.id)).toEqual(['m-2', 'm-3'])
+  })
+
+  it('ne lit ni un canal inconnu ni un groupe dont on n’est pas membre', async () => {
+    const getMessages = vi.spyOn(storageService, 'getMessages').mockResolvedValue([])
+    useIdentityStore.setState({
+      identity: {
+        keyPair: { publicKey: 'd'.repeat(64), secretKey: 'f'.repeat(128) },
+        profile: { publicKey: 'd'.repeat(64), displayName: 'Dave', status: 'online', createdAt: 0, updatedAt: 0 },
+      },
+      isSetup: true,
+    })
+
+    await groupService.loadOlderChannelMessages(groupId, channelId, 3_001)
+    useIdentityStore.setState({
+      identity: {
+        keyPair: { publicKey: A, secretKey: 'f'.repeat(128) },
+        profile: { publicKey: A, displayName: 'Alice', status: 'online', createdAt: 0, updatedAt: 0 },
+      },
+      isSetup: true,
+    })
+    await groupService.loadOlderChannelMessages(groupId, 'canal-inconnu', 3_001)
+
+    expect(getMessages).not.toHaveBeenCalled()
+  })
+})
+
 describe('ouverture d’un canal = lecture', () => {
   it('remet le compteur à zéro et envoie les accusés de lecture', async () => {
     // createGroup sélectionne le groupe : un message n'est « non lu » que
