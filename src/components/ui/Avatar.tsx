@@ -357,6 +357,9 @@ export const AvatarCropDialog: React.FC<AvatarCropDialogProps> = ({
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [imgSize, setImgSize] = useState({ width: 0, height: 0 })
+  // Le curseur de taille se règle à la souris et au clavier : sans liaison avec
+  // son <label>, un lecteur d'écran n'annonce qu'une glissière sans nom.
+  const sliderId = React.useId()
 
   useEffect(() => {
     const img = new Image()
@@ -471,10 +474,11 @@ export const AvatarCropDialog: React.FC<AvatarCropDialogProps> = ({
 
         {/* Size slider */}
         <div className="mb-4">
-          <label className="text-sm text-asgard-text-secondary block mb-2">
+          <label htmlFor={sliderId} className="text-sm text-asgard-text-secondary block mb-2">
             {t('avatar.size')}
           </label>
           <input
+            id={sliderId}
             type="range"
             min={50}
             max={Math.min(imgSize.width, imgSize.height)}

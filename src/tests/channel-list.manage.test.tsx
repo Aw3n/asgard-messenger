@@ -164,6 +164,15 @@ describe('création d’un canal', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 
+  it('nomme le champ du nom de canal', () => {
+    render(<ChannelList />)
+    const panel = openCreator()
+
+    // Le libellé est posé par le composant Input partagé : sans liaison, le
+    // dialogue n'offrait qu'une « zone d'édition » anonyme au lecteur d'écran.
+    expect(within(panel).getByLabelText('groups.channelName')).toBeInTheDocument()
+  })
+
   it('promet dans le dialogue les rôles qui pourront écrire', () => {
     render(<ChannelList />)
     const panel = openCreator()

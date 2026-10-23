@@ -14,11 +14,20 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
  * Asgard Input — styled form input with Fluent Design aesthetics.
  */
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, icon, iconRight, onClear, className, ...props }, ref) => {
+  ({ label, error, hint, icon, iconRight, onClear, className, id, ...props }, ref) => {
+    // Un <label> sans htmlFor ne nomme rien : le lecteur d'écran annonçait une
+    // « zone d'édition » vide sur les onze champs du composant.
+    const autoId = React.useId()
+    const inputId = id ?? autoId
+    const describedBy = [
+      error ? `${inputId}-error` : null,
+      hint && !error ? `${inputId}-hint` : null,
+    ].filter(Boolean).join(' ')
+
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label className="text-sm font-medium text-asgard-text-secondary">
+          <label htmlFor={inputId} className="text-sm font-medium text-asgard-text-secondary">
             {label}
           </label>
         )}
@@ -30,6 +39,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            id={inputId}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy || undefined}
             className={cn(
               'asgard-input w-full h-10 px-3 text-sm',
               !!icon && 'pl-9',
@@ -52,8 +64,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </span>
           )}
         </div>
-        {error && <p className="text-xs text-red-400">{error}</p>}
-        {hint && !error && <p className="text-xs text-asgard-text-muted">{hint}</p>}
+        {error && <p id={`${inputId}-error`} className="text-xs text-red-400">{error}</p>}
+        {hint && !error && (
+          <p id={`${inputId}-hint`} className="text-xs text-asgard-text-muted">{hint}</p>
+        )}
       </div>
     )
   }
