@@ -15,10 +15,30 @@ export const ChannelList: React.FC = () => {
   const activeChannelId = useGroupStore((s) => s.activeChannelId)
   const setActiveChannel = useGroupStore((s) => s.setActiveChannel)
   const getChannels = useGroupStore((s) => s.getChannels)
+  // La frappe vit dans le GroupStore et expire après 5 s sans événement ;
+  // typingTick force la ré-évaluation pour la voir disparaître sans nouveau
+  // message. Même convention que GroupItem et la liste 1:1.
+  const channelTyping = useGroupStore((s) => s.channelTyping)
+  const [typingTick, setTypingTick] = React.useState(0)
+
+  const channels = activeGroup ? getChannels(activeGroup.id) : []
+  const typingChannelIds = React.useMemo(() => {
+    const ids = new Set<string>()
+    if (!activeGroup) return ids
+    const store = useGroupStore.getState()
+    for (const ch of channels) {
+      if (store.getChannelTypingUsers(activeGroup.id, ch.id).length > 0) ids.add(ch.id)
+    }
+    return ids
+  }, [activeGroup, channels, channelTyping, typingTick])
+
+  React.useEffect(() => {
+    if (typingChannelIds.size === 0) return
+    const timer = setTimeout(() => setTypingTick((n) => n + 1), 1000)
+    return () => clearTimeout(timer)
+  }, [typingChannelIds.size, typingTick])
 
   if (!activeGroup) return null
-
-  const channels = getChannels(activeGroup.id)
 
   // Group channels by type
   const textChannels = channels.filter((ch) => ch.type === 'text')
@@ -48,6 +68,7 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                typing={typingChannelIds.has(ch.id)}
                 icon={<HashIcon />}
               />
             ))}
@@ -63,6 +84,7 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                typing={typingChannelIds.has(ch.id)}
                 icon={<MegaphoneIcon />}
               />
             ))}
@@ -78,6 +100,7 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                typing={typingChannelIds.has(ch.id)}
                 icon={<LockIcon />}
               />
             ))}
@@ -93,6 +116,7 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                typing={typingChannelIds.has(ch.id)}
                 icon={<SpeakerIcon />}
               />
             ))}
@@ -122,30 +146,53 @@ interface ChannelItemProps {
   isActive: boolean
   onClick: () => void
   icon: React.ReactNode
+  typing?: boolean
 }
 
-const ChannelItem: React.FC<ChannelItemProps> = ({ channel, isActive, onClick, icon }) => (
-  <motion.button
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className={cn(
-      'w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors',
-      isActive
-        ? 'bg-asgard-nordic/20 text-asgard-glacier'
-        : channel.unreadCount > 0
-        ? 'text-asgard-text-primary hover:bg-asgard-surface-alt'
-        : 'text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-secondary'
-    )}
-  >
-    <span className="flex-shrink-0 opacity-70">{icon}</span>
-    <span className="truncate flex-1 text-left text-xs">{channel.name}</span>
-    {channel.unreadCount > 0 && (
-      <span className="min-w-4 h-4 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0">
-        {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
-      </span>
-    )}
-  </motion.button>
-)
+const ChannelItem: React.FC<ChannelItemProps> = ({ channel, isActive, onClick, icon, typing }) => {
+  const { t } = useTranslation()
+  return (
+    <motion.button
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={cn(
+        'w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors',
+        isActive
+          ? 'bg-asgard-nordic/20 text-asgard-glacier'
+          : channel.unreadCount > 0
+          ? 'text-asgard-text-primary hover:bg-asgard-surface-alt'
+          : 'text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-secondary'
+      )}
+    >
+      <span className="flex-shrink-0 opacity-70">{icon}</span>
+      <span className="truncate flex-1 text-left text-xs">{channel.name}</span>
+      {typing && (
+        <>
+          <span className="sr-only">{t('chat.typing')}</span>
+          <span
+            className="flex items-end gap-0.5 h-2 flex-shrink-0"
+            aria-hidden="true"
+            title={t('chat.typing')}
+            data-testid={`channel-typing-${channel.id}`}
+          >
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1 h-1 rounded-full bg-asgard-glacier animate-typing"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </span>
+        </>
+      )}
+      {channel.unreadCount > 0 && (
+        <span className="min-w-4 h-4 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0">
+          {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
+        </span>
+      )}
+    </motion.button>
+  )
+}
 
 // ─── Icons ──────────────────────────────────────────────────────────────────────
 
