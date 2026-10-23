@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Virtuoso } from 'react-virtuoso'
 import { useContactStore } from '@/stores/contactStore'
@@ -81,6 +81,22 @@ export const ContactsPage: React.FC = () => {
 
   const { getFilteredContacts, getFavorites, getBlocked, searchQuery, setSearchQuery } =
     useContactStore()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Un résultat de recherche peut viser un contact sans conversation : la page
+  // doit l'ouvrir directement puis consommer l'état, sinon un retour arrière
+  // rouvrirait le panneau.
+  useEffect(() => {
+    const state = location.state as { contactPublicKey?: string } | null
+    const publicKey = state?.contactPublicKey
+    if (!publicKey) return
+    navigate(location.pathname, { replace: true, state: null })
+    const contact = useContactStore.getState().getContact(publicKey)
+    if (!contact) return
+    setTab('all')
+    setSelectedContact(contact)
+  }, [location.state, location.pathname, navigate])
 
   const getContacts = () => {
     const all = getFilteredContacts()

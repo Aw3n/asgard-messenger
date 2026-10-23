@@ -6,7 +6,7 @@
  * pas dans le DOM. Ces tests fixent le comportement attendu.
  */
 import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('react-i18next', () => ({
@@ -38,6 +38,12 @@ class IntersectionObserverStub {
   takeRecords() { return [] }
 }
 vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
+
+function LocationProbe() {
+  const location = useLocation()
+  const state = location.state as { contactPublicKey?: string } | null
+  return <div data-testid="location">{`${location.pathname}|${state?.contactPublicKey ?? ''}`}</div>
+}
 
 function renderModal(onClose = vi.fn()) {
   const view = render(
@@ -104,6 +110,21 @@ describe('recherche globale au clavier', () => {
 
     fireEvent.keyDown(input, { key: 'Tab', shiftKey: true })
     expect(document.activeElement).toBe(last)
+  })
+
+  it('ouvre la fiche du contact trouvé quand aucun fil n’existe', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <SearchModal isOpen onClose={vi.fn()} />
+        <LocationProbe />
+      </MemoryRouter>
+    )
+    const input = screen.getByRole('combobox')
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(screen.getByTestId('location')).toHaveTextContent(`/contacts|${'a'.repeat(64)}`)
   })
 
   it('nomme le bouton d’effacement et annonce le filtre actif', () => {

@@ -92,9 +92,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   }, [isOpen, onClose])
 
   const handleNavigate = useCallback(
-    (path: string) => {
+    (path: string, state?: unknown) => {
       onClose()
-      navigate(path)
+      navigate(path, state === undefined ? undefined : { state })
     },
     [onClose, navigate]
   )
@@ -109,7 +109,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
         useConversationStore.getState().setActiveConversation(existing.id)
         handleNavigate(`/conversations/${existing.id}`)
       } else {
-        handleNavigate(`/contacts`)
+        // Sans fil existant, la page Contacts doit ouvrir CE contact au lieu
+        // de laisser l'utilisateur le rechercher une seconde fois.
+        handleNavigate('/contacts', { contactPublicKey: result.contact.publicKey })
       }
     } else if (result.type === 'group' && result.group) {
       useGroupStore.getState().setActiveGroup(result.group.id)
