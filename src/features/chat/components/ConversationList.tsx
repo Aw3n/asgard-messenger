@@ -454,6 +454,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
       aria-haspopup="menu"
+      aria-current={isActive ? 'true' : undefined}
       className={cn(
         'w-full flex items-center gap-3 px-3 py-2.5',
         'transition-colors duration-200 text-left',

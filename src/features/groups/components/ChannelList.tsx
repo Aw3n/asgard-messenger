@@ -1,5 +1,5 @@
 import React from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useGroupStore } from '@/stores/groupStore'
 import { cn } from '@/utils/cn'
 import type { GroupChannel } from '@/types'
@@ -38,6 +38,97 @@ export const ChannelList: React.FC = () => {
     return () => clearTimeout(timer)
   }, [typingChannelIds.size, typingTick])
 
+  // Même menu que la liste 1:1 : un canal peut être marqué non lu pour y
+  // revenir, ou lu sans l'ouvrir. Clic droit, Maj+F10 et touche Menu.
+  const [contextMenu, setContextMenu] = React.useState<{
+    channel: GroupChannel
+    x: number
+    y: number
+    fromKeyboard?: boolean
+  } | null>(null)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+  const menuTriggerRef = React.useRef<HTMLElement | null>(null)
+
+  const handleContextMenu = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>, channel: GroupChannel) => {
+      e.preventDefault()
+      menuTriggerRef.current = e.currentTarget
+      setContextMenu({ channel, x: e.clientX, y: e.clientY })
+    },
+    [],
+  )
+
+  const handleItemKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>, channel: GroupChannel) => {
+      if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return
+      e.preventDefault()
+      const rect = e.currentTarget.getBoundingClientRect()
+      menuTriggerRef.current = e.currentTarget
+      setContextMenu({
+        channel,
+        x: Math.max(8, Math.min(rect.left + 16, window.innerWidth - 200)),
+        y: Math.max(8, Math.min(rect.top + 16, window.innerHeight - 120)),
+        fromKeyboard: true,
+      })
+    },
+    [],
+  )
+
+  // Échap rend le focus à la ligne déclencheuse ; les flèches restent dans
+  // le menu, comme dans la liste des conversations.
+  React.useEffect(() => {
+    if (!contextMenu) return
+    const clickHandler = () => setContextMenu(null)
+    const keyHandler = (e: KeyboardEvent) => {
+      const menu = menuRef.current
+      if (!menu) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setContextMenu(null)
+        const trigger = menuTriggerRef.current
+        menuTriggerRef.current = null
+        if (trigger?.isConnected) trigger.focus()
+        return
+      }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Tab'].includes(e.key)) return
+      const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
+      if (items.length === 0) return
+      e.preventDefault()
+      if (e.key === 'Home') return void items[0]?.focus()
+      if (e.key === 'End') return void items[items.length - 1]?.focus()
+      if (e.key === 'Tab') {
+        const index = items.indexOf(document.activeElement as HTMLButtonElement)
+        const next = index === -1 ? 0 : (index + (e.shiftKey ? -1 : 1) + items.length) % items.length
+        items[next]?.focus()
+        return
+      }
+      items[0]?.focus()
+    }
+    window.addEventListener('click', clickHandler)
+    window.addEventListener('keydown', keyHandler)
+    return () => {
+      window.removeEventListener('click', clickHandler)
+      window.removeEventListener('keydown', keyHandler)
+    }
+  }, [contextMenu])
+
+  React.useEffect(() => {
+    if (contextMenu?.fromKeyboard) {
+      menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+    }
+  }, [contextMenu])
+
+  const toggleChannelRead = React.useCallback(() => {
+    if (!contextMenu || !activeGroup) return
+    const store = useGroupStore.getState()
+    if (contextMenu.channel.unreadCount > 0) {
+      store.clearChannelUnread(activeGroup.id, contextMenu.channel.id)
+    } else {
+      store.incrementChannelUnread(activeGroup.id, contextMenu.channel.id)
+    }
+    setContextMenu(null)
+  }, [activeGroup, contextMenu])
+
   if (!activeGroup) return null
 
   // Group channels by type
@@ -68,6 +159,8 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                onContextMenu={(e) => handleContextMenu(e, ch)}
+                onKeyDown={(e) => handleItemKeyDown(e, ch)}
                 typing={typingChannelIds.has(ch.id)}
                 icon={<HashIcon />}
               />
@@ -84,6 +177,8 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                onContextMenu={(e) => handleContextMenu(e, ch)}
+                onKeyDown={(e) => handleItemKeyDown(e, ch)}
                 typing={typingChannelIds.has(ch.id)}
                 icon={<MegaphoneIcon />}
               />
@@ -100,6 +195,8 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                onContextMenu={(e) => handleContextMenu(e, ch)}
+                onKeyDown={(e) => handleItemKeyDown(e, ch)}
                 typing={typingChannelIds.has(ch.id)}
                 icon={<LockIcon />}
               />
@@ -116,6 +213,8 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                onContextMenu={(e) => handleContextMenu(e, ch)}
+                onKeyDown={(e) => handleItemKeyDown(e, ch)}
                 typing={typingChannelIds.has(ch.id)}
                 icon={<SpeakerIcon />}
               />
@@ -123,6 +222,36 @@ export const ChannelList: React.FC = () => {
           </ChannelSection>
         )}
       </div>
+
+      {/* Menu contextuel d'un canal */}
+      <AnimatePresence>
+        {contextMenu && (
+          <motion.div
+            ref={menuRef}
+            role="menu"
+            aria-label={contextMenu.channel.name}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            className="fixed z-50 mica-card border border-asgard-border rounded-xl p-1 shadow-modal min-w-[180px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={toggleChannelRead}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left text-asgard-text-secondary hover:bg-asgard-surface-alt hover:text-asgard-text-primary"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+              </svg>
+              {t(contextMenu.channel.unreadCount > 0 ? 'chat.markAsRead' : 'chat.markAsUnread')}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -147,14 +276,28 @@ interface ChannelItemProps {
   onClick: () => void
   icon: React.ReactNode
   typing?: boolean
+  onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void
+  onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void
 }
 
-const ChannelItem: React.FC<ChannelItemProps> = ({ channel, isActive, onClick, icon, typing }) => {
+const ChannelItem: React.FC<ChannelItemProps> = ({
+  channel,
+  isActive,
+  onClick,
+  icon,
+  typing,
+  onContextMenu,
+  onKeyDown,
+}) => {
   const { t } = useTranslation()
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
+      aria-current={isActive ? 'true' : undefined}
+      aria-haspopup="menu"
       className={cn(
         'w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors',
         isActive
