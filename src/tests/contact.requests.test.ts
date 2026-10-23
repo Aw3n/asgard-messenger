@@ -123,6 +123,15 @@ describe('contactRequests — transition pending → contact', () => {
     expect(acceptCalls()).toHaveLength(0)
   })
 
+  it('un bloqué ne peut pas effacer son blocage par contact:remove', () => {
+    const peer = newPeer()
+    seedContact(peer, 'blocked')
+
+    dispatch('contact:remove', {}, peer)
+
+    expect(relationOf(peer)).toBe('blocked')
+  })
+
   it('notifie le pair d\'une acceptation quand demandé', () => {
     const peer = newPeer()
     seedContact(peer, 'pending', 'incoming')

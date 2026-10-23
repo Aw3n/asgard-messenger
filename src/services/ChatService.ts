@@ -3479,6 +3479,9 @@ class ChatService {
    */
   private handleContactRemove(msg: ProtocolMessage): void {
     const existing = useContactStore.getState().getContact(msg.from)
+    // Un bloqué ne pilote plus notre carnet : sinon un contact:remove reçu
+    // effaçait le blocage et rouvrait la conversation.
+    if (existing?.relation === 'blocked') return
     if (existing) {
       useContactStore.getState().removeContact(msg.from)
       this.peerLastActivity.delete(msg.from)
