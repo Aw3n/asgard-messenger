@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Edastatud sõnum :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Edastamine:",
       "chat.invalidAttachment": "Kehtetu manus",
-      "chat.lastSeen": "Nägutud hiljuti",
+      "chat.lastSeen": "Viimati nähtud",
       "chat.legacyFileNotDownloadable": "See fail on vanast versioonist ja seda ei saa enam alla laadida. Pal saatjal see uuesti saata.",
       "chat.links": "Lingid",
       "chat.markAsRead": "Märgi loetuks",

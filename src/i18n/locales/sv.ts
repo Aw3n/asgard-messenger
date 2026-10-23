@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Vidarebefordrat meddelande :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Vidarebefordrar:",
       "chat.invalidAttachment": "Ogiltig bilaga",
-      "chat.lastSeen": "Sågs nyligen",
+      "chat.lastSeen": "Senast sedd",
       "chat.legacyFileNotDownloadable": "Denna fil är från en gammal version och kan inte laddas ner längre. Be avsändaren skicka om den.",
       "chat.links": "Länkar",
       "chat.markAsRead": "Markera som läst",

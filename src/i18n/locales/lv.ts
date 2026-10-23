@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Pārsūtīta ziņa :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Pārsūtīšana:",
       "chat.invalidAttachment": "Nederīgs pielikums",
-      "chat.lastSeen": "Redzēts nesen",
+      "chat.lastSeen": "Pēdējā atrašanās",
       "chat.legacyFileNotDownloadable": "Šis fails ir no vecās versijas un vairs nav lejupielādējams. Lūdziet sūtītājam to nosūtīt vēlreiz.",
       "chat.links": "Saites",
       "chat.markAsRead": "Atzīmēt kā izlasītu",

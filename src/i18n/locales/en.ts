@@ -111,7 +111,7 @@ export default {
       "chat.today": "Today",
       "chat.yesterday": "Yesterday",
       "chat.typing": "typing…",
-      "chat.lastSeen": "Last seen recently",
+      "chat.lastSeen": "Last seen",
       "chat.cannotUndo": "This action cannot be undone",
       "chat.you": "Someone",
       "chat.e2eEncryption": "End-to-end encryption",

@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Továbbított üzenet :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Továbbítás:",
       "chat.invalidAttachment": "Érvénytelen melléklet",
-      "chat.lastSeen": "Nemrég látható",
+      "chat.lastSeen": "Utolsó jelenlét",
       "chat.legacyFileNotDownloadable": "Ez a fájl egy régi verzióból származik, és már nem letölthető. Kérje meg a feladót, hogy küldje el újra.",
       "chat.links": "Hivatkozások",
       "chat.markAsRead": "Megjelölés olvasottként",

@@ -26,6 +26,7 @@ import { presenceMeta, isLivePresence } from '@/utils/presence'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
 import { countIncomingAfter } from '@/utils/incomingAfter'
 import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
+import { formatLastSeen } from '@/utils/time'
 import type { Message } from '@/types'
 
 const HISTORY_PAGE_SIZE = 50
@@ -410,7 +411,7 @@ export const ChatView: React.FC = () => {
                 : contact && isLivePresence(contact.status)
                 ? t(presenceMeta(contact.status).labelKey)
                 : contact?.lastSeen
-                ? t('chat.lastSeen')
+                ? formatLastSeen(contact.lastSeen)
                 : t('common.offline')}
             </p>
           </div>

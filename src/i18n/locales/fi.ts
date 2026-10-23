@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Välitetty viesti :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Välitetään:",
       "chat.invalidAttachment": "Virheellinen liite",
-      "chat.lastSeen": "Nähty äskettäin",
+      "chat.lastSeen": "Viimeksi nähty",
       "chat.legacyFileNotDownloadable": "Tämä tiedosto on vanhasta versiosta eikä ole enää ladattavissa. Pyydä lähettäjää lähettämään se uudelleen.",
       "chat.links": "Linkit",
       "chat.markAsRead": "Merkitse luetuksi",

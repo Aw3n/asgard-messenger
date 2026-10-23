@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Videresendt besked :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Videresender:",
       "chat.invalidAttachment": "Ugyldigt vedhæftet fil",
-      "chat.lastSeen": "Set for nylig",
+      "chat.lastSeen": "Sidst set",
       "chat.legacyFileNotDownloadable": "Denne fil er fra en gammel version og kan ikke længere downloades. Bed afsenderen om at sende den igen.",
       "chat.links": "Links",
       "chat.markAsRead": "Markér som læst",

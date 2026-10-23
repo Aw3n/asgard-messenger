@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Messaġġ imqassam :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Tqassim:",
       "chat.invalidAttachment": "Attachament invalidu",
-      "chat.lastSeen": "Miċħa reċentement",
+      "chat.lastSeen": "L-aħħar dehra",
       "chat.legacyFileNotDownloadable": "Dan il-fajl huwa minn verżjoni qadima u ma jistax jitniżżel aktar. Aqta' lis-sender ibgħatuh mill-ġdid.",
       "chat.links": "Links",
       "chat.markAsRead": "Immarka bħala moqri",

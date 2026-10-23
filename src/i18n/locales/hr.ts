@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Proslijeđena poruka :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Proslijeđivanje:",
       "chat.invalidAttachment": "Nevažeći prilog",
-      "chat.lastSeen": "Viđen nedavno",
+      "chat.lastSeen": "Posljednje viđen",
       "chat.legacyFileNotDownloadable": "Ova datoteka je iz stare verzije i više se ne može preuzeti. Tražite od pošiljatelja da je ponovo pošalje.",
       "chat.links": "Poveznice",
       "chat.markAsRead": "Označi kao pročitano",

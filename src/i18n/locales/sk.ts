@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Preposlaná správa :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Preposielanie:",
       "chat.invalidAttachment": "Neplatná príloha",
-      "chat.lastSeen": "Videný nedávno",
+      "chat.lastSeen": "Naposledy videný",
       "chat.legacyFileNotDownloadable": "Tento súbor je zo starej verzie a už nie je možné ho stiahnuť. Požiadajte odosielateľa, aby ho poslal znova.",
       "chat.links": "Odkazy",
       "chat.markAsRead": "Označiť ako prečítané",

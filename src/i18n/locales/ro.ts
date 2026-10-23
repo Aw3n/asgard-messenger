@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Mesaj redirecționat :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Se redirecționează:",
       "chat.invalidAttachment": "Atașament invalid",
-      "chat.lastSeen": "Văzut recent",
+      "chat.lastSeen": "Ultima prezență",
       "chat.legacyFileNotDownloadable": "Acest fișier provine dintr-o versiune veche și nu mai poate fi descărcat. Cereți expeditorului să îl retrimite.",
       "chat.links": "Linkuri",
       "chat.markAsRead": "Marchează ca citit",

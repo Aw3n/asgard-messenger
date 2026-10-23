@@ -105,7 +105,7 @@ export default {
       "chat.today": "Сьогодні",
       "chat.yesterday": "Вчора",
       "chat.typing": "пише…",
-      "chat.lastSeen": "Нещодавно в мережі",
+      "chat.lastSeen": "Остання поява",
       "chat.cannotUndo": "Цю дію неможливо скасувати",
       "chat.you": "Хтось",
       "chat.e2eEncryption": "Шифрування від кінця до кінця",

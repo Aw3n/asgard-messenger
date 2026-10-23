@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Προωθημένο μήνυμα :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Προώθηση:",
       "chat.invalidAttachment": "Άκυρο συνημμένο",
-      "chat.lastSeen": "Εθεάθη πρόσφατα",
+      "chat.lastSeen": "Τελευταία εμφάνιση",
       "chat.legacyFileNotDownloadable": "Αυτό το αρχείο προέρχεται από παλιά έκδοση και δεν είναι πλέον διαθέσιμο για λήψη. Ζητήστε από τον αποστολέα να το στείλει ξανά.",
       "chat.links": "Σύνδεσμοι",
       "chat.markAsRead": "Σήμανση ως αναγνωσμένο",

@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Persiųsta žinutė :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Persiunčiama:",
       "chat.invalidAttachment": "Neteisingas priedas",
-      "chat.lastSeen": "Neseniai matytas",
+      "chat.lastSeen": "Paskutinis prisijungimas",
       "chat.legacyFileNotDownloadable": "Šis failas yra iš senos versijos ir nebegali būti atsisiųstas. Paprašykite siuntėjo išsiųsti dar kartą.",
       "chat.links": "Nuorodos",
       "chat.markAsRead": "Pažymėti kaip skaitytą",

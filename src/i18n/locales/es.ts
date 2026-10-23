@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Mensaje reenviado :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Reenviando:",
       "chat.invalidAttachment": "Adjunto no válido",
-      "chat.lastSeen": "Visto recientemente",
+      "chat.lastSeen": "Última conexión",
       "chat.legacyFileNotDownloadable": "Este archivo es de una versión antigua y ya no se puede descargar. Pídele al remitente que lo reenvíe.",
       "chat.links": "Enlaces",
       "chat.markAsRead": "Marcar como leído",

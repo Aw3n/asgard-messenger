@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Doorgestuurd bericht :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Doorsturen:",
       "chat.invalidAttachment": "Ongeldige bijlage",
-      "chat.lastSeen": "Recent gezien",
+      "chat.lastSeen": "Laatst gezien",
       "chat.legacyFileNotDownloadable": "Dit bestand is van een oude versie en kan niet meer worden gedownload. Vraag de afzender om het opnieuw te versturen.",
       "chat.links": "Links",
       "chat.markAsRead": "Markeren als gelezen",

@@ -104,7 +104,7 @@ export default {
       "chat.forwardedMessageTemplate": "↩️ Teachtaireacht ar aghaidh :\\\\n\\\\n{{content}}",
       "chat.forwarding": "Ag seoladh ar aghaidh:",
       "chat.invalidAttachment": "Iatán neamhbhailí",
-      "chat.lastSeen": "Feicthe le déanaí",
+      "chat.lastSeen": "Feicthe go deireanach",
       "chat.legacyFileNotDownloadable": "Tá an comhad seo ó sheanleagan agus ní féidir í a íoslódáil a thuilleadh. Iarr ar an seoltóir é a sheoladh arís.",
       "chat.links": "Naisc",
       "chat.markAsRead": "Marcáil mar léite",
