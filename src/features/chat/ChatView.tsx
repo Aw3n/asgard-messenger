@@ -36,6 +36,7 @@ import { useMessageActionShortcuts } from '@/hooks/useMessageActionShortcuts'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
 import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { formatLastSeen } from '@/utils/time'
 import type { Message } from '@/types'
 
@@ -79,6 +80,9 @@ export const ChatView: React.FC = () => {
   const setRightPanelView = useUIStore((s) => s.setRightPanelView)
   const rightPanelView = useUIStore((s) => s.rightPanelView)
   const setSearchOpen = useUIStore((s) => s.setSearchOpen)
+  // L'icône de recherche du fil ouvre la même fenêtre que le geste global : elle
+  // en porte la combinaison réglée, à l'œil et au lecteur d'écran.
+  const searchGesture = useGestureHint('openSearch', t('chat.searchMessages'))
   // CHAT/PRIVACY/A11Y SETTINGS: collapse grouping, read receipts, screen reader
   const collapseMessages = useUIStore((s) => s.settings.chat.collapseMessages)
   const sendReadReceipts = useUIStore((s) => s.settings.privacy.readReceipts)
@@ -600,6 +604,8 @@ export const ChatView: React.FC = () => {
           />
           <HeaderButton
             aria-label={t('chat.searchMessages')}
+            title={searchGesture.title}
+            aria-keyshortcuts={searchGesture.ariaKeyShortcuts}
             onClick={() => setSearchOpen(true)}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">

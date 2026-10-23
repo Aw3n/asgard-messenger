@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { COMPOSER_INPUT_ID, comboMatches, isPlainEnterCombo } from '@/utils/shortcuts'
 import { isCloseKeypress } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import type { Message } from '@/types'
 
 interface MessageInputProps {
@@ -102,6 +103,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   // la frappe, donc un réglage changé prend effet sans redémarrer la vue.
   const sendMessageCombo = useUIStore((s) => s.settings.keyboardShortcuts.sendMessage)
   const newLineCombo = useUIStore((s) => s.settings.keyboardShortcuts.newLine)
+  // Le bouton d'envoi fait ce que fait la touche : il doit la nommer, mais
+  // seulement quand cette touche envoie vraiment — « Entrée » seule dépend de la
+  // bascule du composeur, et l'annoncer éteinte promettrait un geste muet.
+  const sendGesture = useGestureHint(
+    'sendMessage',
+    editingMessage ? t('common.save') : t('messageInput.send'),
+    (combo) => !isPlainEnterCombo(combo) || sendOnEnter,
+  )
   const [content, setContent] = useState(
     () => useConversationStore.getState().getDraft(conversationId)
   )
@@ -601,7 +610,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onClick={handleSend}
             disabled={!canSubmit || disabled}
             aria-label={editingMessage ? t('common.save') : t('messageInput.send')}
-            title={editingMessage ? t('common.save') : t('messageInput.send')}
+            title={sendGesture.title}
+            aria-keyshortcuts={sendGesture.ariaKeyShortcuts}
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
               canSubmit && !disabled

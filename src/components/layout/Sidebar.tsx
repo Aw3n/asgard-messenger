@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Avatar } from '@/components/ui/Avatar'
+import { useGestureHint, type GestureHint } from '@/hooks/useGestureHint'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useGroupStore } from '@/stores/groupStore'
@@ -61,6 +62,12 @@ export const Sidebar: React.FC = () => {
   const identity = useIdentityStore((s) => s.identity)
   const conversations = useConversationStore((s) => s.conversations)
   const groups = useGroupStore((s) => s.groups)
+
+  // Deux clics du rail font la même chose qu'une touche réglée : ouvrir les
+  // réglages et se regarder soi-même. L'indice se lit dans le réglage, donc une
+  // touche changée à l'écran « Raccourcis » se retrouve ici sans rouvrir la page.
+  const settingsGesture = useGestureHint('openSettings', t('nav.settings'))
+  const profileGesture = useGestureHint('openProfile', t('nav.myProfile'))
 
   // Les conversations de groupe sont suivies par le GroupStore (par canal) :
   // les additionner ici compterait deux fois un jour, et la liste Messages ne
@@ -123,6 +130,7 @@ export const Sidebar: React.FC = () => {
         <NavButton
           item={{ id: 'settings', path: '/settings', label: t('nav.settings'), icon: <SettingsIcon /> }}
           isActive={location.pathname.startsWith('/settings')}
+          gesture={settingsGesture}
           onClick={() => navigate('/settings')}
         />
       </div>
@@ -130,9 +138,11 @@ export const Sidebar: React.FC = () => {
       {/* User avatar */}
       <div className="px-1.5 pb-2 w-full">
         <button
-          onClick={() => navigate('/settings')}
+          onClick={() => navigate('/settings?section=profile')}
           className="w-full flex items-center justify-center p-1.5 rounded-xl transition-colors hover:bg-white/8"
           aria-label={t('nav.myProfile')}
+          title={profileGesture.title}
+          aria-keyshortcuts={profileGesture.ariaKeyShortcuts}
         >
           <Avatar
             src={identity?.profile.avatar}
@@ -153,10 +163,12 @@ export const Sidebar: React.FC = () => {
 interface NavButtonProps {
   item: NavItem
   isActive: boolean
+  /** Le geste réglé qui ouvre la même page, quand il y en a un : l'infobulle le dit. */
+  gesture?: GestureHint
   onClick: () => void
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ item, isActive, onClick }) => (
+const NavButton: React.FC<NavButtonProps> = ({ item, isActive, gesture, onClick }) => (
   <div className="relative w-full group">
     {/* Active pill indicator */}
     <AnimatePresence>
@@ -178,6 +190,7 @@ const NavButton: React.FC<NavButtonProps> = ({ item, isActive, onClick }) => (
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       aria-label={item.badgeLabel ? `${item.label}, ${item.badgeLabel}` : item.label}
+      aria-keyshortcuts={gesture?.ariaKeyShortcuts}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
         'relative w-full h-11 flex items-center justify-center rounded-xl',
@@ -211,6 +224,7 @@ const NavButton: React.FC<NavButtonProps> = ({ item, isActive, onClick }) => (
       style={{ background: 'rgba(15,20,35,0.95)', color: '#C8D0E8', border: '1px solid rgba(255,255,255,0.1)' }}
     >
       {item.label}
+      {gesture?.shown && <span className="ml-2 font-mono opacity-70">{gesture.shown}</span>}
     </div>
   </div>
 )

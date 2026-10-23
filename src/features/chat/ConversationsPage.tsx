@@ -2,6 +2,7 @@ import React from 'react'
 import { Outlet, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ConversationList } from './components/ConversationList'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { useUIStore } from '@/stores/uiStore'
 import { ChatEmptyState } from './components/ChatEmptyState'
 
@@ -24,6 +25,9 @@ export const ConversationsPage: React.FC = () => {
   // ne le consulte jamais. Le geste doit aussi rester annulable à la souris,
   // sinon le clavier devient la seule sortie d'un panneau refermé par erreur.
   const toggleLabel = `${collapsed ? t('common.show') : t('common.hide')} — ${t('nav.messages')}`
+  // Le clic et la touche font la même chose : la seconde le dit, dans les deux
+  // sens — infobulle pour l'œil, ARIA pour le lecteur d'écran.
+  const toggleGesture = useGestureHint('toggleSidebar', toggleLabel)
 
   return (
     <div style={{ display: 'flex', height: '100%', width: '100%', overflow: 'hidden' }}>
@@ -51,7 +55,8 @@ export const ConversationsPage: React.FC = () => {
         type="button"
         onClick={toggleSidebar}
         aria-label={toggleLabel}
-        title={toggleLabel}
+        title={toggleGesture.title}
+        aria-keyshortcuts={toggleGesture.ariaKeyShortcuts}
         aria-expanded={!collapsed}
         aria-controls={collapsed ? undefined : LIST_PANE_ID}
         style={{
