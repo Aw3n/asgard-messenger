@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 import { useUIStore } from '@/stores/uiStore'
 import { useConversationStore } from '@/stores/conversationStore'
-import { COMPOSER_INPUT_ID } from '@/utils/shortcuts'
+import { COMPOSER_INPUT_ID, comboMatches, isPlainEnterCombo } from '@/utils/shortcuts'
+import { isCloseKeypress } from '@/hooks/useDialogBehavior'
 import type { Message } from '@/types'
 
 interface MessageInputProps {
@@ -94,8 +95,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const { t } = useTranslation()
   const effectivePlaceholder = placeholder ?? t('chat.typeMessage')
-  // CHAT SETTINGS: Enter sends the message, or requires Ctrl+Enter when disabled
+  // Réglage « chat.sendOnEnter » : il ne vaut que pour « Entrée » seule, voir
+  // la règle de partage de la touche dans `handleKeyDown`.
   const sendOnEnter = useUIStore((s) => s.settings.chat.sendOnEnter)
+  // Les deux combinaisons du réglage clavier qui tiennent le composeur : lues à
+  // la frappe, donc un réglage changé prend effet sans redémarrer la vue.
+  const sendMessageCombo = useUIStore((s) => s.settings.keyboardShortcuts.sendMessage)
+  const newLineCombo = useUIStore((s) => s.settings.keyboardShortcuts.newLine)
   const [content, setContent] = useState(
     () => useConversationStore.getState().getDraft(conversationId)
   )
@@ -236,22 +242,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     [onTyping]
   )
 
-  const handleSend = useCallback(() => {
+  /** @returns `true` quand l'envoi a effectivement eu lieu : le geste clavier
+   * ne revendique la touche que dans ce cas. */
+  const handleSend = useCallback((): boolean => {
     const trimmed = content.trim()
-    if (disabled) return
+    if (disabled) return false
 
     // En édition, le même geste valide la modification au lieu d'envoyer un
     // nouveau message : les pièces jointes en attente restent pour plus tard.
     if (editingMessage) {
-      if (!trimmed || !onEditSubmit) return
+      if (!trimmed || !onEditSubmit) return false
       onEditSubmit(trimmed)
       setComposerContent('')
       handleTyping(false)
       textareaRef.current?.focus()
-      return
+      return true
     }
 
-    if (!trimmed && pendingFiles.length === 0) return
+    if (!trimmed && pendingFiles.length === 0) return false
 
     // Send files first if any
     if (pendingFiles.length > 0 && onFiles) {
@@ -272,28 +280,51 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
     handleTyping(false)
     textareaRef.current?.focus()
+    return true
   }, [content, editingMessage, pendingFiles, disabled, onSend, onEditSubmit, onFiles, handleTyping, conversationId, setComposerContent])
+
+  /**
+   * Retour à la ligne demandé par la combinaison réglée : le texte du navigateur
+   * est remplacé, mais le curseur garde sa place et le brouillon suit la frappe.
+   */
+  const insertNewline = useCallback(() => {
+    const el = textareaRef.current
+    if (!el) return
+    const start = el.selectionStart ?? el.value.length
+    const end = el.selectionEnd ?? start
+    el.setRangeText('\n', start, end, 'end')
+    setComposerContent(el.value)
+    queueDraft(el.value)
+    handleTyping(true)
+  }, [setComposerContent, queueDraft, handleTyping])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Enter qui valide une composition IME (japonais, chinois, coréen…) :
     // l'envoyer couperait la saisie en cours. Certains IME ne renseignent que
     // keyCode 229.
     if (e.nativeEvent.isComposing || e.keyCode === 229) return
-    if (e.key === 'Enter') {
-      // Ctrl+Enter always sends (explicit user intent)
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault()
-        handleSend()
-        return
-      }
-      // CHAT SETTINGS: Enter sends only when sendOnEnter is enabled;
-      // otherwise Enter inserts a newline and Ctrl+Enter sends.
-      if (!e.shiftKey && sendOnEnter) {
-        e.preventDefault()
-        handleSend()
-      }
+
+    // Une combinaison réglée peut nommer n'importe quelle touche : « Entrée »
+    // comme un « Ctrl+Alt+S » écrit dans les réglages.
+    // « Nouvelle ligne » passe en premier : sa combinaison est lue telle
+    // quelle, donc « Shift+Entrée » comme un « Alt+Entrée » personnalisé
+    // insèrent bien un retour à la ligne.
+    if (comboMatches(newLineCombo, e)) {
+      e.preventDefault()
+      insertNewline()
+      return
     }
-    if (e.key === 'Escape') {
+    // « Entrée » sans modificateur est le geste que la bascule `sendOnEnter`
+    // réclame ou refuse : éteinte, on la laisse au navigateur qui saute la
+    // ligne. Une combinaison qui nomme un modificateur (« Ctrl+Entrée ») ne
+    // rencontre jamais cette bascule et envoie toujours.
+    if (comboMatches(sendMessageCombo, e) && (!isPlainEnterCombo(sendMessageCombo) || sendOnEnter)) {
+      // Champ vide, ou édition sans texte corrigé : rien ne part, la touche
+      // reste au navigateur au lieu de servir à un geste muet.
+      if (handleSend()) e.preventDefault()
+      return
+    }
+    if (isCloseKeypress(e)) {
       if (editingMessage) {
         e.preventDefault()
         cancelEdit()

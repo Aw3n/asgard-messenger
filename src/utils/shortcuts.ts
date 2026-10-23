@@ -120,6 +120,29 @@ export function comboMatches(
 }
 
 /**
+ * Une combinaison réduite à « Entrée » sans modificateur. Le composeur doit la
+ * reconnaître à part : « Entrée » seule est aussi le geste d'insertion de ligne
+ * du navigateur, et `chat.sendOnEnter` décide lequel des deux tient la touche.
+ * Une combinaison écrite « Ctrl+Entrée » n'est jamais en conflit avec cette
+ * bascule, donc elle envoie toujours.
+ */
+export function isPlainEnterCombo(raw: unknown): boolean {
+  const combo = typeof raw === 'string' ? compiled(raw) : null
+  return !!combo && combo.key === 'enter' && !combo.ctrl && !combo.shift && !combo.alt && !combo.meta
+}
+
+/**
+ * La cible tient-elle la frappe ? Un geste réglé ne doit pas voler « Ctrl+C » à
+ * une copie en cours dans un champ, ni « Ctrl+E » à la saisie d'un texte. Les
+ * trois éléments natifs de saisie suffisent : l'app n'a aucune zone éditable.
+ */
+export function isTextEntry(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  const tag = target.tagName.toLowerCase()
+  return tag === 'input' || tag === 'textarea' || tag === 'select'
+}
+
+/**
  * Les actions branchées par `useAppShortcuts`, dans l'ordre où une frappe est
  * testée : deux actions réglées sur la même combinaison ne se marchent pas
  * dessus, la première de cette liste gagne. `closeModal` est à part : c'est
@@ -137,3 +160,19 @@ export const WIRED_SHORTCUTS = [
 ] as const satisfies readonly ShortcutName[]
 
 export type WiredShortcut = (typeof WIRED_SHORTCUTS)[number]
+
+/** Les deux combinaisons que le composeur lit lui-même (`MessageInput`). */
+export const COMPOSER_SHORTCUTS = ['sendMessage', 'newLine'] as const satisfies readonly ShortcutName[]
+
+/** Les combinaisons que `useMessageActionShortcuts` applique aux messages du fil ouvert. */
+export const MESSAGE_ACTION_SHORTCUTS = [
+  'editLastMessage',
+  'replyToMessage',
+  'forwardMessage',
+  'copyMessage',
+] as const satisfies readonly ShortcutName[]
+
+/**
+ * `deleteMessage` (« Delete ») reste au menu contextuel : la suppression n'a
+ * pas de confirmation et une touche mal placée effacerait un message.
+ */

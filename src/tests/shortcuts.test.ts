@@ -7,8 +7,16 @@
  * donc il doit être strict — une combinaison mal écrite désactive l'action
  * au lieu d'inventer un geste proche.
  */
-import { describe, expect, it } from 'vitest'
-import { comboMatches, parseCombo, WIRED_SHORTCUTS } from '@/utils/shortcuts'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+  COMPOSER_SHORTCUTS,
+  MESSAGE_ACTION_SHORTCUTS,
+  WIRED_SHORTCUTS,
+  comboMatches,
+  isPlainEnterCombo,
+  isTextEntry,
+  parseCombo,
+} from '@/utils/shortcuts'
 
 const press = (key: string, modifiers: Partial<{ ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }> = {}) => ({
   key,
@@ -120,6 +128,51 @@ describe('frappe confrontée à la combinaison', () => {
   })
 })
 
+describe('partage de la touche Entrée', () => {
+  it('reconnaît « Entrée » seule, sans modificateur', () => {
+    expect(isPlainEnterCombo('Enter')).toBe(true)
+    expect(isPlainEnterCombo(' enter ')).toBe(true)
+  })
+
+  it('ne confond pas une combinaison qui nomme un modificateur', () => {
+    expect(isPlainEnterCombo('Ctrl+Enter')).toBe(false)
+    expect(isPlainEnterCombo('Shift+Enter')).toBe(false)
+    expect(isPlainEnterCombo('Cmd+Enter')).toBe(false)
+  })
+
+  it('ne reconnaît ni une autre touche ni une combinaison illisible', () => {
+    expect(isPlainEnterCombo('Escape')).toBe(false)
+    expect(isPlainEnterCombo('Ctrl+K')).toBe(false)
+    expect(isPlainEnterCombo('')).toBe(false)
+    expect(isPlainEnterCombo(undefined)).toBe(false)
+    expect(isPlainEnterCombo('Ctrl+Foo')).toBe(false)
+  })
+})
+
+describe('cible de la frappe', () => {
+  const element = (html: string) => {
+    document.body.innerHTML = html
+    return document.body.firstElementChild as HTMLElement
+  }
+
+  it('reconnaît les trois champs qui tiennent la frappe', () => {
+    expect(isTextEntry(element('<input />'))).toBe(true)
+    expect(isTextEntry(element('<textarea />'))).toBe(true)
+    expect(isTextEntry(element('<select><option>a</option></select>'))).toBe(true)
+  })
+
+  it('laisse une rangée de message ou le corps de page hors du champ', () => {
+    expect(isTextEntry(element('<div tabindex="0">message</div>'))).toBe(false)
+    expect(isTextEntry(element('<button />'))).toBe(false)
+    expect(isTextEntry(null)).toBe(false)
+    expect(isTextEntry(document.body)).toBe(false)
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+})
+
 describe('actions branchées', () => {
   it('sont toutes des combinaisons du réglage', () => {
     const known = [
@@ -140,5 +193,23 @@ describe('actions branchées', () => {
       'focusInput', 'nextConversation', 'openProfile', 'openSearch',
       'openSettings', 'prevConversation', 'toggleSidebar',
     ].sort())
+  })
+
+  it('prennent le composeur et les messages séparément des gestes globaux', () => {
+    expect([...COMPOSER_SHORTCUTS].sort()).toEqual(['newLine', 'sendMessage'])
+    expect([...MESSAGE_ACTION_SHORTCUTS].sort()).toEqual([
+      'copyMessage', 'editLastMessage', 'forwardMessage', 'replyToMessage',
+    ])
+    // Rien de ce qui se joue dans un fil ou un composeur ne passe par
+    // l'écouteur global : les deux listes ne doivent pas se chevaucher.
+    for (const name of [...COMPOSER_SHORTCUTS, ...MESSAGE_ACTION_SHORTCUTS]) {
+      expect(WIRED_SHORTCUTS).not.toContain(name)
+    }
+  })
+
+  it('laissent la suppression hors du clavier réglé', () => {
+    // Action destructive sans confirmation : elle reste au menu contextuel.
+    expect(WIRED_SHORTCUTS).not.toContain('deleteMessage')
+    expect(MESSAGE_ACTION_SHORTCUTS).not.toContain('deleteMessage')
   })
 })

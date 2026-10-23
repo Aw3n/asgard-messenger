@@ -40,16 +40,27 @@ vi.mock('react-virtuoso', async () => {
   return { Virtuoso }
 })
 
+// La bulle de test porte l'identifiant de rangée et le focus, comme le vrai
+// composant : c'est ainsi qu'un geste réglé sait sur quel message il porte.
 vi.mock('@/features/chat/components/MessageBubble', () => ({
   MessageBubble: ({ message, highlighted }: { message: Message; highlighted?: boolean }) =>
     React.createElement('div', {
       'data-testid': `bubble-${message.id}`,
+      'data-message-id': message.id,
+      tabIndex: 0,
       'data-highlighted': highlighted ? 'true' : 'false',
     }),
 }))
 
+// Le composeur de test rend visible la cible qu'on lui passe : sans ça, rien de
+// ce que décide le canal ne serait observable.
 vi.mock('@/features/chat/components/MessageInput', () => ({
-  MessageInput: () => React.createElement('div', { 'data-testid': 'composer' }),
+  MessageInput: (props: { replyTo?: Message; editingMessage?: Message }) =>
+    React.createElement('div', {
+      'data-testid': 'composer',
+      'data-reply': props.replyTo?.id ?? '',
+      'data-edit': props.editingMessage?.id ?? '',
+    }),
 }))
 
 vi.mock('@/features/chat/components/ActiveTransfersWidget', () => ({
@@ -333,5 +344,25 @@ describe('GroupView : panne de lecture du canal', () => {
     await waitFor(() => expect(screen.getByText('groups.welcomeToChannel')).toBeInTheDocument())
     expect(toastTitles()).toEqual([])
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('GroupView : geste réglé branché sur le canal', () => {
+  it('donne à la réponse réglée la rangée sous le focus', async () => {
+    // jsdom rend `document.hasFocus()` faux : sans ce stub le canal se croit
+    // masqué, ne charge rien et n'rend aucune rangée.
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true)
+    useGroupStore.setState({ groupViewVisible: true })
+
+    renderChannel()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-2')).toBeInTheDocument())
+
+    const row = screen.getByTestId('bubble-recent-2')
+    act(() => { row.focus() })
+    act(() => {
+      row.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', ctrlKey: true, cancelable: true, bubbles: true }))
+    })
+
+    expect(screen.getByTestId('composer').getAttribute('data-reply')).toBe('recent-2')
   })
 })

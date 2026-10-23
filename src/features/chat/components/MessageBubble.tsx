@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
+import { copyMessageText } from '@/utils/clipboard'
 import { saveAttachmentToDisk } from '@/utils/attachmentSave'
+import { isCloseKeypress } from '@/hooks/useDialogBehavior'
 import { formatMessageTime } from '@/utils/time'
 import { useUIStore } from '@/stores/uiStore'
 import { FileAttachment } from './FileAttachment'
@@ -90,7 +92,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setContextMenu(null)
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setContextMenu(null)
+      if (isCloseKeypress(event)) setContextMenu(null)
     }
     const close = () => setContextMenu(null)
     window.addEventListener('pointerdown', onPointerDown, true)
@@ -119,6 +121,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     <motion.div
       ref={rowRef}
       layout
+      // La rangée focalisée porte l'identifiant du message : les gestes réglés
+      // (copie, réponse, transfert) cherchent ainsi « sur quoi » ils portent.
+      data-message-id={message.id}
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.15 }}
@@ -132,8 +137,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           e.preventDefault()
           const rect = rowRef.current?.getBoundingClientRect()
           openContextMenu(rect ? rect.left + 24 : 24, rect ? rect.top + 24 : 24)
-        } else if (e.key === 'Escape' && contextMenu) {
-          setContextMenu(null)
         }
       }}
       className={cn(
@@ -332,7 +335,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           >
             <ContextMenuItem label={t('chat.reply')} onClick={() => { onReply?.(message); setContextMenu(null) }} />
             {message.content && (
-              <ContextMenuItem label={t('common.copy')} onClick={() => { navigator.clipboard.writeText(message.content ?? '').catch(() => {}); setContextMenu(null) }} />
+              <ContextMenuItem label={t('common.copy')} onClick={() => { copyMessageText(message); setContextMenu(null) }} />
             )}
             {onForward && <ContextMenuItem label={t('chat.forward')} onClick={() => { onForward(message); setContextMenu(null) }} />}
             {onPin && <ContextMenuItem label={message.pinned ? t('chat.unpin') : t('chat.pin')} onClick={() => { onPin(message); setContextMenu(null) }} />}

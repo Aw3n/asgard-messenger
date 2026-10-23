@@ -45,16 +45,27 @@ vi.mock('react-virtuoso', async () => {
   return { Virtuoso }
 })
 
+// La bulle de test porte l'identifiant de rangée et le focus, comme le vrai
+// composant : c'est ainsi qu'un geste réglé sait sur quel message il porte.
 vi.mock('@/features/chat/components/MessageBubble', () => ({
   MessageBubble: ({ message, highlighted }: { message: Message; highlighted?: boolean }) =>
     React.createElement('div', {
       'data-testid': `bubble-${message.id}`,
+      'data-message-id': message.id,
+      tabIndex: 0,
       'data-highlighted': highlighted ? 'true' : 'false',
     }),
 }))
 
+// Le composeur de test rend visible la cible qu'on lui passe : réponse en cours
+// ou message en édition, sinon rien de ce que décide le fil ne serait observable.
 vi.mock('@/features/chat/components/MessageInput', () => ({
-  MessageInput: () => React.createElement('div', { 'data-testid': 'composer' }),
+  MessageInput: (props: { replyTo?: Message; editingMessage?: Message }) =>
+    React.createElement('div', {
+      'data-testid': 'composer',
+      'data-reply': props.replyTo?.id ?? '',
+      'data-edit': props.editingMessage?.id ?? '',
+    }),
 }))
 
 vi.mock('@/features/chat/components/ActiveTransfersWidget', () => ({
@@ -125,6 +136,13 @@ const ME = 'a'.repeat(64)
 const PEER = 'b'.repeat(64)
 const CONVERSATION_ID = 'conv-1'
 
+const baselineShortcuts = { ...useUIStore.getState().settings.keyboardShortcuts }
+
+const setShortcut = (name: keyof typeof baselineShortcuts, combo: string) => {
+  const current = useUIStore.getState().settings.keyboardShortcuts
+  useUIStore.getState().updateSettings({ keyboardShortcuts: { ...current, [name]: combo } })
+}
+
 const conversation: Conversation = {
   id: CONVERSATION_ID,
   type: 'direct',
@@ -151,6 +169,8 @@ function makeMessage(id: string, timestamp: number): Message {
 
 beforeEach(() => {
   scrollToIndexMock.mockClear()
+  setShortcut('replyToMessage', 'Ctrl+R')
+  setShortcut('editLastMessage', 'Ctrl+E')
   vi.mocked(chatService.loadOlderMessages).mockClear()
   vi.mocked(chatService.loadMessages).mockClear()
   for (const key of Object.keys(virtuosoProps)) delete virtuosoProps[key]
@@ -186,6 +206,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  useUIStore.getState().updateSettings({ keyboardShortcuts: { ...baselineShortcuts } })
 })
 
 describe('ChatView : saut vers un message', () => {
@@ -389,5 +410,50 @@ describe('ChatView : panne de lecture de l’historique', () => {
     await waitFor(() => expect(screen.getByText(/chat\.sendToStart/)).toBeInTheDocument())
     expect(toastTitles()).toEqual([])
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('ChatView : gestes réglés branchés sur le fil', () => {
+  /** Frappe jouée depuis la rangée, comme une touche physique sur le focus. */
+  const pressOn = (element: Element, key: string, modifiers: Record<string, boolean> = {}) => {
+    const event = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true, ...modifiers })
+    act(() => { element.dispatchEvent(event) })
+    return event
+  }
+
+  const composerReply = () => screen.getByTestId('composer').getAttribute('data-reply')
+
+  it('donne à la réponse réglée la rangée sous le focus', async () => {
+    renderThread()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-2')).toBeInTheDocument())
+
+    const row = screen.getByTestId('bubble-recent-2')
+    act(() => { row.focus() })
+    pressOn(row, 'r', { ctrlKey: true })
+
+    expect(composerReply()).toBe('recent-2')
+  })
+
+  it('édite le dernier message à soi, même sans rangée focalisée', async () => {
+    renderThread()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-2')).toBeInTheDocument())
+
+    pressOn(document.body, 'e', { ctrlKey: true })
+
+    expect(screen.getByTestId('composer').getAttribute('data-edit')).toBe('recent-2')
+  })
+
+  it('suit la combinaison écrite, pas un geste de menu', async () => {
+    setShortcut('replyToMessage', 'Ctrl+Alt+V')
+    renderThread()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-1')).toBeInTheDocument())
+
+    const row = screen.getByTestId('bubble-recent-1')
+    act(() => { row.focus() })
+    pressOn(row, 'r', { ctrlKey: true })
+    expect(composerReply()).toBe('')
+
+    pressOn(row, 'v', { ctrlKey: true, altKey: true })
+    expect(composerReply()).toBe('recent-1')
   })
 })

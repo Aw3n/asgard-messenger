@@ -11,8 +11,14 @@ export const DIALOG_FOCUSABLE =
  * `settings.keyboardShortcuts.closeModal` était écrit, persisté, jamais consulté
  * — cinq dialogues et la recherche fermaient sur « Escape » en dur, y compris
  * après un réglage changé.
+ *
+ * La forme décomposée plutôt que `KeyboardEvent` : un composeur React appelle
+ * ici depuis son événement synthétique, et le geste d'annulation d'un fil
+ * (réponse en cours, message en édition) suit le même réglage que les panneaux.
  */
-export function isCloseKeypress(event: KeyboardEvent): boolean {
+export function isCloseKeypress(
+  event: { key: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }
+): boolean {
   return comboMatches(useUIStore.getState().settings.keyboardShortcuts.closeModal, event)
 }
 

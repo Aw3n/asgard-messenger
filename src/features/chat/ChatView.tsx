@@ -31,6 +31,7 @@ import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
 import { parseMessageJump } from '@/utils/messageJump'
 import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
+import { useMessageActionShortcuts } from '@/hooks/useMessageActionShortcuts'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
 import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
 import { formatLastSeen } from '@/utils/time'
@@ -266,6 +267,27 @@ export const ChatView: React.FC = () => {
     onPrependedMessages: handleJumpPrepended,
     onNewerGap: armGap,
     onJumpStart: handleJumpStart,
+  })
+
+  // Les trois gestes de message ont une seule implémentation : le clic du menu
+  // et la frappe réglée doivent passer par le même chemin.
+  const handleReply = useCallback((message: Message) => {
+    setEditingMessage(undefined)
+    setReplyTo(message)
+  }, [])
+  const handleEdit = useCallback((message: Message) => {
+    setReplyTo(undefined)
+    setEditingMessage(message)
+  }, [])
+  const handleForward = useCallback((message: Message) => setForwardMessage(message), [])
+
+  // GESTES CLAVIER DU FIL : copie, réponse, transfert et édition du dernier
+  // message, lus dans `settings.keyboardShortcuts` à la frappe.
+  useMessageActionShortcuts({
+    messages,
+    ownSenderId: identity?.keyPair.publicKey,
+    highlightedMessageId,
+    handlers: { onReply: handleReply, onEdit: handleEdit, onForward: handleForward },
   })
 
   // PAGINATION: l'ouverture ne charge que les derniers messages ; remonter en
@@ -635,14 +657,8 @@ export const ChatView: React.FC = () => {
                     messages[index - 1].senderId === message.senderId &&
                     message.timestamp - messages[index - 1].timestamp < 300_000
                   }
-                  onReply={(msg) => {
-                    setEditingMessage(undefined)
-                    setReplyTo(msg)
-                  }}
-                  onEdit={(msg) => {
-                    setReplyTo(undefined)
-                    setEditingMessage(msg)
-                  }}
+                  onReply={handleReply}
+                  onEdit={handleEdit}
                   onRetry={handleRetry}
                   onDelete={(msg) => {
                     if (!conversation.participantId || !dataId) return
@@ -667,7 +683,7 @@ export const ChatView: React.FC = () => {
                       console.warn('[ChatView] Reaction ignored: conversation has no participantId')
                     }
                   }}
-                  onForward={(msg) => setForwardMessage(msg)}
+                  onForward={handleForward}
                   onPin={(msg) => {
                     if (dataId) chatService.togglePinMessage(msg.id, dataId)
                   }}

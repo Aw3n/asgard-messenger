@@ -27,6 +27,7 @@ import { parseMessageJump } from '@/utils/messageJump'
 import { canPostInChannel } from '@/utils/groupPermissions'
 import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
+import { useMessageActionShortcuts } from '@/hooks/useMessageActionShortcuts'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
 import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
 import type { Message } from '@/types'
@@ -417,6 +418,25 @@ export const GroupView: React.FC = () => {
     onJumpStart: handleJumpStart,
   })
 
+  // Une seule implémentation pour le clic du menu et la frappe réglée.
+  const handleReply = useCallback((message: Message) => {
+    setEditingMessage(undefined)
+    setReplyTo(message)
+  }, [])
+  const handleEdit = useCallback((message: Message) => {
+    setReplyTo(undefined)
+    setEditingMessage(message)
+  }, [])
+  const handleForward = useCallback((message: Message) => setForwardMessage(message), [])
+
+  // GESTES CLAVIER DU CANAL : les mêmes combinaisons que dans un fil 1:1.
+  useMessageActionShortcuts({
+    messages,
+    ownSenderId: identity?.keyPair.publicKey,
+    highlightedMessageId,
+    handlers: { onReply: handleReply, onEdit: handleEdit, onForward: handleForward },
+  })
+
   // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
   // doit rendre le même nombre de hooks qu'avec, sinon React casse l'ordre.
   if (!activeGroup) {
@@ -540,19 +560,13 @@ export const GroupView: React.FC = () => {
                     senderName={getMemberName(activeGroup, message.senderId)}
                     showSender
                     highlighted={message.id === highlightedMessageId}
-                    onReply={(msg) => {
-                      setEditingMessage(undefined)
-                      setReplyTo(msg)
-                    }}
-                    onEdit={(msg) => {
-                      setReplyTo(undefined)
-                      setEditingMessage(msg)
-                    }}
+                    onReply={handleReply}
+                    onEdit={handleEdit}
                     onDelete={handleDelete}
                     onDeletePermanently={handleDeleteForMe}
                     onReaction={handleReaction}
                     onPin={canPin ? handlePin : undefined}
-                    onForward={setForwardMessage}
+                    onForward={handleForward}
                   />
                 </React.Fragment>
               )}
