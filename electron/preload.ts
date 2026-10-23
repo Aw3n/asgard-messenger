@@ -213,6 +213,7 @@ export interface AsgardAPI {
   notifications: {
     show: (title: string, body: string, options?: NotificationOptions) => void
     requestPermission: () => Promise<boolean>
+    onClick: (callback: (target: NotificationClickTarget) => void) => () => void
   }
   // File operations
   file: {
@@ -546,6 +547,8 @@ contextBridge.exposeInMainWorld('asgard', {
     show: (title: string, body: string, options?: NotificationOptions) =>
       ipcRenderer.send('notifications:show', title, body, options),
     requestPermission: () => ipcRenderer.invoke('notifications:requestPermission'),
+    onClick: (callback: (target: NotificationClickTarget) => void) =>
+      createListener('notifications:click', callback),
   },
   file: {
     saveAs: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:save-as', blobId, suggestedName),
@@ -622,4 +625,13 @@ interface NotificationOptions {
   icon?: string
   silent?: boolean
   urgency?: 'normal' | 'critical' | 'low'
+  /** Destination ouverte au clic : fil 1:1, ou canal d'un groupe. */
+  conversationId?: string
+  groupId?: string
+  channelId?: string
 }
+
+type NotificationClickTarget = Pick<
+  NotificationOptions,
+  'conversationId' | 'groupId' | 'channelId'
+>

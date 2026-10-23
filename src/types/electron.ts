@@ -214,6 +214,7 @@ export interface AsgardElectronAPI {
   notifications: {
     show: (title: string, body: string, options?: NotificationAPIOptions) => void
     requestPermission: () => Promise<boolean>
+    onClick: (callback: (target: NotificationClickTarget) => void) => () => void
   }
   file: {
     saveAs: (blobId: string, suggestedName: string) => Promise<
@@ -294,7 +295,16 @@ interface NetworkAPIStatus {
 interface NotificationAPIOptions {
   icon?: string
   silent?: boolean
+  /** Destination ouverte au clic : fil 1:1, ou canal d'un groupe. */
+  conversationId?: string
+  groupId?: string
+  channelId?: string
 }
+
+type NotificationClickTarget = Pick<
+  NotificationAPIOptions,
+  'conversationId' | 'groupId' | 'channelId'
+>
 
 interface DHTProfileData {
   displayName: string

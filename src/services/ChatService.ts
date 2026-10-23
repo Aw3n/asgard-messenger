@@ -3173,7 +3173,7 @@ class ChatService {
           const body = notifSettings.showPreview
             ? content.slice(0, 100)
             : i18n.t('notifications.newMessage')
-          window.asgard.notifications.show(senderName, body)
+          window.asgard.notifications.show(senderName, body, { conversationId: resolvedId })
           // NOTIFICATION SETTINGS (sound): short beep alongside the notification
           if (notifSettings.sound) ringtoneService.playBeep(660, 120)
           // ACCESSIBILITY SETTINGS (ttsEnabled): read the message aloud

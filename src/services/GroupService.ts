@@ -1894,7 +1894,10 @@ class GroupService {
       ? message.content.slice(0, 100)
       : i18n.t('notifications.newMessage')
     try {
-      window.asgard.notifications.show(`${senderName} · ${group.name}`, body)
+      window.asgard.notifications.show(`${senderName} · ${group.name}`, body, {
+        groupId: group.id,
+        channelId: message.conversationId,
+      })
     } catch {
       return
     }
@@ -2324,7 +2327,10 @@ class GroupService {
 
     try {
       if (typeof window !== 'undefined' && window.asgard?.notifications) {
-        window.asgard.notifications.show(`${authorName} · ${group.name}`, body)
+        window.asgard.notifications.show(`${authorName} · ${group.name}`, body, {
+          groupId,
+          channelId,
+        })
       }
     } catch {
       // Notifications not available, skip

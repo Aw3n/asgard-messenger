@@ -778,7 +778,7 @@ describe('notifications de groupe', () => {
     receive('notif-1', 'Bonjour à tous')
 
     expect(show()).toHaveBeenCalledTimes(1)
-    expect(show()).toHaveBeenCalledWith('Bob · Équipe', 'Bonjour à tous')
+    expect(show()).toHaveBeenCalledWith('Bob · Équipe', 'Bonjour à tous', { groupId, channelId })
     expect(group().channels[0].unreadCount).toBe(1)
   })
 
@@ -807,7 +807,7 @@ describe('notifications de groupe', () => {
     setNotifications({ showPreview: false })
     receive('notif-6', 'contenu privé')
 
-    expect(show()).toHaveBeenCalledWith('Bob · Équipe', i18n.t('notifications.newMessage'))
+    expect(show()).toHaveBeenCalledWith('Bob · Équipe', i18n.t('notifications.newMessage'), { groupId, channelId })
     expect(show()).not.toHaveBeenCalledWith('Bob · Équipe', 'contenu privé')
   })
 
@@ -823,7 +823,7 @@ describe('notifications de groupe', () => {
   it('notifie une mention reçue avant son message, une seule fois', () => {
     mention('notif-8', 'Salut @Alice')
     expect(show()).toHaveBeenCalledTimes(1)
-    expect(show()).toHaveBeenCalledWith('Bob · Équipe', 'Salut @Alice')
+    expect(show()).toHaveBeenCalledWith('Bob · Équipe', 'Salut @Alice', { groupId, channelId })
 
     receive('notif-8', 'Salut @Alice', [
       { publicKey: A, displayName: 'Alice', startIndex: 0, endIndex: 6 },

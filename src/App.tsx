@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import { AppShell } from '@/components/layout/AppShell'
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage'
@@ -27,6 +27,8 @@ const lazyRoute = (page: React.ReactNode) => (
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useContactStore } from '@/stores/contactStore'
+import { useConversationStore } from '@/stores/conversationStore'
+import { useGroupStore } from '@/stores/groupStore'
 import { p2pService } from '@/services/P2PService'
 import { chatService } from '@/services/ChatService'
 import { cryptoService } from '@/services/CryptoService'
@@ -49,6 +51,7 @@ import type { Contact } from '@/types'
  * App — root component with routing and initialization.
  */
 const App: React.FC = () => {
+  const navigate = useNavigate()
   const { isSetup, loadIdentity, identity } = useIdentityStore()
   const { theme, setTheme, isSearchOpen, setSearchOpen, settings } = useUIStore()
   const activeCall = useCallStore((s) => s.activeCall)
@@ -96,6 +99,21 @@ const App: React.FC = () => {
     const sizes: Record<string, string> = { small: '13px', medium: '15px', large: '17px' }
     root.style.setProperty('--font-size-base', sizes[settings.fontSize] ?? '15px')
   }, [settings.fontSize])
+
+  // Notification cliquée : sélectionner la destination avant de naviguer,
+  // sinon la page s'affiche en gardant l'ancien fil ou l'ancien canal.
+  useEffect(() => {
+    return window.asgard.notifications.onClick((target) => {
+      if (target.groupId && target.channelId) {
+        useGroupStore.getState().setActiveGroup(target.groupId)
+        useGroupStore.getState().setActiveChannel(target.channelId)
+        navigate(`/groups/${target.groupId}/channels/${target.channelId}`)
+      } else if (target.conversationId) {
+        useConversationStore.getState().setActiveConversation(target.conversationId)
+        navigate(`/conversations/${target.conversationId}`)
+      }
+    })
+  }, [navigate])
 
   // ACCESSIBILITY SETTINGS: toggle hook classes on <html> — the actual rules
   // live in globals.css (highContrast, reducedMotion, keyboardNav, large touch

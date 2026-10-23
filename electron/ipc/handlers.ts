@@ -1388,20 +1388,50 @@ async function setupStorageHandlers(): Promise<void> {
 // ─── Notification Handlers ───────────────────────────────────────────────────
 
 function setupNotificationHandlers(): void {
-  ipcMain.on('notifications:show', (_event, title: string, body: string) => {
-    if (Notification.isSupported()) {
-      new Notification({
-        title,
-        body,
-        silent: false,
-      }).show()
-    }
+  // Une notification non retenue peut être collectée avant d'être cliquée :
+  // garder la référence jusqu'à sa fermeture, sinon le clic se perd.
+  const activeNotifications = new Set<Notification>()
+
+  ipcMain.on('notifications:show', (_event, title: string, body: string, options?: NotificationTarget) => {
+    if (!Notification.isSupported()) return
+    const notification = new Notification({
+      title,
+      body,
+      silent: false,
+    })
+    activeNotifications.add(notification)
+    const release = () => { activeNotifications.delete(notification) }
+    notification.once('close', release)
+    notification.once('failed', release)
+    // Cliquer doit ramener l'app et ouvrir la conversation concernée, pas
+    // seulement constater qu'un message est arrivé pendant que la fenêtre
+    // était réduite ou au second plan.
+    notification.on('click', () => {
+      release()
+      const win = BrowserWindow.getAllWindows()[0]
+      if (!win || win.isDestroyed()) return
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      safeSend(win, 'notifications:click', {
+        conversationId: typeof options?.conversationId === 'string' ? options.conversationId : undefined,
+        groupId: typeof options?.groupId === 'string' ? options.groupId : undefined,
+        channelId: typeof options?.channelId === 'string' ? options.channelId : undefined,
+      } satisfies NotificationTarget)
+    })
+    notification.show()
   })
 
   ipcMain.handle('notifications:requestPermission', () => {
     // Windows always has permission if Notification.isSupported()
     return Notification.isSupported()
   })
+}
+
+interface NotificationTarget {
+  conversationId?: string
+  groupId?: string
+  channelId?: string
 }
 
 // ─── App Handlers ────────────────────────────────────────────────────────────
