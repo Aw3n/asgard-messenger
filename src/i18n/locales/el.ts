@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Ανοίξτε Ρυθμίσεις > Δίκτυο για να ρυθμίσετε το τείχος προστασίας χειροκίνητα.",
       "contacts.reloadedFromStorage": "Βρέθηκαν {{total}} επαφές στο Hyperbee, αποκαταστάθηκαν {{restored}} νέες.",
       "chat.draft": "Πρόχειρο: {{text}}",
+      "chat.markAllAsRead": "Σήμανση όλων ως αναγνωσμένων",
     }
 }

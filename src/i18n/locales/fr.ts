@@ -872,5 +872,6 @@ export default {
       "settings.firewallManualHint": "Ouvrez les Paramètres > Réseau pour configurer le pare-feu manuellement.",
       "contacts.reloadedFromStorage": "{{total}} contacts trouvés dans Hyperbee, {{restored}} nouveaux restaurés.",
       "chat.draft": "Brouillon : {{text}}",
+      "chat.markAllAsRead": "Tout marquer comme lu",
     }
 }

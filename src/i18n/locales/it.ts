@@ -872,5 +872,6 @@ export default {
       "settings.firewallManualHint": "Apri Impostazioni > Rete per configurare il firewall manualmente.",
       "contacts.reloadedFromStorage": "{{total}} contatti trovati in Hyperbee, {{restored}} nuovi ripristinati.",
       "chat.draft": "Bozza: {{text}}",
+      "chat.markAllAsRead": "Segna tutto come letto",
     }
 }

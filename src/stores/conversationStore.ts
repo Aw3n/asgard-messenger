@@ -27,6 +27,7 @@ interface ConversationState {
   setChatViewVisible: (visible: boolean) => void
   incrementUnread: (id: string) => void
   clearUnread: (id: string) => void
+  markAllConversationsRead: () => void
   pinConversation: (id: string, pinned: boolean) => void
   muteConversation: (id: string, muted: boolean) => void
   archiveConversation: (id: string, archived: boolean) => void
@@ -107,6 +108,14 @@ export const useConversationStore = create<ConversationState>()(
         set((state) => {
           if (state.conversations[id]) {
             state.conversations[id].unreadCount = 0
+          }
+        })
+      },
+
+      markAllConversationsRead: () => {
+        set((state) => {
+          for (const conv of Object.values(state.conversations)) {
+            conv.unreadCount = 0
           }
         })
       },

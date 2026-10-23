@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Avaa Asetukset > Verkko ja määritä palomuuri manuaalisesti.",
       "contacts.reloadedFromStorage": "Hyperbeestä löytyi {{total}} yhteystietoa, {{restored}} uutta palautettiin.",
       "chat.draft": "Luonnos: {{text}}",
+      "chat.markAllAsRead": "Merkitse kaikki luetuiksi",
     }
 }

@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Oscail Socruithe > Líonra chun an balla dóiteáin a chumrú de láimh.",
       "contacts.reloadedFromStorage": "Fuarthas {{total}} teagmháil i Hyperbee, athchóiríodh {{restored}} ceann nua.",
       "chat.draft": "Dréacht: {{text}}",
+      "chat.markAllAsRead": "Marcáil gach rud mar léite",
     }
 }

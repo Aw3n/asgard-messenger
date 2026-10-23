@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Nyissa meg a Beállítások > Hálózat menüpontot a tűzfal kézi beállításához.",
       "contacts.reloadedFromStorage": "{{total}} névjegy található a Hyperbee-ben, {{restored}} új visszaállítva.",
       "chat.draft": "Piszkozat: {{text}}",
+      "chat.markAllAsRead": "Összes megjelölése olvasottként",
     }
 }

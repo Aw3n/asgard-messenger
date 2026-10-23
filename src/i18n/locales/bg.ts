@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Отворете Настройки > Мрежа, за да конфигурирате защитната стена ръчно.",
       "contacts.reloadedFromStorage": "Намерени {{total}} контакта в Hyperbee, възстановени {{restored}} нови.",
       "chat.draft": "Чернова: {{text}}",
+      "chat.markAllAsRead": "Маркирай всичко като прочетено",
     }
 }

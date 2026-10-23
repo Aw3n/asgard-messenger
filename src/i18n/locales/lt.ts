@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Atidarykite Nustatymai > Tinklas, kad rankiniu būdu sukonfigūruotumėte užkardą.",
       "contacts.reloadedFromStorage": "Hyperbee rasta {{total}} kontaktų, atkurti {{restored}} nauji.",
       "chat.draft": "Juodraštis: {{text}}",
+      "chat.markAllAsRead": "Pažymėti viską kaip skaitytą",
     }
 }

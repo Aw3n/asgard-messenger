@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Avage Seaded > Võrk, et tulemüür käsitsi seadistada.",
       "contacts.reloadedFromStorage": "Hyperbeest leiti {{total}} kontakti, taastati {{restored}} uut.",
       "chat.draft": "Mustand: {{text}}",
+      "chat.markAllAsRead": "Märgi kõik loetuks",
     }
 }

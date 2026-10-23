@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Odprite Nastavitve > Omrežje, da ročno konfigurirate požarni zid.",
       "contacts.reloadedFromStorage": "V Hyperbee najdenih {{total}} stikov, obnovljenih {{restored}} novih.",
       "chat.draft": "Osnutek: {{text}}",
+      "chat.markAllAsRead": "Označi vse kot prebrano",
     }
 }

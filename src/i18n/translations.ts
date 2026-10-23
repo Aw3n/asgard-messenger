@@ -871,6 +871,7 @@ export const translations = {
       "settings.firewallManualHint": "Ouvrez les Paramètres > Réseau pour configurer le pare-feu manuellement.",
       "contacts.reloadedFromStorage": "{{total}} contacts trouvés dans Hyperbee, {{restored}} nouveaux restaurés.",
       "chat.draft": "Brouillon : {{text}}",
+      "chat.markAllAsRead": "Tout marquer comme lu",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1745,6 +1746,7 @@ export const translations = {
       "settings.firewallManualHint": "Open Instellingen > Netwerk om de firewall handmatig te configureren.",
       "contacts.reloadedFromStorage": "{{total}} contacten gevonden in Hyperbee, {{restored}} nieuwe hersteld.",
       "chat.draft": "Concept: {{text}}",
+      "chat.markAllAsRead": "Alles als gelezen markeren",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2619,6 +2621,7 @@ export const translations = {
       "settings.firewallManualHint": "Öffnen Sie Einstellungen > Netzwerk, um die Firewall manuell zu konfigurieren.",
       "contacts.reloadedFromStorage": "{{total}} Kontakte in Hyperbee gefunden, {{restored}} neue wiederhergestellt.",
       "chat.draft": "Entwurf: {{text}}",
+      "chat.markAllAsRead": "Alle als gelesen markieren",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3493,6 +3496,7 @@ export const translations = {
       "settings.firewallManualHint": "Apri Impostazioni > Rete per configurare il firewall manualmente.",
       "contacts.reloadedFromStorage": "{{total}} contatti trovati in Hyperbee, {{restored}} nuovi ripristinati.",
       "chat.draft": "Bozza: {{text}}",
+      "chat.markAllAsRead": "Segna tutto come letto",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4367,6 +4371,7 @@ export const translations = {
       "settings.firewallManualHint": "Abre Ajustes > Red para configurar el cortafuegos manualmente.",
       "contacts.reloadedFromStorage": "{{total}} contactos encontrados en Hyperbee, {{restored}} nuevos restaurados.",
       "chat.draft": "Borrador: {{text}}",
+      "chat.markAllAsRead": "Marcar todo como leído",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5242,6 +5247,7 @@ export const translations = {
       "settings.firewallManualHint": "Abra Definições > Rede para configurar a firewall manualmente.",
       "contacts.reloadedFromStorage": "{{total}} contactos encontrados no Hyperbee, {{restored}} novos restaurados.",
       "chat.draft": "Rascunho: {{text}}",
+      "chat.markAllAsRead": "Marcar tudo como lido",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6117,6 +6123,7 @@ export const translations = {
       "settings.firewallManualHint": "Ανοίξτε Ρυθμίσεις > Δίκτυο για να ρυθμίσετε το τείχος προστασίας χειροκίνητα.",
       "contacts.reloadedFromStorage": "Βρέθηκαν {{total}} επαφές στο Hyperbee, αποκαταστάθηκαν {{restored}} νέες.",
       "chat.draft": "Πρόχειρο: {{text}}",
+      "chat.markAllAsRead": "Σήμανση όλων ως αναγνωσμένων",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6992,6 +6999,7 @@ export const translations = {
       "settings.firewallManualHint": "Åbn Indstillinger > Netværk for at konfigurere firewallen manuelt.",
       "contacts.reloadedFromStorage": "{{total}} kontakter fundet i Hyperbee, {{restored}} nye gendannet.",
       "chat.draft": "Kladde: {{text}}",
+      "chat.markAllAsRead": "Markér alle som læst",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7867,6 +7875,7 @@ export const translations = {
       "settings.firewallManualHint": "Avaa Asetukset > Verkko ja määritä palomuuri manuaalisesti.",
       "contacts.reloadedFromStorage": "Hyperbeestä löytyi {{total}} yhteystietoa, {{restored}} uutta palautettiin.",
       "chat.draft": "Luonnos: {{text}}",
+      "chat.markAllAsRead": "Merkitse kaikki luetuiksi",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8742,6 +8751,7 @@ export const translations = {
       "settings.firewallManualHint": "Öppna Inställningar > Nätverk för att konfigurera brandväggen manuellt.",
       "contacts.reloadedFromStorage": "{{total}} kontakter hittades i Hyperbee, {{restored}} nya återställdes.",
       "chat.draft": "Utkast: {{text}}",
+      "chat.markAllAsRead": "Markera alla som lästa",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9617,6 +9627,7 @@ export const translations = {
       "settings.firewallManualHint": "Otvorite Postavke > Mreža da biste ručno konfigurirali vatrozid.",
       "contacts.reloadedFromStorage": "Pronađeno {{total}} kontakata u Hyperbeeju, obnovljeno {{restored}} novih.",
       "chat.draft": "Skica: {{text}}",
+      "chat.markAllAsRead": "Označi sve kao pročitano",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10492,6 +10503,7 @@ export const translations = {
       "settings.firewallManualHint": "Avage Seaded > Võrk, et tulemüür käsitsi seadistada.",
       "contacts.reloadedFromStorage": "Hyperbeest leiti {{total}} kontakti, taastati {{restored}} uut.",
       "chat.draft": "Mustand: {{text}}",
+      "chat.markAllAsRead": "Märgi kõik loetuks",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11367,6 +11379,7 @@ export const translations = {
       "settings.firewallManualHint": "Nyissa meg a Beállítások > Hálózat menüpontot a tűzfal kézi beállításához.",
       "contacts.reloadedFromStorage": "{{total}} névjegy található a Hyperbee-ben, {{restored}} új visszaállítva.",
       "chat.draft": "Piszkozat: {{text}}",
+      "chat.markAllAsRead": "Összes megjelölése olvasottként",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12242,6 +12255,7 @@ export const translations = {
       "settings.firewallManualHint": "Atveriet Iestatījumi > Tīkls, lai manuāli konfigurētu ugunsmūri.",
       "contacts.reloadedFromStorage": "Hyperbee atrasti {{total}} kontakti, atjaunoti {{restored}} jauni.",
       "chat.draft": "Melnraksts: {{text}}",
+      "chat.markAllAsRead": "Atzīmēt visu kā lasītu",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13117,6 +13131,7 @@ export const translations = {
       "settings.firewallManualHint": "Atidarykite Nustatymai > Tinklas, kad rankiniu būdu sukonfigūruotumėte užkardą.",
       "contacts.reloadedFromStorage": "Hyperbee rasta {{total}} kontaktų, atkurti {{restored}} nauji.",
       "chat.draft": "Juodraštis: {{text}}",
+      "chat.markAllAsRead": "Pažymėti viską kaip skaitytą",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13992,6 +14007,7 @@ export const translations = {
       "settings.firewallManualHint": "Iftaħ Settings > Network biex tikkonfigura l-firewall manwalment.",
       "contacts.reloadedFromStorage": "Instabu {{total}} kuntatti fil-Hyperbee, ġew restawrati {{restored}} ġodda.",
       "chat.draft": "Abbozz: {{text}}",
+      "chat.markAllAsRead": "Immarka kollha bħala moqrija",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14867,6 +14883,7 @@ export const translations = {
       "settings.firewallManualHint": "Otwórz Ustawienia > Sieć, aby ręcznie skonfigurować zaporę.",
       "contacts.reloadedFromStorage": "Znaleziono {{total}} kontaktów w Hyperbee, przywrócono {{restored}} nowych.",
       "chat.draft": "Szkic: {{text}}",
+      "chat.markAllAsRead": "Oznacz wszystko jako przeczytane",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15742,6 +15759,7 @@ export const translations = {
       "settings.firewallManualHint": "Otvorte Nastavenia > Sieť, aby ste manuálne nakonfigurovali firewall.",
       "contacts.reloadedFromStorage": "V Hyperbee sa našlo {{total}} kontaktov, obnovených {{restored}} nových.",
       "chat.draft": "Koncept: {{text}}",
+      "chat.markAllAsRead": "Označiť všetko ako prečítané",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16617,6 +16635,7 @@ export const translations = {
       "settings.firewallManualHint": "Odprite Nastavitve > Omrežje, da ročno konfigurirate požarni zid.",
       "contacts.reloadedFromStorage": "V Hyperbee najdenih {{total}} stikov, obnovljenih {{restored}} novih.",
       "chat.draft": "Osnutek: {{text}}",
+      "chat.markAllAsRead": "Označi vse kot prebrano",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17492,6 +17511,7 @@ export const translations = {
       "settings.firewallManualHint": "Otevřete Nastavení > Síť a ručně nakonfigurujte firewall.",
       "contacts.reloadedFromStorage": "V Hyperbee nalezeno {{total}} kontaktů, obnoveno {{restored}} nových.",
       "chat.draft": "Koncept: {{text}}",
+      "chat.markAllAsRead": "Označit vše jako přečtené",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18367,6 +18387,7 @@ export const translations = {
       "settings.firewallManualHint": "Отворете Настройки > Мрежа, за да конфигурирате защитната стена ръчно.",
       "contacts.reloadedFromStorage": "Намерени {{total}} контакта в Hyperbee, възстановени {{restored}} нови.",
       "chat.draft": "Чернова: {{text}}",
+      "chat.markAllAsRead": "Маркирай всичко като прочетено",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19242,6 +19263,7 @@ export const translations = {
       "settings.firewallManualHint": "Oscail Socruithe > Líonra chun an balla dóiteáin a chumrú de láimh.",
       "contacts.reloadedFromStorage": "Fuarthas {{total}} teagmháil i Hyperbee, athchóiríodh {{restored}} ceann nua.",
       "chat.draft": "Dréacht: {{text}}",
+      "chat.markAllAsRead": "Marcáil gach rud mar léite",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20117,6 +20139,7 @@ export const translations = {
       "settings.firewallManualHint": "Deschideți Setări > Rețea pentru a configura manual paravanul de firewall.",
       "contacts.reloadedFromStorage": "{{total}} contacte găsite în Hyperbee, {{restored}} noi restaurate.",
       "chat.draft": "Ciornă: {{text}}",
+      "chat.markAllAsRead": "Marchează totul ca citit",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21001,6 +21024,7 @@ export const translations = {
       "settings.firewallManualHint": "Open Settings > Network to configure the firewall manually.",
       "contacts.reloadedFromStorage": "Found {{total}} contacts in Hyperbee, restored {{restored}} new ones.",
       "chat.draft": "Draft: {{text}}",
+      "chat.markAllAsRead": "Mark all as read",
     }
   },
 
@@ -21877,6 +21901,7 @@ export const translations = {
       "settings.firewallManualHint": "Відкрийте Налаштування > Мережа, щоб налаштувати брандмауер вручну.",
       "contacts.reloadedFromStorage": "Знайдено {{total}} контактів у Hyperbee, відновлено {{restored}} нових.",
       "chat.draft": "Чернетка: {{text}}",
+      "chat.markAllAsRead": "Позначити все як прочитане",
     }
   },
 }

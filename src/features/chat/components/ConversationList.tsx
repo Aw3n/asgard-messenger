@@ -23,6 +23,7 @@ interface ConversationListProps {
 export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat }) => {
   const { t } = useTranslation()
   const {
+    conversations: conversationsById,
     filter,
     setFilter,
     getFilteredConversations,
@@ -33,6 +34,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     archiveConversation,
     clearUnread,
     incrementUnread,
+    markAllConversationsRead,
     drafts,
   } = useConversationStore()
 
@@ -47,6 +49,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
   // de groupe ici s'affichait comme un identifiant brut et ouvrait ChatView
   // sans destinataire, donc un fil vide qui ne pouvait rien envoyer.
   const conversations = getFilteredConversations().filter((conv) => conv.type === 'direct')
+  const unreadTotal = Object.values(conversationsById).reduce((sum, conv) => sum + conv.unreadCount, 0)
   const [contextMenu, setContextMenu] = useState<{
     conv: Conversation
     x: number
@@ -203,6 +206,27 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
           {filter.archivedOnly ? t('chat.archived') : t('nav.messages')}
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            onClick={markAllConversationsRead}
+            disabled={unreadTotal === 0}
+            aria-label={t('chat.markAllAsRead')}
+            title={t('chat.markAllAsRead')}
+            style={{
+              width: '32px', height: '32px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '8px', border: 'none', background: 'transparent',
+              color: unreadTotal > 0 ? '#4FC3F7' : 'rgba(200,208,232,0.35)',
+              cursor: unreadTotal > 0 ? 'pointer' : 'default',
+            }}
+            onMouseEnter={e => {
+              if (unreadTotal > 0) e.currentTarget.style.background = 'rgba(79,195,247,0.12)'
+            }}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/>
+            </svg>
+          </button>
           <button
             onClick={() => setFilter({ archivedOnly: !filter.archivedOnly })}
             aria-pressed={!!filter.archivedOnly}

@@ -200,6 +200,28 @@ describe('liste des conversations', () => {
     expect(screen.getByText('chat.startConversation')).toBeInTheDocument()
   })
 
+  it('marque toutes les conversations comme lues', () => {
+    useConversationStore.setState({
+      conversations: {
+        [direct.id]: { ...direct, unreadCount: 2 },
+        [group.id]: { ...group, unreadCount: 1 },
+      },
+    })
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    const button = screen.getByRole('button', { name: 'chat.markAllAsRead' })
+    expect(button).toBeEnabled()
+    fireEvent.click(button)
+
+    expect(useConversationStore.getState().conversations[direct.id].unreadCount).toBe(0)
+    expect(useConversationStore.getState().conversations[group.id].unreadCount).toBe(0)
+    expect(button).toBeDisabled()
+  })
+
   it('ouvre le menu au clavier, navigue et le referme par Échap', async () => {
     render(
       <MemoryRouter>

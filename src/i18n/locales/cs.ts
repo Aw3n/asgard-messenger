@@ -873,5 +873,6 @@ export default {
       "settings.firewallManualHint": "Otevřete Nastavení > Síť a ručně nakonfigurujte firewall.",
       "contacts.reloadedFromStorage": "V Hyperbee nalezeno {{total}} kontaktů, obnoveno {{restored}} nových.",
       "chat.draft": "Koncept: {{text}}",
+      "chat.markAllAsRead": "Označit vše jako přečtené",
     }
 }
