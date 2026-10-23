@@ -98,6 +98,17 @@ describe('recherche globale au clavier', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('laisse l’Échap d’une composition IME au champ de recherche', () => {
+    const { onClose } = renderModal()
+
+    expect(fireEvent.keyDown(window, { key: 'Escape', isComposing: true })).toBe(true)
+    expect(fireEvent.keyDown(window, { key: 'Escape', keyCode: 229 })).toBe(true)
+    expect(onClose).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('n’ouvre rien tant qu’aucune ligne n’est sélectionnée', () => {
     const { input, onClose } = renderModal()
 

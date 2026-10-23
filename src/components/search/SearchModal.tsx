@@ -83,6 +83,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Échap qui annule une composition IME reste au champ : fermer la
+      // recherche jetterait la saisie en cours.
+      if (e.isComposing || e.keyCode === 229) return
       if (e.key === 'Escape' && isOpen) {
         onClose()
       }
