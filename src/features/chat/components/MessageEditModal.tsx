@@ -25,6 +25,9 @@ export const MessageEditModal: React.FC<MessageEditModalProps> = ({ message, onS
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Une composition IME (japonais, chinois, coréen…) garde ses touches :
+      // Entrée valide le texte et Échap annule la composition, pas la modale.
+      if (e.isComposing || e.keyCode === 229) return
       if (e.key === 'Escape') onClose()
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         handleSave()

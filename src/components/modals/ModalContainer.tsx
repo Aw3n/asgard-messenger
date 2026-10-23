@@ -206,7 +206,10 @@ const AddContactModal: React.FC<{
             placeholder={t('modal.publicKeyPlaceholder')}
             value={publicKey}
             onChange={(e) => handlePublicKeyChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing || e.keyCode === 229) return
+              if (e.key === 'Enter') handleSubmit()
+            }}
             autoFocus
           />
         </div>
@@ -220,7 +223,10 @@ const AddContactModal: React.FC<{
             placeholder={t('modal.displayNamePlaceholder')}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing || e.keyCode === 229) return
+              if (e.key === 'Enter') handleSubmit()
+            }}
             maxLength={32}
           />
         </div>

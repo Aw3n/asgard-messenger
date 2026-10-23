@@ -189,6 +189,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
+                // Composition IME : Entrée valide la saisie, les flèches
+                // choisissent un candidat — rien de tout cela ne pilote la liste.
+                if (e.nativeEvent.isComposing || e.keyCode === 229) return
                 if (filteredResults.length === 0) return
                 if (e.key === 'ArrowDown') {
                   e.preventDefault()

@@ -81,6 +81,23 @@ describe('recherche globale au clavier', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('laisse l’Entrée d’une composition IME au champ de recherche', () => {
+    const { input, onClose } = renderModal()
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+
+    // Contrôle négatif : ni la sélection ni l’ouverture ne bougent.
+    expect(fireEvent.keyDown(input, { key: 'ArrowDown', isComposing: true })).toBe(true)
+    expect(input.getAttribute('aria-activedescendant')).toBe('search-result-0')
+    expect(fireEvent.keyDown(input, { key: 'Enter', isComposing: true })).toBe(true)
+    expect(onClose).not.toHaveBeenCalled()
+    expect(fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 })).toBe(true)
+    expect(onClose).not.toHaveBeenCalled()
+
+    // Contrôle positif : hors composition, Entrée ouvre toujours la sélection.
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('n’ouvre rien tant qu’aucune ligne n’est sélectionnée', () => {
     const { input, onClose } = renderModal()
 
