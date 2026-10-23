@@ -40,11 +40,19 @@ const borderColors: Record<ToastType['type'], string> = {
  */
 const ToastItem: React.FC<{ toast: ToastType }> = ({ toast }) => {
   const removeToast = useUIStore((s) => s.removeToast)
+  const pauseToast = useUIStore((s) => s.pauseToast)
+  const resumeToast = useUIStore((s) => s.resumeToast)
   const { t } = useTranslation()
 
   return (
     <motion.div
       layout
+      onMouseEnter={() => pauseToast(toast.id)}
+      onMouseLeave={() => resumeToast(toast.id)}
+      onFocus={() => pauseToast(toast.id)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) resumeToast(toast.id)
+      }}
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
