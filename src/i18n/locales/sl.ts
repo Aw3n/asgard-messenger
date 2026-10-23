@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Dostop do mikrofona in kamere",
       "settings.noCameraDetected": "Kamera ni zaznana",
       "settings.noMicrophoneDetected": "Mikrofon ni zaznan",
-      "settings.openSourceLicense": "Odprtokodna licenca",
+      "settings.openSourceLicense": "Odprta koda pod licenco MIT.",
       "settings.resume": "Nadaljuj",
       "settings.stopPreview": "Ustavi predogled",
       "settings.suspend": "Zaustavi",

@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Mikrofonin ja kameran käyttöoikeus",
       "settings.noCameraDetected": "Kameraa ei havaittu",
       "settings.noMicrophoneDetected": "Mikrofonia ei havaittu",
-      "settings.openSourceLicense": "Avoimen lähdekoodin lisenssi",
+      "settings.openSourceLicense": "Avoin lähdekoodi MIT-lisenssin alla.",
       "settings.resume": "Jatka",
       "settings.stopPreview": "Pysäytä esikatselu",
       "settings.suspend": "Keskeytä",

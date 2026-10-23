@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Rochtain micreafóin agus ceamara",
       "settings.noCameraDetected": "Níor aimsíodh ceamara",
       "settings.noMicrophoneDetected": "Níor aimsíodh micreafón",
-      "settings.openSourceLicense": "Ceadúnas foinse oscailte",
+      "settings.openSourceLicense": "Cód oscailte faoi cheadúnas MIT.",
       "settings.resume": "Lean ar aghaidh",
       "settings.stopPreview": "Cuir stop leis an réamhamharc",
       "settings.suspend": "Cuir ar fionraí",

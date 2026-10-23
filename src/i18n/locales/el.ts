@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Πρόσβαση μικροφώνου και κάμερας",
       "settings.noCameraDetected": "Δεν εντοπίστηκε κάμερα",
       "settings.noMicrophoneDetected": "Δεν εντοπίστηκε μικρόφωνο",
-      "settings.openSourceLicense": "Άδεια ανοιχτού κώδικα",
+      "settings.openSourceLicense": "Ανοιχτός κώδικας με άδεια MIT.",
       "settings.resume": "Συνέχεια",
       "settings.stopPreview": "Διακοπή προεπισκόπησης",
       "settings.suspend": "Αναστολή",

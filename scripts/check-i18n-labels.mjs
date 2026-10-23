@@ -22,6 +22,9 @@
  *      quel n'est pas un libellé traduit.
  * R3 — les quatre onglets de ContactsPage sont bien ceux du produit, et chacun
  *      porte une clé présente dans TOUTES les blocs de langue du catalogue.
+ * R4 — le texte littéral rendu entre une balise ouvrante et sa fermante est un
+ *      libellé : ni mot anglais collé à une interpolation, ni accord de pluriel
+ *      écrit dans le JSX. Voir le bloc R4 pour le parcours et ses bornes.
  *
  * Utilisation : node scripts/check-i18n-labels.mjs [--root <dir>]
  * Sortie : 0 si conforme, 1 à la première règle en échec.
@@ -118,6 +121,145 @@ function readCatalog() {
   return langs
 }
 
+// ——— R4 : le texte littéral réellement rendu dans les enfants d'une balise ———
+/**
+ * Les règles 2 et 4 du sondeur `find-hardcoded-labels.mjs` cherchent `>texte<` :
+ * elles voient `<label>Theme</label>` mais pas
+ *   {pinnedMessages.length} message{pinnedMessages.length > 1 ? 's' : ''} épinglé…
+ * — le texte de la barre d'épinglés, rendu en français dans les 24 autres langues.
+ * Distinguer le balisage du code exige de lire le fichier d'une traite : « < »
+ * suivi d'une lettre peut être une balise JSX, un générique `Array<Foo>` ou une
+ * comparaison `i<count`. Le parcours avance par régions : une balise ouvrante,
+ * puis ses enfants jusqu'à la fermante, en sautant les `{…}` (attributs comme
+ * interpolations) et les balises imbriquées.
+ *
+ * Le texte est évalué mot à mot : un fragment dont chaque mot est un sigle, une
+ * unité ou un nom de produit (« Ctrl+Shift+D », « KB/s », « XELIS ») n'est pas
+ * une phrase à traduire.
+ *
+ * Ce que R4 ne voit pas : un `{…}` seul. Un modèle de chaîne rendu nu
+ * (`{`${n} messages`}`) y a la même forme qu'un `className` de balise imbriquée,
+ * et le discerner demanderait un vrai parseur. Les deux formes qui ont réellement
+ * fui — le mot collé à une interpolation, l'accord en `{… ? 's' : ''}` — sont
+ * couvertes.
+ */
+const TECHNICAL_WORDS =
+  /^(?:https?|www|com|net|org|px|ms|kb|mb|gb|tb|kmbps|mbps|kbps|bps|e2e|p2p|ip|ipv[46]|dns|id|url|uri|api|app|dev|ui|ux|a11y|i18n|l10n|faq|mp[234]|ogg|opus|vo?rbis|wav|flac|aac|vp[0-9]|avc|h26[45]|hevc|sha\d*|md5|hex|utf-?8?|zbase32?|dht|udp|tcp|wss?|ssl|tls|peer|keet|pear|asgard|hypercore|hyperbee|hyperdrive|autobase|holepunch|electron|node|json|png|jpe?g|gif|webp|svg|ico|icns|pdf|zip|tar|gz|exe|deb|rpm|yml|md|on|off|auto|ok|ctrl|shift|alt|cmd|meta|enter|esc|escape|tab|del|sup|sub|beta|alpha|rc|gpg|pgp|btc|usd|eur|gbp|sql|ipc|pid|ram|cpu|gpu|db|logo|icon|xelis)$/i
+
+const BARE_WORD = /[^\p{L}\d_'’-]+/u
+
+/** Tout mot du fragment est-il technique ? (un seul à traduire → à signaler) */
+function isTechnicalText(text) {
+  const words = text.split(BARE_WORD).filter((w) => /[\p{L}]/u.test(w))
+  if (!words.length) return true
+  return words.every((w) => TECHNICAL_WORDS.test(w) || w.length < 2 || /^\d/.test(w))
+}
+
+/** index de l'accolade qui ferme celle de `open`, ou -1 */
+function matchBrace(code, open) {
+  let depth = 0
+  for (let i = open; i < code.length; i++) {
+    if (code[i] === '{') depth++
+    else if (code[i] === '}' && --depth === 0) return i
+  }
+  return -1
+}
+
+/** index du `>` qui ferme la balise ouverte à `lt` ; les `{…}` d'attributs sont sautés */
+function tagEnd(code, lt) {
+  for (let i = lt + 1; i < code.length; i++) {
+    if (code[i] === '{') {
+      const close = matchBrace(code, i)
+      if (close < 0) return -1
+      i = close
+      continue
+    }
+    if (code[i] === '>') return i
+  }
+  return -1
+}
+
+const isSelfClosing = (code, lt, end) => code.slice(lt, end).trimEnd().endsWith('/')
+
+/**
+ * Lit la région d'enfants ouverte à `from` : les fragments de texte littéral
+ * vont dans `texts`, les `{…}` rendus dans `exprs` (le pluriel s'y écrit), aux
+ * offsets près. Renvoie l'index où reprend le scan — après la balise fermante.
+ */
+function readChildren(code, from, texts, exprs) {
+  let run = -1
+  const flush = (upto) => {
+    if (run >= 0) {
+      const slice = code.slice(run, upto)
+      if (slice.trim()) texts.push({ text: slice, offset: run })
+      run = -1
+    }
+  }
+  let i = from
+  while (i < code.length) {
+    const c = code[i]
+    if (c === '{') {
+      flush(i)
+      const close = matchBrace(code, i)
+      if (close < 0) return code.length
+      exprs.push({ text: code.slice(i, close + 1), offset: i, adjacent: touchesText(code, i, close) })
+      i = close + 1
+      continue
+    }
+    if (c === '<') {
+      flush(i)
+      if (code[i + 1] === '/') {
+        const end = tagEnd(code, i)
+        return end < 0 ? code.length : end + 1
+      }
+      const end = tagEnd(code, i)
+      if (end < 0) return code.length
+      if (!isSelfClosing(code, i, end)) {
+        i = readChildren(code, end + 1, texts, exprs)
+        continue
+      }
+      i = end + 1
+      continue
+    }
+    if (run < 0 && !/\s/.test(c)) run = i
+    i++
+  }
+  flush(code.length)
+  return code.length
+}
+
+/**
+ * L'interpolation est-elle collée à du texte ? `3 message{s ? 's' : ''}` oui,
+ * `{items.map(…)}` isolé non — et c'est contre le premier cas qu'on protège.
+ */
+function touchesText(code, open, close) {
+  let p = open - 1
+  while (p >= 0 && /\s/.test(code[p])) p--
+  if (p >= 0 && /[\p{L}]/u.test(code[p])) return true
+  let n = close + 1
+  while (n < code.length && /\s/.test(code[n])) n++
+  return n < code.length && /[\p{L}]/u.test(code[n])
+}
+
+/** Un « < » est-il l'ouverture d'une balise JSX et non un chevron de code ? */
+function isJsxTagStart(code, i) {
+  if (!/[A-Za-z>.]/.test(code[i + 1] ?? '')) return false
+  let p = i - 1
+  while (p >= 0 && /\s/.test(code[p])) p--
+  if (p < 0) return true
+  const before = code[p]
+  if (/[A-Za-z0-9_$)\]]/.test(before)) {
+    // « return <div> » introduit du JSX ; « Array<Foo> », « useState<Msg[]> » et
+    // « a < b » ont un identifiant, une parenthèse ou un crochet juste avant.
+    const word = code.slice(0, p + 1).match(/[A-Za-z0-9_$]+$/)?.[0] ?? ''
+    return word === 'return'
+  }
+  return true
+}
+
+/** L'accord du pluriel écrit dans une interpolation : aucune langue ne le reproduit. */
+const AGREEMENT_LITERAL = /\?\s*(['"])([\p{L}]{1,4})\1\s*:\s*(['"])([\p{L}]{0,4})\3/u
+
 const SHADOW_PARAMS = 't|i18n|tr'
 const LIST_NAMES = 'map|flatMap|filter|find|findIndex|some|every|forEach|reduce|reduceRight|sort|toSorted'
 const R1_PATTERNS = [
@@ -171,6 +313,59 @@ for (const file of files) {
   }
 }
 
+// ——— R4 : le texte réellement rendu dans les enfants d'une balise ———
+const r4 = { regions: 0, fragments: 0 }
+const emit = (message) => {
+  if (!failures.includes(message)) failures.push(message)
+}
+
+for (const file of files.filter((f) => f.endsWith('.tsx') && !f.split(path.sep).includes('tests'))) {
+  const raw = fs.readFileSync(file, 'utf8')
+  const { code, comment } = scrub(raw)
+  const rel = path.relative(ROOT, file).split(path.sep).join('/')
+  const at = (offset) => code.slice(0, offset).split('\n').length
+  const texts = []
+  const exprs = []
+
+  let cursor = 0
+  while (cursor < code.length) {
+    if (code[cursor] === '<' && isJsxTagStart(code, cursor)) {
+      const end = tagEnd(code, cursor)
+      if (end >= 0 && !isSelfClosing(code, cursor, end)) {
+        r4.regions++
+        cursor = readChildren(code, end + 1, texts, exprs)
+        continue
+      }
+    }
+    cursor++
+  }
+
+  for (const { text, offset } of texts) {
+    const value = text.replace(/&\w+;/g, ' ').replace(/\s+/g, ' ').trim()
+    if (!/[\p{L}]/u.test(value) || isTechnicalText(value)) continue
+    r4.fragments++
+    emit(`R4 ${rel}:${at(offset)} — texte en dur rendu dans le JSX : « ${value} »`)
+  }
+
+  for (const { text, offset, adjacent } of exprs) {
+    if (!adjacent || comment[offset]) continue
+    const body = raw.slice(offset, offset + text.length)
+    // L'accord ne se contrôle que collé à du texte : `{…}` isolé peut être un
+    // gestionnaire dont le ternaire retourne une classe CSS, pas un mot.
+    const agreement = body.match(AGREEMENT_LITERAL)
+    if (agreement) {
+      emit(`R4 ${rel}:${at(offset)} — accord écrit dans le JSX ({…${agreement[0]}}) : aucune langue ne peut le reproduire`)
+    }
+  }
+}
+
+// Sonde de non-vacuité : un parcours qui ne trouverait plus de région d'enfants
+// serait un contrôle vide — et un contrôle vide pardonne tout, y compris la
+// panne qu'il existe pour rattraper.
+if (r4.regions < 200) {
+  failures.push(`R4 — le parcours JSX ne trouve que ${r4.regions} régions d'enfants : la règle ne contrôle plus rien`)
+}
+
 // ——— R3 : les onglets de ContactsPage, et leurs clés dans chaque langue ———
 const contactsPath = path.join(SRC, 'features', 'contacts', 'ContactsPage.tsx')
 const catalog = readCatalog()
@@ -202,7 +397,8 @@ if (!fs.existsSync(contactsPath)) {
   }
 }
 
-console.log(`check-i18n-labels — ${analysed} fichiers à traduction sur ${files.length} analysés, catalogue de ${langCount} langues, 3 règles`)
+console.log(`check-i18n-labels — ${analysed} fichiers à traduction sur ${files.length} analysés, catalogue de ${langCount} langues, 4 règles`)
+console.log(`  R4 — ${r4.regions} régions d'enfants balayées, ${r4.fragments} fragment(s) rendu(s) en dur`)
 
 if (langCount < 25) {
   console.error(`R3 — le catalogue ne compte que ${langCount} langues (25 attendues)`)

@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Mikrofono ir kameros prieiga",
       "settings.noCameraDetected": "Kamera neaptikta",
       "settings.noMicrophoneDetected": "Mikrofonas neaptiktas",
-      "settings.openSourceLicense": "Atvirojo kodo licencija",
+      "settings.openSourceLicense": "Atviras kodas pagal MIT licenciją.",
       "settings.resume": "Tęsti",
       "settings.stopPreview": "Sustabdyti peržiūrą",
       "settings.suspend": "Pristabdyti",

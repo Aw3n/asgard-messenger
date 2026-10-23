@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Mikrofon- och kameraåtkomst",
       "settings.noCameraDetected": "Ingen kamera upptäckt",
       "settings.noMicrophoneDetected": "Ingen mikrofon upptäckt",
-      "settings.openSourceLicense": "Open source-licens",
+      "settings.openSourceLicense": "Öppen källkod under MIT-licensen.",
       "settings.resume": "Återuppta",
       "settings.stopPreview": "Stoppa förhandsvisning",
       "settings.suspend": "Suspendera",

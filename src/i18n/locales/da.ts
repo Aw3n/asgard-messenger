@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Mikrofon- og kameradgang",
       "settings.noCameraDetected": "Intet kamera fundet",
       "settings.noMicrophoneDetected": "Ingen mikrofon fundet",
-      "settings.openSourceLicense": "Open source-licens",
+      "settings.openSourceLicense": "Open source under MIT-licensen.",
       "settings.resume": "Genoptag",
       "settings.stopPreview": "Stop forhåndsvisning",
       "settings.suspend": "Suspendér",

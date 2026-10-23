@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Mikrofoni ja kaamera juurdepääs",
       "settings.noCameraDetected": "Kaamerat ei tuvastatud",
       "settings.noMicrophoneDetected": "Mikrofoni ei tuvastatud",
-      "settings.openSourceLicense": "Avatud lähtekoodi litsents",
+      "settings.openSourceLicense": "Avatud lähtekood MIT litsentsi alusel.",
       "settings.resume": "Jätka",
       "settings.stopPreview": "Peata eelvaade",
       "settings.suspend": "Peata",

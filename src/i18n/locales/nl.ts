@@ -667,7 +667,7 @@ export default {
       "settings.microphoneCameraAccess": "Microfoon- en cameratoegang",
       "settings.noCameraDetected": "Geen camera gedetecteerd",
       "settings.noMicrophoneDetected": "Geen microfoon gedetecteerd",
-      "settings.openSourceLicense": "Open-bron licentie",
+      "settings.openSourceLicense": "Open source onder de MIT-licentie.",
       "settings.resume": "Hervatten",
       "settings.stopPreview": "Voorbeeld stoppen",
       "settings.suspend": "Onderbreken",

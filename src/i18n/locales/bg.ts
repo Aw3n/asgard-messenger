@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Достъп до микрофон и камера",
       "settings.noCameraDetected": "Не е открита камера",
       "settings.noMicrophoneDetected": "Не е открит микрофон",
-      "settings.openSourceLicense": "Лиценз за отворен код",
+      "settings.openSourceLicense": "Отворен код под лиценза на MIT.",
       "settings.resume": "Възобнови",
       "settings.stopPreview": "Спри прегледа",
       "settings.suspend": "Преустанови",

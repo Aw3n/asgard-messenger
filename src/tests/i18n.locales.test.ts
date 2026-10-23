@@ -41,4 +41,18 @@ describe('catalogues de langue', () => {
       expect(label).not.toBe('chat.pinnedMessages')
     }
   })
+
+  it('rend la mention de licence dans chacune des 25 langues', async () => {
+    await i18nReady
+    // Le paragraphe « À propos » accolait « MIT License. » en dur à un nom déjà
+    // traduit : un Allemand lisait « Open-Source-Lizenz MIT License. ». La phrase
+    // entière vient maintenant du catalogue, dans l'ordre de chaque langue.
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      const notice = i18n.t('settings.openSourceLicense')
+      expect(notice).toBe(translations[code].translation['settings.openSourceLicense'])
+      expect(notice).not.toBe('settings.openSourceLicense')
+      if (code !== 'en') expect(notice).not.toMatch(/MIT License/)
+    }
+  })
 })

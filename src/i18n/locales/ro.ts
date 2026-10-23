@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Acces la microfon și cameră",
       "settings.noCameraDetected": "Nu a fost detectată nicio cameră",
       "settings.noMicrophoneDetected": "Nu a fost detectat niciun microfon",
-      "settings.openSourceLicense": "Licență open source",
+      "settings.openSourceLicense": "Open source sub licența MIT.",
       "settings.resume": "Relua",
       "settings.stopPreview": "Oprire previzualizare",
       "settings.suspend": "Suspendare",

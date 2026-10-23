@@ -632,7 +632,7 @@ export default {
       "settings.microphoneCameraAccess": "Доступ до мікрофона та камери",
       "settings.noCameraDetected": "Камеру не виявлено",
       "settings.noMicrophoneDetected": "Мікрофон не виявлено",
-      "settings.openSourceLicense": "Ліцензія з відкритим кодом",
+      "settings.openSourceLicense": "Відкритий код за ліцензією MIT.",
       "settings.resume": "Продовжити",
       "settings.stopPreview": "Зупинити попередній перегляд",
       "settings.suspend": "Призупинити",

@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Mikrofon és kamera hozzáférés",
       "settings.noCameraDetected": "Nem észlelhető kamera",
       "settings.noMicrophoneDetected": "Nem észlelhető mikrofon",
-      "settings.openSourceLicense": "Nyílt forráskódú licenc",
+      "settings.openSourceLicense": "Nyílt forráskód az MIT-licenc alatt.",
       "settings.resume": "Folytatás",
       "settings.stopPreview": "Előnézet leállítása",
       "settings.suspend": "Felfüggesztés",

@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Mikrofona un kameras piekļuve",
       "settings.noCameraDetected": "Kamera nav atrasta",
       "settings.noMicrophoneDetected": "Mikrofons nav atrasts",
-      "settings.openSourceLicense": "Atvērtā koda licence",
+      "settings.openSourceLicense": "Atvērtais kods ar MIT licenci.",
       "settings.resume": "Atsākt",
       "settings.stopPreview": "Apturēt priekšskatījumu",
       "settings.suspend": "Apturēt",

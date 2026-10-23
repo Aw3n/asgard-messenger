@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Aċċess għall-mikrofonu u l-kamera",
       "settings.noCameraDetected": "L-ebda kamera ma nstabet",
       "settings.noMicrophoneDetected": "L-ebda mikrofonu ma nstab",
-      "settings.openSourceLicense": "Liċenzja open source",
+      "settings.openSourceLicense": "Kodiċi miftuħ taħt il-liċenzja MIT.",
       "settings.resume": "Kompli",
       "settings.stopPreview": "Waqqaf il-preview",
       "settings.suspend": "Sospendi",

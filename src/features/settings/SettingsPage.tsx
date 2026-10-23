@@ -1688,7 +1688,7 @@ return (
           </div>
           <div className="space-y-2 text-xs text-asgard-text-muted">
             <p>{t('settings.builtWith')}</p>
-            <p>© 2026 Asgard. {t('settings.openSourceLicense')} MIT License.</p>
+            <p>© 2026 Asgard. {t('settings.openSourceLicense')}</p>
           </div>
         </div>
       </div>

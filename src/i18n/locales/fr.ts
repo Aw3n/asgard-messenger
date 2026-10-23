@@ -814,7 +814,7 @@ export default {
       "settings.microphoneCameraAccess": "Accès au microphone et à la caméra",
       "settings.noCameraDetected": "Aucune caméra détectée",
       "settings.noMicrophoneDetected": "Aucun microphone détecté",
-      "settings.openSourceLicense": "Licence open source",
+      "settings.openSourceLicense": "Licence open source MIT.",
       "settings.resume": "Reprendre",
       "settings.stopPreview": "Arrêter l'aperçu",
       "settings.suspend": "Suspendre",

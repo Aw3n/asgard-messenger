@@ -650,7 +650,7 @@ export default {
       "settings.microphoneCameraAccess": "Prístup k mikrofónu a kamere",
       "settings.noCameraDetected": "Nebola zistená kamera",
       "settings.noMicrophoneDetected": "Nebola zistený mikrofón",
-      "settings.openSourceLicense": "Open source licencia",
+      "settings.openSourceLicense": "Open source pod licenciou MIT.",
       "settings.resume": "Pokračovať",
       "settings.stopPreview": "Zastaviť ukážku",
       "settings.suspend": "Pozastaviť",
