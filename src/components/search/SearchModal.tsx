@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useSearch } from '@/hooks/useSearch'
+import { useSearch, type SearchResult } from '@/hooks/useSearch'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { Avatar } from '@/components/ui/Avatar'
@@ -22,6 +22,8 @@ interface SearchModalProps {
 export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState<SearchTab>('all')
+  // -1 = aucune ligne sélectionnée : ↑↓ la choisit, ↵ l'ouvre (cf. footer).
+  const [selectedIndex, setSelectedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -61,6 +63,34 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
     [onClose, navigate]
   )
 
+  const openResult = useCallback((result: SearchResult) => {
+    if (result.type === 'contact' && result.contact) {
+      // Un contact déjà en conversation s'ouvre directement ; sinon la page
+      // Contacts propose de démarrer le fil.
+      const existing = Object.values(useConversationStore.getState().conversations)
+        .find((conv) => conv.participantId === result.contact!.publicKey)
+      if (existing) {
+        useConversationStore.getState().setActiveConversation(existing.id)
+        handleNavigate(`/conversations/${existing.id}`)
+      } else {
+        handleNavigate(`/contacts`)
+      }
+    } else if (result.type === 'group' && result.group) {
+      useGroupStore.getState().setActiveGroup(result.group.id)
+      handleNavigate(`/groups/${result.group.id}`)
+    } else if (result.type === 'message' && result.message) {
+      if (result.groupId && result.channelId) {
+        // Sélectionner le canal avant la route : GroupView lit ces deux ids
+        // du store pour afficher le bon fil.
+        useGroupStore.getState().setActiveGroup(result.groupId)
+        useGroupStore.getState().setActiveChannel(result.channelId)
+        handleNavigate(`/groups/${result.groupId}/channels/${result.channelId}`)
+      } else {
+        handleNavigate(`/conversations/${result.message.conversationId}`)
+      }
+    }
+  }, [handleNavigate])
+
   const filteredResults = (() => {
     switch (activeTab) {
       case 'messages':
@@ -73,6 +103,17 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
         return results
     }
   })()
+
+  // Une nouvelle requête, un nouvel onglet ou une réouverture repartent sans
+  // sélection : ↵ ne doit jamais ouvrir un résultat d'une recherche précédente.
+  useEffect(() => {
+    setSelectedIndex(-1)
+  }, [query, activeTab, isOpen])
+
+  useEffect(() => {
+    if (selectedIndex < 0) return
+    document.getElementById(`search-result-${selectedIndex}`)?.scrollIntoView?.({ block: 'nearest' })
+  }, [selectedIndex])
 
   if (!isOpen) return null
 
@@ -95,6 +136,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -20 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('search.placeholder')}
           className="relative w-full max-w-xl mica-card border border-asgard-border rounded-2xl shadow-modal overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
@@ -105,7 +149,27 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (filteredResults.length === 0) return
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault()
+                  setSelectedIndex((index) => (index + 1) % filteredResults.length)
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault()
+                  setSelectedIndex((index) => (index <= 0 ? filteredResults.length - 1 : index - 1))
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                  const result = filteredResults[selectedIndex]
+                  if (result) {
+                    e.preventDefault()
+                    openResult(result)
+                  }
+                }
+              }}
               placeholder={t('search.placeholder')}
+              role="combobox"
+              aria-expanded={filteredResults.length > 0}
+              aria-controls="search-results"
+              aria-activedescendant={selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
               className="flex-1 bg-transparent text-sm text-asgard-text-primary placeholder:text-asgard-text-muted outline-none"
             />
             {query && (
@@ -142,7 +206,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
           </div>
 
           {/* Results */}
-          <div className="max-h-80 overflow-y-auto p-2">
+          <div
+            id="search-results"
+            role="listbox"
+            aria-label={t('search.placeholder')}
+            className="max-h-80 overflow-y-auto p-2"
+          >
             {!query.trim() && (
               <div className="flex flex-col items-center justify-center py-10 text-asgard-text-muted">
                 <SearchIcon size={32} />
@@ -161,34 +230,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             {filteredResults.map((result, index) => (
               <SearchResultItem
                 key={`${result.type}-${index}`}
+                id={`search-result-${index}`}
                 result={result}
-                onClick={() => {
-                  if (result.type === 'contact' && result.contact) {
-                    // Un contact déjà en conversation s'ouvre directement ;
-                    // sinon la page Contacts propose de démarrer le fil.
-                    const existing = Object.values(useConversationStore.getState().conversations)
-                      .find((conv) => conv.participantId === result.contact!.publicKey)
-                    if (existing) {
-                      useConversationStore.getState().setActiveConversation(existing.id)
-                      handleNavigate(`/conversations/${existing.id}`)
-                    } else {
-                      handleNavigate(`/contacts`)
-                    }
-                  } else if (result.type === 'group' && result.group) {
-                    useGroupStore.getState().setActiveGroup(result.group.id)
-                    handleNavigate(`/groups/${result.group.id}`)
-                  } else if (result.type === 'message' && result.message) {
-                    if (result.groupId && result.channelId) {
-                      // Sélectionner le canal avant la route : GroupView lit ces
-                      // deux ids du store pour afficher le bon fil.
-                      useGroupStore.getState().setActiveGroup(result.groupId)
-                      useGroupStore.getState().setActiveChannel(result.channelId)
-                      handleNavigate(`/groups/${result.groupId}/channels/${result.channelId}`)
-                    } else {
-                      handleNavigate(`/conversations/${result.message.conversationId}`)
-                    }
-                  }
-                }}
+                selected={index === selectedIndex}
+                onMouseEnter={() => setSelectedIndex(index)}
+                onClick={() => openResult(result)}
               />
             ))}
           </div>
@@ -218,17 +264,37 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
 // ─── Result Item ──────────────────────────────────────────────────────────────
 
 interface SearchResultItemProps {
-  result: ReturnType<typeof useSearch>['results'][0]
+  id: string
+  result: SearchResult
+  selected: boolean
+  onMouseEnter: () => void
   onClick: () => void
 }
 
-const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, onClick }) => {
+const SearchResultItem: React.FC<SearchResultItemProps> = ({
+  id,
+  result,
+  selected,
+  onMouseEnter,
+  onClick,
+}) => {
   const { t } = useTranslation()
+  const itemClass = cn(
+    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-asgard-surface-alt transition-colors text-left',
+    selected && 'bg-asgard-surface-alt'
+  )
+  const optionProps = {
+    id,
+    role: 'option',
+    'aria-selected': selected,
+    onMouseEnter,
+  } as const
   if (result.type === 'contact' && result.contact) {
     return (
       <button
+        {...optionProps}
         onClick={onClick}
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-asgard-surface-alt transition-colors text-left"
+        className={itemClass}
       >
         <Avatar
           name={result.contact.displayName}
@@ -252,8 +318,9 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, onClick }) 
   if (result.type === 'group' && result.group) {
     return (
       <button
+        {...optionProps}
         onClick={onClick}
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-asgard-surface-alt transition-colors text-left"
+        className={itemClass}
       >
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-asgard-nordic to-asgard-cyan flex items-center justify-center text-white text-xs font-bold">
           {result.group.name[0]?.toUpperCase()}
@@ -276,8 +343,9 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, onClick }) 
   if (result.type === 'message' && result.message) {
     return (
       <button
+        {...optionProps}
         onClick={onClick}
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-asgard-surface-alt transition-colors text-left"
+        className={itemClass}
       >
         <div className="w-8 h-8 rounded-full bg-asgard-nordic/30 flex items-center justify-center flex-shrink-0">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
