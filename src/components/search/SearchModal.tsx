@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSearch } from '@/hooks/useSearch'
+import { useGroupStore } from '@/stores/groupStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/utils/cn'
 import { getCurrentLanguage } from '@/i18n/config'
@@ -166,7 +167,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                   } else if (result.type === 'group' && result.group) {
                     handleNavigate(`/groups/${result.group.id}`)
                   } else if (result.type === 'message' && result.message) {
-                    handleNavigate(`/conversations/${result.message.conversationId}`)
+                    if (result.groupId && result.channelId) {
+                      // Sélectionner le canal avant la route : GroupView lit ces
+                      // deux ids du store pour afficher le bon fil.
+                      useGroupStore.getState().setActiveGroup(result.groupId)
+                      useGroupStore.getState().setActiveChannel(result.channelId)
+                      handleNavigate(`/groups/${result.groupId}/channels/${result.channelId}`)
+                    } else {
+                      handleNavigate(`/conversations/${result.message.conversationId}`)
+                    }
                   }
                 }}
               />
@@ -268,7 +277,8 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, onClick }) 
           <p className="text-sm text-asgard-text-primary truncate">
             {highlightText(result.highlight, result.message.content)}
           </p>
-          <p className="text-xs text-asgard-text-muted">
+          <p className="text-xs text-asgard-text-muted truncate">
+            {result.sourceLabel ? `${result.sourceLabel} · ` : ''}
             {new Date(result.message.timestamp).toLocaleDateString(getCurrentLanguage())}
           </p>
         </div>

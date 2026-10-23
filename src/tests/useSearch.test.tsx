@@ -8,21 +8,45 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSearch } from '@/hooks/useSearch'
 import { useConversationStore } from '@/stores/conversationStore'
+import { useGroupStore } from '@/stores/groupStore'
 import { useMessageStore } from '@/stores/messageStore'
-import type { Conversation, Message } from '@/types'
+import type { Conversation, Group, Message } from '@/types'
 
 const CONV_ID = 'conv-1'
+const GROUP_ID = 'group-1'
+const CHANNEL_ID = 'channel-1'
 
-function makeMessage(id: string, content: string): Message {
+function makeMessage(id: string, content: string, conversationId = CONV_ID): Message {
   return {
     id,
-    conversationId: CONV_ID,
+    conversationId,
     senderId: 'peer',
     type: 'text',
     content,
     timestamp: Date.now(),
     status: 'delivered',
   }
+}
+
+const group: Group = {
+  id: GROUP_ID,
+  name: 'Équipe',
+  members: [],
+  channels: [
+    {
+      id: CHANNEL_ID,
+      groupId: GROUP_ID,
+      name: 'général',
+      type: 'text',
+      position: 0,
+      permissions: { send: ['member'], read: ['member'], manage: ['owner'] },
+      unreadCount: 0,
+    },
+  ],
+  createdAt: 0,
+  ownerId: 'owner',
+  isPublic: false,
+  maxMembers: 50,
 }
 
 const conversation: Conversation = {
@@ -44,6 +68,7 @@ beforeEach(() => {
   searchMessages = vi.fn().mockResolvedValue([])
   Object.assign(window.asgard.storage, { searchMessages })
   useConversationStore.setState({ conversations: { [CONV_ID]: conversation } })
+  useGroupStore.setState({ groups: {} })
   useMessageStore.setState({
     messages: { [CONV_ID]: [makeMessage('m1', 'bonjour le monde')] },
     loading: {},
@@ -110,5 +135,51 @@ describe('useSearch', () => {
     })
 
     expect(result.current.messageResults).toHaveLength(2)
+  })
+})
+
+describe('useSearch — messages de groupe', () => {
+  beforeEach(() => {
+    useGroupStore.setState({ groups: { [GROUP_ID]: group } })
+  })
+
+  it('trouve un message de groupe en mémoire avec sa destination', () => {
+    act(() => {
+      useMessageStore.setState((state) => ({
+        messages: {
+          ...state.messages,
+          [CHANNEL_ID]: [makeMessage('g1', 'bonjour le canal', CHANNEL_ID)],
+        },
+      }))
+    })
+
+    const { result } = renderHook(() => useSearch('bonjour'))
+    const hit = result.current.messageResults.find((r) => r.message?.id === 'g1')
+
+    expect(hit).toMatchObject({
+      groupId: GROUP_ID,
+      channelId: CHANNEL_ID,
+      sourceLabel: 'Équipe · #général',
+    })
+  })
+
+  it('fouille aussi Hyperbee par canal et restitue le groupe', async () => {
+    searchMessages.mockImplementation((id: string) =>
+      Promise.resolve(id === CHANNEL_ID ? [makeMessage('g2', 'bonjour archivé', CHANNEL_ID)] : [])
+    )
+
+    const { result } = renderHook(() => useSearch('bonjour'))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300)
+    })
+
+    expect(searchMessages).toHaveBeenCalledWith(CHANNEL_ID, 'bonjour', 5)
+    const hit = result.current.messageResults.find((r) => r.message?.id === 'g2')
+    expect(hit).toMatchObject({
+      groupId: GROUP_ID,
+      channelId: CHANNEL_ID,
+      sourceLabel: 'Équipe · #général',
+    })
   })
 })
