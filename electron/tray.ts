@@ -1,10 +1,14 @@
 import { BrowserWindow, Menu, Tray, app, nativeImage } from 'electron'
+import type { NativeImage } from 'electron'
 import path from 'path'
+import { paintUnreadDot, UNREAD_DOT_SIZE } from './utils/unreadDot'
 
 interface TrayStrings {
   tooltip: string
   open: string
   quit: string
+  /** Description lue par les lecteurs d'écran pour la superposition de la barre des tâches. */
+  unread: string
 }
 
 /**
@@ -15,31 +19,31 @@ interface TrayStrings {
  * « Pear Runtime » retiré pour garder un tooltip court.
  */
 const TRAY_STRINGS: Record<string, TrayStrings> = {
-  fr: { tooltip: 'Asgard — Messagerie P2P décentralisée', open: 'Ouvrir Asgard', quit: 'Quitter' },
-  nl: { tooltip: 'Asgard — Gedecentraliseerde P2P-messenger', open: 'Asgard openen', quit: 'Afsluiten' },
-  de: { tooltip: 'Asgard — Dezentraler P2P-Messenger', open: 'Asgard öffnen', quit: 'Beenden' },
-  it: { tooltip: 'Asgard — Messenger P2P decentralizzato', open: 'Apri Asgard', quit: 'Esci' },
-  es: { tooltip: 'Asgard — Mensajería P2P descentralizada', open: 'Abrir Asgard', quit: 'Salir' },
-  pt: { tooltip: 'Asgard — Mensageiro P2P descentralizado', open: 'Abrir Asgard', quit: 'Sair' },
-  el: { tooltip: 'Asgard — Αποκεντρωμένος P2P messenger', open: 'Άνοιγμα του Asgard', quit: 'Έξοδος' },
-  da: { tooltip: 'Asgard — Decentraliseret P2P-messenger', open: 'Åbn Asgard', quit: 'Afslut' },
-  fi: { tooltip: 'Asgard — Hajautettu P2P-pikaviestin', open: 'Avaa Asgard', quit: 'Lopeta' },
-  sv: { tooltip: 'Asgard — Decentraliserad P2P-meddelandetjänst', open: 'Öppna Asgard', quit: 'Avsluta' },
-  hr: { tooltip: 'Asgard — Decentralizirani P2P messenger', open: 'Otvori Asgard', quit: 'Izlaz' },
-  et: { tooltip: 'Asgard — Detsentraliseeritud P2P-sõnumikandja', open: 'Ava Asgard', quit: 'Välju' },
-  hu: { tooltip: 'Asgard — Decentralizált P2P üzenetküldő', open: 'Asgard megnyitása', quit: 'Kilépés' },
-  lv: { tooltip: 'Asgard — Decentralizēts P2P ziņapmaiņas rīks', open: 'Atvērt Asgard', quit: 'Iziet' },
-  lt: { tooltip: 'Asgard — Decentralizuotas P2P pokalbių įrankis', open: 'Atidaryti Asgard', quit: 'Išeiti' },
-  mt: { tooltip: 'Asgard — Messenger P2P deċentralizzat', open: 'Iftaħ Asgard', quit: 'Oħroġ' },
-  pl: { tooltip: 'Asgard — Zdecentralizowany komunikator P2P', open: 'Otwórz Asgard', quit: 'Zakończ' },
-  sk: { tooltip: 'Asgard — Decentralizovaný P2P komunikátor', open: 'Otvoriť Asgard', quit: 'Ukončiť' },
-  sl: { tooltip: 'Asgard — Decentralizirani P2P sporočilnik', open: 'Odpri Asgard', quit: 'Končaj' },
-  cs: { tooltip: 'Asgard — Decentralizovaný P2P komunikátor', open: 'Otevřít Asgard', quit: 'Ukončit' },
-  bg: { tooltip: 'Asgard — Децентрализиран P2P месинджер', open: 'Отвори Asgard', quit: 'Изход' },
-  ga: { tooltip: 'Asgard — Teachtaire P2P díláraithe', open: 'Oscail Asgard', quit: 'Scoir' },
-  ro: { tooltip: 'Asgard — Mesager P2P descentralizat', open: 'Deschide Asgard', quit: 'Ieși' },
-  en: { tooltip: 'Asgard — Decentralized P2P Messenger', open: 'Open Asgard', quit: 'Quit' },
-  uk: { tooltip: 'Asgard — Децентралізований P2P-месенджер', open: 'Відкрити Asgard', quit: 'Вийти' },
+  fr: { tooltip: 'Asgard — Messagerie P2P décentralisée', open: 'Ouvrir Asgard', quit: 'Quitter', unread: 'Nouveaux messages' },
+  nl: { tooltip: 'Asgard — Gedecentraliseerde P2P-messenger', open: 'Asgard openen', quit: 'Afsluiten', unread: 'Nieuwe berichten' },
+  de: { tooltip: 'Asgard — Dezentraler P2P-Messenger', open: 'Asgard öffnen', quit: 'Beenden', unread: 'Neue Nachrichten' },
+  it: { tooltip: 'Asgard — Messenger P2P decentralizzato', open: 'Apri Asgard', quit: 'Esci', unread: 'Nuovi messaggi' },
+  es: { tooltip: 'Asgard — Mensajería P2P descentralizada', open: 'Abrir Asgard', quit: 'Salir', unread: 'Mensajes nuevos' },
+  pt: { tooltip: 'Asgard — Mensageiro P2P descentralizado', open: 'Abrir Asgard', quit: 'Sair', unread: 'Novas mensagens' },
+  el: { tooltip: 'Asgard — Αποκεντρωμένος P2P messenger', open: 'Άνοιγμα του Asgard', quit: 'Έξοδος', unread: 'Νέα μηνύματα' },
+  da: { tooltip: 'Asgard — Decentraliseret P2P-messenger', open: 'Åbn Asgard', quit: 'Afslut', unread: 'Nye beskeder' },
+  fi: { tooltip: 'Asgard — Hajautettu P2P-pikaviestin', open: 'Avaa Asgard', quit: 'Lopeta', unread: 'Uudet viestit' },
+  sv: { tooltip: 'Asgard — Decentraliserad P2P-meddelandetjänst', open: 'Öppna Asgard', quit: 'Avsluta', unread: 'Nya meddelanden' },
+  hr: { tooltip: 'Asgard — Decentralizirani P2P messenger', open: 'Otvori Asgard', quit: 'Izlaz', unread: 'Nove poruke' },
+  et: { tooltip: 'Asgard — Detsentraliseeritud P2P-sõnumikandja', open: 'Ava Asgard', quit: 'Välju', unread: 'Uued sõnumid' },
+  hu: { tooltip: 'Asgard — Decentralizált P2P üzenetküldő', open: 'Asgard megnyitása', quit: 'Kilépés', unread: 'Új üzenetek' },
+  lv: { tooltip: 'Asgard — Decentralizēts P2P ziņapmaiņas rīks', open: 'Atvērt Asgard', quit: 'Iziet', unread: 'Jaunas ziņas' },
+  lt: { tooltip: 'Asgard — Decentralizuotas P2P pokalbių įrankis', open: 'Atidaryti Asgard', quit: 'Išeiti', unread: 'Naujos žinutės' },
+  mt: { tooltip: 'Asgard — Messenger P2P deċentralizzat', open: 'Iftaħ Asgard', quit: 'Oħroġ', unread: 'Messaġġi ġodda' },
+  pl: { tooltip: 'Asgard — Zdecentralizowany komunikator P2P', open: 'Otwórz Asgard', quit: 'Zakończ', unread: 'Nowe wiadomości' },
+  sk: { tooltip: 'Asgard — Decentralizovaný P2P komunikátor', open: 'Otvoriť Asgard', quit: 'Ukončiť', unread: 'Nové správy' },
+  sl: { tooltip: 'Asgard — Decentralizirani P2P sporočilnik', open: 'Odpri Asgard', quit: 'Končaj', unread: 'Nova sporočila' },
+  cs: { tooltip: 'Asgard — Decentralizovaný P2P komunikátor', open: 'Otevřít Asgard', quit: 'Ukončit', unread: 'Nové zprávy' },
+  bg: { tooltip: 'Asgard — Децентрализиран P2P месинджер', open: 'Отвори Asgard', quit: 'Изход', unread: 'Нови съобщения' },
+  ga: { tooltip: 'Asgard — Teachtaire P2P díláraithe', open: 'Oscail Asgard', quit: 'Scoir', unread: 'Teachtaireachtaí nua' },
+  ro: { tooltip: 'Asgard — Mesager P2P descentralizat', open: 'Deschide Asgard', quit: 'Ieși', unread: 'Mesaje noi' },
+  en: { tooltip: 'Asgard — Decentralized P2P Messenger', open: 'Open Asgard', quit: 'Quit', unread: 'New messages' },
+  uk: { tooltip: 'Asgard — Децентралізований P2P-месенджер', open: 'Відкрити Asgard', quit: 'Вийти', unread: 'Нові повідомлення' },
 }
 
 /**
@@ -50,6 +54,7 @@ export class AsgardTray {
   private win: BrowserWindow
   private lang: string
   private unread = 0
+  private overlayIcon: NativeImage | null = null
   private static readonly MAX_TOOLTIP_UNREAD = 99
 
   constructor(win: BrowserWindow, lang: string = 'en') {
@@ -69,15 +74,28 @@ export class AsgardTray {
   }
 
   /**
-   * Total des non-lus reflété dans le tooltip. La fenêtre masquée dans le
-   * tray n'apparaît ni dans la barre des tâches ni dans Alt+Tab : sans cela,
+   * Total des non-lus reflété dans le tooltip, sur l'icône de la barre des
+   * tâches (Windows) et sur le badge du Dock (macOS). La fenêtre masquée dans
+   * le tray n'apparaît ni dans la barre des tâches ni dans Alt+Tab : sans cela,
    * un message reçu ne produisait aucun signe visible.
    */
   setUnread(count: number): void {
     const next = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0
     if (next === this.unread) return
     this.unread = next
+    this.applyUnreadIndicators()
+  }
+
+  private unreadLabel(): string {
+    return this.unread > AsgardTray.MAX_TOOLTIP_UNREAD
+      ? `${AsgardTray.MAX_TOOLTIP_UNREAD}+`
+      : String(this.unread)
+  }
+
+  private applyUnreadIndicators(): void {
     this.applyTooltip()
+    this.applyTaskbarOverlay()
+    this.applyDockBadge()
   }
 
   private applyTooltip(): void {
@@ -87,10 +105,34 @@ export class AsgardTray {
       this.tray.setToolTip(base)
       return
     }
-    const label = this.unread > AsgardTray.MAX_TOOLTIP_UNREAD
-      ? `${AsgardTray.MAX_TOOLTIP_UNREAD}+`
-      : String(this.unread)
-    this.tray.setToolTip(`(${label}) ${base}`)
+    this.tray.setToolTip(`(${this.unreadLabel()}) ${base}`)
+  }
+
+  /**
+   * Windows superpose une pastille à l'icône de la barre des tâches. Une image
+   * native est construite une fois par session ; la description localisée est
+   * ce que lit Narrator.
+   */
+  private applyTaskbarOverlay(): void {
+    if (process.platform !== 'win32') return
+    if (!this.win || this.win.isDestroyed()) return
+    if (this.unread <= 0) {
+      this.win.setOverlayIcon(null, '')
+      return
+    }
+    if (!this.overlayIcon) {
+      this.overlayIcon = nativeImage.createFromBitmap(paintUnreadDot(), {
+        width: UNREAD_DOT_SIZE,
+        height: UNREAD_DOT_SIZE,
+      })
+    }
+    this.win.setOverlayIcon(this.overlayIcon, this.strings().unread)
+  }
+
+  /** macOS affiche le compte sur le badge du Dock, comme les autres messageries. */
+  private applyDockBadge(): void {
+    if (process.platform !== 'darwin' || !app.dock) return
+    app.dock.setBadge(this.unread > 0 ? this.unreadLabel() : '')
   }
 
   private strings(): TrayStrings {
@@ -160,7 +202,7 @@ export class AsgardTray {
     if (!this.tray) return
     const s = this.strings()
 
-    this.applyTooltip()
+    this.applyUnreadIndicators()
 
     const contextMenu = Menu.buildFromTemplate([
       {
