@@ -40,15 +40,17 @@ const dialogStack: symbol[] = []
  *
  * @param onClose fermeture demandée par Échap — la dernière passée gagne, son
  * identité de rendu ne doit pas remonter l'effet (il rendrait le focus entre deux).
+ * Absente, le geste reste muet : un panneau rendu dans le fil de la page n'a
+ * rien à refermer et ne doit ni ravir le focus ni piéger la tabulation.
  */
-export function useDialogBehavior<T extends HTMLElement = HTMLDivElement>(onClose: () => void) {
+export function useDialogBehavior<T extends HTMLElement = HTMLDivElement>(onClose?: () => void) {
   const containerRef = useRef<T>(null)
   const closeRef = useRef(onClose)
   closeRef.current = onClose
 
   useEffect(() => {
     const dialog = containerRef.current
-    if (!dialog) return
+    if (!dialog || !closeRef.current) return
 
     const token = Symbol('dialog')
     dialogStack.push(token)
@@ -66,7 +68,7 @@ export function useDialogBehavior<T extends HTMLElement = HTMLDivElement>(onClos
       if (e.isComposing || e.keyCode === 229) return
       if (isCloseKeypress(e)) {
         if (!isTopmost()) return
-        closeRef.current()
+        closeRef.current?.()
         return
       }
       if (e.key !== 'Tab' || !isTopmost()) return

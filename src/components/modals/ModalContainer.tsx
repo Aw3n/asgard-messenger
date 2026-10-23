@@ -8,6 +8,7 @@ import { useConversationStore } from '@/stores/conversationStore'
 import { chatService } from '@/services/ChatService'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
 import { DIALOG_FOCUSABLE, isCloseKeypress } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 
 /**
  * ModalContainer — renders modals based on uiStore modal state.
@@ -140,6 +141,8 @@ const AddContactModal: React.FC<{
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  // La croix ferme ce que la touche réglée ferme : elle doit la nommer.
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
 
   const getContact = useContactStore((s) => s.getContact)
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
@@ -225,7 +228,8 @@ const AddContactModal: React.FC<{
         <button
           onClick={onClose}
           aria-label={t('common.close')}
-          title={t('common.close')}
+          title={closeGesture.title}
+          aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
           className="w-8 h-8 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

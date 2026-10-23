@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Kde se otevírají dialogy pro uložení příloh. Pokud složka zmizí, systém se vrátí na své obvyklé místo.",
       "settings.downloadFolderChoose": "Vybrat složku…",
       "settings.downloadFolderReset": "Vrátit se do výchozí složky",
+      "search.clearQuery": "Vymazat hledání",
     }
 }

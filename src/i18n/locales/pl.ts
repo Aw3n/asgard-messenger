@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Gdzie otwierają się okna zapisu załączników. Jeśli folder zniknie, system wraca do swojej zwykłej lokalizacji.",
       "settings.downloadFolderChoose": "Wybierz folder…",
       "settings.downloadFolderReset": "Wróć do domyślnego folderu",
+      "search.clearQuery": "Wyczyść wyszukiwanie",
     }
 }

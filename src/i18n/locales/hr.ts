@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Gdje se otvaraju dijalozi za spremanje privitaka. Ako mapa nestane, sustav se vraća na uobičajeno mjesto.",
       "settings.downloadFolderChoose": "Odaberi mapu…",
       "settings.downloadFolderReset": "Vrati zadanu mapu",
+      "search.clearQuery": "Obriši pretragu",
     }
 }

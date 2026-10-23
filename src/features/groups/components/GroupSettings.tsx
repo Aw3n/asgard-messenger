@@ -9,6 +9,7 @@ import { groupService } from '@/services/GroupService'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import type { MemberRole } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { getCurrentLanguage } from '@/i18n/config'
@@ -25,6 +26,7 @@ export const GroupSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     identity ? s.isAdmin(s.activeGroupId!, identity.keyPair.publicKey) : false
   )
   const dialogRef = useDialogBehavior(onClose)
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
 
   if (!activeGroup) return null
 
@@ -52,7 +54,8 @@ export const GroupSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
           <button
             onClick={onClose}
             aria-label={t('common.close')}
-            title={t('common.close')}
+            title={closeGesture.title}
+            aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-asgard-surface-alt text-asgard-text-muted transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

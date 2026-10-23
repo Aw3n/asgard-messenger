@@ -955,5 +955,6 @@ export default {
       "settings.downloadFolderDesc": "Dove si aprono le finestre di salvataggio degli allegati. Se la cartella non c’è più, il sistema torna alla sua posizione abituale.",
       "settings.downloadFolderChoose": "Scegli una cartella…",
       "settings.downloadFolderReset": "Torna alla cartella predefinita",
+      "search.clearQuery": "Cancella ricerca",
     }
 }

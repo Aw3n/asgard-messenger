@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Къде се отварят прозорците за запис на прикачените файлове. Ако папката изчезне, системата се връща на обичайното си място.",
       "settings.downloadFolderChoose": "Изберете папка…",
       "settings.downloadFolderReset": "Връщане в папката по подразбиране",
+      "search.clearQuery": "Изчистване на търсенето",
     }
 }

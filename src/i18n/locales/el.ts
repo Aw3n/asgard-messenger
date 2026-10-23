@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Όπου ανοίγουν τα παράθυρα αποθήκευσης των συνημμένων. Αν ο φάκελος εκλείψει, το σύστημα επιστρέφει στη συνήθη τοποθεσία του.",
       "settings.downloadFolderChoose": "Επιλογή φακέλου…",
       "settings.downloadFolderReset": "Επιστροφή στον προεπιλεγμένο φάκελο",
+      "search.clearQuery": "Διαγραφή αναζήτησης",
     }
 }

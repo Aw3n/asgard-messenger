@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Де відкриваються діалоги збереження долучень. Якщо тека зникне, система повертається до звичайного місця.",
       "settings.downloadFolderChoose": "Вибрати теку…",
       "settings.downloadFolderReset": "Повернутися до типової теки",
+      "search.clearQuery": "Очистити пошук",
     }
 }

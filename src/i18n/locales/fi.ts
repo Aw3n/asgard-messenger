@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Missä liitteiden tallennusvalikot avautuvat. Jos kansiota ei ole, järjestelmä palaa taviseen sijaintiinsa.",
       "settings.downloadFolderChoose": "Valitse kansio…",
       "settings.downloadFolderReset": "Palaa oletuskansioon",
+      "search.clearQuery": "Tyhjennä haku",
     }
 }

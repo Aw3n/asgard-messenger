@@ -8,6 +8,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput } from '@/utils/invite'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { chatService } from '@/services/ChatService'
 import { useTranslation } from 'react-i18next'
 
@@ -29,6 +30,8 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
   const navigate = useNavigate()
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
   const dialogRef = useDialogBehavior(onClose)
+  // Le bouton « Fermer » fait ce que fait la touche réglée : il doit la nommer.
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
   const pasteKeyId = React.useId()
 
   // Generate QR code on mount
@@ -206,6 +209,8 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
         <button
           onClick={onClose}
           className="w-full mt-3 py-2 text-sm text-asgard-text-muted hover:text-asgard-text-secondary transition-colors"
+          title={closeGesture.title}
+          aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
         >
           {t('common.close')}
         </button>

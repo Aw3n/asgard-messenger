@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSearch, type SearchResult } from '@/hooks/useSearch'
 import { isCloseKeypress } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { Avatar } from '@/components/ui/Avatar'
@@ -33,6 +34,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const navigate = useNavigate()
   const { t } = useTranslation()
+  // La pastille au bout du champ promet la touche qui referme la recherche :
+  // elle doit lire la combinaison réglée, pas « ESC » en dur — effacée, elle
+  // disparaît plutôt que d'annoncer une frappe muette.
+  const closeGesture = useGestureHint('closeModal', t('search.placeholder'))
   const { results, contactResults, messageResults, groupResults, isSearching, truncated } = useSearch(query)
   // Le plafond est par type : n'annoncer la coupure que pour l'onglet affiché.
   const tabTruncated =
@@ -241,8 +246,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
               <button
                 type="button"
                 onClick={() => setQuery('')}
-                aria-label={t('common.close')}
-                title={t('common.close')}
+                aria-label={t('search.clearQuery')}
+                title={t('search.clearQuery')}
                 className="text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -250,9 +255,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                 </svg>
               </button>
             )}
-            <kbd className="text-xxs text-asgard-text-muted bg-asgard-surface-alt px-1.5 py-0.5 rounded border border-asgard-border">
-              ESC
-            </kbd>
+            {closeGesture.shown && (
+              <kbd className="text-xxs text-asgard-text-muted bg-asgard-surface-alt px-1.5 py-0.5 rounded border border-asgard-border">
+                {closeGesture.shown}
+              </kbd>
+            )}
           </div>
 
           {/* Tabs */}

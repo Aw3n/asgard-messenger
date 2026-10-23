@@ -955,5 +955,6 @@ export default {
       "settings.downloadFolderDesc": "Waar de opslagvensters van bijlagen zich openen. Als de map verdwijnt, valt het systeem terug op zijn gebruikelijke locatie.",
       "settings.downloadFolderChoose": "Map kiezen…",
       "settings.downloadFolderReset": "Terug naar de standaardmap",
+      "search.clearQuery": "Zoekopdracht wissen",
     }
 }

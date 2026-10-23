@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCallStore } from '@/stores/callStore'
 import { callService } from '@/services/CallService'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 
 /**
  * CallControls — bottom control bar for calls.
@@ -275,6 +277,10 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
   const videoQuality = useCallStore((s) => s.videoQuality)
   const [audio, setAudio] = useState(() => callService.getAudioProcessingStatus())
   const videoQualityGroupId = React.useId()
+  // Le panneau se referme à la touche réglée, comme les autres dialogues : sa
+  // croix doit la nommer.
+  const dialogRef = useDialogBehavior(onClose)
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
 
   const setProcessing = (key: 'noiseReduction' | 'echoCancellation', enabled: boolean) => {
     setAudio((prev) => ({ ...prev, [key]: enabled }))
@@ -284,12 +290,18 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
 
   return (
     <motion.div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('calls.callSettings')}
+      tabIndex={-1}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.2 }}
       style={{
         position: 'absolute',
+        outline: 'none',
         bottom: '100%',
         left: '50%',
         transform: 'translateX(-50%)',
@@ -322,7 +334,8 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
         <button
           onClick={onClose}
           aria-label={t('common.close')}
-          title={t('common.close')}
+          title={closeGesture.title}
+          aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
           style={{
             width: '28px',
             height: '28px',

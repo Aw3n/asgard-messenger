@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Áit a osclaíonn na dialóga sábhála do na ceangailíní. Má imíonn an fillteán, filleann an córas ar a ghnáthshuíomh.",
       "settings.downloadFolderChoose": "Roghnaigh fillteán…",
       "settings.downloadFolderReset": "Fill ar an bhfillteán réamhshocraithe",
+      "search.clearQuery": "Glanch an cuardach",
     }
 }

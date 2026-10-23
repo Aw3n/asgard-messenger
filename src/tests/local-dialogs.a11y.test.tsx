@@ -6,7 +6,7 @@
  * recouverte. `useDialogBehavior` leur donne les trois gestes admis ailleurs.
  */
 import { StrictMode, useState, type ReactElement } from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CreateGroupModal } from '@/features/groups/components/CreateGroupModal'
@@ -22,6 +22,7 @@ import { useGroupStore } from '@/stores/groupStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { DIALOG_FOCUSABLE } from '@/hooks/useDialogBehavior'
+import { DEFAULT_KEYBOARD_SHORTCUTS } from '@/utils/shortcuts'
 import type { Conversation, Group, Message } from '@/types'
 
 vi.mock('react-i18next', () => ({
@@ -111,6 +112,31 @@ const dialogFixtures: { label: string; name: string; open: (onClose: () => void)
 const focusableIn = (panel: HTMLElement): HTMLElement[] =>
   Array.from(panel.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE))
 
+// Deux dialogues referment par un mot plutôt que par une croix : le geste est
+// le même, l'annonce doit l'être aussi.
+const wordCloseFixtures: { label: string; open: (onClose: () => void) => ReactElement }[] = [
+  {
+    label: 'invitation d’un contact',
+    open: (onClose) => <ContactInviteModal onClose={onClose} />,
+  },
+  {
+    label: 'QR code',
+    open: (onClose) => (
+      <MemoryRouter>
+        <QRCodeModal onClose={onClose} />
+      </MemoryRouter>
+    ),
+  },
+]
+
+/** Un réglage changé à l'écran : le bouton le relit au rendu suivant. */
+const bindCloseKey = (combo: string) =>
+  act(() =>
+    useUIStore.getState().updateSettings({
+      keyboardShortcuts: { ...useUIStore.getState().settings.keyboardShortcuts, closeModal: combo },
+    }),
+  )
+
 beforeEach(() => {
   vi.spyOn(fileService, 'getTrashBin').mockReturnValue([
     { blobKey: 'blob-1', deletedAt: 1, expiresAt: Date.now() + 60_000 },
@@ -136,6 +162,49 @@ afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   useUIStore.setState({ modal: { type: null } })
+  bindCloseKey(DEFAULT_KEYBOARD_SHORTCUTS.closeModal)
+})
+
+describe('bouton de fermeture : la touche réglée est écrite dessus', () => {
+  const closeButton = () => screen.getByRole('button', { name: 'common.close' })
+
+  it.each(wordCloseFixtures)('$label : nomme « Escape » tant que rien n’est re-réglé', ({ open }) => {
+    render(open(() => {}))
+
+    expect(closeButton()).toHaveAttribute('aria-keyshortcuts', 'Escape')
+    expect(closeButton().getAttribute('title')).toBe('common.close — Escape')
+  })
+
+  it.each(wordCloseFixtures)('$label : suit un re-réglage sans redémarrer la vue', ({ open }) => {
+    render(open(() => {}))
+    bindCloseKey('Ctrl+Shift+X')
+
+    expect(closeButton()).toHaveAttribute('aria-keyshortcuts', 'Control+Shift+X')
+    expect(closeButton().getAttribute('title')).toBe('common.close — Ctrl + Shift + X')
+  })
+
+  it.each(wordCloseFixtures)('$label : se tait quand la touche est effacée', ({ open }) => {
+    bindCloseKey('')
+    render(open(() => {}))
+
+    expect(closeButton()).not.toHaveAttribute('aria-keyshortcuts')
+    expect(closeButton().getAttribute('title')).toBe('common.close')
+  })
+
+  it.each(wordCloseFixtures)('$label : le clic et la touche referment le même dialogue', ({ open }) => {
+    bindCloseKey('Ctrl+Shift+X')
+    const onClose = vi.fn()
+    render(open(onClose))
+
+    fireEvent.click(closeButton())
+    expect(onClose).toHaveBeenCalledOnce()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledOnce()
+
+    fireEvent.keyDown(window, { key: 'x', ctrlKey: true, shiftKey: true })
+    expect(onClose).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe('dialogues posés par leur propre vue', () => {
@@ -277,7 +346,12 @@ describe('confirmation de vidage de la corbeille', () => {
     expect(document.activeElement).toBe(stops[0])
 
     fireEvent.keyDown(window, { key: 'Escape' })
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    // La corbeille est un dialogue depuis ce lot : seul le sur-message doit
+    // disparaître, le panneau reste ouvert derrière lui.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'settings.emptyTrashConfirm' })).not.toBeInTheDocument(),
+    )
+    expect(screen.getByRole('dialog', { name: 'settings.trash' })).toBeInTheDocument()
     expect(document.activeElement).toBe(trigger)
   })
 

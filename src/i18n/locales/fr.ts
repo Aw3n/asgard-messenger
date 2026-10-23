@@ -955,5 +955,6 @@ export default {
       "settings.downloadFolderDesc": "Où s’ouvrent les boîtes d’enregistrement des pièces jointes. Si le dossier disparaît, le système reprend son emplacement habituel.",
       "settings.downloadFolderChoose": "Choisir un dossier…",
       "settings.downloadFolderReset": "Revenir au dossier par défaut",
+      "search.clearQuery": "Effacer la recherche",
     }
 }

@@ -5,7 +5,7 @@
  * souris ouvrait un résultat : ↵ ne faisait rien et la sélection n'existait
  * pas dans le DOM. Ces tests fixent le comportement attendu.
  */
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -30,6 +30,8 @@ vi.mock('@/hooks/useSearch', () => {
 })
 
 import { SearchModal } from '@/components/search/SearchModal'
+import { useUIStore } from '@/stores/uiStore'
+import { DEFAULT_KEYBOARD_SHORTCUTS } from '@/utils/shortcuts'
 
 class IntersectionObserverStub {
   observe() {}
@@ -159,7 +161,9 @@ describe('recherche globale au clavier', () => {
     const { input } = renderModal()
     fireEvent.change(input, { target: { value: 'ali' } })
 
-    const clear = screen.getByRole('button', { name: 'common.close' })
+    // La croix du champ efface la requête : l'appeler « Fermer » faisait
+    // annoncer au lecteur d’écran une action que le clic ne faisait pas.
+    const clear = screen.getByRole('button', { name: 'search.clearQuery' })
     expect(input).toHaveValue('ali')
     fireEvent.click(clear)
     expect(input).toHaveValue('')
@@ -210,5 +214,51 @@ describe('recherche globale au clavier', () => {
     )
 
     expect(document.activeElement).toBe(trigger)
+  })
+})
+
+describe('la touche de fermeture réglée est celle que la modale écoute', () => {
+  const bindCloseKey = (combo: string) => {
+    const current = useUIStore.getState().settings.keyboardShortcuts
+    act(() => {
+      useUIStore.getState().updateSettings({ keyboardShortcuts: { ...current, closeModal: combo } })
+    })
+  }
+
+  // La pastille vit dans la rangée du champ, pas au pied de la modale où ↑↓ et ↵
+  // promettent déjà leur propre touche.
+  const chip = (): HTMLElement | null =>
+    screen.getByRole('combobox').parentElement?.querySelector('kbd') ?? null
+
+  afterEach(() => {
+    bindCloseKey(DEFAULT_KEYBOARD_SHORTCUTS.closeModal)
+  })
+
+  it('la pastille du champ lit la combinaison réglée, pas ESC en dur', () => {
+    renderModal()
+    expect(chip()?.textContent).toBe('Escape')
+
+    bindCloseKey('Ctrl+Shift+X')
+    expect(chip()?.textContent).toBe('Ctrl + Shift + X')
+  })
+
+  it('la pastille s’efface avec le geste et Échap ne referme plus', () => {
+    const { onClose } = renderModal()
+    bindCloseKey('')
+
+    expect(chip()).toBeNull()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('c’est la combinaison réglée qui referme, et Échap rendu libre ne fait rien', () => {
+    const { onClose } = renderModal()
+    bindCloseKey('Ctrl+Shift+X')
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(window, { key: 'x', ctrlKey: true, shiftKey: true })
+    expect(onClose).toHaveBeenCalledOnce()
   })
 })

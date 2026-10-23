@@ -955,5 +955,6 @@ export default {
       "settings.downloadFolderDesc": "Dónde se abren los cuadros de guardado de los archivos adjuntos. Si la carpeta desaparece, el sistema vuelve a su ubicación habitual.",
       "settings.downloadFolderChoose": "Elegir carpeta…",
       "settings.downloadFolderReset": "Volver a la carpeta predeterminada",
+      "search.clearQuery": "Borrar la búsqueda",
     }
 }

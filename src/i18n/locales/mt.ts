@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Fejn jinfetħu d-djalogi tal-ħażna tal-allegati. Jekk il-fowlier jisparixxi, is-sistema tirritorna fil-post abitwali tagħha.",
       "settings.downloadFolderChoose": "Agħżel fowlier…",
       "settings.downloadFolderReset": "Lura għall-fowlier predefinit",
+      "search.clearQuery": "Neħħi l-ftixa",
     }
 }

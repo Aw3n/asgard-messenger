@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Hvor dialogerne til at gemme vedhæftninger åbner. Forsvinder mappen, vender systemet tilbage til sin vanlige placering.",
       "settings.downloadFolderChoose": "Vælg mappe…",
       "settings.downloadFolderReset": "Tilbage til standardmappen",
+      "search.clearQuery": "Ryd søgning",
     }
 }

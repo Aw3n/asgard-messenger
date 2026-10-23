@@ -226,4 +226,61 @@ describe('annulation du composeur', () => {
     expect(onCancelEdit).toHaveBeenCalledOnce()
     expect(screen.getByRole('textbox')).toHaveValue('')
   })
+
+  // Les deux croix des bandeaux font ce que fait la touche réglée : elles la
+  // doivent au composeur, pas à une idée de la touche.
+  const editCross = () => screen.getByRole('button', { name: 'common.cancel' })
+  const replyCross = () => screen.getByRole('button', { name: 'messageInput.cancelReply' })
+
+  const renderEdit = () =>
+    render(
+      <MessageInput
+        conversationId="fil-close"
+        editingMessage={{ ...reply, senderId: 'a'.repeat(64), content: 'ancien' }}
+        onSend={vi.fn()}
+        onEditSubmit={vi.fn()}
+        onCancelEdit={vi.fn()}
+      />,
+    )
+
+  // `props` et non une valeur par défaut : « rien à quitter » se joue en
+  // n'omettant pas le callback, pas en le passant vide.
+  const renderReply = (props: { onCancelReply?: () => void } = {}) =>
+    render(<MessageInput conversationId="fil-close" replyTo={reply} onSend={vi.fn()} {...props} />)
+
+  it('écrit la touche réglée sur les deux croix d’annulation', () => {
+    renderEdit()
+    expect(editCross()).toHaveAttribute('aria-keyshortcuts', 'Escape')
+    expect(editCross().getAttribute('title')).toBe('common.cancel — Escape')
+    cleanup()
+
+    renderReply({ onCancelReply: vi.fn() })
+    expect(replyCross()).toHaveAttribute('aria-keyshortcuts', 'Escape')
+    expect(replyCross().getAttribute('title')).toBe('messageInput.cancelReply — Escape')
+  })
+
+  it('suit un re-réglage sans démonter le composeur', () => {
+    renderReply({ onCancelReply: vi.fn() })
+    setShortcut('closeModal', 'Ctrl+Shift+X')
+
+    expect(replyCross()).toHaveAttribute('aria-keyshortcuts', 'Control+Shift+X')
+    expect(replyCross().getAttribute('title')).toBe('messageInput.cancelReply — Ctrl + Shift + X')
+  })
+
+  it('rend la croix muette quand la touche est effacée', () => {
+    setShortcut('closeModal', '')
+    renderEdit()
+
+    expect(editCross()).not.toHaveAttribute('aria-keyshortcuts')
+    expect(editCross().getAttribute('title')).toBe('common.cancel')
+  })
+
+  it('ne promet la touche qu’autant qu’il y a une réponse à quitter', () => {
+    // La croix est là mais son clic ne délègue rien : la touche n'annule pas
+    // davantage, l'annonce serait un mensonge.
+    renderReply()
+
+    expect(replyCross()).not.toHaveAttribute('aria-keyshortcuts')
+    expect(replyCross().getAttribute('title')).toBe('messageInput.cancelReply')
+  })
 })

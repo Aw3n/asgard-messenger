@@ -954,6 +954,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Où s’ouvrent les boîtes d’enregistrement des pièces jointes. Si le dossier disparaît, le système reprend son emplacement habituel.",
       "settings.downloadFolderChoose": "Choisir un dossier…",
       "settings.downloadFolderReset": "Revenir au dossier par défaut",
+      "search.clearQuery": "Effacer la recherche",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1911,6 +1912,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Waar de opslagvensters van bijlagen zich openen. Als de map verdwijnt, valt het systeem terug op zijn gebruikelijke locatie.",
       "settings.downloadFolderChoose": "Map kiezen…",
       "settings.downloadFolderReset": "Terug naar de standaardmap",
+      "search.clearQuery": "Zoekopdracht wissen",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2868,6 +2870,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Wo die Speicherdialoge der Anhänge geöffnet werden. Fehlt der Ordner, nutzt das System wieder seinen üblichen Speicherort.",
       "settings.downloadFolderChoose": "Ordner auswählen…",
       "settings.downloadFolderReset": "Zurück zum Standardordner",
+      "search.clearQuery": "Suche löschen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3825,6 +3828,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Dove si aprono le finestre di salvataggio degli allegati. Se la cartella non c’è più, il sistema torna alla sua posizione abituale.",
       "settings.downloadFolderChoose": "Scegli una cartella…",
       "settings.downloadFolderReset": "Torna alla cartella predefinita",
+      "search.clearQuery": "Cancella ricerca",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4782,6 +4786,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Dónde se abren los cuadros de guardado de los archivos adjuntos. Si la carpeta desaparece, el sistema vuelve a su ubicación habitual.",
       "settings.downloadFolderChoose": "Elegir carpeta…",
       "settings.downloadFolderReset": "Volver a la carpeta predeterminada",
+      "search.clearQuery": "Borrar la búsqueda",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5740,6 +5745,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Onde as janelas de gravação dos anexos se abrem. Se a pasta desaparecer, o sistema volta à sua localização habitual.",
       "settings.downloadFolderChoose": "Escolher pasta…",
       "settings.downloadFolderReset": "Voltar à pasta predefinida",
+      "search.clearQuery": "Limpar pesquisa",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6698,6 +6704,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Όπου ανοίγουν τα παράθυρα αποθήκευσης των συνημμένων. Αν ο φάκελος εκλείψει, το σύστημα επιστρέφει στη συνήθη τοποθεσία του.",
       "settings.downloadFolderChoose": "Επιλογή φακέλου…",
       "settings.downloadFolderReset": "Επιστροφή στον προεπιλεγμένο φάκελο",
+      "search.clearQuery": "Διαγραφή αναζήτησης",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7656,6 +7663,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Hvor dialogerne til at gemme vedhæftninger åbner. Forsvinder mappen, vender systemet tilbage til sin vanlige placering.",
       "settings.downloadFolderChoose": "Vælg mappe…",
       "settings.downloadFolderReset": "Tilbage til standardmappen",
+      "search.clearQuery": "Ryd søgning",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -8614,6 +8622,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Missä liitteiden tallennusvalikot avautuvat. Jos kansiota ei ole, järjestelmä palaa taviseen sijaintiinsa.",
       "settings.downloadFolderChoose": "Valitse kansio…",
       "settings.downloadFolderReset": "Palaa oletuskansioon",
+      "search.clearQuery": "Tyhjennä haku",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -9572,6 +9581,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Var dialogrutorna för att spara bilagor öppnas. Om mappen försvinner återgår systemet till sin vanliga plats.",
       "settings.downloadFolderChoose": "Välj mapp…",
       "settings.downloadFolderReset": "Tillbaka till standardmappen",
+      "search.clearQuery": "Rensa sökningen",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -10530,6 +10540,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Gdje se otvaraju dijalozi za spremanje privitaka. Ako mapa nestane, sustav se vraća na uobičajeno mjesto.",
       "settings.downloadFolderChoose": "Odaberi mapu…",
       "settings.downloadFolderReset": "Vrati zadanu mapu",
+      "search.clearQuery": "Obriši pretragu",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -11488,6 +11499,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Kus manuste salvestamise dialoogid avanevad. Kui kaust kaob, naaseb süsteem oma tavalise asukoha juurde.",
       "settings.downloadFolderChoose": "Vali kaust…",
       "settings.downloadFolderReset": "Naase vaikenekausta juurde",
+      "search.clearQuery": "Tühjenda otsing",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -12446,6 +12458,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Hol jelennek meg a csatolmányok mentési párbeszédpaneljei. Ha a mappa eltűnik, a rendszer a szokásos helyre tér vissza.",
       "settings.downloadFolderChoose": "Mappa kiválasztása…",
       "settings.downloadFolderReset": "Vissza az alapértelmezett mappára",
+      "search.clearQuery": "Keresés törlése",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -13404,6 +13417,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Kur atveras pielikumu saglabāšanas logi. Ja mape pazūd, sistēma atgriežas ierastajā vietā.",
       "settings.downloadFolderChoose": "Izvēlēties mapi…",
       "settings.downloadFolderReset": "Atgriezties noklusējuma mapē",
+      "search.clearQuery": "Notīrīt meklēšanu",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -14362,6 +14376,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Kur atsidaro priedų išsaugojimo langai. Jei aplankas dingsta, sistema grįžta į įprastą vietą.",
       "settings.downloadFolderChoose": "Pasirinkti aplanką…",
       "settings.downloadFolderReset": "Grįžti į numatytąjį aplanką",
+      "search.clearQuery": "Išvalyti paiešką",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -15320,6 +15335,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Fejn jinfetħu d-djalogi tal-ħażna tal-allegati. Jekk il-fowlier jisparixxi, is-sistema tirritorna fil-post abitwali tagħha.",
       "settings.downloadFolderChoose": "Agħżel fowlier…",
       "settings.downloadFolderReset": "Lura għall-fowlier predefinit",
+      "search.clearQuery": "Neħħi l-ftixa",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -16278,6 +16294,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Gdzie otwierają się okna zapisu załączników. Jeśli folder zniknie, system wraca do swojej zwykłej lokalizacji.",
       "settings.downloadFolderChoose": "Wybierz folder…",
       "settings.downloadFolderReset": "Wróć do domyślnego folderu",
+      "search.clearQuery": "Wyczyść wyszukiwanie",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -17236,6 +17253,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Kde sa otvárajú dialógové okná uloženia príloh. Ak priečinok zmizne, systém sa vráti na svoje obvyklé miesto.",
       "settings.downloadFolderChoose": "Vybrať priečinok…",
       "settings.downloadFolderReset": "Vrátiť sa k predvolenému priečinku",
+      "search.clearQuery": "Vymazať vyhľadávanie",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -18194,6 +18212,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Kje se odprejo pogovorna okna za shranjevanje priponk. Če mapa izgine, se sistem vrne na običajno mesto.",
       "settings.downloadFolderChoose": "Izberi mapo…",
       "settings.downloadFolderReset": "Vrni se v privzeto mapo",
+      "search.clearQuery": "Počisti iskanje",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -19152,6 +19171,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Kde se otevírají dialogy pro uložení příloh. Pokud složka zmizí, systém se vrátí na své obvyklé místo.",
       "settings.downloadFolderChoose": "Vybrat složku…",
       "settings.downloadFolderReset": "Vrátit se do výchozí složky",
+      "search.clearQuery": "Vymazat hledání",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -20110,6 +20130,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Къде се отварят прозорците за запис на прикачените файлове. Ако папката изчезне, системата се връща на обичайното си място.",
       "settings.downloadFolderChoose": "Изберете папка…",
       "settings.downloadFolderReset": "Връщане в папката по подразбиране",
+      "search.clearQuery": "Изчистване на търсенето",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -21068,6 +21089,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Áit a osclaíonn na dialóga sábhála do na ceangailíní. Má imíonn an fillteán, filleann an córas ar a ghnáthshuíomh.",
       "settings.downloadFolderChoose": "Roghnaigh fillteán…",
       "settings.downloadFolderReset": "Fill ar an bhfillteán réamhshocraithe",
+      "search.clearQuery": "Glanch an cuardach",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -22026,6 +22048,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Unde se deschid casetele de salvare ale atașamentelor. Dacă folderul dispare, sistemul revine la locația obișnuită.",
       "settings.downloadFolderChoose": "Alege un folder…",
       "settings.downloadFolderReset": "Înapoi la folderul implicit",
+      "search.clearQuery": "Șterge căutarea",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -22993,6 +23016,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Where the attachments’ save dialogs open. If the folder disappears, the system goes back to its usual location.",
       "settings.downloadFolderChoose": "Choose a folder…",
       "settings.downloadFolderReset": "Back to the default folder",
+      "search.clearQuery": "Clear search",
     }
   },
 
@@ -23952,6 +23976,7 @@ export const translations = {
       "settings.downloadFolderDesc": "Де відкриваються діалоги збереження долучень. Якщо тека зникне, система повертається до звичайного місця.",
       "settings.downloadFolderChoose": "Вибрати теку…",
       "settings.downloadFolderReset": "Повернутися до типової теки",
+      "search.clearQuery": "Очистити пошук",
     }
   },
 }

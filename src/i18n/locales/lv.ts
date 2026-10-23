@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Kur atveras pielikumu saglabāšanas logi. Ja mape pazūd, sistēma atgriežas ierastajā vietā.",
       "settings.downloadFolderChoose": "Izvēlēties mapi…",
       "settings.downloadFolderReset": "Atgriezties noklusējuma mapē",
+      "search.clearQuery": "Notīrīt meklēšanu",
     }
 }

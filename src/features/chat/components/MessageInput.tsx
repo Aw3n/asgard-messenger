@@ -111,6 +111,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     editingMessage ? t('common.save') : t('messageInput.send'),
     (combo) => !isPlainEnterCombo(combo) || sendOnEnter,
   )
+  // Échap quitte le bandeau que le composeur affiche (édition ou réponse) : les
+  // croix qui font la même chose le doivent à la touche réglée.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
+  const cancelReplyGesture = useGestureHint(
+    'closeModal',
+    t('messageInput.cancelReply'),
+    () => Boolean(onCancelReply),
+  )
   const [content, setContent] = useState(
     () => useConversationStore.getState().getDraft(conversationId)
   )
@@ -449,7 +457,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 onClick={cancelEdit}
                 className="flex-shrink-0 text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
                 aria-label={t('common.cancel')}
-                title={t('common.cancel')}
+                title={cancelGesture.title}
+                aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -483,6 +492,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 onClick={onCancelReply}
                 className="flex-shrink-0 text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
                 aria-label={t('messageInput.cancelReply')}
+                title={cancelReplyGesture.title}
+                aria-keyshortcuts={cancelReplyGesture.ariaKeyShortcuts}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>

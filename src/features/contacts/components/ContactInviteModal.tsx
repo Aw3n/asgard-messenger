@@ -4,6 +4,7 @@ import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { asgardToZ32Id } from '@/utils/invite'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { useTranslation } from 'react-i18next'
 
 interface ContactInviteModalProps {
@@ -20,6 +21,8 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
   const [copied, setCopied] = useState(false)
   const [copiedKeet, setCopiedKeet] = useState(false)
   const dialogRef = useDialogBehavior(onClose)
+  // Le bouton « Fermer » fait ce que fait la touche réglée : il doit la nommer.
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
   const inviteLinkId = React.useId()
   const publicKeyId = React.useId()
   const keetIdFieldId = React.useId()
@@ -166,6 +169,8 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
         <button
           onClick={onClose}
           className="w-full py-2.5 text-sm text-asgard-text-muted hover:text-asgard-text-secondary transition-colors"
+          title={closeGesture.title}
+          aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
         >
           {t('common.close')}
         </button>

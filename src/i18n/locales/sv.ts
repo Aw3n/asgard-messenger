@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Var dialogrutorna för att spara bilagor öppnas. Om mappen försvinner återgår systemet till sin vanliga plats.",
       "settings.downloadFolderChoose": "Välj mapp…",
       "settings.downloadFolderReset": "Tillbaka till standardmappen",
+      "search.clearQuery": "Rensa sökningen",
     }
 }

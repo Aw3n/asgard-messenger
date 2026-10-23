@@ -955,5 +955,6 @@ export default {
       "settings.downloadFolderDesc": "Wo die Speicherdialoge der Anhänge geöffnet werden. Fehlt der Ordner, nutzt das System wieder seinen üblichen Speicherort.",
       "settings.downloadFolderChoose": "Ordner auswählen…",
       "settings.downloadFolderReset": "Zurück zum Standardordner",
+      "search.clearQuery": "Suche löschen",
     }
 }

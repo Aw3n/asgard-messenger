@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Kus manuste salvestamise dialoogid avanevad. Kui kaust kaob, naaseb süsteem oma tavalise asukoha juurde.",
       "settings.downloadFolderChoose": "Vali kaust…",
       "settings.downloadFolderReset": "Naase vaikenekausta juurde",
+      "search.clearQuery": "Tühjenda otsing",
     }
 }

@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Unde se deschid casetele de salvare ale atașamentelor. Dacă folderul dispare, sistemul revine la locația obișnuită.",
       "settings.downloadFolderChoose": "Alege un folder…",
       "settings.downloadFolderReset": "Înapoi la folderul implicit",
+      "search.clearQuery": "Șterge căutarea",
     }
 }

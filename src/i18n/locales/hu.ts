@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Hol jelennek meg a csatolmányok mentési párbeszédpaneljei. Ha a mappa eltűnik, a rendszer a szokásos helyre tér vissza.",
       "settings.downloadFolderChoose": "Mappa kiválasztása…",
       "settings.downloadFolderReset": "Vissza az alapértelmezett mappára",
+      "search.clearQuery": "Keresés törlése",
     }
 }

@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Kur atsidaro priedų išsaugojimo langai. Jei aplankas dingsta, sistema grįžta į įprastą vietą.",
       "settings.downloadFolderChoose": "Pasirinkti aplanką…",
       "settings.downloadFolderReset": "Grįžti į numatytąjį aplanką",
+      "search.clearQuery": "Išvalyti paiešką",
     }
 }

@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Kde sa otvárajú dialógové okná uloženia príloh. Ak priečinok zmizne, systém sa vráti na svoje obvyklé miesto.",
       "settings.downloadFolderChoose": "Vybrať priečinok…",
       "settings.downloadFolderReset": "Vrátiť sa k predvolenému priečinku",
+      "search.clearQuery": "Vymazať vyhľadávanie",
     }
 }

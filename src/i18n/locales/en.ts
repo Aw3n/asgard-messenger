@@ -965,5 +965,6 @@ export default {
       "settings.downloadFolderDesc": "Where the attachments’ save dialogs open. If the folder disappears, the system goes back to its usual location.",
       "settings.downloadFolderChoose": "Choose a folder…",
       "settings.downloadFolderReset": "Back to the default folder",
+      "search.clearQuery": "Clear search",
     }
 }

@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Kje se odprejo pogovorna okna za shranjevanje priponk. Če mapa izgine, se sistem vrne na običajno mesto.",
       "settings.downloadFolderChoose": "Izberi mapo…",
       "settings.downloadFolderReset": "Vrni se v privzeto mapo",
+      "search.clearQuery": "Počisti iskanje",
     }
 }

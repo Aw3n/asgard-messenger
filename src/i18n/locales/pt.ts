@@ -956,5 +956,6 @@ export default {
       "settings.downloadFolderDesc": "Onde as janelas de gravação dos anexos se abrem. Se a pasta desaparecer, o sistema volta à sua localização habitual.",
       "settings.downloadFolderChoose": "Escolher pasta…",
       "settings.downloadFolderReset": "Voltar à pasta predefinida",
+      "search.clearQuery": "Limpar pesquisa",
     }
 }
