@@ -60,28 +60,41 @@ export const ModalContainer: React.FC = () => {
 const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }> = ({
   onClose,
   children,
-}) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.15 }}
-    className="fixed inset-0 z-50 flex items-center justify-center bg-asgard-deep-black/70 backdrop-blur-sm"
-    onClick={(e) => {
-      if (e.target === e.currentTarget) onClose()
-    }}
-  >
+}) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Échap qui annule une composition IME reste au champ ; le fermer
+      // couperait la saisie en cours.
+      if (e.isComposing || e.keyCode === 229) return
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: 10 }}
-      transition={{ duration: 0.2 }}
-      className="w-full max-w-md mx-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-asgard-deep-black/70 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
-      {children}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-md mx-4"
+      >
+        {children}
+      </motion.div>
     </motion.div>
-  </motion.div>
-)
+  )
+}
 
 // ─── Add Contact Modal ────────────────────────────────────────────────────────
 
@@ -168,10 +181,15 @@ const AddContactModal: React.FC<{
   }
 
   return (
-    <div className="bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-contact-title"
+      className="bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-asgard-border">
-        <h3 className="text-base font-semibold text-asgard-text-primary">{t('modal.addContact')}</h3>
+        <h3 id="add-contact-title" className="text-base font-semibold text-asgard-text-primary">{t('modal.addContact')}</h3>
         <button
           onClick={onClose}
           aria-label={t('common.close')}
@@ -188,7 +206,7 @@ const AddContactModal: React.FC<{
       <div className="p-5 space-y-4">
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-sm font-medium text-asgard-text-secondary">
+            <label htmlFor="add-contact-public-key" className="text-sm font-medium text-asgard-text-secondary">
               {t('modal.publicKey')}
             </label>
             <button
@@ -204,6 +222,9 @@ const AddContactModal: React.FC<{
             </button>
           </div>
           <input
+            id="add-contact-public-key"
+            aria-describedby={error ? 'add-contact-error' : undefined}
+            aria-invalid={error ? true : undefined}
             className="asgard-input w-full px-3 py-2.5 text-sm rounded-lg"
             placeholder={t('modal.publicKeyPlaceholder')}
             value={publicKey}
@@ -217,10 +238,11 @@ const AddContactModal: React.FC<{
         </div>
 
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-1.5">
+          <label htmlFor="add-contact-display-name" className="text-sm font-medium text-asgard-text-secondary block mb-1.5">
             {t('modal.displayName')}
           </label>
           <input
+            id="add-contact-display-name"
             className="asgard-input w-full px-3 py-2.5 text-sm rounded-lg"
             placeholder={t('modal.displayNamePlaceholder')}
             value={displayName}
@@ -234,7 +256,7 @@ const AddContactModal: React.FC<{
         </div>
 
         {error && (
-          <p className="text-xs text-asgard-busy">{error}</p>
+          <p id="add-contact-error" role="alert" className="text-xs text-asgard-busy">{error}</p>
         )}
 
         <p className="text-xs text-asgard-text-muted leading-relaxed">
