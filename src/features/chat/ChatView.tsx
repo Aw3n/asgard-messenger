@@ -13,6 +13,7 @@ import { MessageBubble } from './components/MessageBubble'
 import { MessageInput } from './components/MessageInput'
 import { PendingContactBanner } from './components/PendingContactBanner'
 import { ForwardModal } from './components/ForwardModal'
+import { MessageDeleteConfirm } from './components/MessageDeleteConfirm'
 import { ActiveTransfersWidget } from './components/ActiveTransfersWidget'
 import { Avatar } from '@/components/ui/Avatar'
 import { MuteButton } from '@/components/ui/MuteButton'
@@ -32,6 +33,7 @@ import { parseMessageJump } from '@/utils/messageJump'
 import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
 import { useMessageActionShortcuts } from '@/hooks/useMessageActionShortcuts'
+import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
 import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
 import { formatLastSeen } from '@/utils/time'
@@ -281,13 +283,43 @@ export const ChatView: React.FC = () => {
   }, [])
   const handleForward = useCallback((message: Message) => setForwardMessage(message), [])
 
-  // GESTES CLAVIER DU FIL : copie, réponse, transfert et édition du dernier
-  // message, lus dans `settings.keyboardShortcuts` à la frappe.
+  // SUPPRESSION D'UN MESSAGE : menu et touche réglée demandent, le dialogue
+  // acquiesce. Dans un fil 1:1 deux gestes sont réels : la mention « Supprimé »
+  // reste chez le contact pour l'un, et rien ne subsiste pour l'autre.
+  const {
+    pending: pendingDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+  } = useDeleteConfirmation((message, mode) => {
+    if (mode === 'forEveryone') {
+      if (!conversation?.participantId || !dataId) return
+      chatService.deleteMessage(message.id, dataId, conversation.participantId).catch((err) => {
+        console.error('[ChatView] deleteMessage failed:', err)
+        try { window.asgard.debugLog('[ChatView] deleteMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+      })
+      return
+    }
+    if (!dataId) return
+    chatService.deleteMessagePermanently(message.id, dataId, conversation?.participantId ?? undefined).catch((err) => {
+      console.error('[ChatView] deleteMessagePermanently failed:', err)
+      try { window.asgard.debugLog('[ChatView] deleteMessagePermanently failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+    })
+  })
+
+  // GESTES CLAVIER DU FIL : copie, réponse, transfert, édition du dernier
+  // message et demande de suppression, lus dans `settings.keyboardShortcuts` à
+  // la frappe.
   useMessageActionShortcuts({
     messages,
     ownSenderId: identity?.keyPair.publicKey,
     highlightedMessageId,
-    handlers: { onReply: handleReply, onEdit: handleEdit, onForward: handleForward },
+    handlers: {
+      onReply: handleReply,
+      onEdit: handleEdit,
+      onForward: handleForward,
+      onDelete: (message) => requestDelete(message, 'forEveryone'),
+    },
   })
 
   // PAGINATION: l'ouverture ne charge que les derniers messages ; remonter en
@@ -660,20 +692,8 @@ export const ChatView: React.FC = () => {
                   onReply={handleReply}
                   onEdit={handleEdit}
                   onRetry={handleRetry}
-                  onDelete={(msg) => {
-                    if (!conversation.participantId || !dataId) return
-                    chatService.deleteMessage(msg.id, dataId, conversation.participantId).catch((err) => {
-                      console.error('[ChatView] deleteMessage failed:', err)
-                      try { window.asgard.debugLog('[ChatView] deleteMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
-                    })
-                  }}
-                  onDeletePermanently={(msg) => {
-                    if (!dataId) return
-                    chatService.deleteMessagePermanently(msg.id, dataId, conversation.participantId ?? undefined).catch((err) => {
-                      console.error('[ChatView] deleteMessagePermanently failed:', err)
-                      try { window.asgard.debugLog('[ChatView] deleteMessagePermanently failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
-                    })
-                  }}
+                  onDelete={requestDelete}
+                  deleteModes={['forEveryone', 'permanently']}
                   onReaction={(msg, emoji) => {
                     if (conversation.participantId && dataId) {
                       chatService.toggleReaction(msg.id, dataId, emoji, conversation.participantId).catch((err) => {
@@ -785,6 +805,18 @@ export const ChatView: React.FC = () => {
           <ForwardModal
             message={forwardMessage}
             onClose={() => setForwardMessage(undefined)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Le message ne part qu'après acquiescement : annuler laisse la bulle en
+          place et rend le focus à la rangée qui avait demandé. */}
+      <AnimatePresence>
+        {pendingDelete && (
+          <MessageDeleteConfirm
+            mode={pendingDelete.mode}
+            onCancel={cancelDelete}
+            onConfirm={confirmDelete}
           />
         )}
       </AnimatePresence>

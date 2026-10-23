@@ -1,7 +1,8 @@
 /**
  * Les gestes clavier réglés qui portent sur les messages du fil ouvert :
- * `settings.keyboardShortcuts` déclarait « Ctrl+C », « Ctrl+R », « Ctrl+F » et
- * « Ctrl+E » sans que rien ne les lise ailleurs que dans le menu à clic droit.
+ * `settings.keyboardShortcuts` déclarait « Ctrl+C », « Ctrl+R », « Ctrl+F »,
+ * « Ctrl+E » et « Delete » sans que rien ne les lise ailleurs que dans le menu
+ * à clic droit.
  *
  * La cible est la rangée sous le focus — Tab s'y arrête déjà — à défaut le
  * message qu'une recherche vient de faire briller. Sans cible, la frappe n'est
@@ -23,6 +24,8 @@ export interface MessageActionHandlers {
   onReply?: (message: Message) => void
   onEdit?: (message: Message) => void
   onForward?: (message: Message) => void
+  /** Demande de suppression : la vue répond par une confirmation, jamais par une disparition. */
+  onDelete?: (message: Message) => void
 }
 
 export function useMessageActionShortcuts(options: {
@@ -83,6 +86,11 @@ export function useMessageActionShortcuts(options: {
       if (action === 'forwardMessage') {
         if (!handlers.onForward) return false
         handlers.onForward(message)
+        return true
+      }
+      if (action === 'deleteMessage') {
+        if (!handlers.onDelete) return false
+        handlers.onDelete(message)
         return true
       }
 

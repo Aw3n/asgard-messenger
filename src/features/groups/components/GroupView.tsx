@@ -14,6 +14,7 @@ import { MessageBubble } from '@/features/chat/components/MessageBubble'
 import { MessageInput } from '@/features/chat/components/MessageInput'
 import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
 import { ForwardModal } from '@/features/chat/components/ForwardModal'
+import { MessageDeleteConfirm } from '@/features/chat/components/MessageDeleteConfirm'
 import { UnreadDivider } from '@/components/ui/UnreadDivider'
 import { HistoryFailureNotice } from '@/components/ui/HistoryFailureNotice'
 import { MuteButton } from '@/components/ui/MuteButton'
@@ -28,6 +29,7 @@ import { canPostInChannel } from '@/utils/groupPermissions'
 import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
 import { useMessageActionShortcuts } from '@/hooks/useMessageActionShortcuts'
+import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
 import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
 import type { Message } from '@/types'
@@ -210,26 +212,31 @@ export const GroupView: React.FC = () => {
     [editingMessage, activeGroup, channelId, t]
   )
 
-  const handleDelete = useCallback(
-    (message: Message) => {
-      if (!activeGroup || !channelId) return
+  // SUPPRESSION D'UN MESSAGE DE CANAL : comme dans un fil 1:1, la demande passe
+  // par le dialogue avant que le service touche quoi que ce soit.
+  const {
+    pending: pendingDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+  } = useDeleteConfirmation((message, mode) => {
+    if (!activeGroup || !channelId) return
+    if (mode === 'forEveryone') {
       groupService.deleteGroupMessage(activeGroup.id, channelId, message.id).catch((err) => {
         console.warn('[GroupView] deleteGroupMessage failed:', err)
         useUIStore.getState().addToast({ type: 'error', title: t('common.failed') })
       })
-    },
-    [activeGroup, channelId, t]
-  )
-
-  const handleDeleteForMe = useCallback(
-    (message: Message) => {
-      if (!activeGroup || !channelId) return
+      return
+    }
+    // « sans trace pour les autres » (`permanently`) ne s'achète pas dans un
+    // canal : le service ne sait qu'effacer localement. Plutôt que de servir ce
+    // mode en promettant le contraire, la vue ne le demande jamais.
+    if (mode === 'forMe') {
       groupService.deleteGroupMessageForMe(activeGroup.id, channelId, message.id).catch((err) => {
         console.warn('[GroupView] deleteGroupMessageForMe failed:', err)
       })
-    },
-    [activeGroup, channelId]
-  )
+    }
+  })
 
   // PERFORMANCE: Handle file sends to group using multicast
   const handleFiles = useCallback(
@@ -434,7 +441,12 @@ export const GroupView: React.FC = () => {
     messages,
     ownSenderId: identity?.keyPair.publicKey,
     highlightedMessageId,
-    handlers: { onReply: handleReply, onEdit: handleEdit, onForward: handleForward },
+    handlers: {
+      onReply: handleReply,
+      onEdit: handleEdit,
+      onForward: handleForward,
+      onDelete: (message) => requestDelete(message, 'forEveryone'),
+    },
   })
 
   // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
@@ -562,8 +574,8 @@ export const GroupView: React.FC = () => {
                     highlighted={message.id === highlightedMessageId}
                     onReply={handleReply}
                     onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDeletePermanently={handleDeleteForMe}
+                    onDelete={requestDelete}
+                    deleteModes={['forEveryone', 'forMe']}
                     onReaction={handleReaction}
                     onPin={canPin ? handlePin : undefined}
                     onForward={handleForward}
@@ -648,6 +660,17 @@ export const GroupView: React.FC = () => {
           <ForwardModal
             message={forwardMessage}
             onClose={() => setForwardMessage(undefined)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Le message de canal ne part qu'après acquiescement. */}
+      <AnimatePresence>
+        {pendingDelete && (
+          <MessageDeleteConfirm
+            mode={pendingDelete.mode}
+            onCancel={cancelDelete}
+            onConfirm={confirmDelete}
           />
         )}
       </AnimatePresence>

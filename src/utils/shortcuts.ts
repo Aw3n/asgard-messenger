@@ -170,9 +170,11 @@ export const MESSAGE_ACTION_SHORTCUTS = [
   'replyToMessage',
   'forwardMessage',
   'copyMessage',
+  'deleteMessage',
 ] as const satisfies readonly ShortcutName[]
 
 /**
- * `deleteMessage` (« Delete ») reste au menu contextuel : la suppression n'a
- * pas de confirmation et une touche mal placée effacerait un message.
+ * `deleteMessage` (« Delete ») ne porte sur la rangée sous le focus — ou celle
+ * qu'une recherche vient de faire briller — et ouvre une confirmation : la touche
+ * seule ne fait disparaître aucun message.
  */

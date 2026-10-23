@@ -198,7 +198,7 @@ describe('actions branchées', () => {
   it('prennent le composeur et les messages séparément des gestes globaux', () => {
     expect([...COMPOSER_SHORTCUTS].sort()).toEqual(['newLine', 'sendMessage'])
     expect([...MESSAGE_ACTION_SHORTCUTS].sort()).toEqual([
-      'copyMessage', 'editLastMessage', 'forwardMessage', 'replyToMessage',
+      'copyMessage', 'deleteMessage', 'editLastMessage', 'forwardMessage', 'replyToMessage',
     ])
     // Rien de ce qui se joue dans un fil ou un composeur ne passe par
     // l'écouteur global : les deux listes ne doivent pas se chevaucher.
@@ -207,9 +207,12 @@ describe('actions branchées', () => {
     }
   })
 
-  it('laissent la suppression hors du clavier réglé', () => {
-    // Action destructive sans confirmation : elle reste au menu contextuel.
+  it('laissent hors de l’écouteur global ce qui se joue dans un fil', () => {
+    // « Delete » est lu par le geste de rangée, jamais par la page : la frappe
+    // ne fait que demander une suppression, le dialogue d'acquittement joint le
+    // service (voir `message-delete-confirm.ui.test.tsx`). Aucune touche isolée
+    // n'efface donc un message, et le geste reste hors des raccourcis globaux.
+    expect(MESSAGE_ACTION_SHORTCUTS).toContain('deleteMessage')
     expect(WIRED_SHORTCUTS).not.toContain('deleteMessage')
-    expect(MESSAGE_ACTION_SHORTCUTS).not.toContain('deleteMessage')
   })
 })

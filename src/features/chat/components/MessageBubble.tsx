@@ -5,6 +5,7 @@ import { cn } from '@/utils/cn'
 import { copyMessageText } from '@/utils/clipboard'
 import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { isCloseKeypress } from '@/hooks/useDialogBehavior'
+import { DELETE_MODE_LABEL_KEYS, type DeleteMode } from '@/hooks/useDeleteConfirmation'
 import { formatMessageTime } from '@/utils/time'
 import { useUIStore } from '@/stores/uiStore'
 import { FileAttachment } from './FileAttachment'
@@ -26,8 +27,14 @@ interface MessageBubbleProps {
   onEdit?: (message: Message) => void
   /** Réessaie l'envoi d'un message passé en échec définitif. */
   onRetry?: (message: Message) => void
-  onDelete?: (message: Message) => void
-  onDeletePermanently?: (message: Message) => void
+  /** Demande de suppression : le menu dit quel geste a été cliqué, la vue n'a
+   *  plus qu'à l'enregistrer — ici ouvrir le dialogue, jamais effacer. */
+  onDelete?: (message: Message, mode: DeleteMode) => void
+  /** Les suppressions que la vue sait réellement exécuter, dans l'ordre du
+   *  menu. Une entrée n'est qu'un mode : son libellé sort de la même table que
+   *  le bouton du dialogue de confirmation, donc la bulle ne peut pas promettre
+   *  un geste que la vue ne fait pas. */
+  deleteModes?: DeleteMode[]
   onReaction?: (message: Message, emoji: string) => void
   onForward?: (message: Message) => void
   onPin?: (message: Message) => void
@@ -49,7 +56,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onEdit,
   onRetry,
   onDelete,
-  onDeletePermanently,
+  deleteModes,
   onReaction,
   onForward,
   onPin,
@@ -76,6 +83,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const rowRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // Le menu ne rend que les suppressions que la vue a demandées : rien ici sans
+  // geste réellement possible derrière.
+  const shownDeleteModes = onDelete ? (deleteModes ?? []) : []
 
   const openContextMenu = (x: number, y: number) => {
     // Le menu fait ~180 × 240 px : on le garde dans la fenêtre plutôt que de
@@ -353,18 +364,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 }}
               />
             )}
-            {isOwn && (onEdit || onDelete || onDeletePermanently) && (
+            {isOwn && (onEdit || shownDeleteModes.length > 0) && (
               <>
                 <div className="h-px bg-asgard-border my-0.5" />
                 {onEdit && message.content && (
                   <ContextMenuItem label={t('chat.editMessage')} onClick={() => { onEdit(message); setContextMenu(null) }} />
                 )}
-                {onDelete && (
-                  <ContextMenuItem label={t('common.delete')} onClick={() => { onDelete(message); setContextMenu(null) }} />
-                )}
-                {onDeletePermanently && (
-                  <ContextMenuItem label={t('chat.deletePermanently')} onClick={() => { onDeletePermanently(message); setContextMenu(null) }} danger />
-                )}
+                {shownDeleteModes.map((mode) => (
+                  <ContextMenuItem
+                    key={mode}
+                    label={t(DELETE_MODE_LABEL_KEYS[mode])}
+                    onClick={() => { onDelete?.(message, mode); setContextMenu(null) }}
+                    danger
+                  />
+                ))}
               </>
             )}
           </motion.div>
