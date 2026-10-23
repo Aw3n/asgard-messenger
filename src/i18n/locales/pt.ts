@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "{{total}} contactos encontrados no Hyperbee, {{restored}} novos restaurados.",
       "chat.draft": "Rascunho: {{text}}",
       "chat.markAllAsRead": "Marcar tudo como lido",
+      "chat.scrollToLatest": "Ir para as mensagens mais recentes",
     }
 }

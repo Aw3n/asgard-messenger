@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "{{total}} névjegy található a Hyperbee-ben, {{restored}} új visszaállítva.",
       "chat.draft": "Piszkozat: {{text}}",
       "chat.markAllAsRead": "Összes megjelölése olvasottként",
+      "chat.scrollToLatest": "Ugrás a legújabb üzenetekhez",
     }
 }

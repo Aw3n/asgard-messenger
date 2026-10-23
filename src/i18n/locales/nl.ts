@@ -873,5 +873,6 @@ export default {
       "contacts.reloadedFromStorage": "{{total}} contacten gevonden in Hyperbee, {{restored}} nieuwe hersteld.",
       "chat.draft": "Concept: {{text}}",
       "chat.markAllAsRead": "Alles als gelezen markeren",
+      "chat.scrollToLatest": "Terug naar de nieuwste berichten",
     }
 }

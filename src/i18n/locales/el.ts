@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "Βρέθηκαν {{total}} επαφές στο Hyperbee, αποκαταστάθηκαν {{restored}} νέες.",
       "chat.draft": "Πρόχειρο: {{text}}",
       "chat.markAllAsRead": "Σήμανση όλων ως αναγνωσμένων",
+      "chat.scrollToLatest": "Μετάβαση στα πιο πρόσφατα μηνύματα",
     }
 }

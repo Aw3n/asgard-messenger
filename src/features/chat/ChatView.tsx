@@ -23,6 +23,7 @@ import { fileService, PeerUnreachableError, TransferCancelledError } from '@/ser
 import { RightPanel } from '@/components/panels/RightPanel'
 import { presenceMeta, isLivePresence } from '@/utils/presence'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
+import { countIncomingAfter } from '@/utils/incomingAfter'
 import type { Message } from '@/types'
 
 const HISTORY_PAGE_SIZE = 50
@@ -41,6 +42,12 @@ export const ChatView: React.FC = () => {
   const [editingMessage, setEditingMessage] = useState<Message | undefined>()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
+  // Suivi du bas du fil : une lecture remontée doit s'annoncer quand un
+  // message arrive en dessous, et un envoi doit ramener à sa propre bulle.
+  const [atBottom, setAtBottom] = useState(true)
+  const [newBelowCount, setNewBelowCount] = useState(0)
+  const lastSeenMessageIdRef = useRef<string | undefined>(undefined)
+  const followOwnSendRef = useRef(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const navigate = useNavigate()
 
@@ -80,6 +87,37 @@ export const ChatView: React.FC = () => {
   // not the data. The component would never re-render when new messages arrive.
   // By selecting state.messages[dataId] directly, Zustand subscribes to changes.
   const messages = useMessageStore((s) => dataId ? (s.messages[dataId] ?? []) : [])
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined
+
+  // Changer de fil remet le suivi du bas à zéro : la pastille d'un ancien fil
+  // ne doit pas survivre à la navigation.
+  useEffect(() => {
+    setAtBottom(true)
+    setNewBelowCount(0)
+    lastSeenMessageIdRef.current = undefined
+  }, [conversationId])
+
+  // Un message qui s'ajoute sous une lecture remontée doit s'annoncer : sans
+  // pastille, son arrivée ne produisait aucun signe visible.
+  useEffect(() => {
+    const previousId = lastSeenMessageIdRef.current
+    lastSeenMessageIdRef.current = lastMessageId
+    if (atBottom) {
+      setNewBelowCount(0)
+      return
+    }
+    if (previousId === undefined || previousId === lastMessageId) return
+    const added = countIncomingAfter(messages, previousId, identity?.keyPair.publicKey)
+    if (added > 0) setNewBelowCount((count) => count + added)
+  }, [lastMessageId, atBottom, messages, identity?.keyPair.publicKey])
+
+  // Envoyer depuis une position remontée ramène au bas : la bulle qu'on vient
+  // d'écrire ne doit pas rester hors écran.
+  useEffect(() => {
+    if (!followOwnSendRef.current || messages.length === 0) return
+    followOwnSendRef.current = false
+    virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
+  }, [messages.length])
   const [pagination, setPagination] = useState({
     dataId,
     firstItemIndex: FIRST_ITEM_INDEX,
@@ -236,6 +274,7 @@ export const ChatView: React.FC = () => {
     async (content: string) => {
       if (!dataId || !conversation?.participantId) return
       try {
+        followOwnSendRef.current = true
         const outcome = await chatService.sendMessage(
           { conversationId: dataId, type: 'text', content, replyTo: replyTo?.id },
           dataId,
@@ -252,6 +291,7 @@ export const ChatView: React.FC = () => {
           })
         }
       } catch (err) {
+        followOwnSendRef.current = false
         console.error('[ChatView] handleSend error:', err)
         try { window.asgard.debugLog('[ChatView] handleSend error: ' + (err instanceof Error ? err.message : String(err))) } catch {}
       }
@@ -421,7 +461,7 @@ export const ChatView: React.FC = () => {
       </div>
 
       {/* Message list */}
-      <div className="flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden">
         {/* Pinned messages bar */}
         {pinnedMessages.length > 0 && (
           <div className="px-4 py-2 bg-asgard-glacier/10 border-b border-asgard-border flex items-center gap-2">
@@ -453,6 +493,7 @@ export const ChatView: React.FC = () => {
             // Ne suit le bas que si l'utilisateur y est déjà : remonter pour
             // relire l'historique ne doit pas être annulé par chaque arrivée.
             followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
+            atBottomStateChange={setAtBottom}
             className="h-full virtual-list"
             initialTopMostItemIndex={messages.length - 1}
             itemContent={(index, message) => (
@@ -516,6 +557,33 @@ export const ChatView: React.FC = () => {
             }}
           />
           </div>
+        )}
+
+        {/* Retour au bas du fil : visible uniquement quand l'utilisateur lit
+            plus haut, avec le nombre de messages reçus en dessous. */}
+        {!atBottom && messages.length > 0 && (
+          <button
+            type="button"
+            aria-label={t('chat.scrollToLatest')}
+            title={t('chat.scrollToLatest')}
+            onClick={() => {
+              virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
+            }}
+            className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-asgard-border bg-asgard-surface text-asgard-glacier shadow-lg transition-colors hover:bg-asgard-nordic/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-asgard-glacier"
+          >
+            {newBelowCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute -right-1 -top-1 min-w-[18px] rounded-full px-1 text-center text-[10px] font-bold leading-[18px]"
+                style={{ background: '#4FC3F7', color: '#0B0E1A' }}
+              >
+                {newBelowCount > 99 ? '99+' : newBelowCount}
+              </span>
+            )}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+            </svg>
+          </button>
         )}
       </div>
 

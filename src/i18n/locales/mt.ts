@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "Instabu {{total}} kuntatti fil-Hyperbee, ġew restawrati {{restored}} ġodda.",
       "chat.draft": "Abbozz: {{text}}",
       "chat.markAllAsRead": "Immarka kollha bħala moqrija",
+      "chat.scrollToLatest": "Mur għall-aktar messaġġi reċenti",
     }
 }

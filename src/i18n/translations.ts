@@ -872,6 +872,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} contacts trouvés dans Hyperbee, {{restored}} nouveaux restaurés.",
       "chat.draft": "Brouillon : {{text}}",
       "chat.markAllAsRead": "Tout marquer comme lu",
+      "chat.scrollToLatest": "Revenir aux messages les plus récents",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1747,6 +1748,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} contacten gevonden in Hyperbee, {{restored}} nieuwe hersteld.",
       "chat.draft": "Concept: {{text}}",
       "chat.markAllAsRead": "Alles als gelezen markeren",
+      "chat.scrollToLatest": "Terug naar de nieuwste berichten",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2622,6 +2624,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} Kontakte in Hyperbee gefunden, {{restored}} neue wiederhergestellt.",
       "chat.draft": "Entwurf: {{text}}",
       "chat.markAllAsRead": "Alle als gelesen markieren",
+      "chat.scrollToLatest": "Zu den neuesten Nachrichten springen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3497,6 +3500,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} contatti trovati in Hyperbee, {{restored}} nuovi ripristinati.",
       "chat.draft": "Bozza: {{text}}",
       "chat.markAllAsRead": "Segna tutto come letto",
+      "chat.scrollToLatest": "Vai ai messaggi più recenti",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4372,6 +4376,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} contactos encontrados en Hyperbee, {{restored}} nuevos restaurados.",
       "chat.draft": "Borrador: {{text}}",
       "chat.markAllAsRead": "Marcar todo como leído",
+      "chat.scrollToLatest": "Ir a los mensajes más recientes",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5248,6 +5253,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} contactos encontrados no Hyperbee, {{restored}} novos restaurados.",
       "chat.draft": "Rascunho: {{text}}",
       "chat.markAllAsRead": "Marcar tudo como lido",
+      "chat.scrollToLatest": "Ir para as mensagens mais recentes",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6124,6 +6130,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Βρέθηκαν {{total}} επαφές στο Hyperbee, αποκαταστάθηκαν {{restored}} νέες.",
       "chat.draft": "Πρόχειρο: {{text}}",
       "chat.markAllAsRead": "Σήμανση όλων ως αναγνωσμένων",
+      "chat.scrollToLatest": "Μετάβαση στα πιο πρόσφατα μηνύματα",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7000,6 +7007,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} kontakter fundet i Hyperbee, {{restored}} nye gendannet.",
       "chat.draft": "Kladde: {{text}}",
       "chat.markAllAsRead": "Markér alle som læst",
+      "chat.scrollToLatest": "Gå til de nyeste beskeder",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7876,6 +7884,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Hyperbeestä löytyi {{total}} yhteystietoa, {{restored}} uutta palautettiin.",
       "chat.draft": "Luonnos: {{text}}",
       "chat.markAllAsRead": "Merkitse kaikki luetuiksi",
+      "chat.scrollToLatest": "Siirry uusimpiin viesteihin",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8752,6 +8761,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} kontakter hittades i Hyperbee, {{restored}} nya återställdes.",
       "chat.draft": "Utkast: {{text}}",
       "chat.markAllAsRead": "Markera alla som lästa",
+      "chat.scrollToLatest": "Gå till de senaste meddelandena",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9628,6 +9638,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Pronađeno {{total}} kontakata u Hyperbeeju, obnovljeno {{restored}} novih.",
       "chat.draft": "Skica: {{text}}",
       "chat.markAllAsRead": "Označi sve kao pročitano",
+      "chat.scrollToLatest": "Idi na najnovije poruke",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10504,6 +10515,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Hyperbeest leiti {{total}} kontakti, taastati {{restored}} uut.",
       "chat.draft": "Mustand: {{text}}",
       "chat.markAllAsRead": "Märgi kõik loetuks",
+      "chat.scrollToLatest": "Mine uusimate sõnumite juurde",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11380,6 +11392,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} névjegy található a Hyperbee-ben, {{restored}} új visszaállítva.",
       "chat.draft": "Piszkozat: {{text}}",
       "chat.markAllAsRead": "Összes megjelölése olvasottként",
+      "chat.scrollToLatest": "Ugrás a legújabb üzenetekhez",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12256,6 +12269,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Hyperbee atrasti {{total}} kontakti, atjaunoti {{restored}} jauni.",
       "chat.draft": "Melnraksts: {{text}}",
       "chat.markAllAsRead": "Atzīmēt visu kā lasītu",
+      "chat.scrollToLatest": "Pāriet uz jaunākajām ziņām",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13132,6 +13146,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Hyperbee rasta {{total}} kontaktų, atkurti {{restored}} nauji.",
       "chat.draft": "Juodraštis: {{text}}",
       "chat.markAllAsRead": "Pažymėti viską kaip skaitytą",
+      "chat.scrollToLatest": "Pereiti prie naujausių žinučių",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14008,6 +14023,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Instabu {{total}} kuntatti fil-Hyperbee, ġew restawrati {{restored}} ġodda.",
       "chat.draft": "Abbozz: {{text}}",
       "chat.markAllAsRead": "Immarka kollha bħala moqrija",
+      "chat.scrollToLatest": "Mur għall-aktar messaġġi reċenti",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14884,6 +14900,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Znaleziono {{total}} kontaktów w Hyperbee, przywrócono {{restored}} nowych.",
       "chat.draft": "Szkic: {{text}}",
       "chat.markAllAsRead": "Oznacz wszystko jako przeczytane",
+      "chat.scrollToLatest": "Przejdź do najnowszych wiadomości",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15760,6 +15777,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "V Hyperbee sa našlo {{total}} kontaktov, obnovených {{restored}} nových.",
       "chat.draft": "Koncept: {{text}}",
       "chat.markAllAsRead": "Označiť všetko ako prečítané",
+      "chat.scrollToLatest": "Prejsť na najnovšie správy",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16636,6 +16654,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "V Hyperbee najdenih {{total}} stikov, obnovljenih {{restored}} novih.",
       "chat.draft": "Osnutek: {{text}}",
       "chat.markAllAsRead": "Označi vse kot prebrano",
+      "chat.scrollToLatest": "Pojdi na najnovejša sporočila",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17512,6 +17531,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "V Hyperbee nalezeno {{total}} kontaktů, obnoveno {{restored}} nových.",
       "chat.draft": "Koncept: {{text}}",
       "chat.markAllAsRead": "Označit vše jako přečtené",
+      "chat.scrollToLatest": "Přejít na nejnovější zprávy",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18388,6 +18408,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Намерени {{total}} контакта в Hyperbee, възстановени {{restored}} нови.",
       "chat.draft": "Чернова: {{text}}",
       "chat.markAllAsRead": "Маркирай всичко като прочетено",
+      "chat.scrollToLatest": "Към най-новите съобщения",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19264,6 +19285,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Fuarthas {{total}} teagmháil i Hyperbee, athchóiríodh {{restored}} ceann nua.",
       "chat.draft": "Dréacht: {{text}}",
       "chat.markAllAsRead": "Marcáil gach rud mar léite",
+      "chat.scrollToLatest": "Téigh go dtí na teachtaireachtaí is déanaí",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20140,6 +20162,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "{{total}} contacte găsite în Hyperbee, {{restored}} noi restaurate.",
       "chat.draft": "Ciornă: {{text}}",
       "chat.markAllAsRead": "Marchează totul ca citit",
+      "chat.scrollToLatest": "Mergi la cele mai recente mesaje",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21025,6 +21048,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Found {{total}} contacts in Hyperbee, restored {{restored}} new ones.",
       "chat.draft": "Draft: {{text}}",
       "chat.markAllAsRead": "Mark all as read",
+      "chat.scrollToLatest": "Jump to latest messages",
     }
   },
 
@@ -21902,6 +21926,7 @@ export const translations = {
       "contacts.reloadedFromStorage": "Знайдено {{total}} контактів у Hyperbee, відновлено {{restored}} нових.",
       "chat.draft": "Чернетка: {{text}}",
       "chat.markAllAsRead": "Позначити все як прочитане",
+      "chat.scrollToLatest": "Перейти до найновіших повідомлень",
     }
   },
 }

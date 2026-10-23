@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "Fuarthas {{total}} teagmháil i Hyperbee, athchóiríodh {{restored}} ceann nua.",
       "chat.draft": "Dréacht: {{text}}",
       "chat.markAllAsRead": "Marcáil gach rud mar léite",
+      "chat.scrollToLatest": "Téigh go dtí na teachtaireachtaí is déanaí",
     }
 }

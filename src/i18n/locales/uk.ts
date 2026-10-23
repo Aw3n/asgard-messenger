@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "Знайдено {{total}} контактів у Hyperbee, відновлено {{restored}} нових.",
       "chat.draft": "Чернетка: {{text}}",
       "chat.markAllAsRead": "Позначити все як прочитане",
+      "chat.scrollToLatest": "Перейти до найновіших повідомлень",
     }
 }

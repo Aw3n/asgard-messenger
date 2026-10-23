@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "Hyperbee atrasti {{total}} kontakti, atjaunoti {{restored}} jauni.",
       "chat.draft": "Melnraksts: {{text}}",
       "chat.markAllAsRead": "Atzīmēt visu kā lasītu",
+      "chat.scrollToLatest": "Pāriet uz jaunākajām ziņām",
     }
 }

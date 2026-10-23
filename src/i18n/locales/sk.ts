@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "V Hyperbee sa našlo {{total}} kontaktov, obnovených {{restored}} nových.",
       "chat.draft": "Koncept: {{text}}",
       "chat.markAllAsRead": "Označiť všetko ako prečítané",
+      "chat.scrollToLatest": "Prejsť na najnovšie správy",
     }
 }

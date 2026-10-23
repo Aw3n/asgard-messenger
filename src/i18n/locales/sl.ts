@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "V Hyperbee najdenih {{total}} stikov, obnovljenih {{restored}} novih.",
       "chat.draft": "Osnutek: {{text}}",
       "chat.markAllAsRead": "Označi vse kot prebrano",
+      "chat.scrollToLatest": "Pojdi na najnovejša sporočila",
     }
 }

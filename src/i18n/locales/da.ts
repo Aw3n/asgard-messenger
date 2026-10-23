@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "{{total}} kontakter fundet i Hyperbee, {{restored}} nye gendannet.",
       "chat.draft": "Kladde: {{text}}",
       "chat.markAllAsRead": "Markér alle som læst",
+      "chat.scrollToLatest": "Gå til de nyeste beskeder",
     }
 }

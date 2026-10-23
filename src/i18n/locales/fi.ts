@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "Hyperbeestä löytyi {{total}} yhteystietoa, {{restored}} uutta palautettiin.",
       "chat.draft": "Luonnos: {{text}}",
       "chat.markAllAsRead": "Merkitse kaikki luetuiksi",
+      "chat.scrollToLatest": "Siirry uusimpiin viesteihin",
     }
 }

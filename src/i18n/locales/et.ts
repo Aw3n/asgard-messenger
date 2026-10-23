@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "Hyperbeest leiti {{total}} kontakti, taastati {{restored}} uut.",
       "chat.draft": "Mustand: {{text}}",
       "chat.markAllAsRead": "Märgi kõik loetuks",
+      "chat.scrollToLatest": "Mine uusimate sõnumite juurde",
     }
 }

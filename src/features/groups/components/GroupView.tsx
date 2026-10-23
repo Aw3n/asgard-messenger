@@ -18,6 +18,7 @@ import { callService } from '@/services/CallService'
 import { groupService } from '@/services/GroupService'
 import { useTranslation } from 'react-i18next'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
+import { countIncomingAfter } from '@/utils/incomingAfter'
 import type { Message } from '@/types'
 
 const HISTORY_PAGE_SIZE = 50
@@ -44,12 +45,18 @@ export const GroupView: React.FC = () => {
   const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
   const [replyTo, setReplyTo] = useState<Message | undefined>()
   const [editingMessage, setEditingMessage] = useState<Message | undefined>()
+  // Même suivi du bas que le fil 1:1 : lecture remontée + envoi qui ramène.
+  const [atBottom, setAtBottom] = useState(true)
+  const [newBelowCount, setNewBelowCount] = useState(0)
+  const lastSeenMessageIdRef = React.useRef<string | undefined>(undefined)
+  const followOwnSendRef = React.useRef(false)
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
 
   const channelId = activeChannel?.id ?? ''
   const activeGroupId = activeGroup?.id
   // CRITICAL: Select messages reactively from the store
   const messages = useMessageStore((s) => channelId ? (s.messages[channelId] ?? []) : [])
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined
   const historyKey = `${activeGroupId ?? ''}:${channelId}`
   const [pagination, setPagination] = useState({
     key: historyKey,
@@ -64,6 +71,33 @@ export const GroupView: React.FC = () => {
   const loadingOlderRef = React.useRef(false)
   const historyKeyRef = React.useRef(historyKey)
   historyKeyRef.current = historyKey
+
+  // Changer de canal remet le suivi du bas à zéro.
+  useEffect(() => {
+    setAtBottom(true)
+    setNewBelowCount(0)
+    lastSeenMessageIdRef.current = undefined
+  }, [historyKey])
+
+  // Un message qui arrive sous une lecture remontée s'annonce par une pastille.
+  useEffect(() => {
+    const previousId = lastSeenMessageIdRef.current
+    lastSeenMessageIdRef.current = lastMessageId
+    if (atBottom) {
+      setNewBelowCount(0)
+      return
+    }
+    if (previousId === undefined || previousId === lastMessageId) return
+    const added = countIncomingAfter(messages, previousId, identity?.keyPair.publicKey)
+    if (added > 0) setNewBelowCount((count) => count + added)
+  }, [lastMessageId, atBottom, messages, identity?.keyPair.publicKey])
+
+  // Envoyer depuis une position remontée ramène à sa propre bulle.
+  useEffect(() => {
+    if (!followOwnSendRef.current || messages.length === 0) return
+    followOwnSendRef.current = false
+    virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
+  }, [messages.length])
   const typingUsers = useNetworkStore((s) => s.getTypingUsers(channelId))
   const currentMember = activeGroup?.members.find(
     (member) => member.publicKey === identity?.keyPair.publicKey,
@@ -78,6 +112,7 @@ export const GroupView: React.FC = () => {
       if (!identity || !channelId || !activeGroup) return
       const quoted = replyTo
       setReplyTo(undefined)
+      followOwnSendRef.current = true
       groupService.sendGroupMessage(activeGroup.id, channelId, content, undefined, undefined, quoted?.id)
     },
     [identity, channelId, activeGroup, replyTo]
@@ -345,7 +380,7 @@ export const GroupView: React.FC = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-hidden">
+        <div className="relative flex-1 overflow-hidden">
           {messages.length === 0 ? (
             <ChannelStartMessage
               channelName={activeChannel?.name ?? t('groups.general')}
@@ -358,6 +393,7 @@ export const GroupView: React.FC = () => {
               firstItemIndex={paginationState.firstItemIndex}
               startReached={() => { void loadOlderMessages() }}
               followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
+              atBottomStateChange={setAtBottom}
               className="h-full virtual-list"
               initialTopMostItemIndex={messages.length - 1}
               itemContent={(_, message) => (
@@ -389,6 +425,33 @@ export const GroupView: React.FC = () => {
                 ),
               }}
             />
+          )}
+
+          {/* Retour au bas du fil : visible uniquement quand l'utilisateur lit
+              plus haut, avec le nombre de messages reçus en dessous. */}
+          {!atBottom && messages.length > 0 && (
+            <button
+              type="button"
+              aria-label={t('chat.scrollToLatest')}
+              title={t('chat.scrollToLatest')}
+              onClick={() => {
+                virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
+              }}
+              className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-asgard-border bg-asgard-surface text-asgard-glacier shadow-lg transition-colors hover:bg-asgard-nordic/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-asgard-glacier"
+            >
+              {newBelowCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1 -top-1 min-w-[18px] rounded-full px-1 text-center text-[10px] font-bold leading-[18px]"
+                  style={{ background: '#4FC3F7', color: '#0B0E1A' }}
+                >
+                  {newBelowCount > 99 ? '99+' : newBelowCount}
+                </span>
+              )}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+              </svg>
+            </button>
           )}
         </div>
 

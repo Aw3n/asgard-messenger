@@ -874,5 +874,6 @@ export default {
       "contacts.reloadedFromStorage": "Pronađeno {{total}} kontakata u Hyperbeeju, obnovljeno {{restored}} novih.",
       "chat.draft": "Skica: {{text}}",
       "chat.markAllAsRead": "Označi sve kao pročitano",
+      "chat.scrollToLatest": "Idi na najnovije poruke",
     }
 }
