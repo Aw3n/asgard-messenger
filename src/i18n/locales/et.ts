@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Kõne sätted",
       "calls.stopScreenShare": "Lõpeta",
       "calls.videoQuality": "Video kvaliteet",
+      "calls.qualityAuto": "Automaatne",
       "calls.qualityHigh": "Kõrge",
       "calls.qualityMedium": "Keskmine",
       "calls.qualityLow": "Madal",

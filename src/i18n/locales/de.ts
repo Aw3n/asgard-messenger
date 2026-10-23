@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Anrufeinstellungen",
       "calls.stopScreenShare": "Beenden",
       "calls.videoQuality": "Videoqualität",
+      "calls.qualityAuto": "Automatisch",
       "calls.qualityHigh": "Hoch",
       "calls.qualityMedium": "Mittel",
       "calls.qualityLow": "Niedrig",

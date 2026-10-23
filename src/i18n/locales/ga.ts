@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Socruithe Glao",
       "calls.stopScreenShare": "Stad",
       "calls.videoQuality": "Cáilíocht Físe",
+      "calls.qualityAuto": "Uathoibríoch",
       "calls.qualityHigh": "Ard",
       "calls.qualityMedium": "Meánach",
       "calls.qualityLow": "Íseal",

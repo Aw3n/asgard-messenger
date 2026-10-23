@@ -8,7 +8,7 @@ import { mediaDeviceService } from './MediaDeviceService'
 import { ringtoneService } from './RingtoneService'
 import { toNetworkStatus } from '@/utils/presence'
 import i18n from '@/i18n/config'
-import type { CallRecord, CallType } from '@/stores/callStore'
+import type { CallRecord, CallType, VideoQuality } from '@/stores/callStore'
 
 /**
  * PRO QUALITY: per-sender playout state.
@@ -2407,6 +2407,60 @@ class CallService {
   }
 
   /**
+   * QUALITY: plafond d'envoi (largeur, hauteur) d'une qualité choisie. Une seule
+   * table, lue par la préférence réglée avant l'appel comme par le panneau ouvert
+   * pendant. 'auto' renvoie null : l'adaptatif garde la main (défaut 960×540,
+   * réduit par targetEncodeSize selon la bande passante et le nombre de pairs).
+   */
+  private static resolutionFor(quality: VideoQuality): { width: number; height: number } | null {
+    if (quality === 'low') return { width: 640, height: 360 }
+    if (quality === 'medium') return { width: 854, height: 480 }
+    if (quality === 'high') return { width: 1280, height: 720 }
+    return null
+  }
+
+  private applyVideoQualityCeiling(quality: VideoQuality): void {
+    const ceiling = CallService.resolutionFor(quality)
+    CallService.VIDEO_WIDTH = ceiling?.width ?? CallService.VIDEO_WIDTH_DEFAULT
+    CallService.VIDEO_HEIGHT = ceiling?.height ?? CallService.VIDEO_HEIGHT_DEFAULT
+  }
+
+  /**
+   * QUALITY: plafond d'envoi en cours. Le panneau d'appel comme les tests ont
+   * besoin de lire ce que le service applique, pas ce qu'on a cliqué.
+   */
+  getVideoQualityCeiling(): { width: number; height: number } {
+    return { width: CallService.VIDEO_WIDTH, height: CallService.VIDEO_HEIGHT }
+  }
+
+  /**
+   * QUALITY: choix de la qualité vidéo depuis le panneau d'un appel en cours.
+   * Trois effets, sinon le bouton ne serait que de la peinture : le plafond
+   * d'envoi est recalculé, la caméra est requise à la nouvelle résolution, le
+   * transport redémarre pour que la toile et l'encodeur prennent cette taille.
+   */
+  setVideoQuality(quality: VideoQuality): void {
+    useCallStore.getState().setVideoQuality(quality)
+    this.applyVideoQualityCeiling(quality)
+
+    const camera = this.localStream?.getVideoTracks()[0]
+    if (!camera) return
+
+    const ceiling = CallService.resolutionFor(quality)
+    if (ceiling) {
+      // 'ideal' : une caméra qui ne sait pas descendre garde son cadrage, le
+      // plafond d'envoi la réduit de toute façon au dessin de la toile.
+      camera
+        .applyConstraints({
+          width: { ideal: ceiling.width },
+          height: { ideal: ceiling.height },
+        })
+        .catch((err) => console.warn('[CallService] Camera kept its own resolution:', err))
+    }
+    this.restartVideoTransportForCall()
+  }
+
+  /**
    * PRO QUALITY: Shared mesh uplink budget.
    * In a mesh the same encoded stream is transmitted once per peer, so a fixed
    * per-stream bitrate multiplies with the participant count (5 peers × 2.5 Mbps
@@ -3872,21 +3926,11 @@ class CallService {
     if (mediaPrefs.audioQuality === 'low') this.setAudioBitrate(CallService.OPUS_BITRATE_LOW)
     else if (mediaPrefs.audioQuality === 'high') this.setAudioBitrate(128_000)
     else this.setAudioBitrate(CallService.OPUS_BITRATE)
-    switch (mediaPrefs.videoQuality) {
-      case 'low':
-        CallService.VIDEO_WIDTH = 640
-        CallService.VIDEO_HEIGHT = 360
-        break
-      case 'medium':
-        CallService.VIDEO_WIDTH = 854
-        CallService.VIDEO_HEIGHT = 480
-        break
-      case 'high':
-        CallService.VIDEO_WIDTH = 1280
-        CallService.VIDEO_HEIGHT = 720
-        break
-      // 'auto' keeps the adaptive default (960×540, network-adaptive bitrate)
-    }
+    // Le panneau ouvert EN appel écrit la même préférence via setVideoQuality() :
+    // aligner ici le store et le plafond garde ses boutons justes dès la première
+    // image, au lieu de resservir l'override de l'appel précédent.
+    this.applyVideoQualityCeiling(mediaPrefs.videoQuality)
+    useCallStore.getState().setVideoQuality(mediaPrefs.videoQuality)
 
     const constraints = mediaDeviceService.buildCallConstraints(type)
     const stream = new MediaStream()
@@ -3919,6 +3963,18 @@ class CallService {
           // Continue without audio
         }
       }
+    }
+
+    // TRAITEMENT DU MICRO: le panneau de réglages en appel affiche l'état lu dans
+    // getAudioProcessingStatus(). Il part donc de ce que la piste a rendu, sinon
+    // un commutateur « activé par défaut » mentirait sur un micro qui ne l'est
+    // pas. Une clé absente vaut la demande émise plus haut (les trois à vrai).
+    const acquiredMic = stream.getAudioTracks()[0]
+    if (acquiredMic) {
+      const applied = acquiredMic.getConstraints()
+      this.noiseReductionEnabled = applied.noiseSuppression !== false
+      this.echoCancellationEnabled = applied.echoCancellation !== false
+      this.autoGainControlEnabled = applied.autoGainControl !== false
     }
 
     // Acquire video
@@ -4570,35 +4626,36 @@ class CallService {
   }
 
   /**
-   * Enable noise reduction.
+   * Réduction de bruit du micro. Le drapeau décrit ce que la piste applique et
+   * la piste est requise en direct : un réglage d'appel prend effet dans cet
+   * appel, pas au suivant.
    */
-  enableNoiseReduction(): void {
-    this.noiseReductionEnabled = true
-    console.log('[CallService] Noise reduction enabled')
+  setNoiseSuppression(enabled: boolean): void {
+    this.noiseReductionEnabled = enabled
+    console.log(`[CallService] Noise suppression ${enabled ? 'enabled' : 'disabled'}`)
+    this.applyMicProcessing()
+  }
+
+  /** Anti-écho du micro — même chemin direct que la réduction de bruit. */
+  setEchoCancellation(enabled: boolean): void {
+    this.echoCancellationEnabled = enabled
+    console.log(`[CallService] Echo cancellation ${enabled ? 'enabled' : 'disabled'}`)
+    this.applyMicProcessing()
   }
 
   /**
-   * Disable noise reduction.
+   * Applique les deux traitements à la piste de micro déjà ouverte. Seules les
+   * clés nommées changent : l'auto-gain obtenu à l'acquisition reste en place.
    */
-  disableNoiseReduction(): void {
-    this.noiseReductionEnabled = false
-    console.log('[CallService] Noise reduction disabled')
-  }
-
-  /**
-   * Enable echo cancellation.
-   */
-  enableEchoCancellation(): void {
-    this.echoCancellationEnabled = true
-    console.log('[CallService] Echo cancellation enabled')
-  }
-
-  /**
-   * Disable echo cancellation.
-   */
-  disableEchoCancellation(): void {
-    this.echoCancellationEnabled = false
-    console.log('[CallService] Echo cancellation disabled')
+  private applyMicProcessing(): void {
+    const mic = this.localStream?.getAudioTracks()[0]
+    if (!mic) return
+    mic
+      .applyConstraints({
+        echoCancellation: this.echoCancellationEnabled,
+        noiseSuppression: this.noiseReductionEnabled,
+      })
+      .catch((err) => console.warn('[CallService] Microphone kept its processing:', err))
   }
 
   /**

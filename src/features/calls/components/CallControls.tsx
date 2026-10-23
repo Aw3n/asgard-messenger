@@ -265,12 +265,30 @@ interface CallSettingsPanelProps {
   onClose: () => void
 }
 
+/** Le panneau et la page Réglages nomment les mêmes paliers dans le même ordre. */
+const QUALITY_CHOICES = ['auto', 'low', 'medium', 'high'] as const
+
+const QUALITY_LABEL_KEYS: Record<(typeof QUALITY_CHOICES)[number], string> = {
+  auto: 'calls.qualityAuto',
+  low: 'calls.qualityLow',
+  medium: 'calls.qualityMedium',
+  high: 'calls.qualityHigh',
+}
+
 const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
   const { t } = useTranslation()
-  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high')
-  const [noiseSuppression, setNoiseSuppression] = useState(true)
-  const [echoCancellation, setEchoCancellation] = useState(true)
+  // Les réglages commandent l'appel en cours : ce qui s'affiche vient de ce que
+  // CallService applique (plafond d'envoi, consignes de la piste de micro), pas
+  // d'un état local que l'utilisateur se contenterait de peindre.
+  const videoQuality = useCallStore((s) => s.videoQuality)
+  const [audio, setAudio] = useState(() => callService.getAudioProcessingStatus())
   const videoQualityGroupId = React.useId()
+
+  const setProcessing = (key: 'noiseReduction' | 'echoCancellation', enabled: boolean) => {
+    setAudio((prev) => ({ ...prev, [key]: enabled }))
+    if (key === 'noiseReduction') callService.setNoiseSuppression(enabled)
+    else callService.setEchoCancellation(enabled)
+  }
 
   return (
     <motion.div
@@ -343,15 +361,15 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
         }}>
           {t('calls.videoQuality')}
         </p>
-        <div role="group" aria-labelledby={videoQualityGroupId} style={{ display: 'flex', gap: '8px' }}>
-          {(['high', 'medium', 'low'] as const).map((quality) => (
+        <div role="group" aria-labelledby={videoQualityGroupId} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {QUALITY_CHOICES.map((quality) => (
             <button
               key={quality}
-              onClick={() => setVideoQuality(quality)}
+              onClick={() => callService.setVideoQuality(quality)}
               aria-pressed={videoQuality === quality}
               style={{
-                flex: 1,
-                padding: '8px 12px',
+                flex: '1 1 70px',
+                padding: '8px 10px',
                 borderRadius: '8px',
                 background: videoQuality === quality ? 'rgba(79,195,247,0.2)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${videoQuality === quality ? 'rgba(79,195,247,0.5)' : 'rgba(255,255,255,0.1)'}`,
@@ -362,7 +380,7 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
                 transition: 'all 0.15s ease',
               }}
             >
-              {quality === 'high' ? t('calls.qualityHigh') : quality === 'medium' ? t('calls.qualityMedium') : t('calls.qualityLow')}
+              {t(QUALITY_LABEL_KEYS[quality])}
             </button>
           ))}
         </div>
@@ -391,8 +409,9 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
           </div>
         </div>
         <ToggleSwitch
-          enabled={noiseSuppression}
-          onChange={setNoiseSuppression}
+          label={t('calls.noiseSuppression')}
+          enabled={audio.noiseReduction}
+          onChange={(enabled) => setProcessing('noiseReduction', enabled)}
         />
       </div>
 
@@ -418,8 +437,9 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
           </div>
         </div>
         <ToggleSwitch
-          enabled={echoCancellation}
-          onChange={setEchoCancellation}
+          label={t('calls.echoCancellation')}
+          enabled={audio.echoCancellation}
+          onChange={(enabled) => setProcessing('echoCancellation', enabled)}
         />
       </div>
     </motion.div>
@@ -429,12 +449,17 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
 // ─── Toggle Switch ─────────────────────────────────────────────────────────────
 
 interface ToggleSwitchProps {
+  /** Le commutateur n'a pas de texte : sans lui, rien ne dit ce qu'il commande. */
+  label: string
   enabled: boolean
   onChange: (enabled: boolean) => void
 }
 
-const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onChange }) => (
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ label, enabled, onChange }) => (
   <button
+    role="switch"
+    aria-checked={enabled}
+    aria-label={label}
     onClick={() => onChange(!enabled)}
     style={{
       width: '44px',

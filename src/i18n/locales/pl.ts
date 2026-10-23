@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Ustawienia połączenia",
       "calls.stopScreenShare": "Zatrzymaj",
       "calls.videoQuality": "Jakość wideo",
+      "calls.qualityAuto": "Automatyczna",
       "calls.qualityHigh": "Wysoka",
       "calls.qualityMedium": "Średnia",
       "calls.qualityLow": "Niska",

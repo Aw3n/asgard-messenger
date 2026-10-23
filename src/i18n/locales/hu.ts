@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Hívásbeállítások",
       "calls.stopScreenShare": "Leállítás",
       "calls.videoQuality": "Videó minősége",
+      "calls.qualityAuto": "Automatikus",
       "calls.qualityHigh": "Magas",
       "calls.qualityMedium": "Közepes",
       "calls.qualityLow": "Alacsony",

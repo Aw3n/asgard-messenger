@@ -135,6 +135,7 @@ export default {
       "calls.callSettings": "Call Settings",
       "calls.stopScreenShare": "Stop sharing",
       "calls.videoQuality": "Video Quality",
+      "calls.qualityAuto": "Auto",
       "calls.qualityHigh": "High",
       "calls.qualityMedium": "Medium",
       "calls.qualityLow": "Low",

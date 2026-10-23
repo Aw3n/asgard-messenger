@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Puheluasetukset",
       "calls.stopScreenShare": "Lopeta",
       "calls.videoQuality": "Videon laatu",
+      "calls.qualityAuto": "Automaattinen",
       "calls.qualityHigh": "Korkea",
       "calls.qualityMedium": "Keskitaso",
       "calls.qualityLow": "Matala",

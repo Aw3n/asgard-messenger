@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Samtalsinställningar",
       "calls.stopScreenShare": "Stoppa",
       "calls.videoQuality": "Videokvalitet",
+      "calls.qualityAuto": "Automatisk",
       "calls.qualityHigh": "Hög",
       "calls.qualityMedium": "Medel",
       "calls.qualityLow": "Låg",

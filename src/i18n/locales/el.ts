@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Ρυθμίσεις κλήσης",
       "calls.stopScreenShare": "Διακοπή",
       "calls.videoQuality": "Ποιότητα βίντεο",
+      "calls.qualityAuto": "Αυτόματο",
       "calls.qualityHigh": "Υψηλή",
       "calls.qualityMedium": "Μεσαία",
       "calls.qualityLow": "Χαμηλή",

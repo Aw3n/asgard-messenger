@@ -161,7 +161,9 @@ describe('panneau d’appel', () => {
   it('nomme la rangée de qualités vidéo et désigne le choix en cours', async () => {
     const row = await openPanel()
 
-    expect(within(row).getAllByRole('button')).toHaveLength(3)
+    // Quatre paliers depuis que le panneau commande l'encodeur : « auto » rend
+    // la main à l'adaptatif, sans quoi un choix forcé serait irréversible.
+    expect(within(row).getAllByRole('button')).toHaveLength(4)
     expect(within(row).getAllByRole('button').filter((b) => b.getAttribute('aria-pressed') === 'true')).toHaveLength(1)
   })
 

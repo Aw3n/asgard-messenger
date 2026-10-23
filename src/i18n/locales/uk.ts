@@ -784,6 +784,7 @@ export default {
       "calls.callSettings": "Налаштування дзвінка",
       "calls.stopScreenShare": "Зупинити",
       "calls.videoQuality": "Якість відео",
+      "calls.qualityAuto": "Автоматична",
       "calls.qualityHigh": "Висока",
       "calls.qualityMedium": "Середня",
       "calls.qualityLow": "Низька",

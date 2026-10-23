@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Setări apel",
       "calls.stopScreenShare": "Oprește",
       "calls.videoQuality": "Calitate video",
+      "calls.qualityAuto": "Automat",
       "calls.qualityHigh": "Ridicată",
       "calls.qualityMedium": "Medie",
       "calls.qualityLow": "Scăzută",

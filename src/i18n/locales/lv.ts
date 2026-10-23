@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Zvana iestatījumi",
       "calls.stopScreenShare": "Apturēt",
       "calls.videoQuality": "Video kvalitāte",
+      "calls.qualityAuto": "Automātisks",
       "calls.qualityHigh": "Augsta",
       "calls.qualityMedium": "Vidēja",
       "calls.qualityLow": "Zema",

@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Settijiet tas-sejħa",
       "calls.stopScreenShare": "Ieqaf",
       "calls.videoQuality": "Kwalità tal-video",
+      "calls.qualityAuto": "Awtomatiku",
       "calls.qualityHigh": "Għolja",
       "calls.qualityMedium": "Medja",
       "calls.qualityLow": "Baxxa",

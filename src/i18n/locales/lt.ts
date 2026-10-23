@@ -26,6 +26,7 @@ export default {
       "calls.callSettings": "Skambučio nustatymai",
       "calls.stopScreenShare": "Stabdyti",
       "calls.videoQuality": "Vaizdo kokybė",
+      "calls.qualityAuto": "Automatinis",
       "calls.qualityHigh": "Aukšta",
       "calls.qualityMedium": "Vidutinė",
       "calls.qualityLow": "Žema",
