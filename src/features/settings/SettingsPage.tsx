@@ -284,8 +284,8 @@ const LanguageSection: React.FC = () => {
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage())
   const addToast = useUIStore((s) => s.addToast)
 
-  const handleLanguageChange = (lang: string) => {
-    changeLanguage(lang)
+  const handleLanguageChange = async (lang: string) => {
+    await changeLanguage(lang)
     setCurrentLang(lang)
     addToast({ type: 'success', title: t('settings.languageChanged'), duration: 2000 })
   }

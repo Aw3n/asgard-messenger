@@ -50,6 +50,10 @@ const CONTENT_EMOJI = new Set([
   'src/features/chat/components/MessageBubble.tsx',
   'src/i18n/translations.ts',
 ])
+// Modules de langue générés depuis translations.ts : même contenu, donc mêmes
+// émojis de libellé (le préfixe « Transféré »). La couverture de police reste
+// contrôlée sur le catalogue source, qui est leur unique origine.
+const CONTENT_EMOJI_DIRS = ['src/i18n/locales/']
 
 const FORBIDDEN = /[\u{1F000}-\u{1FAFF}\u{2300}-\u{23FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu
 
@@ -69,6 +73,7 @@ const problems = []
 for (const file of files) {
   const rel = relative(ROOT, file).replace(/\\/g, '/')
   if (CONTENT_EMOJI.has(rel)) continue
+  if (CONTENT_EMOJI_DIRS.some((dir) => rel.startsWith(dir))) continue
   const lines = readFileSync(file, 'utf8').split('\n')
   lines.forEach((line, i) => {
     const found = line.match(FORBIDDEN)
