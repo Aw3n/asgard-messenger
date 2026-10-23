@@ -151,10 +151,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
     document.getElementById(`search-result-${selectedIndex}`)?.scrollIntoView?.({ block: 'nearest' })
   }, [selectedIndex])
 
-  if (!isOpen) return null
-
   return (
     <AnimatePresence>
+      {isOpen && (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -307,6 +306,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   )
 }

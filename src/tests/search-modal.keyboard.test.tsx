@@ -106,6 +106,24 @@ describe('recherche globale au clavier', () => {
     expect(document.activeElement).toBe(last)
   })
 
+  it('garde la modale montée le temps de son animation de fermeture', () => {
+    const onClose = vi.fn()
+    const view = render(
+      <MemoryRouter>
+        <SearchModal isOpen onClose={onClose} />
+      </MemoryRouter>
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    view.rerender(
+      <MemoryRouter>
+        <SearchModal isOpen={false} onClose={onClose} />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
   it('rend le focus à l’élément déclencheur à la fermeture', () => {
     const trigger = document.createElement('button')
     trigger.textContent = 'ouvrir'
