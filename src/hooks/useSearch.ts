@@ -46,7 +46,10 @@ const STORAGE_RESULTS_PER_CONVERSATION = 5
  * and cancelled so a slow reply for an old query never overwrites the current one.
  */
 export function useSearch(query: string) {
-  const contacts = useContactStore((s) => Object.values(s.contacts))
+  const contactTable = useContactStore((s) => s.contacts)
+  // La table du store est la référence stable ; Object.values se fait après, sinon
+  // toute la recherche se recalcule à chaque rendu.
+  const contacts = useMemo(() => Object.values(contactTable), [contactTable])
   const conversations = useConversationStore((s) => s.conversations)
   const groups = useGroupStore((s) => s.groups)
   // Abonnement réactif : un message reçu pendant la frappe doit apparaître

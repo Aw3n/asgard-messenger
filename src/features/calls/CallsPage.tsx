@@ -27,8 +27,12 @@ interface GroupedCallEntry {
 export const CallsPage: React.FC = () => {
   const history = useCallStore((s) => s.history)
   const clearHistory = useCallStore((s) => s.clearHistory)
-  const contacts = useContactStore((s) =>
-    Object.values(s.contacts).filter((c) => c.relation === 'contact' || c.relation === 'favorite')
+  const storedContacts = useContactStore((s) => s.contacts)
+  // Hors du sélecteur : filtrer dans le sélecteur rend une liste neuve à chaque rendu,
+  // et le comptage des contacts connectés ci-dessous la relit comme un changement.
+  const contacts = useMemo(
+    () => Object.values(storedContacts).filter((c) => c.relation === 'contact' || c.relation === 'favorite'),
+    [storedContacts],
   )
   const [search, setSearch] = useState('')
   const [expandedPeer, setExpandedPeer] = useState<string | null>(null)

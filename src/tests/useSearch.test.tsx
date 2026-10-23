@@ -164,6 +164,20 @@ describe('useSearch', () => {
 
     expect(result.current.messageResults).toHaveLength(2)
   })
+
+  it('rend la même liste d’un rendu à l’autre tant que rien n’a changé', () => {
+    // Un sélecteur qui fabrique une liste neuve (Object.values dans le sélecteur)
+    // change de référence à chaque rendu : toute la recherche se recalcule et les
+    // effets qui lisent cette valeur n'ont plus de lane libre.
+    const { result, rerender } = renderHook(() => useSearch('bonjour'))
+    const first = result.current.messageResults
+
+    rerender()
+    rerender()
+
+    expect(result.current.messageResults).toBe(first)
+    expect(searchMessages).not.toHaveBeenCalled()
+  })
 })
 
 describe('useSearch — messages de groupe', () => {
