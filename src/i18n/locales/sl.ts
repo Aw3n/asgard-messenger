@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Povabljen",
       "groups.inviteFailed": "Povabila ni bilo mogoče poslati",
       "groups.noContactsToInvite": "Ni stikov za povabilo",
+      "notifications.newMessage": "Novo sporočilo",
+      "notifications.mentionedYou": "{{name}} vas je omenil",
     }
 }

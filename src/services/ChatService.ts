@@ -13,6 +13,8 @@ import { useNetworkStore } from '@/stores/networkStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { generateId } from '@/utils/id'
+import { speakText } from '@/utils/speech'
+import i18n from '@/i18n/config'
 import {
   toNetworkStatus,
   fromNetworkStatus,
@@ -3170,12 +3172,12 @@ class ChatService {
         if (!notifSettings.mentionsOnly || this.isMentioned(content)) {
           const body = notifSettings.showPreview
             ? content.slice(0, 100)
-            : 'New message'
+            : i18n.t('notifications.newMessage')
           window.asgard.notifications.show(senderName, body)
           // NOTIFICATION SETTINGS (sound): short beep alongside the notification
           if (notifSettings.sound) ringtoneService.playBeep(660, 120)
           // ACCESSIBILITY SETTINGS (ttsEnabled): read the message aloud
-          if (a11ySettings.ttsEnabled) this.speakText(`${senderName}. ${body}`)
+          if (a11ySettings.ttsEnabled) speakText(`${senderName}. ${body}`)
         }
       }
     }
@@ -3191,19 +3193,6 @@ class ChatService {
     const myName = useIdentityStore.getState().identity?.profile.displayName?.trim().toLowerCase()
     if (!myName || myName.length < 2) return false
     return lower.includes(`@${myName}`)
-  }
-
-  /**
-   * ACCESSIBILITY SETTINGS (ttsEnabled): speak text aloud with the Web Speech
-   * API. Best-effort — silently ignored when unsupported.
-   */
-  private speakText(text: string): void {
-    try {
-      if (!('speechSynthesis' in window)) return
-      const utterance = new SpeechSynthesisUtterance(text.slice(0, 300))
-      utterance.lang = navigator.language || 'fr-FR'
-      window.speechSynthesis.speak(utterance)
-    } catch { /* best-effort */ }
   }
 
   /**

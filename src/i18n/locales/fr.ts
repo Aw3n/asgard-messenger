@@ -862,5 +862,7 @@ export default {
       "groups.invitationSent": "Invité",
       "groups.inviteFailed": "Échec de l'envoi de l'invitation",
       "groups.noContactsToInvite": "Aucun contact à inviter",
+      "notifications.newMessage": "Nouveau message",
+      "notifications.mentionedYou": "{{name}} vous a mentionné",
     }
 }

@@ -862,5 +862,7 @@ export default {
       "groups.invitationSent": "Eingeladen",
       "groups.inviteFailed": "Einladung konnte nicht gesendet werden",
       "groups.noContactsToInvite": "Keine Kontakte zum Einladen",
+      "notifications.newMessage": "Neue Nachricht",
+      "notifications.mentionedYou": "{{name}} hat dich erwähnt",
     }
 }

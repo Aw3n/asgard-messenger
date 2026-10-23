@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Запрошено",
       "groups.inviteFailed": "Не вдалося надіслати запрошення",
       "groups.noContactsToInvite": "Немає контактів для запрошення",
+      "notifications.newMessage": "Нове повідомлення",
+      "notifications.mentionedYou": "{{name}} згадав вас",
     }
 }

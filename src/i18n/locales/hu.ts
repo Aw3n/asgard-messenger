@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Meghívva",
       "groups.inviteFailed": "Nem sikerült elküldeni a meghívót",
       "groups.noContactsToInvite": "Nincs meghívható névjegy",
+      "notifications.newMessage": "Új üzenet",
+      "notifications.mentionedYou": "{{name}} megemlített téged",
     }
 }

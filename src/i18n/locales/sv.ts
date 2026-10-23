@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Inbjuden",
       "groups.inviteFailed": "Det gick inte att skicka inbjudan",
       "groups.noContactsToInvite": "Inga kontakter att bjuda in",
+      "notifications.newMessage": "Nytt meddelande",
+      "notifications.mentionedYou": "{{name}} nämnde dig",
     }
 }

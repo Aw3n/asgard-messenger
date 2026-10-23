@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Invitat",
       "groups.inviteFailed": "Trimiterea invitației a eșuat",
       "groups.noContactsToInvite": "Niciun contact de invitat",
+      "notifications.newMessage": "Mesaj nou",
+      "notifications.mentionedYou": "{{name}} te-a menționat",
     }
 }

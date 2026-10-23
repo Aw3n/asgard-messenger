@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Mistieden",
       "groups.inviteFailed": "Ma rnexxielniex nibagħtu l-istedina",
       "groups.noContactsToInvite": "L-ebda kuntatt biex tistieden",
+      "notifications.newMessage": "Messaġġ ġdid",
+      "notifications.mentionedYou": "{{name}} għamel referenza għalik",
     }
 }

@@ -15,6 +15,7 @@ import { useGroupStore } from '@/stores/groupStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useMessageStore } from '@/stores/messageStore'
 import { useUIStore } from '@/stores/uiStore'
+import i18n from '@/i18n/config'
 import type { GroupMember, Message, ProtocolMessage } from '@/types'
 
 const A = 'a'.repeat(64)
@@ -38,6 +39,7 @@ type Handler =
   | 'handleGroupReaction'
   | 'handleGroupEdit'
   | 'handleGroupDelete'
+  | 'handleGroupMention'
 
 const dispatch = (
   handler: Handler,
@@ -80,6 +82,10 @@ beforeEach(() => {
     scheduledMessages: [],
     templates: [],
   })
+  // Pas de Web Audio en jsdom : le son des notifications n'est pas testé ici.
+  useUIStore.setState((state) => ({
+    settings: { ...state.settings, notifications: { ...state.settings.notifications, sound: false } },
+  }))
 
   const created = useGroupStore.getState().createGroup({
     name: 'Équipe',
@@ -722,5 +728,128 @@ describe('accusé de lecture d’un message vu en direct', () => {
 
     expect(readReceiptSent()).toBe(false)
     expect(group().channels[0].unreadCount).toBe(1)
+  })
+})
+
+describe('notifications de groupe', () => {
+  type NotifSettings = ReturnType<typeof useUIStore.getState>['settings']['notifications']
+  const setNotifications = (patch: Partial<NotifSettings>): void => {
+    useUIStore.setState((state) => ({
+      settings: { ...state.settings, notifications: { ...state.settings.notifications, ...patch } },
+    }))
+  }
+  const show = () => vi.mocked(window.asgard.notifications.show)
+  const receive = (
+    id: string,
+    content: string,
+    mentions?: Array<{ publicKey: string; displayName: string; startIndex: number; endIndex: number }>,
+  ): void => {
+    dispatch('handleGroupMessage', {
+      groupId,
+      channelId,
+      message: {
+        id,
+        senderId: B,
+        content,
+        timestamp: Date.now(),
+        type: mentions ? 'mention' : 'text',
+        ...(mentions ? { mentions } : {}),
+      },
+    }, B, 'group:message')
+  }
+  const mention = (messageId: string, content: string): void => {
+    dispatch('handleGroupMention', {
+      groupId,
+      channelId,
+      messageId,
+      mentionedBy: B,
+      content,
+      timestamp: Date.now(),
+    }, B, 'group:mention')
+  }
+
+  beforeEach(() => {
+    useGroupStore.getState().setGroupViewVisible(false)
+    setNotifications({ enabled: true, sound: false, dndMode: false, showPreview: true, mentionsOnly: false })
+    show().mockClear()
+  })
+
+  it('notifie un message d’un canal non affiché', () => {
+    receive('notif-1', 'Bonjour à tous')
+
+    expect(show()).toHaveBeenCalledTimes(1)
+    expect(show()).toHaveBeenCalledWith('Bob · Équipe', 'Bonjour à tous')
+    expect(group().channels[0].unreadCount).toBe(1)
+  })
+
+  it('ne notifie ni quand les notifications sont coupées ni en ne pas déranger', () => {
+    setNotifications({ enabled: false })
+    receive('notif-2', 'coupé')
+    setNotifications({ enabled: true, dndMode: true })
+    receive('notif-3', 'silencieux')
+
+    expect(show()).not.toHaveBeenCalled()
+    expect(group().channels[0].unreadCount).toBe(2)
+  })
+
+  it('respecte « mentions uniquement »', () => {
+    setNotifications({ mentionsOnly: true })
+    receive('notif-4', 'Sans mention')
+    expect(show()).not.toHaveBeenCalled()
+
+    receive('notif-5', '@Alice coucou', [
+      { publicKey: A, displayName: 'Alice', startIndex: 0, endIndex: 6 },
+    ])
+    expect(show()).toHaveBeenCalledTimes(1)
+  })
+
+  it('masque l’aperçu quand demandé', () => {
+    setNotifications({ showPreview: false })
+    receive('notif-6', 'contenu privé')
+
+    expect(show()).toHaveBeenCalledWith('Bob · Équipe', i18n.t('notifications.newMessage'))
+    expect(show()).not.toHaveBeenCalledWith('Bob · Équipe', 'contenu privé')
+  })
+
+  it('ne notifie pas un canal affiché', () => {
+    useGroupStore.getState().setActiveGroup(groupId)
+    useGroupStore.getState().setGroupViewVisible(true)
+    receive('notif-7', 'vu en direct')
+
+    expect(show()).not.toHaveBeenCalled()
+    expect(group().channels[0].unreadCount).toBe(0)
+  })
+
+  it('notifie une mention reçue avant son message, une seule fois', () => {
+    mention('notif-8', 'Salut @Alice')
+    expect(show()).toHaveBeenCalledTimes(1)
+    expect(show()).toHaveBeenCalledWith('Bob · Équipe', 'Salut @Alice')
+
+    receive('notif-8', 'Salut @Alice', [
+      { publicKey: A, displayName: 'Alice', startIndex: 0, endIndex: 6 },
+    ])
+    expect(show()).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignore une notification de mention pour un message déjà affiché', () => {
+    useGroupStore.getState().setActiveGroup(groupId)
+    useGroupStore.getState().setGroupViewVisible(true)
+    receive('notif-9', '@Alice coucou', [
+      { publicKey: A, displayName: 'Alice', startIndex: 0, endIndex: 6 },
+    ])
+    useGroupStore.getState().setGroupViewVisible(false)
+
+    mention('notif-9', '@Alice coucou')
+
+    expect(show()).not.toHaveBeenCalled()
+  })
+
+  it('respecte les réglages pour une notification de mention', () => {
+    setNotifications({ enabled: false })
+    mention('notif-10', '@Alice')
+    setNotifications({ enabled: true, dndMode: true })
+    mention('notif-11', '@Alice')
+
+    expect(show()).not.toHaveBeenCalled()
   })
 })

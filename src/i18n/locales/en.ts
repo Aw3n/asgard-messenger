@@ -872,5 +872,7 @@ export default {
       "groups.invitationSent": "Invited",
       "groups.inviteFailed": "Failed to send the invitation",
       "groups.noContactsToInvite": "No contacts to invite",
+      "notifications.newMessage": "New message",
+      "notifications.mentionedYou": "{{name}} mentioned you",
     }
 }

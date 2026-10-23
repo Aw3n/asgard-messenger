@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Cuireadh seolta",
       "groups.inviteFailed": "Theip ar sheoladh an chuireadh",
       "groups.noContactsToInvite": "Níl aon teagmhálaithe le tabhairt cuireadh dóibh",
+      "notifications.newMessage": "Teachtaireacht nua",
+      "notifications.mentionedYou": "Luaigh {{name}} thú",
     }
 }

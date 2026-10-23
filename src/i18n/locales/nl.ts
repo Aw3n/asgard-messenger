@@ -862,5 +862,7 @@ export default {
       "groups.invitationSent": "Uitgenodigd",
       "groups.inviteFailed": "Verzenden van de uitnodiging mislukt",
       "groups.noContactsToInvite": "Geen contacten om uit te nodigen",
+      "notifications.newMessage": "Nieuw bericht",
+      "notifications.mentionedYou": "{{name}} heeft je vermeld",
     }
 }

@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Kutsuttu",
       "groups.inviteFailed": "Kutsun lähetys epäonnistui",
       "groups.noContactsToInvite": "Ei kutsuttavia yhteystietoja",
+      "notifications.newMessage": "Uusi viesti",
+      "notifications.mentionedYou": "{{name}} mainitsi sinut",
     }
 }

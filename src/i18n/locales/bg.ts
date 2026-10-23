@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Поканен",
       "groups.inviteFailed": "Поканата не можа да бъде изпратена",
       "groups.noContactsToInvite": "Няма контакти за поканване",
+      "notifications.newMessage": "Ново съобщение",
+      "notifications.mentionedYou": "{{name}} ви спомена",
     }
 }

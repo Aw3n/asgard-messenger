@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Pozvaný",
       "groups.inviteFailed": "Pozvánku sa nepodarilo odoslať",
       "groups.noContactsToInvite": "Žiadne kontakty na pozvanie",
+      "notifications.newMessage": "Nová správa",
+      "notifications.mentionedYou": "{{name}} vás spomenul",
     }
 }

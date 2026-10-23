@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Uzaicināts",
       "groups.inviteFailed": "Neizdevās nosūtīt uzaicinājumu",
       "groups.noContactsToInvite": "Nav kontaktu, ko uzaicināt",
+      "notifications.newMessage": "Jauns ziņojums",
+      "notifications.mentionedYou": "{{name}} jūs pieminēja",
     }
 }

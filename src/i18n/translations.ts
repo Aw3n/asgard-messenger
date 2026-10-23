@@ -861,6 +861,8 @@ export const translations = {
       "groups.invitationSent": "Invité",
       "groups.inviteFailed": "Échec de l'envoi de l'invitation",
       "groups.noContactsToInvite": "Aucun contact à inviter",
+      "notifications.newMessage": "Nouveau message",
+      "notifications.mentionedYou": "{{name}} vous a mentionné",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1725,6 +1727,8 @@ export const translations = {
       "groups.invitationSent": "Uitgenodigd",
       "groups.inviteFailed": "Verzenden van de uitnodiging mislukt",
       "groups.noContactsToInvite": "Geen contacten om uit te nodigen",
+      "notifications.newMessage": "Nieuw bericht",
+      "notifications.mentionedYou": "{{name}} heeft je vermeld",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2589,6 +2593,8 @@ export const translations = {
       "groups.invitationSent": "Eingeladen",
       "groups.inviteFailed": "Einladung konnte nicht gesendet werden",
       "groups.noContactsToInvite": "Keine Kontakte zum Einladen",
+      "notifications.newMessage": "Neue Nachricht",
+      "notifications.mentionedYou": "{{name}} hat dich erwähnt",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3453,6 +3459,8 @@ export const translations = {
       "groups.invitationSent": "Invitato",
       "groups.inviteFailed": "Invio dell'invito non riuscito",
       "groups.noContactsToInvite": "Nessun contatto da invitare",
+      "notifications.newMessage": "Nuovo messaggio",
+      "notifications.mentionedYou": "{{name}} ti ha menzionato",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4317,6 +4325,8 @@ export const translations = {
       "groups.invitationSent": "Invitado",
       "groups.inviteFailed": "No se pudo enviar la invitación",
       "groups.noContactsToInvite": "No hay contactos para invitar",
+      "notifications.newMessage": "Mensaje nuevo",
+      "notifications.mentionedYou": "{{name}} te ha mencionado",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5182,6 +5192,8 @@ export const translations = {
       "groups.invitationSent": "Convidado",
       "groups.inviteFailed": "Falha ao enviar o convite",
       "groups.noContactsToInvite": "Nenhum contacto para convidar",
+      "notifications.newMessage": "Nova mensagem",
+      "notifications.mentionedYou": "{{name}} mencionou você",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6047,6 +6059,8 @@ export const translations = {
       "groups.invitationSent": "Προσκλήθηκε",
       "groups.inviteFailed": "Αποτυχία αποστολής της πρόσκλησης",
       "groups.noContactsToInvite": "Δεν υπάρχουν επαφές για πρόσκληση",
+      "notifications.newMessage": "Νέο μήνυμα",
+      "notifications.mentionedYou": "{{name}} σας ανέφερε",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6912,6 +6926,8 @@ export const translations = {
       "groups.invitationSent": "Inviteret",
       "groups.inviteFailed": "Kunne ikke sende invitationen",
       "groups.noContactsToInvite": "Ingen kontakter at invitere",
+      "notifications.newMessage": "Ny besked",
+      "notifications.mentionedYou": "{{name}} nævnte dig",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7777,6 +7793,8 @@ export const translations = {
       "groups.invitationSent": "Kutsuttu",
       "groups.inviteFailed": "Kutsun lähetys epäonnistui",
       "groups.noContactsToInvite": "Ei kutsuttavia yhteystietoja",
+      "notifications.newMessage": "Uusi viesti",
+      "notifications.mentionedYou": "{{name}} mainitsi sinut",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8642,6 +8660,8 @@ export const translations = {
       "groups.invitationSent": "Inbjuden",
       "groups.inviteFailed": "Det gick inte att skicka inbjudan",
       "groups.noContactsToInvite": "Inga kontakter att bjuda in",
+      "notifications.newMessage": "Nytt meddelande",
+      "notifications.mentionedYou": "{{name}} nämnde dig",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9507,6 +9527,8 @@ export const translations = {
       "groups.invitationSent": "Pozvan",
       "groups.inviteFailed": "Slanje pozivnice nije uspjelo",
       "groups.noContactsToInvite": "Nema kontakata za pozivanje",
+      "notifications.newMessage": "Nova poruka",
+      "notifications.mentionedYou": "{{name}} vas je spomenuo",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10372,6 +10394,8 @@ export const translations = {
       "groups.invitationSent": "Kutsutud",
       "groups.inviteFailed": "Kutse saatmine ebaõnnestus",
       "groups.noContactsToInvite": "Pole kontakte, keda kutsuda",
+      "notifications.newMessage": "Uus sõnum",
+      "notifications.mentionedYou": "{{name}} mainis sind",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11237,6 +11261,8 @@ export const translations = {
       "groups.invitationSent": "Meghívva",
       "groups.inviteFailed": "Nem sikerült elküldeni a meghívót",
       "groups.noContactsToInvite": "Nincs meghívható névjegy",
+      "notifications.newMessage": "Új üzenet",
+      "notifications.mentionedYou": "{{name}} megemlített téged",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12102,6 +12128,8 @@ export const translations = {
       "groups.invitationSent": "Uzaicināts",
       "groups.inviteFailed": "Neizdevās nosūtīt uzaicinājumu",
       "groups.noContactsToInvite": "Nav kontaktu, ko uzaicināt",
+      "notifications.newMessage": "Jauns ziņojums",
+      "notifications.mentionedYou": "{{name}} jūs pieminēja",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -12967,6 +12995,8 @@ export const translations = {
       "groups.invitationSent": "Pakviestas",
       "groups.inviteFailed": "Nepavyko išsiųsti kvietimo",
       "groups.noContactsToInvite": "Nėra kontaktų, kuriuos pakviesti",
+      "notifications.newMessage": "Nauja žinutė",
+      "notifications.mentionedYou": "{{name}} jus paminėjo",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13832,6 +13862,8 @@ export const translations = {
       "groups.invitationSent": "Mistieden",
       "groups.inviteFailed": "Ma rnexxielniex nibagħtu l-istedina",
       "groups.noContactsToInvite": "L-ebda kuntatt biex tistieden",
+      "notifications.newMessage": "Messaġġ ġdid",
+      "notifications.mentionedYou": "{{name}} għamel referenza għalik",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14697,6 +14729,8 @@ export const translations = {
       "groups.invitationSent": "Zaproszono",
       "groups.inviteFailed": "Nie udało się wysłać zaproszenia",
       "groups.noContactsToInvite": "Brak kontaktów do zaproszenia",
+      "notifications.newMessage": "Nowa wiadomość",
+      "notifications.mentionedYou": "{{name}} wspomniał o Tobie",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15562,6 +15596,8 @@ export const translations = {
       "groups.invitationSent": "Pozvaný",
       "groups.inviteFailed": "Pozvánku sa nepodarilo odoslať",
       "groups.noContactsToInvite": "Žiadne kontakty na pozvanie",
+      "notifications.newMessage": "Nová správa",
+      "notifications.mentionedYou": "{{name}} vás spomenul",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16427,6 +16463,8 @@ export const translations = {
       "groups.invitationSent": "Povabljen",
       "groups.inviteFailed": "Povabila ni bilo mogoče poslati",
       "groups.noContactsToInvite": "Ni stikov za povabilo",
+      "notifications.newMessage": "Novo sporočilo",
+      "notifications.mentionedYou": "{{name}} vas je omenil",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17292,6 +17330,8 @@ export const translations = {
       "groups.invitationSent": "Pozván",
       "groups.inviteFailed": "Pozvánku se nepodařilo odeslat",
       "groups.noContactsToInvite": "Žádné kontakty k pozvání",
+      "notifications.newMessage": "Nová zpráva",
+      "notifications.mentionedYou": "{{name}} vás zmínil",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18157,6 +18197,8 @@ export const translations = {
       "groups.invitationSent": "Поканен",
       "groups.inviteFailed": "Поканата не можа да бъде изпратена",
       "groups.noContactsToInvite": "Няма контакти за поканване",
+      "notifications.newMessage": "Ново съобщение",
+      "notifications.mentionedYou": "{{name}} ви спомена",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19022,6 +19064,8 @@ export const translations = {
       "groups.invitationSent": "Cuireadh seolta",
       "groups.inviteFailed": "Theip ar sheoladh an chuireadh",
       "groups.noContactsToInvite": "Níl aon teagmhálaithe le tabhairt cuireadh dóibh",
+      "notifications.newMessage": "Teachtaireacht nua",
+      "notifications.mentionedYou": "Luaigh {{name}} thú",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -19887,6 +19931,8 @@ export const translations = {
       "groups.invitationSent": "Invitat",
       "groups.inviteFailed": "Trimiterea invitației a eșuat",
       "groups.noContactsToInvite": "Niciun contact de invitat",
+      "notifications.newMessage": "Mesaj nou",
+      "notifications.mentionedYou": "{{name}} te-a menționat",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20761,6 +20807,8 @@ export const translations = {
       "groups.invitationSent": "Invited",
       "groups.inviteFailed": "Failed to send the invitation",
       "groups.noContactsToInvite": "No contacts to invite",
+      "notifications.newMessage": "New message",
+      "notifications.mentionedYou": "{{name}} mentioned you",
     }
   },
 
@@ -21627,6 +21675,8 @@ export const translations = {
       "groups.invitationSent": "Запрошено",
       "groups.inviteFailed": "Не вдалося надіслати запрошення",
       "groups.noContactsToInvite": "Немає контактів для запрошення",
+      "notifications.newMessage": "Нове повідомлення",
+      "notifications.mentionedYou": "{{name}} згадав вас",
     }
   },
 }

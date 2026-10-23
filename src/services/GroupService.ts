@@ -10,6 +10,9 @@ import { useUIStore } from '@/stores/uiStore'
 import { fileService } from './FileService'
 import { storageService } from './StorageService'
 import { generateId } from '@/utils/id'
+import { speakText } from '@/utils/speech'
+import { ringtoneService } from './RingtoneService'
+import i18n from '@/i18n/config'
 import { buildGroupInvitePayload, groupFromInvite } from '@/utils/groupInvite'
 import { toNetworkStatus, fromNetworkStatus, GROUP_PRESENCE_TIMEOUT, type NetworkStatus } from '@/utils/presence'
 
@@ -50,6 +53,9 @@ class GroupService {
   private pendingGroupMessages: Map<string, { groupId: string; channelId: string; message: Record<string, unknown>; createdAt: number }> = new Map()
   // Track last broadcast status to avoid redundant re-broadcasts
   private lastBroadcastStatus: string | null = null
+  // Une mention notifiée avant l'arrivée de son message ne doit pas produire
+  // une seconde notification quand le message la rejoint.
+  private notifiedMentionIds = new Set<string>()
   // HEARTBEAT COUNTER: Force a re-broadcast every N heartbeats even if status
   // hasn't changed, so peers that missed our announcement eventually get it.
   // Derived from the presence lifetime instead of hardcoded: we must re-announce
@@ -1812,6 +1818,11 @@ class GroupService {
       && groupState.activeChannelId === channelId
     if (!viewingChannel) {
       groupState.incrementChannelUnread(groupId, channelId)
+      // Une mention déjà notifiée par son canal dédié ne se rejoue pas ; sinon
+      // le message non affiché mérite une notification système, réglages respectés.
+      if (!this.notifiedMentionIds.delete(message.id)) {
+        this.notifyGroupMessage(group, message)
+      }
     } else if (
       identity
       && message.senderId !== identity.keyPair.publicKey
@@ -1828,6 +1839,36 @@ class GroupService {
         console.warn('[GroupService] Failed to send read receipt:', err)
       })
     }
+  }
+
+  /**
+   * Notifie un message de groupe non affiché, dans les limites des réglages :
+   * notifications coupées, ne pas déranger, aperçu, mentions seules, son et
+   * synthèse vocale.
+   */
+  private notifyGroupMessage(group: Group, message: Message): void {
+    const identity = useIdentityStore.getState().identity
+    if (!identity || message.senderId === identity.keyPair.publicKey) return
+    const settings = useUIStore.getState().settings
+    const notif = settings.notifications
+    if (!notif.enabled || notif.dndMode) return
+    const mentionsMe = message.mentions?.some(
+      (mention) => mention.publicKey === identity.keyPair.publicKey,
+    ) ?? false
+    if (notif.mentionsOnly && !mentionsMe) return
+
+    const senderName = group.members.find((member) => member.publicKey === message.senderId)?.displayName
+      || message.senderId.slice(0, 8)
+    const body = notif.showPreview
+      ? message.content.slice(0, 100)
+      : i18n.t('notifications.newMessage')
+    try {
+      window.asgard.notifications.show(`${senderName} · ${group.name}`, body)
+    } catch {
+      return
+    }
+    if (notif.sound) ringtoneService.playBeep(660, 120)
+    if (settings.accessibility.ttsEnabled) speakText(`${senderName}. ${body}`)
   }
 
   /**
@@ -2227,24 +2268,48 @@ class GroupService {
     if (!author) return
     if (!group.channels.some((c) => c.id === channelId)) return
 
+    // Un message affiché dans le canal est déjà vu ; un message déjà arrivé a
+    // déjà été notifié par handleGroupMessage. Notifier l'un ou l'autre ici
+    // produirait une alerte pour un fil sous les yeux, ou en double.
+    const groupState = useGroupStore.getState()
+    const viewingChannel = groupState.groupViewVisible
+      && groupState.activeGroupId === groupId
+      && groupState.activeChannelId === channelId
+    if (viewingChannel) return
+    if (useMessageStore.getState().getMessage(messageId, channelId)) return
+
+    const settings = useUIStore.getState().settings
+    const notif = settings.notifications
+    if (!notif.enabled || notif.dndMode) return
+
     // The notifier names itself with its roster profile, not with a string
     // carried by the wire: otherwise anyone could impersonate another member
     // in the notification.
     const authorName = author.displayName || mentionedBy.slice(0, 16)
     const preview = typeof content === 'string' ? content.trim().slice(0, GroupService.MAX_MENTION_PREVIEW) : ''
-    const title = `${authorName} mentioned you in ${group.name}`
-    const body = preview || 'You were mentioned in a message'
+    const body = notif.showPreview && preview
+      ? preview
+      : i18n.t('notifications.mentionedYou', { name: authorName })
 
-    // Use the notification API if available
     try {
       if (typeof window !== 'undefined' && window.asgard?.notifications) {
-        window.asgard.notifications.show(title, body)
+        window.asgard.notifications.show(`${authorName} · ${group.name}`, body)
       }
     } catch {
       // Notifications not available, skip
     }
+    if (notif.sound) ringtoneService.playBeep(660, 120)
+    if (settings.accessibility.ttsEnabled) speakText(`${authorName}. ${body}`)
 
-    console.log('[GroupService] Mention notification:', title, body)
+    // La notification de mention peut précéder son message : mémoriser l'id
+    // évite que handleGroupMessage n'alerte une seconde fois.
+    this.notifiedMentionIds.add(messageId)
+    if (this.notifiedMentionIds.size > 200) {
+      const oldest = this.notifiedMentionIds.values().next().value
+      if (oldest) this.notifiedMentionIds.delete(oldest)
+    }
+
+    console.log('[GroupService] Mention notification:', group.name, body)
   }
 
   // ─── Offline Message Queue ──────────────────────────────────────────────

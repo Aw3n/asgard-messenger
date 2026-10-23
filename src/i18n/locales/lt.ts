@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Pakviestas",
       "groups.inviteFailed": "Nepavyko išsiųsti kvietimo",
       "groups.noContactsToInvite": "Nėra kontaktų, kuriuos pakviesti",
+      "notifications.newMessage": "Nauja žinutė",
+      "notifications.mentionedYou": "{{name}} jus paminėjo",
     }
 }

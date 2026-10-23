@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Kutsutud",
       "groups.inviteFailed": "Kutse saatmine ebaõnnestus",
       "groups.noContactsToInvite": "Pole kontakte, keda kutsuda",
+      "notifications.newMessage": "Uus sõnum",
+      "notifications.mentionedYou": "{{name}} mainis sind",
     }
 }

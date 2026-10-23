@@ -863,5 +863,7 @@ export default {
       "groups.invitationSent": "Προσκλήθηκε",
       "groups.inviteFailed": "Αποτυχία αποστολής της πρόσκλησης",
       "groups.noContactsToInvite": "Δεν υπάρχουν επαφές για πρόσκληση",
+      "notifications.newMessage": "Νέο μήνυμα",
+      "notifications.mentionedYou": "{{name}} σας ανέφερε",
     }
 }
