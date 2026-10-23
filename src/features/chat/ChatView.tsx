@@ -15,6 +15,7 @@ import { PendingContactBanner } from './components/PendingContactBanner'
 import { ForwardModal } from './components/ForwardModal'
 import { ActiveTransfersWidget } from './components/ActiveTransfersWidget'
 import { Avatar } from '@/components/ui/Avatar'
+import { MuteButton } from '@/components/ui/MuteButton'
 import { UnreadDivider } from '@/components/ui/UnreadDivider'
 import { chatService } from '@/services/ChatService'
 import { p2pService } from '@/services/P2PService'
@@ -145,6 +146,11 @@ export const ChatView: React.FC = () => {
   // BROADCAST MODE: Check if user is read-only (not the broadcaster)
   const isBroadcastReadOnly = useConversationStore((s) =>
     dataId && identity ? s.isBroadcastReadOnly(dataId, identity.keyPair.publicKey) : false
+  )
+  // Parité avec l'en-tête de groupe : la sourdine du fil 1:1 était réglable
+  // uniquement par le clic droit de la liste.
+  const conversationMuted = useConversationStore((s) =>
+    dataId ? s.conversations[dataId]?.muted ?? false : false
   )
 
   // Changer de conversation abandonne une réponse ou une édition en cours :
@@ -445,6 +451,12 @@ export const ChatView: React.FC = () => {
               <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
             </svg>
           </HeaderButton>
+          <MuteButton
+            muted={conversationMuted}
+            onToggle={() =>
+              useConversationStore.getState().muteConversation(conversation.id, !conversationMuted)
+            }
+          />
           <HeaderButton
             aria-label={t('chat.searchMessages')}
             onClick={() => setSearchOpen(true)}
