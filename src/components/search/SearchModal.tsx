@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSearch, type SearchResult } from '@/hooks/useSearch'
+import { isCloseKeypress } from '@/hooks/useDialogBehavior'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { Avatar } from '@/components/ui/Avatar'
@@ -89,13 +90,13 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
     }
   }
 
-  // Close on Escape
+  // Fermeture : la combinaison réglée dans `settings.keyboardShortcuts`.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Échap qui annule une composition IME reste au champ : fermer la
       // recherche jetterait la saisie en cours.
       if (e.isComposing || e.keyCode === 229) return
-      if (e.key === 'Escape' && isOpen) {
+      if (isCloseKeypress(e) && isOpen) {
         onClose()
       }
     }

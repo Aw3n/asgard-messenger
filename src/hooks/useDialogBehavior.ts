@@ -1,8 +1,20 @@
 import { useEffect, useRef } from 'react'
+import { useUIStore } from '@/stores/uiStore'
+import { comboMatches } from '@/utils/shortcuts'
 
 /** Les contrôles atteignables au Tab, dans l'ordre du DOM. */
 export const DIALOG_FOCUSABLE =
   'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+
+/**
+ * La combinaison qui ferme un dialogue, lue au moment de la frappe :
+ * `settings.keyboardShortcuts.closeModal` était écrit, persisté, jamais consulté
+ * — cinq dialogues et la recherche fermaient sur « Escape » en dur, y compris
+ * après un réglage changé.
+ */
+export function isCloseKeypress(event: KeyboardEvent): boolean {
+  return comboMatches(useUIStore.getState().settings.keyboardShortcuts.closeModal, event)
+}
 
 // Pile des dialogues ouverts. Une confirmation se pose parfois par-dessus un
 // panneau déjà modal : sans ce sommet commun, Échap fermerait les deux d'un
@@ -10,8 +22,9 @@ export const DIALOG_FOCUSABLE =
 const dialogStack: symbol[] = []
 
 /**
- * Les gestes clavier d'un dialogue : Échap qui ferme, Tab qui reste piégé dans
- * le panneau, focus qui revient à ce qui a ouvert le dialogue.
+ * Les gestes clavier d'un dialogue : la combinaison de fermeture réglée qui
+ * ferme, Tab qui reste piégé dans le panneau, focus qui revient à ce qui a
+ * ouvert le dialogue.
  *
  * `ModalContainer` faisait déjà les trois pour les modales globales, mais
  * sept dialogues sont posés par leur propre vue par-dessus la page (réglages et
@@ -45,7 +58,7 @@ export function useDialogBehavior<T extends HTMLElement = HTMLDivElement>(onClos
       // Échap qui annule une composition IME reste au champ : fermer effacerait
       // la saisie en cours.
       if (e.isComposing || e.keyCode === 229) return
-      if (e.key === 'Escape') {
+      if (isCloseKeypress(e)) {
         if (!isTopmost()) return
         closeRef.current()
         return

@@ -13,6 +13,7 @@
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { useUIStore } from '@/stores/uiStore'
 
@@ -90,21 +91,33 @@ const pressed = (root: HTMLElement) =>
 
 describe('champs de la page de réglages', () => {
   it('nomme les trois champs du profil', () => {
-    render(<SettingsPage />)
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    )
 
     expect(screen.getByLabelText('settings.customStatus')).toHaveAttribute('type', 'text')
     expect(screen.getByLabelText('settings.about')).toBeInstanceOf(HTMLTextAreaElement)
   })
 
   it('nomme le curseur de pairs maximum', async () => {
-    render(<SettingsPage />)
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    )
     await openSection('settings.network')
 
     expect(screen.getByLabelText('settings.maxPeers')).toHaveAttribute('type', 'range')
   })
 
   it('nomme les trois sélecteurs de périphériques', async () => {
-    render(<SettingsPage />)
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    )
     await openSection('settings.devices')
 
     expect(screen.getByLabelText('settings.microphone')).toHaveValue('mic-1')
@@ -113,7 +126,11 @@ describe('champs de la page de réglages', () => {
   })
 
   it('distingue micro, caméra et haut-parleur : trois noms, trois contrôles', async () => {
-    render(<SettingsPage />)
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    )
     await openSection('settings.devices')
 
     expect(screen.getByLabelText('settings.microphone')).not.toBe(screen.getByLabelText('settings.camera'))
@@ -123,7 +140,11 @@ describe('champs de la page de réglages', () => {
 
 describe('rangées de boutons de la page de réglages', () => {
   it('nomme les six rangées comme groupes', async () => {
-    render(<SettingsPage />)
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    )
 
     expect(group('settings.status')).toBeInTheDocument()
     await openSection('settings.appearance')
@@ -137,7 +158,11 @@ describe('rangées de boutons de la page de réglages', () => {
   })
 
   it('annonce un seul choix pressé par rangée', async () => {
-    render(<SettingsPage />)
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    )
 
     expect(pressed(group('settings.status'))).toHaveLength(1)
     await openSection('settings.appearance')
@@ -152,7 +177,11 @@ describe('rangées de boutons de la page de réglages', () => {
 
   it('reporte le choix pressé quand on change de police', async () => {
     useUIStore.getState().updateSettings({ fontSize: 'medium' })
-    render(<SettingsPage />)
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    )
     await openSection('settings.appearance')
 
     fireEvent.click(within(group('settings.fontSize')).getByRole('button', { name: 'settings.fontLarge' }))
@@ -163,7 +192,11 @@ describe('rangées de boutons de la page de réglages', () => {
   })
 
   it('ne laisse aucun libellé détaché derrière lui', () => {
-    render(<SettingsPage />)
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    )
 
     // Un <label> dont le `for` ne mène nulle part est le défaut d'origine :
     // chaque libellé rendu ici doit désamorcer un contrôle existant.

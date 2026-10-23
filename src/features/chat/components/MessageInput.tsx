@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 import { useUIStore } from '@/stores/uiStore'
 import { useConversationStore } from '@/stores/conversationStore'
+import { COMPOSER_INPUT_ID } from '@/utils/shortcuts'
 import type { Message } from '@/types'
 
 interface MessageInputProps {
@@ -535,6 +536,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           )}>
             <textarea
               ref={textareaRef}
+              id={COMPOSER_INPUT_ID}
               value={content}
               onChange={handleChange}
               onKeyDown={handleKeyDown}

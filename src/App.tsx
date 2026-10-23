@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import { AppShell } from '@/components/layout/AppShell'
@@ -58,6 +58,7 @@ import { ModalContainer } from '@/components/modals/ModalContainer'
 import { IncomingCallOverlay } from '@/components/overlays/IncomingCallOverlay'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useCallStore } from '@/stores/callStore'
+import { useAppShortcuts } from '@/hooks/useAppShortcuts'
 import i18n from '@/i18n/config'
 import type { Contact } from '@/types'
 
@@ -688,21 +689,10 @@ const App: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handleUnload)
   }, [])
 
-  // Ctrl+K shortcut for global search
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
-        setSearchOpen(true)
-      }
-    },
-    [setSearchOpen]
-  )
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
+  // openSearch, toggleSidebar, next/prevConversation, openSettings,
+  // openProfile, focusInput : les combinaisons sont celles du réglage, relues
+  // à chaque frappe.
+  useAppShortcuts()
 
   return (
     <MotionConfig reducedMotion={settings.accessibility.reducedMotion ? 'always' : 'never'}>

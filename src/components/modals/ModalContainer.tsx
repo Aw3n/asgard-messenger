@@ -7,7 +7,7 @@ import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { chatService } from '@/services/ChatService'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
-import { DIALOG_FOCUSABLE } from '@/hooks/useDialogBehavior'
+import { DIALOG_FOCUSABLE, isCloseKeypress } from '@/hooks/useDialogBehavior'
 
 /**
  * ModalContainer — renders modals based on uiStore modal state.
@@ -77,7 +77,7 @@ const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }>
       // Échap qui annule une composition IME reste au champ ; le fermer
       // couperait la saisie en cours.
       if (e.isComposing || e.keyCode === 229) return
-      if (e.key === 'Escape') {
+      if (isCloseKeypress(e)) {
         onClose()
         return
       }

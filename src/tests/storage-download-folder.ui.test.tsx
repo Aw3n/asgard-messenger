@@ -14,6 +14,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { useUIStore } from '@/stores/uiStore'
 
@@ -44,7 +45,11 @@ const pickFolder = () => vi.mocked(window.asgard.dialog.pickFolder)
 const toasts = () => useUIStore.getState().toasts
 
 async function openStorage() {
-  render(<SettingsPage />)
+  render(
+    <MemoryRouter>
+      <SettingsPage />
+    </MemoryRouter>
+  )
   fireEvent.click(screen.getByRole('button', { name: 'settings.storage' }))
   await waitFor(() => expect(screen.getByRole('heading', { level: 3, name: 'settings.storage' })).toBeInTheDocument())
 }

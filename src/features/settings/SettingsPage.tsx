@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useIdentityStore } from '@/stores/identityStore'
@@ -23,11 +24,28 @@ import type { Theme, UserStatus } from '@/types'
 
 type SettingsSection = 'profile' | 'appearance' | 'language' | 'notifications' | 'privacy' | 'security' | 'network' | 'devices' | 'storage' | 'chat' | 'media' | 'accessibility' | 'about'
 
+const SECTION_IDS = [
+  'profile', 'appearance', 'language', 'chat', 'media', 'notifications', 'privacy',
+  'security', 'accessibility', 'network', 'devices', 'storage', 'about',
+] as const satisfies readonly SettingsSection[]
+
+/** La section demandée par l'URL, `profile` sinon — une valeur inconnue ne doit pas rendre une page vide. */
+function sectionFromParam(raw: string | null): SettingsSection {
+  return (SECTION_IDS as readonly string[]).includes(raw ?? '') ? (raw as SettingsSection) : 'profile'
+}
+
 /**
  * SettingsPage — full settings panel with multiple sections.
+ *
+ * La section ouverte est portée par l'URL (`/settings?section=notifications`) :
+ * un lien de réglages est donc atteignable depuis l'extérieur, et le raccourci
+ * `openProfile` peut viser sa propre section au lieu de retomber toujours sur
+ * la première.
  */
 export const SettingsPage: React.FC = () => {
-  const [section, setSection] = useState<SettingsSection>('profile')
+  const [params, setParams] = useSearchParams()
+  const section = sectionFromParam(params.get('section'))
+  const setSection = (next: SettingsSection) => setParams({ section: next }, { replace: true })
   const { t } = useTranslation()
 
   const sections: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
@@ -59,6 +77,7 @@ export const SettingsPage: React.FC = () => {
             <button
               key={s.id}
               onClick={() => setSection(s.id)}
+              aria-current={section === s.id ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
                 section === s.id
                   ? 'bg-asgard-nordic/30 text-asgard-glacier'
