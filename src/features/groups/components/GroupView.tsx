@@ -11,6 +11,7 @@ import { GroupSettings } from './GroupSettings'
 import { MessageBubble } from '@/features/chat/components/MessageBubble'
 import { MessageInput } from '@/features/chat/components/MessageInput'
 import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
+import { ForwardModal } from '@/features/chat/components/ForwardModal'
 import { callService } from '@/services/CallService'
 import { groupService } from '@/services/GroupService'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +28,7 @@ export const GroupView: React.FC = () => {
   const identity = useIdentityStore((s) => s.identity)
   const [showSettings, setShowSettings] = useState(false)
   const [showMembers, setShowMembers] = useState(true)
+  const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
 
   const channelId = activeChannel?.id ?? ''
@@ -197,6 +199,7 @@ export const GroupView: React.FC = () => {
                   showSender
                   onReaction={handleReaction}
                   onPin={canPin ? handlePin : undefined}
+                  onForward={setForwardMessage}
                 />
               )}
               components={{
@@ -232,6 +235,16 @@ export const GroupView: React.FC = () => {
       <AnimatePresence>
         {showSettings && (
           <GroupSettings onClose={() => setShowSettings(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Forward modal */}
+      <AnimatePresence>
+        {forwardMessage && (
+          <ForwardModal
+            message={forwardMessage}
+            onClose={() => setForwardMessage(undefined)}
+          />
         )}
       </AnimatePresence>
     </div>
