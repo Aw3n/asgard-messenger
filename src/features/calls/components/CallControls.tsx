@@ -310,6 +310,8 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
         </h3>
         <button
           onClick={onClose}
+          aria-label={t('common.close')}
+          title={t('common.close')}
           style={{
             width: '28px',
             height: '28px',

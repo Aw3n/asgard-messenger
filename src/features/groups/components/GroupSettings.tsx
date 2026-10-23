@@ -44,6 +44,8 @@ export const GroupSettings: React.FC<{ onClose: () => void }> = ({ onClose }) =>
           <h3 className="text-lg font-semibold text-asgard-text-primary">{t('groups.groupSettingsTitle')}</h3>
           <button
             onClick={onClose}
+            aria-label={t('common.close')}
+            title={t('common.close')}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-asgard-surface-alt text-asgard-text-muted transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -351,6 +353,9 @@ const BroadcastToggle: React.FC<{ groupId: string }> = ({ groupId }) => {
           </div>
         </div>
         <button
+          role="switch"
+          aria-checked={isBroadcast}
+          aria-label={t('groups.broadcastMode')}
           onClick={handleToggle}
           className={`relative w-12 h-6 rounded-full transition-colors ${
             isBroadcast ? 'bg-asgard-nordic' : 'bg-asgard-border'

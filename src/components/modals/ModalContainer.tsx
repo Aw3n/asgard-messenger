@@ -174,6 +174,8 @@ const AddContactModal: React.FC<{
         <h3 className="text-base font-semibold text-asgard-text-primary">{t('modal.addContact')}</h3>
         <button
           onClick={onClose}
+          aria-label={t('common.close')}
+          title={t('common.close')}
           className="w-8 h-8 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

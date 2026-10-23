@@ -93,6 +93,8 @@ export const ShareLinksManager: React.FC<{ onClose?: () => void }> = ({ onClose 
           {onClose && (
             <button
               onClick={onClose}
+              aria-label={t('common.close')}
+              title={t('common.close')}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-asgard-surface-alt transition-colors"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-secondary">
