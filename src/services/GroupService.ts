@@ -1671,7 +1671,11 @@ class GroupService {
 
       // PER-RECIPIENT TRACKING: Update deliveryReceipts map with this recipient's status
       const deliveryReceipts = { ...(m.deliveryReceipts ?? {}) }
-      deliveryReceipts[readerPublicKey] = status
+      // Un « remis » qui arrive après un « lu » (chemins distincts, rejeu) ne
+      // doit pas faire reculer l'état de ce destinataire.
+      if (deliveryReceipts[readerPublicKey] !== 'read') {
+        deliveryReceipts[readerPublicKey] = status
+      }
 
       // Track readBy list for read receipts
       const readBy = [...(m.readBy ?? [])]

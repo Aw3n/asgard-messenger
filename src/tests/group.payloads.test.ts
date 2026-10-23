@@ -223,6 +223,26 @@ describe('accusés et lectures', () => {
     expect(storedMessage('m-status')!.status).toBe('sent')
   })
 
+  it('ne rétrograde pas un accusé de lecture en accusé de remise', () => {
+    seedMessage({ id: 'm-lu', conversationId: channelId, senderId: A, status: 'sent' })
+
+    dispatch('handleGroupReceipt', {
+      groupId, channelId, messageIds: ['m-lu'], status: 'read', readerPublicKey: C, timestamp: Date.now(),
+    }, C, 'group:receipt')
+    expect(storedMessage('m-lu')!.deliveryReceipts?.[C]).toBe('read')
+
+    dispatch('handleGroupReceipt', {
+      groupId, channelId, messageIds: ['m-lu'], status: 'delivered', readerPublicKey: C, timestamp: Date.now(),
+    }, C, 'group:receipt')
+
+    const after = storedMessage('m-lu')!
+    // L'état global attend encore le second destinataire ; l'accusé de C, lui,
+    // doit rester « lu » et sa lecture ne pas disparaître.
+    expect(after.status).toBe('delivered')
+    expect(after.deliveryReceipts?.[C]).toBe('read')
+    expect(after.readBy).toContain(C)
+  })
+
   it('ne marque comme lu que les messages existants de ce canal', () => {
     seedMessage({ id: 'm-dm', conversationId: 'dm-cross', status: 'sent' })
     seedMessage({ id: 'm-read', conversationId: channelId, senderId: A, status: 'sent' })
