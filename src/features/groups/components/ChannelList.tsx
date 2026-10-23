@@ -1,9 +1,13 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGroupStore } from '@/stores/groupStore'
+import { useIdentityStore } from '@/stores/identityStore'
+import { useUIStore } from '@/stores/uiStore'
+import { groupService } from '@/services/GroupService'
 import { cn } from '@/utils/cn'
 import type { GroupChannel } from '@/types'
 import { useTranslation } from 'react-i18next'
+import { CreateChannelModal } from './CreateChannelModal'
 
 /**
  * ChannelList — Discord-style channel sidebar within a group.
@@ -15,6 +19,14 @@ export const ChannelList: React.FC = () => {
   const activeChannelId = useGroupStore((s) => s.activeChannelId)
   const setActiveChannel = useGroupStore((s) => s.setActiveChannel)
   const getChannels = useGroupStore((s) => s.getChannels)
+  const identity = useIdentityStore((s) => s.identity)
+  const addToast = useUIStore((s) => s.addToast)
+  // Les canaux se créent et se suppriment côté service, mais seulement pour un
+  // administrateur : l'entrée ne doit pas être proposée à un simple membre.
+  const isAdmin = useGroupStore((s) =>
+    identity && s.activeGroupId ? s.isAdmin(s.activeGroupId, identity.keyPair.publicKey) : false,
+  )
+  const [showCreateChannel, setShowCreateChannel] = React.useState(false)
   // La frappe vit dans le GroupStore et expire après 5 s sans événement ;
   // typingTick force la ré-évaluation pour la voir disparaître sans nouveau
   // message. Même convention que GroupItem et la liste 1:1.
@@ -129,6 +141,20 @@ export const ChannelList: React.FC = () => {
     setContextMenu(null)
   }, [activeGroup, contextMenu])
 
+  const deleteChannel = React.useCallback(async () => {
+    if (!contextMenu || !activeGroup) return
+    const channelId = contextMenu.channel.id
+    const groupId = activeGroup.id
+    setContextMenu(null)
+    try {
+      await groupService.removeChannel(groupId, channelId)
+      addToast({ type: 'success', title: t('groups.channelDeleted') })
+    } catch (err) {
+      addToast({ type: 'error', title: t('groups.channelDeleteFailed') })
+      console.error(err)
+    }
+  }, [activeGroup, addToast, contextMenu, t])
+
   if (!activeGroup) return null
 
   // Group channels by type
@@ -140,13 +166,26 @@ export const ChannelList: React.FC = () => {
   return (
     <div className="w-48 flex-shrink-0 bg-asgard-deep-black/60 border-r border-asgard-border overflow-y-auto">
       {/* Group header */}
-      <div className="px-3 py-3 border-b border-asgard-border">
-        <h3 className="text-sm font-semibold text-asgard-text-primary truncate">
-          {activeGroup.name}
-        </h3>
-        <p className="text-xxs text-asgard-text-muted mt-0.5">
-          {t('groups.memberCount', { count: activeGroup.members.length })}
-        </p>
+      <div className="px-3 py-3 border-b border-asgard-border flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-asgard-text-primary truncate">
+            {activeGroup.name}
+          </h3>
+          <p className="text-xxs text-asgard-text-muted mt-0.5">
+            {t('groups.memberCount', { count: activeGroup.members.length })}
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setShowCreateChannel(true)}
+            aria-label={t('groups.addChannel')}
+            title={t('groups.addChannel')}
+            className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
+          >
+            <PlusIcon />
+          </button>
+        )}
       </div>
 
       <div className="py-2">
@@ -249,7 +288,31 @@ export const ChannelList: React.FC = () => {
               </svg>
               {t(contextMenu.channel.unreadCount > 0 ? 'chat.markAsRead' : 'chat.markAsUnread')}
             </button>
+
+            {/* Le store refuse d'ailleurs de vider le dernier canal : l'entrée
+                n'apparaît que quand la suppression est réellement possible. */}
+            {isAdmin && channels.length > 1 && (
+              <button
+                type="button"
+                role="menuitem"
+                tabIndex={-1}
+                onClick={deleteChannel}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left text-red-400 hover:bg-red-500/10"
+              >
+                <TrashIcon />
+                {t('groups.deleteChannel')}
+              </button>
+            )}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCreateChannel && (
+          <CreateChannelModal
+            groupId={activeGroup.id}
+            onClose={() => setShowCreateChannel(false)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -338,6 +401,18 @@ const ChannelItem: React.FC<ChannelItemProps> = ({
 }
 
 // ─── Icons ──────────────────────────────────────────────────────────────────────
+
+const PlusIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+  </svg>
+)
+
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M6 19c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+  </svg>
+)
 
 const HashIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

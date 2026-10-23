@@ -84,4 +84,67 @@ describe('catalogues de langue', () => {
       expect(i18n.t('groups.cannotPostInChannel'), code).not.toBe(i18n.t('groups.mutedInGroup'))
     }
   })
+
+  /**
+   * Gestion des canaux : seize chaînes pour une action que seul le code savait
+   * poser — dont une qui interpolate la liste des rôles autorisés à écrire. Un
+   * catalogue recopié de travers rendrait « {{roles}} » à l'écran, ou donnerait
+   * le même libellé à deux types de canal que l'administrateur doit distinguer.
+   */
+  it('rend la gestion des canaux dans chacune des 25 langues', async () => {
+    await i18nReady
+    const keys = [
+      'groups.addChannel', 'groups.createChannel', 'groups.deleteChannel', 'common.create',
+      'groups.channelName', 'groups.channelType', 'groups.channelNameRequired', 'groups.channelNameExists',
+      'groups.channelTypeText', 'groups.channelTypeAnnouncement', 'groups.channelTypeReadonly',
+      'groups.channelTypeWhoWrites', 'groups.channelCreated', 'groups.channelCreateFailed',
+      'groups.channelDeleted', 'groups.channelDeleteFailed',
+    ] as const
+    for (const key of keys) {
+      for (const { code } of SUPPORTED_LANGUAGES) {
+        await changeLanguage(code)
+        const value = i18n.t(key)
+        expect(value, `${code} · ${key}`).toBe(translations[code].translation[key])
+        expect(value, `${code} · ${key}`).not.toBe(key)
+      }
+    }
+  })
+
+  it('interpole les rôles qui peuvent écrire dans chaque langue', async () => {
+    await i18nReady
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      const rendered = i18n.t('groups.channelTypeWhoWrites', { roles: 'propriétaire, admin' })
+      expect(rendered, code).toContain('propriétaire, admin')
+      expect(rendered, code).not.toContain('{{')
+    }
+  })
+
+  it('donne un nom different à chaque type de canal dans chaque langue', async () => {
+    await i18nReady
+    const types = ['groups.channelTypeText', 'groups.channelTypeAnnouncement', 'groups.channelTypeReadonly'] as const
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      const labels = types.map((key) => i18n.t(key))
+      expect(new Set(labels).size, `${code} · ${labels.join(' / ')}`).toBe(labels.length)
+      // Trois libellés de type qui ne se confondent pas non plus avec le nom
+      // du champ, la création et la suppression.
+      for (const other of ['groups.channelType', 'groups.createChannel', 'groups.deleteChannel', 'groups.addChannel']) {
+        expect(labels, `${code} · ${other}`).not.toContain(i18n.t(other))
+      }
+    }
+  })
+
+  /** Succès et échec de la même action : les confondre ferait croire à une
+   *  création passée alors que le pair est hors ligne. */
+  it('distingue le succès de l’échec de chaque action de canal dans chaque langue', async () => {
+    await i18nReady
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      expect(i18n.t('groups.channelCreated'), code).not.toBe(i18n.t('groups.channelCreateFailed'))
+      expect(i18n.t('groups.channelDeleted'), code).not.toBe(i18n.t('groups.channelDeleteFailed'))
+      expect(i18n.t('groups.channelNameRequired'), code).not.toBe(i18n.t('groups.channelNameExists'))
+      expect(i18n.t('groups.addChannel'), code).not.toBe(i18n.t('groups.deleteChannel'))
+    }
+  })
 })

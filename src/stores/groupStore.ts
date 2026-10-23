@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import type { Group, GroupMember, GroupChannel, MemberRole, ChannelType, GroupActivity } from '@/types'
 import { generateId } from '@/utils/id'
+import { channelPermissionsFor, normalizeChannelName } from '@/utils/groupPermissions'
 import { GROUP_PRESENCE_TIMEOUT, isLivePresence } from '@/utils/presence'
 
 interface GroupState {
@@ -365,15 +366,13 @@ export const useGroupStore = create<GroupState>()(
           newChannel = {
             id: channelId,
             groupId,
-            name: params.name.toLowerCase().replace(/\s+/g, '-'),
+            name: normalizeChannelName(params.name),
             description: params.description,
             type: params.type,
             position: maxPosition + 1,
-            permissions: params.permissions ?? {
-              send: ['owner', 'admin', 'moderator', 'member'],
-              read: ['owner', 'admin', 'moderator', 'member', 'guest'],
-              manage: ['owner', 'admin'],
-            },
+            // Le type doit fermer l'écriture dès la création : sinon « annonce »
+            // et « lecture seule » ne sont que des libellés.
+            permissions: params.permissions ?? channelPermissionsFor(params.type),
             unreadCount: 0,
           }
 
