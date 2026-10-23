@@ -32,4 +32,13 @@ describe('bouton de sourdine', () => {
     expect(silenced).toHaveAttribute('title', 'chat.unmuteConversation')
     expect(screen.queryByRole('button', { name: 'chat.muteConversation' })).toBeNull()
   })
+
+  it('annonce l’échéance d’une sourdine temporisée', () => {
+    render(<MuteButton muted mutedUntil={Date.now() + 3_600_000} onToggle={() => {}} />)
+    const button = screen.getByRole('button', {
+      name: 'chat.unmuteConversation · panels.mutedUntil',
+    })
+    expect(button).toHaveAttribute('title', 'chat.unmuteConversation · panels.mutedUntil')
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+  })
 })

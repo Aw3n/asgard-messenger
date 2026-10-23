@@ -155,6 +155,9 @@ export const ChatView: React.FC = () => {
   const conversationMuted = useConversationStore((s) =>
     dataId ? s.conversations[dataId]?.muted ?? false : false
   )
+  const conversationMutedUntil = useConversationStore((s) =>
+    dataId ? s.conversations[dataId]?.mutedUntil : undefined
+  )
 
   // Changer de conversation abandonne une réponse ou une édition en cours :
   // le composer ne doit pas modifier un message qui n'est plus à l'écran.
@@ -491,6 +494,7 @@ export const ChatView: React.FC = () => {
           </HeaderButton>
           <MuteButton
             muted={conversationMuted}
+            mutedUntil={conversationMutedUntil}
             onToggle={() =>
               useConversationStore.getState().muteConversation(conversation.id, !conversationMuted)
             }

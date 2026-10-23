@@ -45,6 +45,9 @@ export const GroupView: React.FC = () => {
   const groupMuted = useConversationStore((s) =>
     activeGroup ? (s.conversations[activeGroup.id]?.muted ?? false) : false
   )
+  const groupMutedUntil = useConversationStore((s) =>
+    activeGroup ? s.conversations[activeGroup.id]?.mutedUntil : undefined
+  )
   const [showSettings, setShowSettings] = useState(false)
   const [showMembers, setShowMembers] = useState(true)
   const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
@@ -432,6 +435,7 @@ export const GroupView: React.FC = () => {
             </HeaderButton>
             <MuteButton
               muted={groupMuted}
+              mutedUntil={groupMutedUntil}
               onToggle={() => {
                 if (!activeGroup) return
                 useConversationStore.getState().muteConversation(activeGroup.id, !groupMuted)

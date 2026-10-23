@@ -1,9 +1,11 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { getCurrentLanguage } from '@/i18n/config'
 
 interface MuteButtonProps {
   muted: boolean
+  mutedUntil?: number
   onToggle: () => void
 }
 
@@ -12,15 +14,27 @@ interface MuteButtonProps {
  * groupe : sans lui, couper les alertes d'un fil 1:1 demandait de connaître
  * le clic droit de la liste. Le libellé bascule avec l'état, comme le menu.
  */
-export const MuteButton: React.FC<MuteButtonProps> = ({ muted, onToggle }) => {
+export const MuteButton: React.FC<MuteButtonProps> = ({ muted, mutedUntil, onToggle }) => {
   const { t } = useTranslation()
   const label = t(muted ? 'chat.unmuteConversation' : 'chat.muteConversation')
+  // Même distinction que dans le panneau d'info : une sourdine datée doit se
+  // voir, sinon elle est indiscernable d'une sourdine permanente.
+  const expiry =
+    muted && mutedUntil != null
+      ? t('panels.mutedUntil', {
+          date: new Date(mutedUntil).toLocaleString(getCurrentLanguage(), {
+            dateStyle: 'short',
+            timeStyle: 'short',
+          }),
+        })
+      : null
+  const description = expiry ? `${label} · ${expiry}` : label
   return (
     <motion.button
       whileTap={{ scale: 0.9 }}
-      aria-label={label}
+      aria-label={description}
       aria-pressed={muted}
-      title={label}
+      title={description}
       onClick={onToggle}
       className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
         muted
