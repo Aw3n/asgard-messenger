@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Virtuoso } from 'react-virtuoso'
 import { useNavigate } from 'react-router-dom'
@@ -46,7 +46,14 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
   // de groupe ici s'affichait comme un identifiant brut et ouvrait ChatView
   // sans destinataire, donc un fil vide qui ne pouvait rien envoyer.
   const conversations = getFilteredConversations().filter((conv) => conv.type === 'direct')
-  const [contextMenu, setContextMenu] = useState<{ conv: Conversation; x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    conv: Conversation
+    x: number
+    y: number
+    fromKeyboard?: boolean
+  } | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const menuTriggerRef = useRef<HTMLElement | null>(null)
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilter({ search: e.target.value })
@@ -64,6 +71,23 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     e.preventDefault()
     setContextMenu({ conv, x: e.clientX, y: e.clientY })
   }, [])
+
+  // Maj+F10 et la touche Menu ouvrent le menu contextuel comme le clic droit.
+  const handleItemKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>, conv: Conversation) => {
+      if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return
+      e.preventDefault()
+      const rect = e.currentTarget.getBoundingClientRect()
+      menuTriggerRef.current = e.currentTarget
+      setContextMenu({
+        conv,
+        x: Math.max(8, Math.min(rect.left + 16, window.innerWidth - 200)),
+        y: Math.max(8, Math.min(rect.top + 16, window.innerHeight - 280)),
+        fromKeyboard: true,
+      })
+    },
+    []
+  )
 
   const handleDeleteConversation = useCallback(async (conv: Conversation) => {
     setContextMenu(null)
@@ -102,18 +126,64 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
           isActive={isActive}
           onClick={() => handleSelectConversation(conv)}
           onContextMenu={(e) => handleContextMenu(e, conv)}
+          onKeyDown={(e) => handleItemKeyDown(e, conv)}
         />
       )
     },
-    [activeConversationId, contacts, handleSelectConversation, handleContextMenu]
+    [activeConversationId, contacts, handleSelectConversation, handleContextMenu, handleItemKeyDown]
   )
 
-  // Close context menu on click outside
+  // Ferme le menu au clic extérieur, gère Échap, flèches et Tab au clavier.
   React.useEffect(() => {
     if (!contextMenu) return
-    const handler = () => setContextMenu(null)
-    window.addEventListener('click', handler)
-    return () => window.removeEventListener('click', handler)
+    const clickHandler = () => setContextMenu(null)
+    const keyHandler = (e: KeyboardEvent) => {
+      const menu = menuRef.current
+      if (!menu) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setContextMenu(null)
+        const trigger = menuTriggerRef.current
+        menuTriggerRef.current = null
+        if (trigger?.isConnected) trigger.focus()
+        return
+      }
+      const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
+      if (items.length === 0) return
+      const active = document.activeElement as HTMLButtonElement | null
+      const index = active ? items.indexOf(active) : -1
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const step = e.key === 'ArrowDown' ? 1 : -1
+        const next = index === -1
+          ? (step === 1 ? 0 : items.length - 1)
+          : (index + step + items.length) % items.length
+        items[next]?.focus()
+      } else if (e.key === 'Home') {
+        e.preventDefault()
+        items[0]?.focus()
+      } else if (e.key === 'End') {
+        e.preventDefault()
+        items[items.length - 1]?.focus()
+      } else if (e.key === 'Tab') {
+        e.preventDefault()
+        if (index === -1) {
+          items[0]?.focus()
+          return
+        }
+        const next = (index + (e.shiftKey ? -1 : 1) + items.length) % items.length
+        items[next]?.focus()
+      }
+    }
+    window.addEventListener('click', clickHandler)
+    window.addEventListener('keydown', keyHandler)
+    if (contextMenu.fromKeyboard) {
+      menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+    }
+    return () => {
+      window.removeEventListener('click', clickHandler)
+      window.removeEventListener('keydown', keyHandler)
+    }
   }, [contextMenu])
 
   return (
@@ -203,6 +273,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
       <AnimatePresence>
         {contextMenu && (
           <motion.div
+            ref={menuRef}
+            role="menu"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -304,6 +376,7 @@ interface ConversationItemProps {
   isActive: boolean
   onClick: () => void
   onContextMenu?: (e: React.MouseEvent) => void
+  onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void
 }
 
 const ConversationItem: React.FC<ConversationItemProps> = ({
@@ -315,6 +388,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   isActive,
   onClick,
   onContextMenu,
+  onKeyDown,
 }) => {
   const { t } = useTranslation()
   const name = contactName ?? conv.participantId?.slice(0, 16) ?? conv.id.slice(0, 16)
@@ -331,6 +405,8 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
       transition={{ duration: 0.2 }}
       onClick={onClick}
       onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
+      aria-haspopup="menu"
       className={cn(
         'w-full flex items-center gap-3 px-3 py-2.5',
         'transition-colors duration-200 text-left',
@@ -454,6 +530,9 @@ const ContextMenuItem: React.FC<{
   danger?: boolean
 }> = ({ label, icon, onClick, danger }) => (
   <button
+    type="button"
+    role="menuitem"
+    tabIndex={-1}
     onClick={onClick}
     className={cn(
       'w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',

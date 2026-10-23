@@ -7,7 +7,7 @@
  * un fil vide, incapable d'envoyer quoi que ce soit.
  */
 import React from 'react'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Contact, Conversation } from '@/types'
@@ -172,5 +172,34 @@ describe('liste des conversations', () => {
     fireEvent.click(screen.getByText('chat.unarchiveConversation'))
     expect(useConversationStore.getState().conversations[direct.id].archived).toBe(false)
     expect(screen.queryByText('Bob')).toBeNull()
+  })
+
+  it('ouvre le menu au clavier, navigue et le referme par Échap', async () => {
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    const row = screen.getByRole('button', { name: /Bob/ })
+    expect(row).toHaveAttribute('aria-haspopup', 'menu')
+    row.focus()
+    fireEvent.keyDown(row, { key: 'F10', shiftKey: true })
+
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    const items = screen.getAllByRole('menuitem')
+    expect(items).toHaveLength(6)
+    expect(document.activeElement).toBe(items[0])
+
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(items[1])
+    fireEvent.keyDown(window, { key: 'End' })
+    expect(document.activeElement).toBe(items[items.length - 1])
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.activeElement).toBe(items[0])
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(document.activeElement).toBe(row)
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
   })
 })
