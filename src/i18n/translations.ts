@@ -875,6 +875,7 @@ export const translations = {
       "chat.scrollToLatest": "Revenir aux messages les plus récents",
       "chat.newMessages": "Nouveaux messages",
       "search.searching": "Recherche dans l’historique…",
+      "nav.unreadCount": "Non lus : {{count}}",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1753,6 +1754,7 @@ export const translations = {
       "chat.scrollToLatest": "Terug naar de nieuwste berichten",
       "chat.newMessages": "Nieuwe berichten",
       "search.searching": "Geschiedenis doorzoeken…",
+      "nav.unreadCount": "Ongelezen: {{count}}",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2631,6 +2633,7 @@ export const translations = {
       "chat.scrollToLatest": "Zu den neuesten Nachrichten springen",
       "chat.newMessages": "Neue Nachrichten",
       "search.searching": "Verlauf wird durchsucht…",
+      "nav.unreadCount": "Ungelesen: {{count}}",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3509,6 +3512,7 @@ export const translations = {
       "chat.scrollToLatest": "Vai ai messaggi più recenti",
       "chat.newMessages": "Nuovi messaggi",
       "search.searching": "Ricerca nella cronologia…",
+      "nav.unreadCount": "Non letti: {{count}}",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4387,6 +4391,7 @@ export const translations = {
       "chat.scrollToLatest": "Ir a los mensajes más recientes",
       "chat.newMessages": "Mensajes nuevos",
       "search.searching": "Buscando en el historial…",
+      "nav.unreadCount": "Sin leer: {{count}}",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5266,6 +5271,7 @@ export const translations = {
       "chat.scrollToLatest": "Ir para as mensagens mais recentes",
       "chat.newMessages": "Mensagens novas",
       "search.searching": "A procurar no histórico…",
+      "nav.unreadCount": "Não lidos: {{count}}",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6145,6 +6151,7 @@ export const translations = {
       "chat.scrollToLatest": "Μετάβαση στα πιο πρόσφατα μηνύματα",
       "chat.newMessages": "Νέα μηνύματα",
       "search.searching": "Αναζήτηση στο ιστορικό…",
+      "nav.unreadCount": "Μη αναγνωσμένα: {{count}}",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7024,6 +7031,7 @@ export const translations = {
       "chat.scrollToLatest": "Gå til de nyeste beskeder",
       "chat.newMessages": "Nye beskeder",
       "search.searching": "Søger i historikken…",
+      "nav.unreadCount": "Ulæste: {{count}}",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7903,6 +7911,7 @@ export const translations = {
       "chat.scrollToLatest": "Siirry uusimpiin viesteihin",
       "chat.newMessages": "Uudet viestit",
       "search.searching": "Haetaan historiasta…",
+      "nav.unreadCount": "Lukemattomat: {{count}}",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8782,6 +8791,7 @@ export const translations = {
       "chat.scrollToLatest": "Gå till de senaste meddelandena",
       "chat.newMessages": "Nya meddelanden",
       "search.searching": "Söker i historiken…",
+      "nav.unreadCount": "Olästa: {{count}}",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9661,6 +9671,7 @@ export const translations = {
       "chat.scrollToLatest": "Idi na najnovije poruke",
       "chat.newMessages": "Nove poruke",
       "search.searching": "Pretraživanje povijesti…",
+      "nav.unreadCount": "Nepročitano: {{count}}",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10540,6 +10551,7 @@ export const translations = {
       "chat.scrollToLatest": "Mine uusimate sõnumite juurde",
       "chat.newMessages": "Uued sõnumid",
       "search.searching": "Ajaloo otsimine…",
+      "nav.unreadCount": "Lugemata: {{count}}",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11419,6 +11431,7 @@ export const translations = {
       "chat.scrollToLatest": "Ugrás a legújabb üzenetekhez",
       "chat.newMessages": "Új üzenetek",
       "search.searching": "Előzmények keresése…",
+      "nav.unreadCount": "Olvasatlan: {{count}}",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12298,6 +12311,7 @@ export const translations = {
       "chat.scrollToLatest": "Pāriet uz jaunākajām ziņām",
       "chat.newMessages": "Jauni ziņojumi",
       "search.searching": "Vēstures meklēšana…",
+      "nav.unreadCount": "Neizlasīti: {{count}}",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13177,6 +13191,7 @@ export const translations = {
       "chat.scrollToLatest": "Pereiti prie naujausių žinučių",
       "chat.newMessages": "Nauji pranešimai",
       "search.searching": "Ieškoma istorijoje…",
+      "nav.unreadCount": "Neskaityti: {{count}}",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14056,6 +14071,7 @@ export const translations = {
       "chat.scrollToLatest": "Mur għall-aktar messaġġi reċenti",
       "chat.newMessages": "Messaġġi ġodda",
       "search.searching": "Qed tfittex fl-istorja…",
+      "nav.unreadCount": "Mhux moqrija: {{count}}",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14935,6 +14951,7 @@ export const translations = {
       "chat.scrollToLatest": "Przejdź do najnowszych wiadomości",
       "chat.newMessages": "Nowe wiadomości",
       "search.searching": "Wyszukiwanie w historii…",
+      "nav.unreadCount": "Nieprzeczytane: {{count}}",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15814,6 +15831,7 @@ export const translations = {
       "chat.scrollToLatest": "Prejsť na najnovšie správy",
       "chat.newMessages": "Nové správy",
       "search.searching": "Prehľadávanie histórie…",
+      "nav.unreadCount": "Neprečítané: {{count}}",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16693,6 +16711,7 @@ export const translations = {
       "chat.scrollToLatest": "Pojdi na najnovejša sporočila",
       "chat.newMessages": "Nova sporočila",
       "search.searching": "Iskanje po zgodovini…",
+      "nav.unreadCount": "Neprebrano: {{count}}",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17572,6 +17591,7 @@ export const translations = {
       "chat.scrollToLatest": "Přejít na nejnovější zprávy",
       "chat.newMessages": "Nové zprávy",
       "search.searching": "Prohledávání historie…",
+      "nav.unreadCount": "Nepřečtené: {{count}}",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18451,6 +18471,7 @@ export const translations = {
       "chat.scrollToLatest": "Към най-новите съобщения",
       "chat.newMessages": "Нови съобщения",
       "search.searching": "Търсене в историята…",
+      "nav.unreadCount": "Непрочетени: {{count}}",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19330,6 +19351,7 @@ export const translations = {
       "chat.scrollToLatest": "Téigh go dtí na teachtaireachtaí is déanaí",
       "chat.newMessages": "Teachtaireachtaí nua",
       "search.searching": "Ag cuardach na staire…",
+      "nav.unreadCount": "Gan léamh: {{count}}",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20209,6 +20231,7 @@ export const translations = {
       "chat.scrollToLatest": "Mergi la cele mai recente mesaje",
       "chat.newMessages": "Mesaje noi",
       "search.searching": "Se caută în istoric…",
+      "nav.unreadCount": "Necitite: {{count}}",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21097,6 +21120,7 @@ export const translations = {
       "chat.scrollToLatest": "Jump to latest messages",
       "chat.newMessages": "New messages",
       "search.searching": "Searching history…",
+      "nav.unreadCount": "Unread: {{count}}",
     }
   },
 
@@ -21977,6 +22001,7 @@ export const translations = {
       "chat.scrollToLatest": "Перейти до найновіших повідомлень",
       "chat.newMessages": "Нові повідомлення",
       "search.searching": "Пошук в історії…",
+      "nav.unreadCount": "Непрочитані: {{count}}",
     }
   },
 }

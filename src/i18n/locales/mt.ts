@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Mur għall-aktar messaġġi reċenti",
       "chat.newMessages": "Messaġġi ġodda",
       "search.searching": "Qed tfittex fl-istorja…",
+      "nav.unreadCount": "Mhux moqrija: {{count}}",
     }
 }

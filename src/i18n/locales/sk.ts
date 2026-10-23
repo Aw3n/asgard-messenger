@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Prejsť na najnovšie správy",
       "chat.newMessages": "Nové správy",
       "search.searching": "Prehľadávanie histórie…",
+      "nav.unreadCount": "Neprečítané: {{count}}",
     }
 }

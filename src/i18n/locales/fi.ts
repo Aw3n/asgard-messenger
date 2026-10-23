@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Siirry uusimpiin viesteihin",
       "chat.newMessages": "Uudet viestit",
       "search.searching": "Haetaan historiasta…",
+      "nav.unreadCount": "Lukemattomat: {{count}}",
     }
 }

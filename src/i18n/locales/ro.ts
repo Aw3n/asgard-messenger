@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Mergi la cele mai recente mesaje",
       "chat.newMessages": "Mesaje noi",
       "search.searching": "Se caută în istoric…",
+      "nav.unreadCount": "Necitite: {{count}}",
     }
 }

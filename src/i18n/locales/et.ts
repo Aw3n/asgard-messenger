@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Mine uusimate sõnumite juurde",
       "chat.newMessages": "Uued sõnumid",
       "search.searching": "Ajaloo otsimine…",
+      "nav.unreadCount": "Lugemata: {{count}}",
     }
 }

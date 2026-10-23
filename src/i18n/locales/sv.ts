@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Gå till de senaste meddelandena",
       "chat.newMessages": "Nya meddelanden",
       "search.searching": "Söker i historiken…",
+      "nav.unreadCount": "Olästa: {{count}}",
     }
 }

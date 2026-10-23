@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Idi na najnovije poruke",
       "chat.newMessages": "Nove poruke",
       "search.searching": "Pretraživanje povijesti…",
+      "nav.unreadCount": "Nepročitano: {{count}}",
     }
 }

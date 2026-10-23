@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Téigh go dtí na teachtaireachtaí is déanaí",
       "chat.newMessages": "Teachtaireachtaí nua",
       "search.searching": "Ag cuardach na staire…",
+      "nav.unreadCount": "Gan léamh: {{count}}",
     }
 }

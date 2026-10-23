@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Μετάβαση στα πιο πρόσφατα μηνύματα",
       "chat.newMessages": "Νέα μηνύματα",
       "search.searching": "Αναζήτηση στο ιστορικό…",
+      "nav.unreadCount": "Μη αναγνωσμένα: {{count}}",
     }
 }

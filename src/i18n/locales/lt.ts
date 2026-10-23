@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Pereiti prie naujausių žinučių",
       "chat.newMessages": "Nauji pranešimai",
       "search.searching": "Ieškoma istorijoje…",
+      "nav.unreadCount": "Neskaityti: {{count}}",
     }
 }

@@ -876,5 +876,6 @@ export default {
       "chat.scrollToLatest": "Zu den neuesten Nachrichten springen",
       "chat.newMessages": "Neue Nachrichten",
       "search.searching": "Verlauf wird durchsucht…",
+      "nav.unreadCount": "Ungelesen: {{count}}",
     }
 }

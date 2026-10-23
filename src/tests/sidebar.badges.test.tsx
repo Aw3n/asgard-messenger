@@ -14,7 +14,10 @@ import type { Conversation, Group } from '@/types'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, options?: { count?: number }) =>
+      options?.count === undefined ? key : `${key}:${options.count}`,
+  }),
 }))
 
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -87,8 +90,8 @@ describe('badges du rail', () => {
       </MemoryRouter>,
     )
 
-    const messages = screen.getByRole('button', { name: 'nav.messages' })
-    const groups = screen.getByRole('button', { name: 'nav.groups' })
+    const messages = screen.getByRole('button', { name: /^nav\.messages/ })
+    const groups = screen.getByRole('button', { name: /^nav\.groups/ })
     expect(within(messages).getByText('2')).toBeInTheDocument()
     expect(within(messages).queryByText('9')).toBeNull()
     expect(within(groups).getByText('4')).toBeInTheDocument()
@@ -117,5 +120,44 @@ describe('badges du rail', () => {
     const groups = screen.getByRole('button', { name: 'nav.groups' })
     expect(within(messages).queryByText(/\d/)).toBeNull()
     expect(within(groups).queryByText(/\d/)).toBeNull()
+  })
+
+  it('annonce le compte non lu et la page courante dans le nom accessible', () => {
+    render(
+      <MemoryRouter initialEntries={['/conversations']}>
+        <Sidebar />
+      </MemoryRouter>,
+    )
+
+    const messages = screen.getByRole('button', { name: 'nav.messages, nav.unreadCount:2' })
+    expect(messages).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: /^nav\.groups/ })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('button', { name: 'nav.contacts' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('annonce le compte exact même quand la pastille plafonne à 99+', () => {
+    useConversationStore.setState({
+      conversations: { [direct.id]: { ...direct, unreadCount: 150 } },
+    })
+
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>,
+    )
+
+    const messages = screen.getByRole('button', { name: 'nav.messages, nav.unreadCount:150' })
+    expect(within(messages).getByText('99+')).toBeInTheDocument()
+  })
+
+  it('marque les paramètres quand leur page est ouverte', () => {
+    render(
+      <MemoryRouter initialEntries={['/settings']}>
+        <Sidebar />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('button', { name: 'nav.settings' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: /^nav\.messages/ })).not.toHaveAttribute('aria-current')
   })
 })

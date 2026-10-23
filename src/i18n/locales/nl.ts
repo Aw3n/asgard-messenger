@@ -876,5 +876,6 @@ export default {
       "chat.scrollToLatest": "Terug naar de nieuwste berichten",
       "chat.newMessages": "Nieuwe berichten",
       "search.searching": "Geschiedenis doorzoeken…",
+      "nav.unreadCount": "Ongelezen: {{count}}",
     }
 }

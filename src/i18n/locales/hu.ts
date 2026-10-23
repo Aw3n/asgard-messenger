@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Ugrás a legújabb üzenetekhez",
       "chat.newMessages": "Új üzenetek",
       "search.searching": "Előzmények keresése…",
+      "nav.unreadCount": "Olvasatlan: {{count}}",
     }
 }

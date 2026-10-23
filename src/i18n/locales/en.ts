@@ -886,5 +886,6 @@ export default {
       "chat.scrollToLatest": "Jump to latest messages",
       "chat.newMessages": "New messages",
       "search.searching": "Searching history…",
+      "nav.unreadCount": "Unread: {{count}}",
     }
 }

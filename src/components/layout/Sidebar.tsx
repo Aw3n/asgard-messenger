@@ -14,6 +14,8 @@ interface NavItem {
   label: string
   icon: React.ReactNode
   badge?: number
+  /** Non-lus formulés pour les lecteurs d’écran : la pastille visuelle seule se tait. */
+  badgeLabel?: string
 }
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -79,6 +81,7 @@ export const Sidebar: React.FC = () => {
       label: t('nav.messages'),
       icon: <ChatIcon />,
       badge: totalUnread > 0 ? totalUnread : undefined,
+      badgeLabel: totalUnread > 0 ? t('nav.unreadCount', { count: totalUnread }) : undefined,
     },
     { id: 'contacts',  path: '/contacts',  label: t('nav.contacts'), icon: <ContactsIcon /> },
     {
@@ -87,6 +90,7 @@ export const Sidebar: React.FC = () => {
       label: t('nav.groups'),
       icon: <GroupsIcon />,
       badge: groupsUnread > 0 ? groupsUnread : undefined,
+      badgeLabel: groupsUnread > 0 ? t('nav.unreadCount', { count: groupsUnread }) : undefined,
     },
     { id: 'calls',     path: '/calls',     label: t('nav.calls'),   icon: <CallsIcon /> },
   ]
@@ -173,7 +177,8 @@ const NavButton: React.FC<NavButtonProps> = ({ item, isActive, onClick }) => (
     <motion.button
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
-      aria-label={item.label}
+      aria-label={item.badgeLabel ? `${item.label}, ${item.badgeLabel}` : item.label}
+      aria-current={isActive ? 'page' : undefined}
       className={cn(
         'relative w-full h-11 flex items-center justify-center rounded-xl',
         'transition-all duration-150',

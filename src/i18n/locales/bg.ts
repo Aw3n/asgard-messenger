@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Към най-новите съобщения",
       "chat.newMessages": "Нови съобщения",
       "search.searching": "Търсене в историята…",
+      "nav.unreadCount": "Непрочетени: {{count}}",
     }
 }

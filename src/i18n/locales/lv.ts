@@ -877,5 +877,6 @@ export default {
       "chat.scrollToLatest": "Pāriet uz jaunākajām ziņām",
       "chat.newMessages": "Jauni ziņojumi",
       "search.searching": "Vēstures meklēšana…",
+      "nav.unreadCount": "Neizlasīti: {{count}}",
     }
 }
