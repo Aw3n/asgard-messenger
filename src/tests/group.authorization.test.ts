@@ -852,4 +852,24 @@ describe('notifications de groupe', () => {
 
     expect(show()).not.toHaveBeenCalled()
   })
+
+  it('respecte la sourdine de la conversation de groupe', () => {
+    useConversationStore.getState().addConversation({
+      id: groupId,
+      type: 'group',
+      groupId,
+      unreadCount: 0,
+      muted: true,
+      pinned: false,
+      archived: false,
+      createdAt: 1,
+      updatedAt: 1,
+    })
+
+    receive('notif-12', 'silencieux')
+    mention('notif-13', '@Alice')
+
+    expect(show()).not.toHaveBeenCalled()
+    expect(group().channels[0].unreadCount).toBe(1)
+  })
 })

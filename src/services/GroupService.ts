@@ -1883,6 +1883,9 @@ class GroupService {
     const settings = useUIStore.getState().settings
     const notif = settings.notifications
     if (!notif.enabled || notif.dndMode) return
+    // Sourdine de la conversation de groupe (même marqueur que le 1:1) : les
+    // non-lus et les accusés continuent, seule l'alerte est coupée.
+    if (useConversationStore.getState().getConversation(group.id)?.muted) return
     const mentionsMe = message.mentions?.some(
       (mention) => mention.publicKey === identity.keyPair.publicKey,
     ) ?? false
@@ -2315,6 +2318,7 @@ class GroupService {
     const settings = useUIStore.getState().settings
     const notif = settings.notifications
     if (!notif.enabled || notif.dndMode) return
+    if (useConversationStore.getState().getConversation(group.id)?.muted) return
 
     // The notifier names itself with its roster profile, not with a string
     // carried by the wire: otherwise anyone could impersonate another member

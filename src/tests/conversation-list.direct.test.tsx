@@ -7,7 +7,7 @@
  * un fil vide, incapable d'envoyer quoi que ce soit.
  */
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Contact, Conversation } from '@/types'
@@ -100,5 +100,21 @@ describe('liste des conversations', () => {
 
     expect(screen.getByText('Bob')).toBeInTheDocument()
     expect(screen.queryByText('groupe-abcdef12')).toBeNull()
+  })
+
+  it('coupe puis rétablit la sourdine depuis le menu contextuel', () => {
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    fireEvent.click(screen.getByText('chat.muteConversation'))
+    expect(useConversationStore.getState().conversations[direct.id].muted).toBe(true)
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    fireEvent.click(screen.getByText('chat.unmuteConversation'))
+    expect(useConversationStore.getState().conversations[direct.id].muted).toBe(false)
   })
 })
