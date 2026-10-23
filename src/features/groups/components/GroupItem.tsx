@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/utils/cn'
 import { useConversationStore } from '@/stores/conversationStore'
+import { useGroupStore } from '@/stores/groupStore'
 import type { Group } from '@/types'
 import { useTranslation } from 'react-i18next'
 
@@ -23,6 +24,26 @@ export const GroupItem: React.FC<GroupItemProps> = ({ group, isActive, onClick }
   // Même convention que la liste 1:1 : une conversation muette garde son
   // compteur visible mais sous forme de point neutre, pas de pastille vive.
   const muted = useConversationStore((s) => s.conversations[group.id]?.muted ?? false)
+  // Parité avec la liste 1:1 : la frappe d'un membre (dans n'importe quel
+  // canal du groupe) remplace l'aperçu au lieu de rester invisible. Elle vit
+  // dans le GroupStore et expire après 5 s sans nouvel événement.
+  const channelTyping = useGroupStore((s) => s.channelTyping)
+  const [typingTick, setTypingTick] = React.useState(0)
+  const someoneTyping = React.useMemo(() => {
+    const now = Date.now()
+    const entries = channelTyping[group.id]
+    if (!entries) return false
+    return group.channels.some((ch) =>
+      Object.values(entries[ch.id] ?? {}).some(
+        (entry) => entry.isTyping && now - entry.timestamp < 5000,
+      ),
+    )
+  }, [group, channelTyping, typingTick])
+  React.useEffect(() => {
+    if (!someoneTyping) return
+    const timer = setTimeout(() => setTypingTick((n) => n + 1), 1000)
+    return () => clearTimeout(timer)
+  }, [someoneTyping, typingTick])
 
   return (
     <motion.button
@@ -72,8 +93,10 @@ export const GroupItem: React.FC<GroupItemProps> = ({ group, isActive, onClick }
             />
           )}
         </div>
-        <p className="text-xs text-asgard-text-muted truncate">
-          {group.description
+        <p className={cn('text-xs truncate', someoneTyping ? 'text-asgard-glacier/90' : 'text-asgard-text-muted')}>
+          {someoneTyping
+            ? t('chat.typing')
+            : group.description
             ? group.description
             : t('groups.memberCount', { count: memberCount })}
         </p>

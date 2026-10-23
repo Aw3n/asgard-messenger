@@ -713,7 +713,8 @@ export const useGroupStore = create<GroupState>()(
         activeChannelId: state.activeChannelId,
         searchQuery: state.searchQuery,
         groupPresence: state.groupPresence,
-        channelTyping: state.channelTyping,
+        // channelTyping est éphémère : une frappe de la session précédente ne
+        // doit pas être réaffichée après un redémarrage.
       }),
     }
   )

@@ -5,7 +5,6 @@ import { useGroupStore } from '@/stores/groupStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useMessageStore } from '@/stores/messageStore'
 import { useIdentityStore } from '@/stores/identityStore'
-import { useNetworkStore } from '@/stores/networkStore'
 import { useUIStore } from '@/stores/uiStore'
 import { ChannelList } from './ChannelList'
 import { MemberList } from './MemberList'
@@ -72,6 +71,26 @@ export const GroupView: React.FC = () => {
   const historyKeyRef = React.useRef(historyKey)
   historyKeyRef.current = historyKey
 
+  // La frappe de groupe vit dans le GroupStore (par canal), pas dans le store
+  // réseau du fil 1:1 : lire le mauvais store rendait l'indicateur muet.
+  const channelTyping = useGroupStore((s) => s.channelTyping)
+  const [typingTick, setTypingTick] = useState(0)
+  const typingUsers = React.useMemo(
+    () => (activeGroup?.id && channelId
+      ? useGroupStore.getState().getChannelTypingUsers(activeGroup.id, channelId)
+      : []),
+    // channelTyping et typingTick forcent la ré-évaluation (arrivée, expiration).
+    [activeGroup?.id, channelId, channelTyping, typingTick],
+  )
+  // Une frappe expire après 5 s sans nouvel événement : tant qu'elle est
+  // affichée, un tick par seconde la fait disparaître sans attendre un autre
+  // message du réseau.
+  useEffect(() => {
+    if (typingUsers.length === 0) return
+    const timer = setTimeout(() => setTypingTick((n) => n + 1), 1000)
+    return () => clearTimeout(timer)
+  }, [typingUsers.length, typingTick])
+
   // Changer de canal remet le suivi du bas à zéro.
   useEffect(() => {
     setAtBottom(true)
@@ -98,7 +117,6 @@ export const GroupView: React.FC = () => {
     followOwnSendRef.current = false
     virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
   }, [messages.length])
-  const typingUsers = useNetworkStore((s) => s.getTypingUsers(channelId))
   const currentMember = activeGroup?.members.find(
     (member) => member.publicKey === identity?.keyPair.publicKey,
   )
@@ -116,6 +134,14 @@ export const GroupView: React.FC = () => {
       groupService.sendGroupMessage(activeGroup.id, channelId, content, undefined, undefined, quoted?.id)
     },
     [identity, channelId, activeGroup, replyTo]
+  )
+
+  const handleTyping = useCallback(
+    (typing: boolean) => {
+      if (!activeGroup || !channelId) return
+      groupService.sendTypingIndicator(activeGroup.id, channelId, typing).catch(() => {})
+    },
+    [activeGroup, channelId],
   )
 
   const handleReaction = useCallback(
@@ -421,7 +447,7 @@ export const GroupView: React.FC = () => {
               components={{
                 Header: () => <div className="h-4" />,
                 Footer: () => (
-                  <TypingIndicator users={typingUsers} />
+                  <TypingIndicator users={typingUsers.map((u) => u.publicKey)} />
                 ),
               }}
             />
@@ -467,6 +493,7 @@ export const GroupView: React.FC = () => {
           editingMessage={editingMessage}
           onSend={handleSend}
           onEditSubmit={handleEditSubmit}
+          onTyping={handleTyping}
           onCancelEdit={() => setEditingMessage(undefined)}
           onFiles={handleFiles}
           onCancelReply={() => setReplyTo(undefined)}

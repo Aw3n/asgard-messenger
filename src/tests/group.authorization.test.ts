@@ -873,3 +873,30 @@ describe('notifications de groupe', () => {
     expect(group().channels[0].unreadCount).toBe(1)
   })
 })
+
+describe('indicateur de frappe de groupe', () => {
+  const setTyping = (enabled: boolean): void => {
+    useUIStore.setState((state) => ({
+      settings: {
+        ...state.settings,
+        privacy: { ...state.settings.privacy, typingIndicators: enabled },
+      },
+    }))
+  }
+
+  it('ne diffuse rien quand le réglage de confidentialité est coupé', async () => {
+    setTyping(false)
+    await groupService.sendTypingIndicator(groupId, channelId, true)
+    expect(p2pService.broadcastToPeers).not.toHaveBeenCalled()
+  })
+
+  it('diffuse la frappe du canal quand le réglage est actif', async () => {
+    setTyping(true)
+    await groupService.sendTypingIndicator(groupId, channelId, true)
+    expect(p2pService.broadcastToPeers).toHaveBeenCalledWith(
+      expect.any(Array),
+      'group:typing',
+      expect.objectContaining({ groupId, channelId, isTyping: true }),
+    )
+  })
+})

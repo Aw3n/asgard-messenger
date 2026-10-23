@@ -974,6 +974,8 @@ class GroupService {
   async sendTypingIndicator(groupId: string, channelId: string, isTyping: boolean): Promise<void> {
     const identity = useIdentityStore.getState().identity
     if (!identity) return
+    // PRIVACY: même réglage que le fil 1:1 — la frappe est une présence.
+    if (!useUIStore.getState().settings.privacy.typingIndicators) return
 
     const memberKeys = this.getGroupMemberKeys(groupId)
     await p2pService.broadcastToPeers(memberKeys, 'group:typing', {
