@@ -370,6 +370,7 @@ export default {
       "panels.identityVerified": "Identiteit geverifieerd",
       "panels.info": "Info",
       "panels.links": "Links",
+      "panels.mutedUntil": "Gedempt tot {{date}}",
       "panels.noFilesShared": "Geen bestanden gedeeld",
       "panels.noGroupSelected": "Geen groep geselecteerd",
       "panels.noLinksShared": "Geen links gedeeld",

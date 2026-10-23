@@ -11,6 +11,7 @@ import '@/i18n/config'
 import { ConversationInfoPanel } from '@/components/panels/ConversationInfoPanel'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
+import { getCurrentLanguage } from '@/i18n/config'
 import type { Conversation } from '@/types'
 
 vi.mock('@/components/ui/Avatar', () => ({
@@ -54,6 +55,34 @@ describe('sourdine dans le panneau de conversation', () => {
     fireEvent.click(screen.getByRole('switch'))
     expect(useConversationStore.getState().conversations[direct.id].muted).toBe(false)
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('affiche l’échéance d’une sourdine temporisée', () => {
+    const until = Date.now() + 60 * 60 * 1000
+    useConversationStore.setState({
+      conversations: { [direct.id]: { ...direct, muted: true, mutedUntil: until } },
+    })
+    render(<ConversationInfoPanel />)
+    const formatted = new Date(until).toLocaleString(getCurrentLanguage(), {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    })
+    const expiry = screen.getByText(`Sourdine jusqu’à ${formatted}`)
+    expect(expiry).toHaveAttribute('id', 'conversation-mute-expiry')
+    expect(screen.getByRole('switch')).toHaveAttribute(
+      'aria-describedby',
+      'conversation-mute-expiry'
+    )
+  })
+
+  it('n’affiche pas d’échéance pour une sourdine permanente', () => {
+    useConversationStore.setState({
+      conversations: { [direct.id]: { ...direct, muted: true } },
+    })
+    render(<ConversationInfoPanel />)
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+    expect(screen.queryByText(/Sourdine jusqu’à/)).toBeNull()
+    expect(screen.getByRole('switch')).not.toHaveAttribute('aria-describedby')
   })
 
   it('ne montre pas de commutateur sans conversation active', () => {

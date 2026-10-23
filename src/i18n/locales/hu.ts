@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identitás ellenőrizve",
       "panels.info": "Info",
       "panels.links": "Linkek",
+      "panels.mutedUntil": "Némítva eddig: {{date}}",
       "panels.noFilesShared": "Nincs megosztott fájl",
       "panels.noGroupSelected": "Nincs kiválasztott csoport",
       "panels.noLinksShared": "Nincs megosztott link",

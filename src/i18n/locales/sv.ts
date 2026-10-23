@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identitet verifierat",
       "panels.info": "Info",
       "panels.links": "Länkar",
+      "panels.mutedUntil": "Ljud avstängt till {{date}}",
       "panels.noFilesShared": "Inga delade filer",
       "panels.noGroupSelected": "Ingen grupp vald",
       "panels.noLinksShared": "Inga delade länkar",

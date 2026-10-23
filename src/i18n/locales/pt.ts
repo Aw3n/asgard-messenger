@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identidade verificada",
       "panels.info": "Info",
       "panels.links": "Links",
+      "panels.mutedUntil": "Silenciado até {{date}}",
       "panels.noFilesShared": "Sem ficheiros partilhados",
       "panels.noGroupSelected": "Sem grupo selecionado",
       "panels.noLinksShared": "Sem links partilhados",

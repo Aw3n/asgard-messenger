@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identiteetti vahvistettu",
       "panels.info": "Tiedot",
       "panels.links": "Linkit",
+      "panels.mutedUntil": "Hiljennetty {{date}} asti",
       "panels.noFilesShared": "Ei jaettuja tiedostoja",
       "panels.noGroupSelected": "Ei valittua ryhmää",
       "panels.noLinksShared": "Ei jaettuja linkkejä",

@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identiteta preverjena",
       "panels.info": "Info",
       "panels.links": "Povezave",
+      "panels.mutedUntil": "Utišano do {{date}}",
       "panels.noFilesShared": "Ni deljenih datotek",
       "panels.noGroupSelected": "Ni izbrane skupine",
       "panels.noLinksShared": "Ni deljenih povezav",

@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identitāte verificēta",
       "panels.info": "Info",
       "panels.links": "Saites",
+      "panels.mutedUntil": "Apklusināts līdz {{date}}",
       "panels.noFilesShared": "Nav kopīgotu failu",
       "panels.noGroupSelected": "Nav izvēlētas grupas",
       "panels.noLinksShared": "Nav kopīgotu saišu",

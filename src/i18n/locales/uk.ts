@@ -413,6 +413,7 @@ export default {
       "panels.info": "Інформація",
       "panels.files": "Файли",
       "panels.links": "Посилання",
+      "panels.mutedUntil": "Звук вимкнено до {{date}}",
       "panels.identityVerified": "Особистість перевірено",
       "panels.endToEndEncrypted": "Шифрування від кінця до кінця",
       "time.updated": "Оновлено",

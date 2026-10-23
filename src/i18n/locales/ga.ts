@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Aitheantas deimhnithe",
       "panels.info": "Eolas",
       "panels.links": "Naisc",
+      "panels.mutedUntil": "Balbhaithe go dtí {{date}}",
       "panels.noFilesShared": "Gan comhaid roinnte",
       "panels.noGroupSelected": "Gan aon ghrúpa roghnaithe",
       "panels.noLinksShared": "Gan naisc roinnte",

@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Идентичността е потвърдена",
       "panels.info": "Информация",
       "panels.links": "Връзки",
+      "panels.mutedUntil": "Заглушено до {{date}}",
       "panels.noFilesShared": "Няма споделени файлове",
       "panels.noGroupSelected": "Не е избрана група",
       "panels.noLinksShared": "Няма споделени връзки",

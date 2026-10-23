@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identità verifikata",
       "panels.info": "Info",
       "panels.links": "Links",
+      "panels.mutedUntil": "Il-ħoss mitfi sa {{date}}",
       "panels.noFilesShared": "L-ebda fajls maqsuma",
       "panels.noGroupSelected": "L-ebda grupp magħżul",
       "panels.noLinksShared": "L-ebda links maqsuma",

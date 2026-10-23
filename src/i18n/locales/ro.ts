@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identitate verificată",
       "panels.info": "Info",
       "panels.links": "Linkuri",
+      "panels.mutedUntil": "Fără sunet până la {{date}}",
       "panels.noFilesShared": "Fără fișiere partajate",
       "panels.noGroupSelected": "Niciun grup selectat",
       "panels.noLinksShared": "Fără linkuri partajate",

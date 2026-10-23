@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identiteet kinnitatud",
       "panels.info": "Teave",
       "panels.links": "Lingid",
+      "panels.mutedUntil": "Summutatud kuni {{date}}",
       "panels.noFilesShared": "Jagatud faile pole",
       "panels.noGroupSelected": "Ühtegi rühma pole valitud",
       "panels.noLinksShared": "Jagatud linke pole",

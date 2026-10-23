@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Tapatybė patvirtinta",
       "panels.info": "Info",
       "panels.links": "Nuorodos",
+      "panels.mutedUntil": "Nutildyta iki {{date}}",
       "panels.noFilesShared": "Nėra bendrinamų failų",
       "panels.noGroupSelected": "Nepasirinkta jokia grupė",
       "panels.noLinksShared": "Nėra bendrinamų nuorodų",

@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identitet bekræftet",
       "panels.info": "Info",
       "panels.links": "Links",
+      "panels.mutedUntil": "Lyd slået fra indtil {{date}}",
       "panels.noFilesShared": "Ingen delte filer",
       "panels.noGroupSelected": "Ingen gruppe valgt",
       "panels.noLinksShared": "Ingen delte links",

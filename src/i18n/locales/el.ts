@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Η ταυτότητα επαληθεύτηκε",
       "panels.info": "Πληροφορίες",
       "panels.links": "Σύνδεσμοι",
+      "panels.mutedUntil": "Σε σίγαση έως {{date}}",
       "panels.noFilesShared": "Κανένα κοινόχρηστο αρχείο",
       "panels.noGroupSelected": "Καμία επιλεγμένη ομάδα",
       "panels.noLinksShared": "Κανένας κοινόχρηστος σύνδεσμος",

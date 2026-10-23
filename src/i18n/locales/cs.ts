@@ -353,6 +353,7 @@ export default {
       "panels.identityVerified": "Identita ověřena",
       "panels.info": "Info",
       "panels.links": "Odkazy",
+      "panels.mutedUntil": "Ztlumeno do {{date}}",
       "panels.noFilesShared": "Žádné sdílené soubory",
       "panels.noGroupSelected": "Není vybrána žádná skupina",
       "panels.noLinksShared": "Žádné sdílené odkazy",

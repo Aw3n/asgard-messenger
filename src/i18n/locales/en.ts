@@ -440,6 +440,7 @@ export default {
       "panels.info": "Info",
       "panels.files": "Files",
       "panels.links": "Links",
+      "panels.mutedUntil": "Muted until {{date}}",
       "panels.identityVerified": "Identity verified",
       "panels.endToEndEncrypted": "End-to-end encrypted",
       "time.updated": "Updated",
