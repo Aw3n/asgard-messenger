@@ -2,10 +2,7 @@ import React, { useEffect, useCallback, useRef } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import { AppShell } from '@/components/layout/AppShell'
-import { OnboardingPage } from '@/features/onboarding/OnboardingPage'
 import { ConversationsPage } from '@/features/chat/ConversationsPage'
-import { ChatView } from '@/features/chat/ChatView'
-import { ContactsPage } from '@/features/contacts/ContactsPage'
 
 // Pages secondaires chargées à la navigation : leur poids (réglages, groupes,
 // historique d'appels) ne retarde plus le premier rendu de la messagerie.
@@ -17,6 +14,23 @@ const CallsPage = React.lazy(() =>
 )
 const SettingsPage = React.lazy(() =>
   import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage }))
+)
+const ContactsPage = React.lazy(() =>
+  import('@/features/contacts/ContactsPage').then((m) => ({ default: m.ContactsPage }))
+)
+const OnboardingPage = React.lazy(() =>
+  import('@/features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage }))
+)
+const ChatView = React.lazy(() =>
+  import('@/features/chat/ChatView').then((m) => ({ default: m.ChatView }))
+)
+// Plein écran d'appel et recherche globale : absents du premier rendu, ils
+// n'entrent dans le bundle qu'au premier usage.
+const CallView = React.lazy(() =>
+  import('@/features/calls/components/CallView').then((m) => ({ default: m.CallView }))
+)
+const SearchModal = React.lazy(() =>
+  import('@/components/search/SearchModal').then((m) => ({ default: m.SearchModal }))
 )
 
 const RouteFallback: React.FC = () => <div style={{ flex: 1, height: '100%' }} />
@@ -39,10 +53,8 @@ import { callService } from '@/services/CallService'
 import { fileService } from '@/services/FileService'
 import { mediaDeviceService } from '@/services/MediaDeviceService'
 import { activityMonitor } from '@/services/ActivityMonitor'
-import { SearchModal } from '@/components/search/SearchModal'
 import { ModalContainer } from '@/components/modals/ModalContainer'
 import { IncomingCallOverlay } from '@/components/overlays/IncomingCallOverlay'
-import { CallView } from '@/features/calls/components/CallView'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useCallStore } from '@/stores/callStore'
 import type { Contact } from '@/types'
@@ -74,6 +86,12 @@ const App: React.FC = () => {
   const sessionTeardown = useRef<(() => void) | null>(null)
   // Track whether we've verified the identity from disk
   const [identityVerified, setIdentityVerified] = React.useState(false)
+  // La recherche ne rejoint le bundle qu'après le premier Ctrl+K, puis reste
+  // montée pour laisser jouer son animation de fermeture.
+  const [searchMounted, setSearchMounted] = React.useState(false)
+  useEffect(() => {
+    if (isSearchOpen) setSearchMounted(true)
+  }, [isSearchOpen])
 
   useEffect(() => {
     const dlog = (m: string) => { console.log(m); try { window.asgard.debugLog(m) } catch {} }
@@ -657,16 +675,24 @@ const App: React.FC = () => {
 
   return (
     <MotionConfig reducedMotion={settings.accessibility.reducedMotion ? 'always' : 'never'}>
-      <SearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} />
+      {searchMounted && (
+        <React.Suspense fallback={null}>
+          <SearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} />
+        </React.Suspense>
+      )}
       <ModalContainer />
       <IncomingCallOverlay />
-      {activeCall && <CallView />}
+      {activeCall && (
+        <React.Suspense fallback={null}>
+          <CallView />
+        </React.Suspense>
+      )}
       <ErrorBoundary>
         <Routes>
           {/* Onboarding — no shell */}
           <Route
             path="/onboarding"
-            element={isSetup ? <Navigate to="/conversations" replace /> : <OnboardingPage />}
+            element={isSetup ? <Navigate to="/conversations" replace /> : lazyRoute(<OnboardingPage />)}
           />
 
           {/* Main app — with shell */}
@@ -675,9 +701,9 @@ const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/conversations" replace />} />
             <Route path="/conversations" element={<ConversationsPage />}>
-              <Route path=":conversationId" element={<ChatView />} />
+              <Route path=":conversationId" element={lazyRoute(<ChatView />)} />
             </Route>
-            <Route path="/contacts" element={<ContactsPage />} />
+            <Route path="/contacts" element={lazyRoute(<ContactsPage />)} />
             <Route path="/groups" element={lazyRoute(<GroupsPage />)}>
               <Route path=":groupId" element={lazyRoute(<GroupsPage />)} />
               <Route path=":groupId/channels/:channelId" element={lazyRoute(<GroupsPage />)} />
