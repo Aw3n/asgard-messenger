@@ -185,6 +185,12 @@ function setupWindowHandlers(win: BrowserWindow, tray?: AsgardTray): void {
 
   ipcMain.handle('window:isMaximized', () => win.isMaximized())
 
+  // Total des non-lus pour le tooltip du tray : la fenêtre masquée n'a pas de
+  // titre visible, le tray est alors la seule surface d'alerte.
+  ipcMain.on('window:set-unread', (_event, count: unknown) => {
+    tray?.setUnread(typeof count === 'number' ? count : 0)
+  })
+
   // Language sync: renderer → main. Localizes the native tray menu
   // (the main process has no access to i18next, see electron/tray.ts).
   ipcMain.handle('ui:setLanguage', (_event, lang: string) => {

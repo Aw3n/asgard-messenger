@@ -19,6 +19,7 @@ export interface AsgardElectronAPI {
     close: () => void
     isMaximized: () => Promise<boolean>
     onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
+    setUnreadCount: (count: number) => void
   }
   identity: {
     create: () => Promise<IdentityAPIResult>

@@ -26,6 +26,7 @@ export interface AsgardAPI {
     close: () => void
     isMaximized: () => Promise<boolean>
     onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
+    setUnreadCount: (count: number) => void
   }
   // Identity & Crypto
   identity: {
@@ -274,6 +275,7 @@ contextBridge.exposeInMainWorld('asgard', {
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
     onMaximizeChange: (callback: (isMaximized: boolean) => void) =>
       createListener('window:maximizeChange', callback),
+    setUnreadCount: (count: number) => ipcRenderer.send('window:set-unread', count),
   },
   identity: {
     create: () => ipcRenderer.invoke('identity:create'),

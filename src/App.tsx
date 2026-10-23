@@ -136,7 +136,11 @@ const App: React.FC = () => {
   // Titre de fenêtre : les non-lus restent visibles dans la barre des tâches,
   // l'aperçu Alt+Tab et pour les lecteurs d'écran, même en arrière-plan.
   useEffect(() => {
-    document.title = formatWindowTitle(i18n.t('titlebar.appName'), directUnread + groupUnread)
+    const total = directUnread + groupUnread
+    document.title = formatWindowTitle(i18n.t('titlebar.appName'), total)
+    if (typeof window.asgard?.window?.setUnreadCount === 'function') {
+      window.asgard.window.setUnreadCount(total)
+    }
   }, [directUnread, groupUnread, i18n.language])
 
   // Notification cliquée : sélectionner la destination avant de naviguer,

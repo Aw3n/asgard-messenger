@@ -49,6 +49,8 @@ export class AsgardTray {
   private tray: Tray | null = null
   private win: BrowserWindow
   private lang: string
+  private unread = 0
+  private static readonly MAX_TOOLTIP_UNREAD = 99
 
   constructor(win: BrowserWindow, lang: string = 'en') {
     this.win = win
@@ -64,6 +66,31 @@ export class AsgardTray {
     if (!TRAY_STRINGS[lang]) return
     this.lang = lang
     this.refreshMenu()
+  }
+
+  /**
+   * Total des non-lus reflété dans le tooltip. La fenêtre masquée dans le
+   * tray n'apparaît ni dans la barre des tâches ni dans Alt+Tab : sans cela,
+   * un message reçu ne produisait aucun signe visible.
+   */
+  setUnread(count: number): void {
+    const next = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0
+    if (next === this.unread) return
+    this.unread = next
+    this.applyTooltip()
+  }
+
+  private applyTooltip(): void {
+    if (!this.tray) return
+    const base = this.strings().tooltip
+    if (this.unread <= 0) {
+      this.tray.setToolTip(base)
+      return
+    }
+    const label = this.unread > AsgardTray.MAX_TOOLTIP_UNREAD
+      ? `${AsgardTray.MAX_TOOLTIP_UNREAD}+`
+      : String(this.unread)
+    this.tray.setToolTip(`(${label}) ${base}`)
   }
 
   private strings(): TrayStrings {
@@ -133,7 +160,7 @@ export class AsgardTray {
     if (!this.tray) return
     const s = this.strings()
 
-    this.tray.setToolTip(s.tooltip)
+    this.applyTooltip()
 
     const contextMenu = Menu.buildFromTemplate([
       {
