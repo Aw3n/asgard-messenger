@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Neprebrano: {{count}}",
       "messageInput.removeFile": "Odstrani prilogo",
       "chat.historyLoadFailed": "Zgodovine ni bilo mogoče naložiti",
+      "chat.pinnedMessages": "Pripeta sporočila",
     }
 }

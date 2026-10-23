@@ -883,5 +883,6 @@ export default {
       "nav.unreadCount": "Ongelezen: {{count}}",
       "messageInput.removeFile": "Bijlage verwijderen",
       "chat.historyLoadFailed": "Geschiedenis kon niet worden geladen",
+      "chat.pinnedMessages": "Vastgezette berichten",
     }
 }

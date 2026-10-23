@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Непрочетени: {{count}}",
       "messageInput.removeFile": "Премахване на прикачения файл",
       "chat.historyLoadFailed": "Историята не можа да се зареди",
+      "chat.pinnedMessages": "Закачени съобщения",
     }
 }

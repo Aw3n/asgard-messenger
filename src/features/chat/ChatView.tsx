@@ -582,7 +582,7 @@ export const ChatView: React.FC = () => {
               <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v1h1.6v-1H18v-2l-2-2z"/>
             </svg>
             <span className="text-xs text-asgard-glacier font-medium">
-              {pinnedMessages.length} message{pinnedMessages.length > 1 ? 's' : ''} épinglé{pinnedMessages.length > 1 ? 's' : ''}
+              {t('chat.pinnedMessages')} · {pinnedMessages.length}
             </span>
             <span className="text-xs text-asgard-text-muted truncate flex-1">
               {pinnedMessages[pinnedMessages.length - 1]?.content?.slice(0, 50)}

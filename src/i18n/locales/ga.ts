@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Gan léamh: {{count}}",
       "messageInput.removeFile": "Bain an ceangaltán",
       "chat.historyLoadFailed": "Níorbh fhéidir an stair a lódáil",
+      "chat.pinnedMessages": "Teachtaireachtaí pionnáilte",
     }
 }

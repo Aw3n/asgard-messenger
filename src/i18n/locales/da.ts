@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Ulæste: {{count}}",
       "messageInput.removeFile": "Fjern vedhæftning",
       "chat.historyLoadFailed": "Historikken kunne ikke indlæses",
+      "chat.pinnedMessages": "Fastgjorte beskeder",
     }
 }

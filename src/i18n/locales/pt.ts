@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Não lidos: {{count}}",
       "messageInput.removeFile": "Remover anexo",
       "chat.historyLoadFailed": "Não foi possível carregar o histórico",
+      "chat.pinnedMessages": "Mensagens fixadas",
     }
 }

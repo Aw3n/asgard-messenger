@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Lugemata: {{count}}",
       "messageInput.removeFile": "Eemalda manus",
       "chat.historyLoadFailed": "Ajalugu ei saanud laadida",
+      "chat.pinnedMessages": "Kinnitatud sõnumid",
     }
 }

@@ -883,5 +883,6 @@ export default {
       "nav.unreadCount": "Non lus : {{count}}",
       "messageInput.removeFile": "Retirer la pièce jointe",
       "chat.historyLoadFailed": "Impossible de charger l’historique",
+      "chat.pinnedMessages": "Messages épinglés",
     }
 }

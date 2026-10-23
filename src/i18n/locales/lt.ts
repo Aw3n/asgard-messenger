@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Neskaityti: {{count}}",
       "messageInput.removeFile": "Pašalinti priedą",
       "chat.historyLoadFailed": "Istorijos nepavyko įkelti",
+      "chat.pinnedMessages": "Prisegtos žinutės",
     }
 }

@@ -29,4 +29,16 @@ describe('catalogues de langue', () => {
     const key = 'common.save'
     expect(i18n.t(key)).toBe(translations.de.translation[key])
   })
+
+  it('rend le libellé des épinglés dans chacune des 25 langues', async () => {
+    await i18nReady
+    // La barre des épinglés était française en codé en dur : une clé nouvelle ne
+    // vaut livrée que traduite partout, et rendue par i18n, pas lue dans la table.
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      const label = i18n.t('chat.pinnedMessages')
+      expect(label).toBe(translations[code].translation['chat.pinnedMessages'])
+      expect(label).not.toBe('chat.pinnedMessages')
+    }
+  })
 })

@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Mhux moqrija: {{count}}",
       "messageInput.removeFile": "Neħħi l-anness",
       "chat.historyLoadFailed": "L-istorja ma setgħetx titgħabba",
+      "chat.pinnedMessages": "Messaġġi mwaqqa'",
     }
 }

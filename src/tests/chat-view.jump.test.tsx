@@ -255,6 +255,23 @@ describe('ChatView : saut vers un message', () => {
 
 const toastTitles = () => useUIStore.getState().toasts.map((toast) => toast.title)
 
+describe('ChatView : barre des messages épinglés', () => {
+  it('est libellée dans la langue affichée, sans accord de nombre bricolé', async () => {
+    renderThread()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-1')).toBeInTheDocument())
+
+    act(() => {
+      useMessageStore.getState().pinMessage('recent-1', CONVERSATION_ID)
+      useMessageStore.getState().pinMessage('recent-2', CONVERSATION_ID)
+    })
+
+    // La barre était du français codé en dur avec un « s » de pluriel choisi en
+    // JSX : l'en-tête est traduit et le nombre juxtaposé, donc rien n'accorde.
+    expect(screen.getByText('chat.pinnedMessages · 2')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/épinglé/)
+  })
+})
+
 function renderThread() {
   return render(
     <MemoryRouter initialEntries={[{ pathname: `/conversations/${CONVERSATION_ID}` }]}>

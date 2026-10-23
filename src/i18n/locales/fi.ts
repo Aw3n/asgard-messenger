@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Lukemattomat: {{count}}",
       "messageInput.removeFile": "Poista liite",
       "chat.historyLoadFailed": "Historiaa ei voitu ladata",
+      "chat.pinnedMessages": "Kiinnitetyt viestit",
     }
 }

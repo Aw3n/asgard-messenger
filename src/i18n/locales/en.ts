@@ -893,5 +893,6 @@ export default {
       "nav.unreadCount": "Unread: {{count}}",
       "messageInput.removeFile": "Remove attachment",
       "chat.historyLoadFailed": "History could not be loaded",
+      "chat.pinnedMessages": "Pinned messages",
     }
 }

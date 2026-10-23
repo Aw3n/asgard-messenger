@@ -883,5 +883,6 @@ export default {
       "nav.unreadCount": "Ungelesen: {{count}}",
       "messageInput.removeFile": "Anhang entfernen",
       "chat.historyLoadFailed": "Verlauf konnte nicht geladen werden",
+      "chat.pinnedMessages": "Angeheftete Nachrichten",
     }
 }

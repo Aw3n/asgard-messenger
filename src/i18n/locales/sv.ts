@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Olästa: {{count}}",
       "messageInput.removeFile": "Ta bort bilaga",
       "chat.historyLoadFailed": "Historiken kunde inte laddas",
+      "chat.pinnedMessages": "Nålade meddelanden",
     }
 }

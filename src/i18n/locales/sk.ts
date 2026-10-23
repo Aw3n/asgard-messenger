@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Neprečítané: {{count}}",
       "messageInput.removeFile": "Odstrániť prílohu",
       "chat.historyLoadFailed": "Históriu sa nepodarilo načítať",
+      "chat.pinnedMessages": "Pripnuté správy",
     }
 }

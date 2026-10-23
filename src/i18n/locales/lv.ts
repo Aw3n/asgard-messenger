@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Neizlasīti: {{count}}",
       "messageInput.removeFile": "Noņemt pielikumu",
       "chat.historyLoadFailed": "Vēsturi nevarēja ielādēt",
+      "chat.pinnedMessages": "Piesprausti ziņojumi",
     }
 }

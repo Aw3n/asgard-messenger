@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Necitite: {{count}}",
       "messageInput.removeFile": "Elimină atașamentul",
       "chat.historyLoadFailed": "Istoricul nu a putut fi încărcat",
+      "chat.pinnedMessages": "Mesaje fixate",
     }
 }

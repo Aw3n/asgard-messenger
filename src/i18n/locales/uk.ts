@@ -884,5 +884,6 @@ export default {
       "nav.unreadCount": "Непрочитані: {{count}}",
       "messageInput.removeFile": "Вилучити вкладення",
       "chat.historyLoadFailed": "Історію не вдалося завантажити",
+      "chat.pinnedMessages": "Закріплені повідомлення",
     }
 }
