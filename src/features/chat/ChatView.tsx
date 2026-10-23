@@ -109,6 +109,15 @@ export const ChatView: React.FC = () => {
     setReplyTo(undefined)
   }, [conversationId])
 
+  // Un fil ouvert par l'URL (résultat de recherche, clic de notification,
+  // retour arrière) doit aussi devenir la conversation sélectionnée : sinon
+  // un message entrant reste compté non lu et notifié alors qu'il s'affiche.
+  useEffect(() => {
+    if (conversationId) {
+      useConversationStore.getState().setActiveConversation(conversationId)
+    }
+  }, [conversationId])
+
   // Seul un ChatView monté prouve que le fil est visible : l'identifiant de
   // conversation, lui, reste sélectionné après un passage sur une autre page.
   // Une fenêtre réduite ou sans focus ne rend rien à l'écran : elle doit donc

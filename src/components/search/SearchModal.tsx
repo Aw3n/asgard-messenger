@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSearch } from '@/hooks/useSearch'
+import { useConversationStore } from '@/stores/conversationStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/utils/cn'
@@ -163,8 +164,18 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                 result={result}
                 onClick={() => {
                   if (result.type === 'contact' && result.contact) {
-                    handleNavigate(`/contacts`)
+                    // Un contact déjà en conversation s'ouvre directement ;
+                    // sinon la page Contacts propose de démarrer le fil.
+                    const existing = Object.values(useConversationStore.getState().conversations)
+                      .find((conv) => conv.participantId === result.contact!.publicKey)
+                    if (existing) {
+                      useConversationStore.getState().setActiveConversation(existing.id)
+                      handleNavigate(`/conversations/${existing.id}`)
+                    } else {
+                      handleNavigate(`/contacts`)
+                    }
                   } else if (result.type === 'group' && result.group) {
+                    useGroupStore.getState().setActiveGroup(result.group.id)
                     handleNavigate(`/groups/${result.group.id}`)
                   } else if (result.type === 'message' && result.message) {
                     if (result.groupId && result.channelId) {

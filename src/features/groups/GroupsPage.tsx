@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { GroupList } from './components/GroupList'
 import { GroupView } from './components/GroupView'
 import { CreateGroupModal } from './components/CreateGroupModal'
@@ -12,7 +13,28 @@ import { useTranslation } from 'react-i18next'
 export const GroupsPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const activeGroupId = useGroupStore((s) => s.activeGroupId)
+  const { groupId: routeGroupId, channelId: routeChannelId } = useParams<{
+    groupId?: string
+    channelId?: string
+  }>()
   const { t } = useTranslation()
+
+  // Une URL de groupe (recherche, clic de notification) fait foi : sans cette
+  // synchronisation, GroupView resterait sur le groupe précédemment ouvert.
+  useEffect(() => {
+    if (!routeGroupId) return
+    const store = useGroupStore.getState()
+    const group = store.getGroup(routeGroupId)
+    if (!group) return
+    if (store.activeGroupId !== group.id) store.setActiveGroup(group.id)
+    if (
+      routeChannelId
+      && group.channels.some((channel) => channel.id === routeChannelId)
+      && useGroupStore.getState().activeChannelId !== routeChannelId
+    ) {
+      useGroupStore.getState().setActiveChannel(routeChannelId)
+    }
+  }, [routeGroupId, routeChannelId, activeGroupId])
 
   return (
     <PageTransition>
