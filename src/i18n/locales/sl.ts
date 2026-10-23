@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Osnutek: {{text}}",
       "chat.markAllAsRead": "Označi vse kot prebrano",
       "chat.scrollToLatest": "Pojdi na najnovejša sporočila",
+      "chat.newMessages": "Nova sporočila",
     }
 }

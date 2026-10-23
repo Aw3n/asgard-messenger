@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Koncept: {{text}}",
       "chat.markAllAsRead": "Označit vše jako přečtené",
       "chat.scrollToLatest": "Přejít na nejnovější zprávy",
+      "chat.newMessages": "Nové zprávy",
     }
 }

@@ -874,5 +874,6 @@ export default {
       "chat.draft": "Bozza: {{text}}",
       "chat.markAllAsRead": "Segna tutto come letto",
       "chat.scrollToLatest": "Vai ai messaggi più recenti",
+      "chat.newMessages": "Nuovi messaggi",
     }
 }

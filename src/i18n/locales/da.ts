@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Kladde: {{text}}",
       "chat.markAllAsRead": "Markér alle som læst",
       "chat.scrollToLatest": "Gå til de nyeste beskeder",
+      "chat.newMessages": "Nye beskeder",
     }
 }

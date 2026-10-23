@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Skica: {{text}}",
       "chat.markAllAsRead": "Označi sve kao pročitano",
       "chat.scrollToLatest": "Idi na najnovije poruke",
+      "chat.newMessages": "Nove poruke",
     }
 }

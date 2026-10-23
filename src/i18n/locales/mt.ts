@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Abbozz: {{text}}",
       "chat.markAllAsRead": "Immarka kollha bħala moqrija",
       "chat.scrollToLatest": "Mur għall-aktar messaġġi reċenti",
+      "chat.newMessages": "Messaġġi ġodda",
     }
 }

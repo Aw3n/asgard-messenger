@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Чернова: {{text}}",
       "chat.markAllAsRead": "Маркирай всичко като прочетено",
       "chat.scrollToLatest": "Към най-новите съобщения",
+      "chat.newMessages": "Нови съобщения",
     }
 }

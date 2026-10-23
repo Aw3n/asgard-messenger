@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Piszkozat: {{text}}",
       "chat.markAllAsRead": "Összes megjelölése olvasottként",
       "chat.scrollToLatest": "Ugrás a legújabb üzenetekhez",
+      "chat.newMessages": "Új üzenetek",
     }
 }

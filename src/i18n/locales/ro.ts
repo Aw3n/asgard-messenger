@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Ciornă: {{text}}",
       "chat.markAllAsRead": "Marchează totul ca citit",
       "chat.scrollToLatest": "Mergi la cele mai recente mesaje",
+      "chat.newMessages": "Mesaje noi",
     }
 }

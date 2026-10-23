@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Melnraksts: {{text}}",
       "chat.markAllAsRead": "Atzīmēt visu kā lasītu",
       "chat.scrollToLatest": "Pāriet uz jaunākajām ziņām",
+      "chat.newMessages": "Jauni ziņojumi",
     }
 }

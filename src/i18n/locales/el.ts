@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Πρόχειρο: {{text}}",
       "chat.markAllAsRead": "Σήμανση όλων ως αναγνωσμένων",
       "chat.scrollToLatest": "Μετάβαση στα πιο πρόσφατα μηνύματα",
+      "chat.newMessages": "Νέα μηνύματα",
     }
 }

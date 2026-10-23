@@ -15,6 +15,7 @@ import { PendingContactBanner } from './components/PendingContactBanner'
 import { ForwardModal } from './components/ForwardModal'
 import { ActiveTransfersWidget } from './components/ActiveTransfersWidget'
 import { Avatar } from '@/components/ui/Avatar'
+import { UnreadDivider } from '@/components/ui/UnreadDivider'
 import { chatService } from '@/services/ChatService'
 import { p2pService } from '@/services/P2PService'
 import { cryptoService } from '@/services/CryptoService'
@@ -24,6 +25,7 @@ import { RightPanel } from '@/components/panels/RightPanel'
 import { presenceMeta, isLivePresence } from '@/utils/presence'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
 import { countIncomingAfter } from '@/utils/incomingAfter'
+import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
 import type { Message } from '@/types'
 
 const HISTORY_PAGE_SIZE = 50
@@ -46,6 +48,9 @@ export const ChatView: React.FC = () => {
   // message arrive en dessous, et un envoi doit ramener à sa propre bulle.
   const [atBottom, setAtBottom] = useState(true)
   const [newBelowCount, setNewBelowCount] = useState(0)
+  // Premier message non lu ancré à l'ouverture : le compteur est remis à zéro
+  // juste après, donc l'ancre doit être posée avant, une seule fois par fil.
+  const [firstUnreadId, setFirstUnreadId] = useState<string | undefined>(undefined)
   const lastSeenMessageIdRef = useRef<string | undefined>(undefined)
   const followOwnSendRef = useRef(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
@@ -94,6 +99,7 @@ export const ChatView: React.FC = () => {
   useEffect(() => {
     setAtBottom(true)
     setNewBelowCount(0)
+    setFirstUnreadId(undefined)
     lastSeenMessageIdRef.current = undefined
   }, [conversationId])
 
@@ -221,6 +227,13 @@ export const ChatView: React.FC = () => {
     if (unreadFromPeer.length === 0) return
 
     const unreadIds = unreadFromPeer.map((m) => m.id)
+    // L'ancre « Nouveaux messages » se pose AVANT la remise à zéro : après,
+    // le total non lu ne dit plus où la lecture s'était arrêtée.
+    const unreadTotal = useConversationStore.getState().conversations[resolvedId]?.unreadCount ?? 0
+    if (unreadTotal > 0) {
+      const anchor = findFirstUnreadMessageId(messages, unreadTotal, myPk)
+      if (anchor) setFirstUnreadId(anchor)
+    }
     // Mark them as read locally immediately (optimistic UI)
     useMessageStore.getState().markAllAsRead(resolvedId)
     useConversationStore.getState().clearUnread(resolvedId)
@@ -497,57 +510,61 @@ export const ChatView: React.FC = () => {
             className="h-full virtual-list"
             initialTopMostItemIndex={messages.length - 1}
             itemContent={(index, message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                isOwn={message.senderId === identity?.keyPair.publicKey}
-                senderName={contact?.displayName}
-                // CHAT SETTINGS (collapseMessages): group consecutive messages from
-                // the same sender within 5 minutes — only the last one shows its
-                // timestamp, the others render in compact mode.
-                compact={
-                  collapseMessages &&
-                  index > 0 &&
-                  messages[index - 1].senderId === message.senderId &&
-                  message.timestamp - messages[index - 1].timestamp < 300_000
-                }
-                onReply={(msg) => {
-                  setEditingMessage(undefined)
-                  setReplyTo(msg)
-                }}
-                onEdit={(msg) => {
-                  setReplyTo(undefined)
-                  setEditingMessage(msg)
-                }}
-                onRetry={handleRetry}
-                onDelete={(msg) => {
-                  if (!conversation.participantId || !dataId) return
-                  chatService.deleteMessage(msg.id, dataId, conversation.participantId).catch((err) => {
-                    console.error('[ChatView] deleteMessage failed:', err)
-                    try { window.asgard.debugLog('[ChatView] deleteMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
-                  })
-                }}
-                onDeletePermanently={(msg) => {
-                  if (!dataId) return
-                  chatService.deleteMessagePermanently(msg.id, dataId, conversation.participantId ?? undefined).catch((err) => {
-                    console.error('[ChatView] deleteMessagePermanently failed:', err)
-                    try { window.asgard.debugLog('[ChatView] deleteMessagePermanently failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
-                  })
-                }}
-                onReaction={(msg, emoji) => {
-                  if (conversation.participantId && dataId) {
-                    chatService.toggleReaction(msg.id, dataId, emoji, conversation.participantId).catch((err) => {
-                      console.warn('[ChatView] toggleReaction failed:', err)
-                    })
-                  } else {
-                    console.warn('[ChatView] Reaction ignored: conversation has no participantId')
+              <React.Fragment key={message.id}>
+                {message.id === firstUnreadId && (
+                  <UnreadDivider label={t('chat.newMessages')} />
+                )}
+                <MessageBubble
+                  message={message}
+                  isOwn={message.senderId === identity?.keyPair.publicKey}
+                  senderName={contact?.displayName}
+                  // CHAT SETTINGS (collapseMessages): group consecutive messages from
+                  // the same sender within 5 minutes — only the last one shows its
+                  // timestamp, the others render in compact mode.
+                  compact={
+                    collapseMessages &&
+                    index > 0 &&
+                    messages[index - 1].senderId === message.senderId &&
+                    message.timestamp - messages[index - 1].timestamp < 300_000
                   }
-                }}
-                onForward={(msg) => setForwardMessage(msg)}
-                onPin={(msg) => {
-                  if (dataId) chatService.togglePinMessage(msg.id, dataId)
-                }}
-              />
+                  onReply={(msg) => {
+                    setEditingMessage(undefined)
+                    setReplyTo(msg)
+                  }}
+                  onEdit={(msg) => {
+                    setReplyTo(undefined)
+                    setEditingMessage(msg)
+                  }}
+                  onRetry={handleRetry}
+                  onDelete={(msg) => {
+                    if (!conversation.participantId || !dataId) return
+                    chatService.deleteMessage(msg.id, dataId, conversation.participantId).catch((err) => {
+                      console.error('[ChatView] deleteMessage failed:', err)
+                      try { window.asgard.debugLog('[ChatView] deleteMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+                    })
+                  }}
+                  onDeletePermanently={(msg) => {
+                    if (!dataId) return
+                    chatService.deleteMessagePermanently(msg.id, dataId, conversation.participantId ?? undefined).catch((err) => {
+                      console.error('[ChatView] deleteMessagePermanently failed:', err)
+                      try { window.asgard.debugLog('[ChatView] deleteMessagePermanently failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+                    })
+                  }}
+                  onReaction={(msg, emoji) => {
+                    if (conversation.participantId && dataId) {
+                      chatService.toggleReaction(msg.id, dataId, emoji, conversation.participantId).catch((err) => {
+                        console.warn('[ChatView] toggleReaction failed:', err)
+                      })
+                    } else {
+                      console.warn('[ChatView] Reaction ignored: conversation has no participantId')
+                    }
+                  }}
+                  onForward={(msg) => setForwardMessage(msg)}
+                  onPin={(msg) => {
+                    if (dataId) chatService.togglePinMessage(msg.id, dataId)
+                  }}
+                />
+              </React.Fragment>
             )}
             components={{
               Header: () => <div className="h-4" />,

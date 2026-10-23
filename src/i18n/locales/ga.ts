@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Dréacht: {{text}}",
       "chat.markAllAsRead": "Marcáil gach rud mar léite",
       "chat.scrollToLatest": "Téigh go dtí na teachtaireachtaí is déanaí",
+      "chat.newMessages": "Teachtaireachtaí nua",
     }
 }

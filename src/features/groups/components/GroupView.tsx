@@ -13,11 +13,13 @@ import { MessageBubble } from '@/features/chat/components/MessageBubble'
 import { MessageInput } from '@/features/chat/components/MessageInput'
 import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
 import { ForwardModal } from '@/features/chat/components/ForwardModal'
+import { UnreadDivider } from '@/components/ui/UnreadDivider'
 import { callService } from '@/services/CallService'
 import { groupService } from '@/services/GroupService'
 import { useTranslation } from 'react-i18next'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
 import { countIncomingAfter } from '@/utils/incomingAfter'
+import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
 import type { Message } from '@/types'
 
 const HISTORY_PAGE_SIZE = 50
@@ -47,6 +49,8 @@ export const GroupView: React.FC = () => {
   // Même suivi du bas que le fil 1:1 : lecture remontée + envoi qui ramène.
   const [atBottom, setAtBottom] = useState(true)
   const [newBelowCount, setNewBelowCount] = useState(0)
+  // Même ancre que le fil 1:1 : posée avant que le canal ne soit marqué lu.
+  const [firstUnreadId, setFirstUnreadId] = useState<string | undefined>(undefined)
   const lastSeenMessageIdRef = React.useRef<string | undefined>(undefined)
   const followOwnSendRef = React.useRef(false)
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
@@ -95,6 +99,7 @@ export const GroupView: React.FC = () => {
   useEffect(() => {
     setAtBottom(true)
     setNewBelowCount(0)
+    setFirstUnreadId(undefined)
     lastSeenMessageIdRef.current = undefined
   }, [historyKey])
 
@@ -258,8 +263,14 @@ export const GroupView: React.FC = () => {
       const channel = useGroupStore.getState().getGroup(activeGroupId)?.channels.find((c) => c.id === channelId)
       if (!channel?.unreadCount) return
       const reader = useIdentityStore.getState().identity?.keyPair.publicKey
+      const channelMessages = useMessageStore.getState().messages[channelId] ?? []
+      // Le compteur est remis à zéro juste en dessous : l'ancre se pose ici.
+      if (reader) {
+        const anchor = findFirstUnreadMessageId(channelMessages, channel.unreadCount, reader)
+        if (anchor) setFirstUnreadId(anchor)
+      }
       const messageIds = reader
-        ? (useMessageStore.getState().messages[channelId] ?? [])
+        ? channelMessages
           .filter((message) => message.senderId !== reader)
           .slice(-200)
           .map((message) => message.id)
@@ -423,26 +434,30 @@ export const GroupView: React.FC = () => {
               className="h-full virtual-list"
               initialTopMostItemIndex={messages.length - 1}
               itemContent={(_, message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  isOwn={message.senderId === identity?.keyPair.publicKey}
-                  senderName={getMemberName(activeGroup, message.senderId)}
-                  showSender
-                  onReply={(msg) => {
-                    setEditingMessage(undefined)
-                    setReplyTo(msg)
-                  }}
-                  onEdit={(msg) => {
-                    setReplyTo(undefined)
-                    setEditingMessage(msg)
-                  }}
-                  onDelete={handleDelete}
-                  onDeletePermanently={handleDeleteForMe}
-                  onReaction={handleReaction}
-                  onPin={canPin ? handlePin : undefined}
-                  onForward={setForwardMessage}
-                />
+                <React.Fragment key={message.id}>
+                  {message.id === firstUnreadId && (
+                    <UnreadDivider label={t('chat.newMessages')} />
+                  )}
+                  <MessageBubble
+                    message={message}
+                    isOwn={message.senderId === identity?.keyPair.publicKey}
+                    senderName={getMemberName(activeGroup, message.senderId)}
+                    showSender
+                    onReply={(msg) => {
+                      setEditingMessage(undefined)
+                      setReplyTo(msg)
+                    }}
+                    onEdit={(msg) => {
+                      setReplyTo(undefined)
+                      setEditingMessage(msg)
+                    }}
+                    onDelete={handleDelete}
+                    onDeletePermanently={handleDeleteForMe}
+                    onReaction={handleReaction}
+                    onPin={canPin ? handlePin : undefined}
+                    onForward={setForwardMessage}
+                  />
+                </React.Fragment>
               )}
               components={{
                 Header: () => <div className="h-4" />,

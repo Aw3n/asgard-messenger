@@ -875,5 +875,6 @@ export default {
       "chat.draft": "Luonnos: {{text}}",
       "chat.markAllAsRead": "Merkitse kaikki luetuiksi",
       "chat.scrollToLatest": "Siirry uusimpiin viesteihin",
+      "chat.newMessages": "Uudet viestit",
     }
 }
