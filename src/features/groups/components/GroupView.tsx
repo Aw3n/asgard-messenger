@@ -35,6 +35,7 @@ export const GroupView: React.FC = () => {
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
 
   const channelId = activeChannel?.id ?? ''
+  const activeGroupId = activeGroup?.id
   // CRITICAL: Select messages reactively from the store
   const messages = useMessageStore((s) => channelId ? (s.messages[channelId] ?? []) : [])
   const typingUsers = useNetworkStore((s) => s.getTypingUsers(channelId))
@@ -142,6 +143,37 @@ export const GroupView: React.FC = () => {
     setReplyTo(undefined)
     setEditingMessage(undefined)
   }, [channelId])
+
+  // Ouvrir un canal recharge son historique depuis Hyperbee (il n'était relu
+  // qu'en 1:1, si bien qu'un redémarrage vidait les groupes) puis vaut lecture :
+  // le compteur n'était incrémenté qu'en dehors du canal actif et rien ne le
+  // remettait à zéro, donc sa pastille restait indéfiniment allumée.
+  useEffect(() => {
+    if (!activeGroupId || !channelId) return
+    let cancelled = false
+    const openChannel = async () => {
+      await groupService.loadChannelMessages(activeGroupId, channelId)
+      if (cancelled) return
+      const channel = useGroupStore.getState().getGroup(activeGroupId)?.channels.find((c) => c.id === channelId)
+      if (!channel?.unreadCount) return
+      const reader = useIdentityStore.getState().identity?.keyPair.publicKey
+      const messageIds = reader
+        ? (useMessageStore.getState().messages[channelId] ?? [])
+          .filter((message) => message.senderId !== reader)
+          .slice(-200)
+          .map((message) => message.id)
+        : []
+      if (messageIds.length > 0 && useUIStore.getState().settings.privacy.readReceipts) {
+        await groupService.markAsRead(activeGroupId, channelId, messageIds).catch((err) => {
+          console.warn('[GroupView] markAsRead failed:', err)
+        })
+      } else {
+        useGroupStore.getState().clearChannelUnread(activeGroupId, channelId)
+      }
+    }
+    void openChannel()
+    return () => { cancelled = true }
+  }, [activeGroupId, channelId])
 
   // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
   // doit rendre le même nombre de hooks qu'avec, sinon React casse l'ordre.

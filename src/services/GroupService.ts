@@ -1185,6 +1185,31 @@ class GroupService {
   }
 
   /**
+   * Load a channel's persisted history into the message store.
+   *
+   * Group messages are saved under the channel id, but nothing ever read them
+   * back: after a restart the channel looked empty while Hyperbee still held
+   * every message. The membership/channel checks keep an id that no longer
+   * belongs to a local group from being read from storage.
+   */
+  async loadChannelMessages(groupId: string, channelId: string, limit = 50): Promise<void> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return
+    if (!group.channels.some((channel) => channel.id === channelId)) return
+
+    try {
+      const stored = await storageService.getLastMessages(channelId, limit)
+      if (stored.length === 0) return
+      // Storage returns newest first; addMessages restores chronological order.
+      useMessageStore.getState().addMessages(channelId, stored.reverse())
+    } catch (err) {
+      console.error('[GroupService] Failed to load channel messages:', err)
+    }
+  }
+
+  /**
    * Mark messages as read in a group channel and notify peers.
    */
   async markAsRead(groupId: string, channelId: string, messageIds: string[]): Promise<void> {
