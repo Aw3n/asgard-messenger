@@ -883,5 +883,6 @@ export default {
       "search.searching": "Søger i historikken…",
       "nav.unreadCount": "Ulæste: {{count}}",
       "messageInput.removeFile": "Fjern vedhæftning",
+      "chat.historyLoadFailed": "Historikken kunne ikke indlæses",
     }
 }

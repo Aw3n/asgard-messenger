@@ -67,6 +67,7 @@ vi.mock('@/features/groups/components/GroupSettings', () => ({ GroupSettings: ()
 vi.mock('@/services/GroupService', () => ({
   groupService: {
     loadChannelMessages: vi.fn(),
+    loadOlderChannelMessages: vi.fn(async () => [] as Message[]),
     loadChannelMessageContext: vi.fn(),
     loadNewerChannelMessages: vi.fn(),
     announceGroupPresence: vi.fn(),
@@ -80,9 +81,9 @@ import { groupService } from '@/services/GroupService'
 import { useGroupStore } from '@/stores/groupStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useMessageStore } from '@/stores/messageStore'
+import { useUIStore } from '@/stores/uiStore'
 
-class IntersectionObserverStub {
-  observe() {}
+class IntersectionObserverStub {  observe() {}
   unobserve() {}
   disconnect() {}
   takeRecords() { return [] }
@@ -126,8 +127,10 @@ function makeMessage(id: string, timestamp: number): Message {
 
 beforeEach(() => {
   scrollToIndexMock.mockClear()
+  vi.mocked(groupService.loadOlderChannelMessages).mockClear()
   for (const key of Object.keys(virtuosoProps)) delete virtuosoProps[key]
   useMessageStore.setState({ messages: {} })
+  useUIStore.setState({ toasts: [] })
   useGroupStore.setState({
     groups: { [GROUP_ID]: { ...group } },
     activeGroupId: GROUP_ID,
@@ -145,6 +148,7 @@ beforeEach(() => {
   const recent = [makeMessage('recent-1', 5_000), makeMessage('recent-2', 5_001)]
   vi.mocked(groupService.loadChannelMessages).mockImplementation(async () => {
     useMessageStore.getState().addMessages(CHANNEL_ID, recent)
+    return recent
   })
   vi.mocked(groupService.loadChannelMessageContext).mockImplementation(async () => {
     const contextMessages = [
@@ -217,5 +221,93 @@ describe('GroupView : saut vers un message', () => {
     await waitFor(() => expect(screen.getByTestId('bubble-gap-1')).toBeInTheDocument())
     expect(groupService.loadNewerChannelMessages).toHaveBeenCalledTimes(1)
     expect((virtuosoProps.followOutput as (atBottom: boolean) => unknown)(true)).toBe(false)
+  })
+})
+
+const toastTitles = () => useUIStore.getState().toasts.map((toast) => toast.title)
+
+function renderChannel() {
+  return render(
+    <MemoryRouter initialEntries={[{ pathname: `/groups/${GROUP_ID}/channels/${CHANNEL_ID}` }]}>
+      <GroupView />
+    </MemoryRouter>,
+  )
+}
+
+function olderPage(count: number): Message[] {
+  return Array.from({ length: count }, (_, index) => makeMessage(`ancien-${index}`, 1_000 + index))
+}
+
+describe('GroupView : panne de lecture du canal', () => {
+  // jsdom rend document.hasFocus() faux : la vue se croit masquée, ne charge
+  // aucun canal et annule la lecture déjà commencée. Sans ce stub, ni la panne
+  // ni le vide ne seraient observables.
+  function openChannelVisibly() {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true)
+    useGroupStore.setState({ groupViewVisible: true })
+  }
+
+  it('annonce la panne et laisse la pagination se retenter', async () => {
+    useGroupStore.setState({ groupViewVisible: true })
+    vi.mocked(groupService.loadOlderChannelMessages).mockResolvedValue(null)
+
+    renderChannel()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-1')).toBeInTheDocument())
+
+    const startReached = virtuosoProps.startReached as () => void
+    act(() => { startReached() })
+    await waitFor(() => expect(groupService.loadOlderChannelMessages).toHaveBeenCalledWith(
+      GROUP_ID,
+      CHANNEL_ID,
+      5_001,
+      50,
+    ))
+    expect(toastTitles()).toEqual(['chat.historyLoadFailed'])
+
+    // La panne n'a pas fermé la pagination et ne s'est pas répétée au bord haut
+    // suivant : la même page est relue, une seule alerte reste à l'écran.
+    act(() => { startReached() })
+    await waitFor(() => expect(groupService.loadOlderChannelMessages).toHaveBeenCalledTimes(2))
+    expect(toastTitles()).toEqual(['chat.historyLoadFailed'])
+  })
+
+  it('n’annonce rien quand la page ancienne arrive', async () => {
+    useGroupStore.setState({ groupViewVisible: true })
+    vi.mocked(groupService.loadOlderChannelMessages).mockImplementation(async (_groupId, _channelId) => {
+      const page = olderPage(50)
+      useMessageStore.getState().addMessages(CHANNEL_ID, page)
+      return page
+    })
+
+    renderChannel()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-1')).toBeInTheDocument())
+
+    act(() => { (virtuosoProps.startReached as () => void)() })
+    await waitFor(() => expect(screen.getByTestId('bubble-ancien-49')).toBeInTheDocument())
+    expect(toastTitles()).toEqual([])
+  })
+
+  it('annonce un canal dont la page de démarrage ne vient pas', async () => {
+    openChannelVisibly()
+    vi.mocked(groupService.loadChannelMessages).mockResolvedValue(null)
+
+    renderChannel()
+
+    // Un canal vide et un canal illisible se ressemblaient à l'écran : le
+    // second doit être dit.
+    await waitFor(() => expect(toastTitles()).toEqual(['chat.historyLoadFailed']))
+    // Et le canal reste affichable : la liste vide doit partager une référence
+    // stable, sinon la vue se relance sans fin.
+    expect(screen.getByText('groups.welcomeToChannel')).toBeInTheDocument()
+  })
+
+  it('n’annonce rien sur un canal vraiment vide', async () => {
+    openChannelVisibly()
+    vi.mocked(groupService.loadChannelMessages).mockResolvedValue([])
+
+    renderChannel()
+
+    await waitFor(() => expect(screen.getByText('groups.welcomeToChannel')).toBeInTheDocument())
+    expect(toastTitles()).toEqual([])
   })
 })

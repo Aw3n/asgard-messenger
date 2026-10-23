@@ -883,5 +883,6 @@ export default {
       "search.searching": "Qed tfittex fl-istorja…",
       "nav.unreadCount": "Mhux moqrija: {{count}}",
       "messageInput.removeFile": "Neħħi l-anness",
+      "chat.historyLoadFailed": "L-istorja ma setgħetx titgħabba",
     }
 }

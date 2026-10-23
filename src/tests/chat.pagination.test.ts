@@ -5,6 +5,10 @@
  * plus anciens, un fil dépassant la première page devenait définitivement
  * tronqué : ces tests fixent la requête (avant telle date, du plus récent au
  * plus ancien) et l'ordre chronologique restauré dans le store.
+ *
+ * Une page rendue `null` est une panne de lecture, jamais une fin d'historique :
+ * la vue qui la confondait avec une page vide déclarait la pagination épuisée
+ * et le trou du haut ne se rouvrait plus.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { chatService } from '@/services/ChatService'
@@ -52,7 +56,7 @@ describe('remonter l’historique 1:1', () => {
     const returned = await chatService.loadOlderMessages('conv', 3_001, 50)
 
     expect(getMessages).toHaveBeenCalledWith('conv', { before: 3_001, limit: 50, reverse: true })
-    expect(returned.map((m) => m.id)).toEqual(['m-3', 'm-2'])
+    expect(returned?.map((m) => m.id)).toEqual(['m-3', 'm-2'])
     expect(useMessageStore.getState().messages.conv?.map((m) => m.id)).toEqual(['m-2', 'm-3'])
   })
 
@@ -68,11 +72,12 @@ describe('remonter l’historique 1:1', () => {
     expect(useMessageStore.getState().messages.conv?.map((m) => m.id)).toEqual(['m-2', 'm-3'])
   })
 
-  it('rend une page vide sans jeter quand le stockage échoue', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('rend null quand la lecture échoue, pour ne pas croire l’historique fini', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(storageService, 'getMessages').mockRejectedValue(new Error('stockage indisponible'))
 
-    await expect(chatService.loadOlderMessages('conv', 1, 50)).resolves.toEqual([])
+    await expect(chatService.loadOlderMessages('conv', 1, 50)).resolves.toBeNull()
+    expect(error).toHaveBeenCalled()
     expect(useMessageStore.getState().messages.conv).toBeUndefined()
   })
 })
@@ -88,7 +93,7 @@ describe('combler la couture vers les messages récents', () => {
     const returned = await chatService.loadNewerMessages('conv', 4_000, 'm-4', 50)
 
     expect(getMessages).toHaveBeenCalledWith('conv', { after: 4_000, afterId: 'm-4', limit: 50 })
-    expect(returned.map((m) => m.id)).toEqual(['m-5', 'm-6'])
+    expect(returned?.map((m) => m.id)).toEqual(['m-5', 'm-6'])
     expect(useMessageStore.getState().messages.conv?.map((m) => m.id)).toEqual([
       'm-4',
       'm-5',
@@ -96,11 +101,11 @@ describe('combler la couture vers les messages récents', () => {
     ])
   })
 
-  it('rend une page vide sans jeter quand le stockage échoue', async () => {
+  it('rend null quand la lecture échoue, pour que la couture se retente', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(storageService, 'getMessages').mockRejectedValue(new Error('stockage indisponible'))
 
-    await expect(chatService.loadNewerMessages('conv', 1, 'm-1', 50)).resolves.toEqual([])
+    await expect(chatService.loadNewerMessages('conv', 1, 'm-1', 50)).resolves.toBeNull()
     expect(useMessageStore.getState().messages.conv).toBeUndefined()
   })
 })
@@ -126,12 +131,32 @@ describe('contexte autour d’un message', () => {
 
     expect(getMessages).toHaveBeenCalledWith('conv', { before: 1_001, limit: 50, reverse: true })
     expect(getMessages).toHaveBeenCalledWith('conv', { after: 1_000, limit: 50 })
-    expect(returned.map((m) => m.id)).toEqual(['avant', 'cible-a', 'cible-b', 'apres'])
+    expect(returned?.map((m) => m.id)).toEqual(['avant', 'cible-a', 'cible-b', 'apres'])
     expect(useMessageStore.getState().messages.conv?.map((m) => m.id)).toEqual([
       'avant',
       'cible-a',
       'cible-b',
       'apres',
     ])
+  })
+
+  it('rend null quand la page de contexte ne vient pas', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(storageService, 'getMessages').mockRejectedValue(new Error('stockage indisponible'))
+
+    await expect(chatService.loadMessageContext('conv', 1_000, 50)).resolves.toBeNull()
+  })
+})
+
+describe('page de démarrage', () => {
+  it('rend null quand le fil n’a pas pu être lu, [] quand il est vide', async () => {
+    const getLastMessages = vi.spyOn(storageService, 'getLastMessages')
+
+    getLastMessages.mockResolvedValue([])
+    await expect(chatService.loadMessages('conv')).resolves.toEqual([])
+
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    getLastMessages.mockRejectedValue(new Error('stockage indisponible'))
+    await expect(chatService.loadMessages('conv')).resolves.toBeNull()
   })
 })

@@ -883,5 +883,6 @@ export default {
       "search.searching": "Ag cuardach na staire…",
       "nav.unreadCount": "Gan léamh: {{count}}",
       "messageInput.removeFile": "Bain an ceangaltán",
+      "chat.historyLoadFailed": "Níorbh fhéidir an stair a lódáil",
     }
 }

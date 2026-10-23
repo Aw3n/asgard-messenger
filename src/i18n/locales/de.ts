@@ -882,5 +882,6 @@ export default {
       "search.searching": "Verlauf wird durchsucht…",
       "nav.unreadCount": "Ungelesen: {{count}}",
       "messageInput.removeFile": "Anhang entfernen",
+      "chat.historyLoadFailed": "Verlauf konnte nicht geladen werden",
     }
 }

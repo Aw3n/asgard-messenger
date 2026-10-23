@@ -883,5 +883,6 @@ export default {
       "search.searching": "Пошук в історії…",
       "nav.unreadCount": "Непрочитані: {{count}}",
       "messageInput.removeFile": "Вилучити вкладення",
+      "chat.historyLoadFailed": "Історію не вдалося завантажити",
     }
 }

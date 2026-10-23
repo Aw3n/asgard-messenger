@@ -2807,7 +2807,11 @@ class ChatService {
    * Called when opening a conversation to restore message history.
    * OPTIMIZATION: Uses reverse pagination to load latest messages first.
    */
-  async loadMessages(conversationId: string, limit = 50): Promise<Message[]> {
+  /**
+   * `null` = la lecture a échoué, à distinguer d'une page vide : une vue qui
+   * confond les deux déclare l'historique épuisé et le trou devient définitif.
+   */
+  async loadMessages(conversationId: string, limit = 50): Promise<Message[] | null> {
     try {
       // OPTIMIZATION: Load latest messages in reverse order (newest first)
       // This is much faster than loading all messages and sorting
@@ -2820,7 +2824,7 @@ class ChatService {
       return messages
     } catch (err) {
       console.error('[ChatService] Failed to load messages:', err)
-      return []
+      return null
     }
   }
 
@@ -2828,7 +2832,7 @@ class ChatService {
    * Load older messages before a given timestamp (pagination).
    * OPTIMIZATION: Uses Hyperbee range queries for efficient pagination.
    */
-  async loadOlderMessages(conversationId: string, beforeTimestamp: number, limit = 50): Promise<Message[]> {
+  async loadOlderMessages(conversationId: string, beforeTimestamp: number, limit = 50): Promise<Message[] | null> {
     try {
       const messages = await storageService.getMessages(conversationId, {
         before: beforeTimestamp,
@@ -2841,16 +2845,17 @@ class ChatService {
       return messages
     } catch (err) {
       console.error('[ChatService] Failed to load older messages:', err)
-      return []
+      return null
     }
   }
 
   /**
    * Load the messages surrounding a date, to open a deep search result in
    * context. The target itself is included with the page before it.
-   * Returns the page in storage order so the caller knows its newest exact key.
+   * The page is returned ordered by storage key so the caller knows its newest
+   * exact cursor; `null` means the read failed, not that there is no context.
    */
-  async loadMessageContext(conversationId: string, timestamp: number, limit = 50): Promise<Message[]> {
+  async loadMessageContext(conversationId: string, timestamp: number, limit = 50): Promise<Message[] | null> {
     try {
       const [before, after] = await Promise.all([
         storageService.getMessages(conversationId, {
@@ -2868,7 +2873,7 @@ class ChatService {
       return merged
     } catch (err) {
       console.error('[ChatService] Failed to load message context:', err)
-      return []
+      return null
     }
   }
 
@@ -2881,7 +2886,7 @@ class ChatService {
     afterTimestamp: number,
     afterId: string,
     limit = 50,
-  ): Promise<Message[]> {
+  ): Promise<Message[] | null> {
     try {
       const messages = await storageService.getMessages(conversationId, {
         after: afterTimestamp,
@@ -2894,7 +2899,7 @@ class ChatService {
       return messages
     } catch (err) {
       console.error('[ChatService] Failed to load newer messages:', err)
-      return []
+      return null
     }
   }
 

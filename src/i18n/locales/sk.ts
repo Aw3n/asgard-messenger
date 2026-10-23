@@ -883,5 +883,6 @@ export default {
       "search.searching": "Prehľadávanie histórie…",
       "nav.unreadCount": "Neprečítané: {{count}}",
       "messageInput.removeFile": "Odstrániť prílohu",
+      "chat.historyLoadFailed": "Históriu sa nepodarilo načítať",
     }
 }

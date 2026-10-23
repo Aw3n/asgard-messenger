@@ -883,5 +883,6 @@ export default {
       "search.searching": "Αναζήτηση στο ιστορικό…",
       "nav.unreadCount": "Μη αναγνωσμένα: {{count}}",
       "messageInput.removeFile": "Αφαίρεση συνημμένου",
+      "chat.historyLoadFailed": "Το ιστορικό δεν μπόρεσε να φορτωθεί",
     }
 }

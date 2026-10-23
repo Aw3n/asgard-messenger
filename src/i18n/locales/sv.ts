@@ -883,5 +883,6 @@ export default {
       "search.searching": "Söker i historiken…",
       "nav.unreadCount": "Olästa: {{count}}",
       "messageInput.removeFile": "Ta bort bilaga",
+      "chat.historyLoadFailed": "Historiken kunde inte laddas",
     }
 }

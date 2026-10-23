@@ -883,5 +883,6 @@ export default {
       "search.searching": "A procurar no histórico…",
       "nav.unreadCount": "Não lidos: {{count}}",
       "messageInput.removeFile": "Remover anexo",
+      "chat.historyLoadFailed": "Não foi possível carregar o histórico",
     }
 }

@@ -883,5 +883,6 @@ export default {
       "search.searching": "Ieškoma istorijoje…",
       "nav.unreadCount": "Neskaityti: {{count}}",
       "messageInput.removeFile": "Pašalinti priedą",
+      "chat.historyLoadFailed": "Istorijos nepavyko įkelti",
     }
 }

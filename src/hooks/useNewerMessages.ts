@@ -20,8 +20,8 @@ interface UseNewerMessagesOptions {
   messages: Message[]
   firstItemIndex: number
   pageSize: number
-  /** Charge la page qui suit ce curseur exact et la fusionne dans le store. */
-  loadNewer: (cursor: MessageCursor, limit: number) => Promise<Message[] | void>
+  /** Charge la page qui suit ce curseur exact et la fusionne dans le store. `null` = lecture échouée. */
+  loadNewer: (cursor: MessageCursor, limit: number) => Promise<Message[] | null | void>
 }
 
 interface UseNewerMessagesResult {
@@ -111,6 +111,9 @@ export function useNewerMessages({
       try {
         const page = await loadNewerRef.current(cursor, limit)
         if (dataIdRef.current !== requestDataId) return
+        // `null` est une panne de lecture, non une fin : le curseur reste en
+        // place et la prochaine approche du bord retentera la page.
+        if (page === null) return
         const loaded = Array.isArray(page) ? page : []
         const newest = newestMessageCursor(loaded)
         const boundary = boundaryRef.current

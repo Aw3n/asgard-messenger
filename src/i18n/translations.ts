@@ -881,6 +881,7 @@ export const translations = {
       "search.searching": "Recherche dans l’historique…",
       "nav.unreadCount": "Non lus : {{count}}",
       "messageInput.removeFile": "Retirer la pièce jointe",
+      "chat.historyLoadFailed": "Impossible de charger l’historique",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1765,6 +1766,7 @@ export const translations = {
       "search.searching": "Geschiedenis doorzoeken…",
       "nav.unreadCount": "Ongelezen: {{count}}",
       "messageInput.removeFile": "Bijlage verwijderen",
+      "chat.historyLoadFailed": "Geschiedenis kon niet worden geladen",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2649,6 +2651,7 @@ export const translations = {
       "search.searching": "Verlauf wird durchsucht…",
       "nav.unreadCount": "Ungelesen: {{count}}",
       "messageInput.removeFile": "Anhang entfernen",
+      "chat.historyLoadFailed": "Verlauf konnte nicht geladen werden",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3533,6 +3536,7 @@ export const translations = {
       "search.searching": "Ricerca nella cronologia…",
       "nav.unreadCount": "Non letti: {{count}}",
       "messageInput.removeFile": "Rimuovi allegato",
+      "chat.historyLoadFailed": "Impossibile caricare la cronologia",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4417,6 +4421,7 @@ export const translations = {
       "search.searching": "Buscando en el historial…",
       "nav.unreadCount": "Sin leer: {{count}}",
       "messageInput.removeFile": "Quitar adjunto",
+      "chat.historyLoadFailed": "No se pudo cargar el historial",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5302,6 +5307,7 @@ export const translations = {
       "search.searching": "A procurar no histórico…",
       "nav.unreadCount": "Não lidos: {{count}}",
       "messageInput.removeFile": "Remover anexo",
+      "chat.historyLoadFailed": "Não foi possível carregar o histórico",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6187,6 +6193,7 @@ export const translations = {
       "search.searching": "Αναζήτηση στο ιστορικό…",
       "nav.unreadCount": "Μη αναγνωσμένα: {{count}}",
       "messageInput.removeFile": "Αφαίρεση συνημμένου",
+      "chat.historyLoadFailed": "Το ιστορικό δεν μπόρεσε να φορτωθεί",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7072,6 +7079,7 @@ export const translations = {
       "search.searching": "Søger i historikken…",
       "nav.unreadCount": "Ulæste: {{count}}",
       "messageInput.removeFile": "Fjern vedhæftning",
+      "chat.historyLoadFailed": "Historikken kunne ikke indlæses",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7957,6 +7965,7 @@ export const translations = {
       "search.searching": "Haetaan historiasta…",
       "nav.unreadCount": "Lukemattomat: {{count}}",
       "messageInput.removeFile": "Poista liite",
+      "chat.historyLoadFailed": "Historiaa ei voitu ladata",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8842,6 +8851,7 @@ export const translations = {
       "search.searching": "Söker i historiken…",
       "nav.unreadCount": "Olästa: {{count}}",
       "messageInput.removeFile": "Ta bort bilaga",
+      "chat.historyLoadFailed": "Historiken kunde inte laddas",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9727,6 +9737,7 @@ export const translations = {
       "search.searching": "Pretraživanje povijesti…",
       "nav.unreadCount": "Nepročitano: {{count}}",
       "messageInput.removeFile": "Ukloni privitak",
+      "chat.historyLoadFailed": "Povijest se nije mogla učitati",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10612,6 +10623,7 @@ export const translations = {
       "search.searching": "Ajaloo otsimine…",
       "nav.unreadCount": "Lugemata: {{count}}",
       "messageInput.removeFile": "Eemalda manus",
+      "chat.historyLoadFailed": "Ajalugu ei saanud laadida",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11497,6 +11509,7 @@ export const translations = {
       "search.searching": "Előzmények keresése…",
       "nav.unreadCount": "Olvasatlan: {{count}}",
       "messageInput.removeFile": "Melléklet eltávolítása",
+      "chat.historyLoadFailed": "Az előzmények nem tölthetők be",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12382,6 +12395,7 @@ export const translations = {
       "search.searching": "Vēstures meklēšana…",
       "nav.unreadCount": "Neizlasīti: {{count}}",
       "messageInput.removeFile": "Noņemt pielikumu",
+      "chat.historyLoadFailed": "Vēsturi nevarēja ielādēt",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13267,6 +13281,7 @@ export const translations = {
       "search.searching": "Ieškoma istorijoje…",
       "nav.unreadCount": "Neskaityti: {{count}}",
       "messageInput.removeFile": "Pašalinti priedą",
+      "chat.historyLoadFailed": "Istorijos nepavyko įkelti",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14152,6 +14167,7 @@ export const translations = {
       "search.searching": "Qed tfittex fl-istorja…",
       "nav.unreadCount": "Mhux moqrija: {{count}}",
       "messageInput.removeFile": "Neħħi l-anness",
+      "chat.historyLoadFailed": "L-istorja ma setgħetx titgħabba",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -15037,6 +15053,7 @@ export const translations = {
       "search.searching": "Wyszukiwanie w historii…",
       "nav.unreadCount": "Nieprzeczytane: {{count}}",
       "messageInput.removeFile": "Usuń załącznik",
+      "chat.historyLoadFailed": "Nie udało się załadować historii",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15922,6 +15939,7 @@ export const translations = {
       "search.searching": "Prehľadávanie histórie…",
       "nav.unreadCount": "Neprečítané: {{count}}",
       "messageInput.removeFile": "Odstrániť prílohu",
+      "chat.historyLoadFailed": "Históriu sa nepodarilo načítať",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16807,6 +16825,7 @@ export const translations = {
       "search.searching": "Iskanje po zgodovini…",
       "nav.unreadCount": "Neprebrano: {{count}}",
       "messageInput.removeFile": "Odstrani prilogo",
+      "chat.historyLoadFailed": "Zgodovine ni bilo mogoče naložiti",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17692,6 +17711,7 @@ export const translations = {
       "search.searching": "Prohledávání historie…",
       "nav.unreadCount": "Nepřečtené: {{count}}",
       "messageInput.removeFile": "Odebrat přílohu",
+      "chat.historyLoadFailed": "Historici se nepodařilo načíst",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18577,6 +18597,7 @@ export const translations = {
       "search.searching": "Търсене в историята…",
       "nav.unreadCount": "Непрочетени: {{count}}",
       "messageInput.removeFile": "Премахване на прикачения файл",
+      "chat.historyLoadFailed": "Историята не можа да се зареди",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19462,6 +19483,7 @@ export const translations = {
       "search.searching": "Ag cuardach na staire…",
       "nav.unreadCount": "Gan léamh: {{count}}",
       "messageInput.removeFile": "Bain an ceangaltán",
+      "chat.historyLoadFailed": "Níorbh fhéidir an stair a lódáil",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20347,6 +20369,7 @@ export const translations = {
       "search.searching": "Se caută în istoric…",
       "nav.unreadCount": "Necitite: {{count}}",
       "messageInput.removeFile": "Elimină atașamentul",
+      "chat.historyLoadFailed": "Istoricul nu a putut fi încărcat",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21241,6 +21264,7 @@ export const translations = {
       "search.searching": "Searching history…",
       "nav.unreadCount": "Unread: {{count}}",
       "messageInput.removeFile": "Remove attachment",
+      "chat.historyLoadFailed": "History could not be loaded",
     }
   },
 
@@ -22127,6 +22151,7 @@ export const translations = {
       "search.searching": "Пошук в історії…",
       "nav.unreadCount": "Непрочитані: {{count}}",
       "messageInput.removeFile": "Вилучити вкладення",
+      "chat.historyLoadFailed": "Історію не вдалося завантажити",
     }
   },
 }

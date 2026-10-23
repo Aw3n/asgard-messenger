@@ -883,5 +883,6 @@ export default {
       "search.searching": "Se caută în istoric…",
       "nav.unreadCount": "Necitite: {{count}}",
       "messageInput.removeFile": "Elimină atașamentul",
+      "chat.historyLoadFailed": "Istoricul nu a putut fi încărcat",
     }
 }

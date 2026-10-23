@@ -883,5 +883,6 @@ export default {
       "search.searching": "Haetaan historiasta…",
       "nav.unreadCount": "Lukemattomat: {{count}}",
       "messageInput.removeFile": "Poista liite",
+      "chat.historyLoadFailed": "Historiaa ei voitu ladata",
     }
 }

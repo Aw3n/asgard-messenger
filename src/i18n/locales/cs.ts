@@ -883,5 +883,6 @@ export default {
       "search.searching": "Prohledávání historie…",
       "nav.unreadCount": "Nepřečtené: {{count}}",
       "messageInput.removeFile": "Odebrat přílohu",
+      "chat.historyLoadFailed": "Historici se nepodařilo načíst",
     }
 }

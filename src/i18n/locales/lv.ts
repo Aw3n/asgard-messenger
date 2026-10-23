@@ -883,5 +883,6 @@ export default {
       "search.searching": "Vēstures meklēšana…",
       "nav.unreadCount": "Neizlasīti: {{count}}",
       "messageInput.removeFile": "Noņemt pielikumu",
+      "chat.historyLoadFailed": "Vēsturi nevarēja ielādēt",
     }
 }

@@ -883,5 +883,6 @@ export default {
       "search.searching": "Pretraživanje povijesti…",
       "nav.unreadCount": "Nepročitano: {{count}}",
       "messageInput.removeFile": "Ukloni privitak",
+      "chat.historyLoadFailed": "Povijest se nije mogla učitati",
     }
 }

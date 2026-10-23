@@ -17,8 +17,8 @@ interface UseMessageJumpOptions {
   virtuosoRef: RefObject<VirtuosoHandle>
   /** Résout quand la page la plus récente du fil est chargée. */
   waitForInitialHistory: () => Promise<unknown>
-  /** Charge et fusionne une page autour de cette date ; rend la page obtenue. */
-  loadContext: (timestamp: number) => Promise<Message[] | void>
+  /** Charge et fusionne une page autour de cette date ; `null` = lecture échouée. */
+  loadContext: (timestamp: number) => Promise<Message[] | null | void>
   /** Décale l'ancrage Virtuoso du nombre de messages insérés avant la fenêtre. */
   onPrependedMessages: (count: number) => void
   /**

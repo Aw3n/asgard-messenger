@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
 import { useGroupStore } from '@/stores/groupStore'
 import { useConversationStore } from '@/stores/conversationStore'
-import { useMessageStore } from '@/stores/messageStore'
+import { NO_MESSAGES, useMessageStore } from '@/stores/messageStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { ChannelList } from './ChannelList'
@@ -26,6 +26,7 @@ import { parseMessageJump } from '@/utils/messageJump'
 import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
+import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
 import type { Message } from '@/types'
 
 const HISTORY_PAGE_SIZE = 50
@@ -68,7 +69,7 @@ export const GroupView: React.FC = () => {
   const channelId = activeChannel?.id ?? ''
   const activeGroupId = activeGroup?.id
   // CRITICAL: Select messages reactively from the store
-  const messages = useMessageStore((s) => channelId ? (s.messages[channelId] ?? []) : [])
+  const messages = useMessageStore((s) => (channelId ? s.messages[channelId] : undefined) ?? NO_MESSAGES)
   const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined
   const historyKey = `${activeGroupId ?? ''}:${channelId}`
   const [pagination, setPagination] = useState({
@@ -265,14 +266,20 @@ export const GroupView: React.FC = () => {
   // le compteur n'était incrémenté qu'en dehors du canal actif et rien ne le
   // remettait à zéro, donc sa pastille restait indéfiniment allumée.
   const initialChannelLoadRef = React.useRef<Promise<unknown>>(Promise.resolve())
+  const { noticeHistoryError, historyLoaded } = useHistoryErrorNotice(historyKey)
   useEffect(() => {
     if (!activeGroupId || !channelId || !groupViewVisible) return
     let cancelled = false
     const openChannel = async () => {
       const load = groupService.loadChannelMessages(activeGroupId, channelId)
       initialChannelLoadRef.current = load
-      await load
+      const stored = await load
       if (cancelled) return
+      // Un canal qui n'a rien à lire et un canal dont la lecture échoue se
+      // ressemblent à l'écran : seule l'erreur renvoie `null`, et elle doit
+      // s'annoncer pour que l'utilisateur comprenne pourquoi le canal est vide.
+      if (stored === null) noticeHistoryError()
+      else historyLoaded()
       const channel = useGroupStore.getState().getGroup(activeGroupId)?.channels.find((c) => c.id === channelId)
       if (!channel?.unreadCount) return
       const reader = useIdentityStore.getState().identity?.keyPair.publicKey
@@ -298,7 +305,7 @@ export const GroupView: React.FC = () => {
     }
     void openChannel()
     return () => { cancelled = true }
-  }, [activeGroupId, channelId, groupViewVisible])
+  }, [activeGroupId, channelId, groupViewVisible, noticeHistoryError, historyLoaded])
 
   // PAGINATION: l'ouverture ne charge que les derniers messages du canal ;
   // remonter en haut doit aller chercher la suite dans Hyperbee.
@@ -315,6 +322,13 @@ export const GroupView: React.FC = () => {
         HISTORY_PAGE_SIZE,
       )
       if (historyKeyRef.current !== historyKey) return
+      // `null` = lecture échouée : garder la pagination ouverte permet à
+      // `startReached` de retenter la même page au prochain bord haut.
+      if (older === null) {
+        noticeHistoryError()
+        return
+      }
+      historyLoaded()
       const after = useMessageStore.getState().messages[channelId]?.length ?? current.length
       const added = after - current.length
       setPagination((state) => {
@@ -328,7 +342,7 @@ export const GroupView: React.FC = () => {
     } finally {
       loadingOlderRef.current = false
     }
-  }, [activeGroupId, channelId, historyKey, paginationState.exhausted])
+  }, [activeGroupId, channelId, historyKey, paginationState.exhausted, noticeHistoryError, historyLoaded])
 
   // Même saut que le fil 1:1 : un résultat de recherche profond doit ouvrir le
   // canal sur son message, chargé depuis Hyperbee si nécessaire.
@@ -339,20 +353,27 @@ export const GroupView: React.FC = () => {
   const waitForInitialHistory = useCallback(() => initialChannelLoadRef.current, [])
   const loadJumpContext = useCallback(async (timestamp: number) => {
     if (!activeGroupId || !channelId) return
-    return groupService.loadChannelMessageContext(activeGroupId, channelId, timestamp)
-  }, [activeGroupId, channelId])
+    const page = await groupService.loadChannelMessageContext(activeGroupId, channelId, timestamp)
+    // Le saut abandonne sans rien montrer si la page de contexte n'arrive pas.
+    if (page === null) noticeHistoryError()
+    else historyLoaded()
+    return page
+  }, [activeGroupId, channelId, noticeHistoryError, historyLoaded])
   // Même couture que le fil 1:1 : le contexte du saut s'arrête avant la
   // fenêtre récente, la suite se charge en approchant du dernier message.
   const loadNewerGapMessages = useCallback(async (cursor: MessageCursor, limit: number) => {
     if (!activeGroupId || !channelId) return []
-    return groupService.loadNewerChannelMessages(
+    const page = await groupService.loadNewerChannelMessages(
       activeGroupId,
       channelId,
       cursor.timestamp,
       cursor.id,
       limit,
     )
-  }, [activeGroupId, channelId])
+    if (page === null) noticeHistoryError()
+    else historyLoaded()
+    return page
+  }, [activeGroupId, channelId, noticeHistoryError, historyLoaded])
   const { gapArmed, armGap, onRangeChanged } = useNewerMessages({
     dataId: channelId || undefined,
     messages,

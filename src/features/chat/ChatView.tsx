@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { useMessageStore } from '@/stores/messageStore'
+import { NO_MESSAGES, useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useIdentityStore } from '@/stores/identityStore'
@@ -31,6 +31,7 @@ import { parseMessageJump } from '@/utils/messageJump'
 import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
+import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
 import { formatLastSeen } from '@/utils/time'
 import type { Message } from '@/types'
 
@@ -98,7 +99,7 @@ export const ChatView: React.FC = () => {
   // Using getMessages(dataId) would select the FUNCTION reference (stable),
   // not the data. The component would never re-render when new messages arrive.
   // By selecting state.messages[dataId] directly, Zustand subscribes to changes.
-  const messages = useMessageStore((s) => dataId ? (s.messages[dataId] ?? []) : [])
+  const messages = useMessageStore((s) => (dataId ? s.messages[dataId] : undefined) ?? NO_MESSAGES)
   const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined
 
   // Changer de fil remet le suivi du bas à zéro : la pastille d'un ancien fil
@@ -144,7 +145,9 @@ export const ChatView: React.FC = () => {
   const loadingOlderRef = useRef(false)
   const dataIdRef = useRef(dataId)
   dataIdRef.current = dataId
-  const pinnedMessages = useMessageStore((s) => dataId ? s.getPinnedMessages(dataId) : [])
+  // Dérivé de la liste déjà abonée : le sélecteur de store construit un tableau
+  // neuf à chaque rendu, ce qui relance la vue sans raison.
+  const pinnedMessages = useMemo(() => messages.filter((message) => message.pinned), [messages])
   const contact = conversation?.participantId ? contacts[conversation.participantId] : undefined
   const typingUsers = dataId ? getTypingUsers(dataId) : []
 
@@ -193,10 +196,19 @@ export const ChatView: React.FC = () => {
 
   // Load message history from Hyperbee storage when conversation opens
   const initialHistoryLoadRef = useRef<Promise<unknown>>(Promise.resolve())
+  const { noticeHistoryError, historyLoaded } = useHistoryErrorNotice(dataId)
   useEffect(() => {
     if (!resolvedId) return
-    initialHistoryLoadRef.current = chatService.loadMessages(resolvedId).catch(console.error)
-  }, [resolvedId])
+    initialHistoryLoadRef.current = chatService
+      .loadMessages(resolvedId)
+      .then((page) => {
+        // Une page vide est un fil vide ; `null` est une panne, et elle doit se
+        // voir : sans message à l'écran comme dans la console, rien ne la distinguait.
+        if (page === null) noticeHistoryError()
+        else historyLoaded()
+      })
+      .catch(console.error)
+  }, [resolvedId, noticeHistoryError, historyLoaded])
 
   // Un résultat de recherche profond peut viser un message plus ancien que la
   // page de démarrage : charger son contexte, puis le centrer.
@@ -207,14 +219,22 @@ export const ChatView: React.FC = () => {
   const waitForInitialHistory = useCallback(() => initialHistoryLoadRef.current, [])
   const loadJumpContext = useCallback(async (timestamp: number) => {
     if (!resolvedId) return
-    return chatService.loadMessageContext(resolvedId, timestamp)
-  }, [resolvedId])
+    const page = await chatService.loadMessageContext(resolvedId, timestamp)
+    // Le saut abandonne sans rien montrer si la page de contexte n'arrive pas :
+    // l'échec doit être annoncé, pas seulement journalisé.
+    if (page === null) noticeHistoryError()
+    else historyLoaded()
+    return page
+  }, [resolvedId, noticeHistoryError, historyLoaded])
   // La page de contexte s'arrête bien avant la fenêtre récente : charger la
   // suite seulement quand la vue s'en approche évite un trou définitif.
   const loadNewerGapMessages = useCallback(async (cursor: MessageCursor, limit: number) => {
     if (!resolvedId) return []
-    return chatService.loadNewerMessages(resolvedId, cursor.timestamp, cursor.id, limit)
-  }, [resolvedId])
+    const page = await chatService.loadNewerMessages(resolvedId, cursor.timestamp, cursor.id, limit)
+    if (page === null) noticeHistoryError()
+    else historyLoaded()
+    return page
+  }, [resolvedId, noticeHistoryError, historyLoaded])
   const { gapArmed, armGap, onRangeChanged } = useNewerMessages({
     dataId,
     messages,
@@ -261,6 +281,13 @@ export const ChatView: React.FC = () => {
         HISTORY_PAGE_SIZE,
       )
       if (dataIdRef.current !== dataId) return
+      // `null` = lecture échouée : ne pas épuiser la pagination laisse
+      // `startReached` retenter la même page au prochain bord haut.
+      if (older === null) {
+        noticeHistoryError()
+        return
+      }
+      historyLoaded()
       const after = useMessageStore.getState().messages[resolvedId]?.length ?? current.length
       const added = after - current.length
       setPagination((state) => {
@@ -276,7 +303,7 @@ export const ChatView: React.FC = () => {
     } finally {
       loadingOlderRef.current = false
     }
-  }, [resolvedId, dataId, paginationState.exhausted])
+  }, [resolvedId, dataId, paginationState.exhausted, noticeHistoryError, historyLoaded])
 
   // READ RECEIPTS: When the user opens a conversation, send read receipts for
   // all messages from the peer that aren't marked as 'read' yet.

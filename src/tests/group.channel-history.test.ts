@@ -97,10 +97,17 @@ describe('rechargement de l’historique d’un canal', () => {
   it('ne lit pas un canal qui n’appartient pas au groupe', async () => {
     const getLast = vi.spyOn(storageService, 'getLastMessages').mockResolvedValue([])
 
-    await groupService.loadChannelMessages(groupId, 'canal-inconnu')
+    await expect(groupService.loadChannelMessages(groupId, 'canal-inconnu')).resolves.toEqual([])
     await groupService.loadChannelMessages('groupe-inconnu', channelId)
 
     expect(getLast).not.toHaveBeenCalled()
+  })
+
+  it('rend null quand la page de démarrage ne vient pas', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(storageService, 'getLastMessages').mockRejectedValue(new Error('stockage indisponible'))
+
+    await expect(groupService.loadChannelMessages(groupId, channelId)).resolves.toBeNull()
   })
 })
 
@@ -114,8 +121,17 @@ describe('remonter l’historique d’un canal', () => {
     const returned = await groupService.loadOlderChannelMessages(groupId, channelId, 3_001, 50)
 
     expect(getMessages).toHaveBeenCalledWith(channelId, { before: 3_001, limit: 50, reverse: true })
-    expect(returned.map((m) => m.id)).toEqual(['m-3', 'm-2'])
+    expect(returned?.map((m) => m.id)).toEqual(['m-3', 'm-2'])
     expect(useMessageStore.getState().messages[channelId]?.map((m) => m.id)).toEqual(['m-2', 'm-3'])
+  })
+
+  it('rend null quand la lecture échoue, pas une fin d’historique', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(storageService, 'getMessages').mockRejectedValue(new Error('stockage indisponible'))
+
+    await expect(
+      groupService.loadOlderChannelMessages(groupId, channelId, 3_001, 50),
+    ).resolves.toBeNull()
   })
 
   it('ne lit ni un canal inconnu ni un groupe dont on n’est pas membre', async () => {
@@ -163,12 +179,39 @@ describe('combler la couture d’un canal', () => {
       afterId: 'm-4',
       limit: 50,
     })
-    expect(returned.map((m) => m.id)).toEqual(['m-5', 'm-6'])
+    expect(returned?.map((m) => m.id)).toEqual(['m-5', 'm-6'])
     expect(useMessageStore.getState().messages[channelId]?.map((m) => m.id)).toEqual([
       'm-4',
       'm-5',
       'm-6',
     ])
+  })
+
+  it('rend null quand la couture ne peut être lue, [] quand on n’y a pas droit', async () => {
+    const getMessages = vi.spyOn(storageService, 'getMessages').mockResolvedValue([])
+    useIdentityStore.setState({
+      identity: {
+        keyPair: { publicKey: 'd'.repeat(64), secretKey: 'f'.repeat(128) },
+        profile: { publicKey: 'd'.repeat(64), displayName: 'Dave', status: 'online', createdAt: 0, updatedAt: 0 },
+      },
+      isSetup: true,
+    })
+    await expect(
+      groupService.loadNewerChannelMessages(groupId, channelId, 3_001, 'm-3'),
+    ).resolves.toEqual([])
+
+    useIdentityStore.setState({
+      identity: {
+        keyPair: { publicKey: A, secretKey: 'f'.repeat(128) },
+        profile: { publicKey: A, displayName: 'Alice', status: 'online', createdAt: 0, updatedAt: 0 },
+      },
+      isSetup: true,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    getMessages.mockRejectedValue(new Error('stockage indisponible'))
+    await expect(
+      groupService.loadNewerChannelMessages(groupId, channelId, 3_001, 'm-3'),
+    ).resolves.toBeNull()
   })
 
   it('ne lit ni un canal inconnu ni un groupe dont on n’est pas membre', async () => {
@@ -214,7 +257,16 @@ describe('contexte d’un saut dans un canal', () => {
 
     expect(getMessages).toHaveBeenCalledWith(channelId, { before: 1_001, limit: 50, reverse: true })
     expect(getMessages).toHaveBeenCalledWith(channelId, { after: 1_000, limit: 50 })
-    expect(returned.map((m) => m.id)).toEqual(['avant', 'cible-a', 'cible-b', 'apres'])
+    expect(returned?.map((m) => m.id)).toEqual(['avant', 'cible-a', 'cible-b', 'apres'])
+  })
+
+  it('rend null quand aucune page de contexte n’arrive', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(storageService, 'getMessages').mockRejectedValue(new Error('stockage indisponible'))
+
+    await expect(
+      groupService.loadChannelMessageContext(groupId, channelId, 1_000, 50),
+    ).resolves.toBeNull()
   })
 })
 

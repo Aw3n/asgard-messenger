@@ -883,5 +883,6 @@ export default {
       "search.searching": "Előzmények keresése…",
       "nav.unreadCount": "Olvasatlan: {{count}}",
       "messageInput.removeFile": "Melléklet eltávolítása",
+      "chat.historyLoadFailed": "Az előzmények nem tölthetők be",
     }
 }

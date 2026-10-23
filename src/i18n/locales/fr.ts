@@ -882,5 +882,6 @@ export default {
       "search.searching": "Recherche dans l’historique…",
       "nav.unreadCount": "Non lus : {{count}}",
       "messageInput.removeFile": "Retirer la pièce jointe",
+      "chat.historyLoadFailed": "Impossible de charger l’historique",
     }
 }

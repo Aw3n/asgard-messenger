@@ -892,5 +892,6 @@ export default {
       "search.searching": "Searching history…",
       "nav.unreadCount": "Unread: {{count}}",
       "messageInput.removeFile": "Remove attachment",
+      "chat.historyLoadFailed": "History could not be loaded",
     }
 }

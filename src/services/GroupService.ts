@@ -1201,20 +1201,24 @@ class GroupService {
    * every message. The membership/channel checks keep an id that no longer
    * belongs to a local group from being read from storage.
    */
-  async loadChannelMessages(groupId: string, channelId: string, limit = 50): Promise<void> {
+  async loadChannelMessages(groupId: string, channelId: string, limit = 50): Promise<Message[] | null> {
     const identity = useIdentityStore.getState().identity
-    if (!identity) return
+    if (!identity) return []
     const group = useGroupStore.getState().getGroup(groupId)
-    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return
-    if (!group.channels.some((channel) => channel.id === channelId)) return
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return []
+    if (!group.channels.some((channel) => channel.id === channelId)) return []
 
     try {
       const stored = await storageService.getLastMessages(channelId, limit)
-      if (stored.length === 0) return
+      if (stored.length === 0) return stored
       // Storage returns newest first; addMessages restores chronological order.
       useMessageStore.getState().addMessages(channelId, stored.reverse())
+      return stored
     } catch (err) {
       console.error('[GroupService] Failed to load channel messages:', err)
+      // `null` = panne de lecture : la vue ne doit pas la prendre pour un canal
+      // vide, sinon plus rien ne se retente.
+      return null
     }
   }
 
@@ -1228,7 +1232,7 @@ class GroupService {
     channelId: string,
     beforeTimestamp: number,
     limit = 50,
-  ): Promise<Message[]> {
+  ): Promise<Message[] | null> {
     const identity = useIdentityStore.getState().identity
     if (!identity) return []
     const group = useGroupStore.getState().getGroup(groupId)
@@ -1245,7 +1249,7 @@ class GroupService {
       return stored
     } catch (err) {
       console.error('[GroupService] Failed to load older channel messages:', err)
-      return []
+      return null
     }
   }
 
@@ -1258,7 +1262,7 @@ class GroupService {
     channelId: string,
     timestamp: number,
     limit = 50,
-  ): Promise<Message[]> {
+  ): Promise<Message[] | null> {
     const identity = useIdentityStore.getState().identity
     if (!identity) return []
     const group = useGroupStore.getState().getGroup(groupId)
@@ -1282,7 +1286,7 @@ class GroupService {
       return merged
     } catch (err) {
       console.error('[GroupService] Failed to load channel message context:', err)
-      return []
+      return null
     }
   }
 
@@ -1296,7 +1300,7 @@ class GroupService {
     afterTimestamp: number,
     afterId: string,
     limit = 50,
-  ): Promise<Message[]> {
+  ): Promise<Message[] | null> {
     const identity = useIdentityStore.getState().identity
     if (!identity) return []
     const group = useGroupStore.getState().getGroup(groupId)
@@ -1313,7 +1317,7 @@ class GroupService {
       return stored
     } catch (err) {
       console.error('[GroupService] Failed to load newer channel messages:', err)
-      return []
+      return null
     }
   }
 

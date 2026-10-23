@@ -40,7 +40,7 @@ interface HookProps {
 }
 
 function setup(
-  loadNewer: (after: MessageCursor, limit: number) => Promise<Message[] | void>,
+  loadNewer: (after: MessageCursor, limit: number) => Promise<Message[] | null | void>,
   initialMessages: Message[],
 ) {
   return renderHook(
@@ -118,6 +118,35 @@ describe('comblement de la couture', () => {
     act(() => result.current.onRangeChanged({ endIndex: 100_009 }))
 
     await waitFor(() => expect(loadNewer).toHaveBeenCalledWith(cursor(10), 50))
+  })
+
+  it('garde le curseur après une panne et repart du même message', async () => {
+    let panne = true
+    const loadNewer = vi.fn(async (after: MessageCursor, limit: number) => {
+      if (panne) {
+        panne = false
+        return null
+      }
+      return page(after.timestamp + 1, limit)
+    })
+    const initial = page(1, 10)
+    const { result, rerender } = setup(loadNewer, initial)
+
+    act(() => result.current.armGap(cursor(10), cursor(200)))
+    act(() => result.current.onRangeChanged({ endIndex: 9 }))
+    await waitFor(() => expect(loadNewer).toHaveBeenCalledTimes(1))
+
+    // Une panne n'est pas une fin : la couture reste armée et la prochaine
+    // approche du bord relit la même page, sans sauter de messages.
+    expect(result.current.gapArmed).toBe(true)
+    act(() => result.current.onRangeChanged({ endIndex: 9 }))
+    await waitFor(() => expect(loadNewer).toHaveBeenCalledTimes(2))
+    expect(loadNewer).toHaveBeenLastCalledWith(cursor(10), 50)
+
+    rerender({ dataId: 'conv', messages: [...initial, ...page(11, 50)] })
+    act(() => result.current.onRangeChanged({ endIndex: 59 }))
+    await waitFor(() => expect(loadNewer).toHaveBeenCalledTimes(3))
+    expect(loadNewer).toHaveBeenLastCalledWith(cursor(60), 50)
   })
 
   it('abandonne la couture quand le fil change', async () => {

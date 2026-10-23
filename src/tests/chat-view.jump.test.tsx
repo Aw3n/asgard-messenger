@@ -3,7 +3,8 @@
  *
  * ChatView doit charger le contexte d'un message absent de la page récente,
  * puis le centrer et le surligner — sans quoi la recherche ouvre le fil au
- * mauvais endroit.
+ * mauvais endroit. Et une page qui ne vient pas doit se voir sans fermer la
+ * pagination : la panne était prise pour une fin d'historique.
  */
 import React from 'react'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
@@ -75,6 +76,7 @@ vi.mock('@/components/panels/RightPanel', () => ({
 vi.mock('@/services/ChatService', () => ({
   chatService: {
     loadMessages: vi.fn(),
+    loadOlderMessages: vi.fn(async () => [] as Message[]),
     loadMessageContext: vi.fn(),
     loadNewerMessages: vi.fn(),
     probeContact: vi.fn(),
@@ -109,6 +111,7 @@ import { chatService } from '@/services/ChatService'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useMessageStore } from '@/stores/messageStore'
+import { useUIStore } from '@/stores/uiStore'
 
 class IntersectionObserverStub {
   observe() {}
@@ -148,8 +151,10 @@ function makeMessage(id: string, timestamp: number): Message {
 
 beforeEach(() => {
   scrollToIndexMock.mockClear()
+  vi.mocked(chatService.loadOlderMessages).mockClear()
   for (const key of Object.keys(virtuosoProps)) delete virtuosoProps[key]
   useMessageStore.setState({ messages: {} })
+  useUIStore.setState({ toasts: [] })
   useConversationStore.setState({
     conversations: { [CONVERSATION_ID]: { ...conversation } },
     activeConversationId: CONVERSATION_ID,
@@ -244,5 +249,103 @@ describe('ChatView : saut vers un message', () => {
     expect(chatService.loadNewerMessages).toHaveBeenCalledTimes(1)
     // La page ajoutée ne doit pas tirer la vue vers le bas pendant la couture.
     expect((virtuosoProps.followOutput as (atBottom: boolean) => unknown)(true)).toBe(false)
+  })
+})
+
+const toastTitles = () => useUIStore.getState().toasts.map((toast) => toast.title)
+
+function renderThread() {
+  return render(
+    <MemoryRouter initialEntries={[{ pathname: `/conversations/${CONVERSATION_ID}` }]}>
+      <Routes>
+        <Route path="/conversations/:conversationId" element={<ChatView />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+function olderPage(count: number): Message[] {
+  return Array.from({ length: count }, (_, index) => makeMessage(`ancien-${index}`, 1_000 + index))
+}
+
+describe('ChatView : panne de lecture de l’historique', () => {
+  it('annonce la panne et laisse la pagination se retenter', async () => {
+    vi.mocked(chatService.loadOlderMessages).mockResolvedValue(null)
+
+    renderThread()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-1')).toBeInTheDocument())
+
+    const startReached = virtuosoProps.startReached as () => void
+    act(() => { startReached() })
+    await waitFor(() => expect(chatService.loadOlderMessages).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      5_001,
+      50,
+    ))
+    expect(toastTitles()).toEqual(['chat.historyLoadFailed'])
+
+    // Un bord haut suivant relit la même page : la panne n'a pas fermé la
+    // pagination — et n'a pas empilé un second toast pour la même panne.
+    act(() => { startReached() })
+    await waitFor(() => expect(chatService.loadOlderMessages).toHaveBeenCalledTimes(2))
+    expect(chatService.loadOlderMessages).toHaveBeenLastCalledWith(CONVERSATION_ID, 5_001, 50)
+    expect(toastTitles()).toEqual(['chat.historyLoadFailed'])
+  })
+
+  it('n’annonce rien quand la page ancienne arrive', async () => {
+    vi.mocked(chatService.loadOlderMessages).mockImplementation(async (conversationId) => {
+      const page = olderPage(50)
+      useMessageStore.getState().addMessages(conversationId, page)
+      return page
+    })
+
+    renderThread()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-1')).toBeInTheDocument())
+
+    act(() => { (virtuosoProps.startReached as () => void)() })
+    await waitFor(() => expect(screen.getByTestId('bubble-ancien-49')).toBeInTheDocument())
+    expect(toastTitles()).toEqual([])
+  })
+
+  it('annonce la panne du contexte d’un saut', async () => {
+    vi.mocked(chatService.loadMessageContext).mockResolvedValue(null)
+
+    render(
+      <MemoryRouter
+        initialEntries={[{
+          pathname: `/conversations/${CONVERSATION_ID}`,
+          state: { messageId: 'cible', messageTimestamp: 1_000, conversationId: CONVERSATION_ID },
+        }]}
+      >
+        <Routes>
+          <Route path="/conversations/:conversationId" element={<ChatView />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    // Le saut ne montre ni la cible ni un trou silencieux : l'échec se voit.
+    await waitFor(() => expect(chatService.loadMessageContext).toHaveBeenCalled())
+    expect(toastTitles()).toEqual(['chat.historyLoadFailed'])
+    expect(screen.queryByTestId('bubble-cible')).not.toBeInTheDocument()
+  })
+
+  it('annonce un fil dont la page de démarrage ne vient pas', async () => {
+    vi.mocked(chatService.loadMessages).mockResolvedValue(null)
+
+    renderThread()
+
+    await waitFor(() => expect(toastTitles()).toEqual(['chat.historyLoadFailed']))
+    // Le fil doit rester affichable malgré la panne : la liste vide doit
+    // partager une référence stable, sinon la vue se relance sans fin.
+    expect(screen.getByText(/chat\.sendToStart/)).toBeInTheDocument()
+  })
+
+  it('n’annonce rien sur un fil vraiment vide', async () => {
+    vi.mocked(chatService.loadMessages).mockResolvedValue([])
+
+    renderThread()
+
+    await waitFor(() => expect(screen.getByText(/chat\.sendToStart/)).toBeInTheDocument())
+    expect(toastTitles()).toEqual([])
   })
 })

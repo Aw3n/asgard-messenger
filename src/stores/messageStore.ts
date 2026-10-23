@@ -91,6 +91,14 @@ interface MessageState {
 }
 
 /**
+ * Liste vide partagée : un sélecteur qui construit un nouveau tableau à chaque
+ * rendu fait croire à React que le store a changé à chaque fois — la vue se
+ * relance sans fin. Les vues sans messages doivent donc retomber sur cette
+ * référence stable, jamais sur un `[]` littéral.
+ */
+export const NO_MESSAGES: Message[] = []
+
+/**
  * Message store — manages all messages across conversations.
  * Uses plain immutable updates (no immer) for reliability.
  */

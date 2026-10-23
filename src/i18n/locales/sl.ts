@@ -883,5 +883,6 @@ export default {
       "search.searching": "Iskanje po zgodovini…",
       "nav.unreadCount": "Neprebrano: {{count}}",
       "messageInput.removeFile": "Odstrani prilogo",
+      "chat.historyLoadFailed": "Zgodovine ni bilo mogoče naložiti",
     }
 }

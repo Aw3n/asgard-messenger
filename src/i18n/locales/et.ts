@@ -883,5 +883,6 @@ export default {
       "search.searching": "Ajaloo otsimine…",
       "nav.unreadCount": "Lugemata: {{count}}",
       "messageInput.removeFile": "Eemalda manus",
+      "chat.historyLoadFailed": "Ajalugu ei saanud laadida",
     }
 }
