@@ -50,6 +50,9 @@ interface GroupState {
   /** Remove a member from a group */
   removeMember: (groupId: string, publicKey: string) => void
 
+  /** Remove a member and remember the exclusion so it cannot rejoin alone */
+  markMemberKicked: (groupId: string, publicKey: string) => void
+
   /** Update a member's role or properties */
   updateMember: (groupId: string, publicKey: string, updates: Partial<GroupMember>) => void
 
@@ -272,6 +275,20 @@ export const useGroupStore = create<GroupState>()(
           const group = state.groups[groupId]
           if (!group) return
           if (group.ownerId === publicKey) return // Can't remove owner
+          group.members = group.members.filter((m) => m.publicKey !== publicKey)
+          group.updatedAt = Date.now()
+        })
+      },
+
+      markMemberKicked: (groupId, publicKey) => {
+        set((state) => {
+          const group = state.groups[groupId]
+          if (!group) return
+          if (group.ownerId === publicKey) return // Can't remove owner
+          if (!group.kickedMembers?.includes(publicKey)) {
+            // Bornée : une liste d'exclusions ne doit pas croître sans fin.
+            group.kickedMembers = [...(group.kickedMembers ?? []), publicKey].slice(-256)
+          }
           group.members = group.members.filter((m) => m.publicKey !== publicKey)
           group.updatedAt = Date.now()
         })

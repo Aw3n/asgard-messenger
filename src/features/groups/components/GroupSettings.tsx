@@ -159,9 +159,10 @@ const InviteContactsSection: React.FC<{ groupId: string }> = ({ groupId }) => {
   const [invited, setInvited] = useState<string[]>([])
 
   const memberKeys = new Set(group?.members.map((member) => member.publicKey) ?? [])
+  const kickedKeys = new Set(group?.kickedMembers ?? [])
   const candidates = Object.values(contacts)
     .filter((contact) => contact.relation === 'contact' || contact.relation === 'favorite')
-    .filter((contact) => !memberKeys.has(contact.publicKey))
+    .filter((contact) => !memberKeys.has(contact.publicKey) && !kickedKeys.has(contact.publicKey))
     .sort((a, b) => a.displayName.localeCompare(b.displayName))
 
   const handleInvite = async (publicKey: string, displayName: string) => {

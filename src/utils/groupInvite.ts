@@ -19,6 +19,9 @@ const DEFAULT_PERMISSIONS: GroupChannel['permissions'] = {
 const isRole = (value: unknown): value is MemberRole =>
   typeof value === 'string' && (ROLES as readonly string[]).includes(value)
 
+/** Same cap as the store: an exclusion list must stay bounded. */
+const MAX_KICKED = 256
+
 const isChannelType = (value: unknown): value is ChannelType =>
   typeof value === 'string' && (CHANNEL_TYPES as readonly string[]).includes(value)
 
@@ -52,6 +55,7 @@ export function buildGroupInvitePayload(group: Group, inviter: InviteRecipient):
     isPublic: group.isPublic,
     maxMembers: group.maxMembers,
     activeChannelId: group.activeChannelId,
+    kickedMembers: (group.kickedMembers ?? []).slice(-MAX_KICKED),
     members: group.members.map((member) => ({
       publicKey: member.publicKey,
       displayName: member.displayName,
@@ -109,6 +113,16 @@ export function groupFromInvite(
   const name = asString(payload.groupName, 200)
   if (!id || !name) return null
 
+  const kickedMembers: string[] = []
+  if (Array.isArray(payload.kickedMembers)) {
+    for (const raw of payload.kickedMembers.slice(-MAX_KICKED)) {
+      const publicKey = asString(raw, 256)
+      if (publicKey && !kickedMembers.includes(publicKey)) kickedMembers.push(publicKey)
+    }
+  }
+  // A stale invite must not resurrect a member an admin removed.
+  if (kickedMembers.includes(self.publicKey)) return null
+
   const members: GroupMember[] = []
   const seenMembers = new Set<string>()
   const rawMembers = Array.isArray(payload.members) ? payload.members : []
@@ -117,6 +131,8 @@ export function groupFromInvite(
     const entry = raw as Record<string, unknown>
     const publicKey = asString(entry.publicKey, 256)
     if (!publicKey || seenMembers.has(publicKey)) continue
+    // The roster in a snapshot may lag behind a kick: the tombstone wins.
+    if (kickedMembers.includes(publicKey)) continue
     seenMembers.add(publicKey)
     members.push({
       publicKey,
@@ -202,5 +218,6 @@ export function groupFromInvite(
     isPublic: payload.isPublic === true,
     maxMembers,
     inviteKey: asString(payload.inviteKey, 256),
+    ...(kickedMembers.length > 0 ? { kickedMembers } : {}),
   }
 }

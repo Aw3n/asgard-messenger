@@ -192,8 +192,8 @@ class GroupService {
    * identifié. Le member:joined n'est diffusé qu'une fois, au moment de
    * l'arrivée : un membre hors ligne à cet instant ne connaît jamais le
    * nouveau venu et rejetait ensuite ses messages comme ceux d'un inconnu.
-   * Seuls des ajouts d'inconnus circulent — jamais un rôle, un propriétaire
-   * ou une suppression.
+   * Seuls des ajouts d'inconnus et les exclusions prononcées par un admin
+   * circulent — jamais un rôle ni un propriétaire.
    */
   async syncGroupRostersWithPeer(peerPublicKey: string): Promise<void> {
     if (!peerPublicKey) return
@@ -214,6 +214,7 @@ class GroupService {
           displayName: m.displayName,
           joinedAt: m.joinedAt,
         })),
+        kickedMembers: (group.kickedMembers ?? []).slice(-GroupService.MAX_ROSTER_SYNC),
       }).catch(() => {})
     }
   }
@@ -374,6 +375,12 @@ class GroupService {
     // Check max members
     if (group.members.length >= group.maxMembers) {
       throw new Error('Group is full')
+    }
+
+    // Un exclu ne revient que si un futur « réintégrer » le décide : une
+    // invitation directe contournerait sinon la pierre tombale.
+    if (group.kickedMembers?.includes(contactPublicKey)) {
+      throw new Error('Cannot invite a removed member')
     }
 
     // A group persisted before invite keys existed can still be shared: mint
@@ -633,7 +640,17 @@ class GroupService {
       throw new Error('Insufficient permissions')
     }
 
-    store.removeMember(groupId, targetPublicKey)
+    // Le propriétaire est irrévocable : `removeMember` le refuse déjà en
+    // silence, mais le message de kick partait quand même et le sortait du
+    // groupe chez lui. Un admin peut donc éjecter le fondateur.
+    const group = store.getGroup(groupId)
+    if (!group || group.ownerId === targetPublicKey) {
+      throw new Error('Cannot remove the group owner')
+    }
+
+    // L'exclusion est aussi une pierre tombale : sans elle, l'exclu se
+    // réannonçait par un simple member:joined et réintégrait le groupe.
+    store.markMemberKicked(groupId, targetPublicKey)
 
     // Notify the kicked member
     await p2pService.sendMessage(targetPublicKey, 'group:update', {
@@ -1202,6 +1219,10 @@ class GroupService {
     const group = groups.find((g) => g.inviteKey === inviteKey)
     if (!group) return
 
+    // Connaître la clé ne rachète pas une exclusion : sinon un kick suivi
+    // d'une demande d'adhésion rendait l'exclusion sans effet.
+    if (group.kickedMembers?.includes(requesterPublicKey)) return
+
     // Check if group is full
     if (group.members.length >= group.maxMembers) return
 
@@ -1301,6 +1322,8 @@ class GroupService {
         // message) or an existing member relays a join it accepted. Anything
         // else is an outsider injecting a third party.
         if (publicKey !== sender && !senderMember) return
+        // Une réannonciation ne ressuscite pas un membre exclu.
+        if (group.kickedMembers?.includes(publicKey)) return
         // A join never grants a role: promotions go through member:role, which
         // only admins send. Otherwise a peer could self-announce as owner.
         store.addMember(groupId, {
@@ -1320,15 +1343,32 @@ class GroupService {
         // les inconnus, toujours comme simples membres : un snapshot ne
         // promeut ni ne rétrograde personne et ne retire personne.
         if (!senderMember) return
+        const self = useIdentityStore.getState().identity?.keyPair.publicKey
+        // Les exclusions ne circulent que par un admin : un simple membre ne
+        // doit pas pouvoir faire disparaître quelqu'un d'un snapshot.
+        const kicked = new Set(group.kickedMembers ?? [])
+        if (isAdmin && Array.isArray(payload.kickedMembers)) {
+          for (const raw of payload.kickedMembers.slice(0, GroupService.MAX_ROSTER_SYNC)) {
+            const publicKey = boundedKey(raw)
+            if (!publicKey || publicKey === group.ownerId) continue
+            if (publicKey === self) {
+              // Le kick direct s'est perdu alors que nous étions hors ligne.
+              store.leaveGroup(groupId)
+              useConversationStore.getState().removeConversation(groupId)
+              return
+            }
+            kicked.add(publicKey)
+            store.markMemberKicked(groupId, publicKey)
+          }
+        }
         const roster = payload.members
         if (!Array.isArray(roster) || roster.length === 0) return
-        const self = useIdentityStore.getState().identity?.keyPair.publicKey
         const known = new Set(group.members.map((member) => member.publicKey))
         for (const entry of roster.slice(0, GroupService.MAX_ROSTER_SYNC)) {
           if (!entry || typeof entry !== 'object') continue
           const record = entry as Record<string, unknown>
           const publicKey = boundedKey(record.publicKey)
-          if (!publicKey || publicKey === self || known.has(publicKey)) continue
+          if (!publicKey || publicKey === self || known.has(publicKey) || kicked.has(publicKey)) continue
           store.addMember(groupId, {
             publicKey,
             displayName: boundedText(record.displayName, GroupService.MAX_PROFILE_NAME) ?? publicKey.slice(0, 12),
@@ -1361,12 +1401,15 @@ class GroupService {
         const target = boundedKey(payload.targetPublicKey ?? payload.publicKey)
           ?? (action === 'member:kicked' ? self : undefined)
         if (!target) return
+        // Sans cette garde, le repli « message sans cible = moi » laissait un
+        // admin sortir le propriétaire du groupe qu'il a créé.
+        if (target === group.ownerId) return
         if (target === self) {
           useGroupStore.getState().leaveGroup(groupId)
           useConversationStore.getState().removeConversation(groupId)
           break
         }
-        store.removeMember(groupId, target)
+        store.markMemberKicked(groupId, target)
         break
       }
 

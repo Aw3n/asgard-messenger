@@ -147,7 +147,31 @@ describe('rôles et effectif', () => {
     expect(group().members.some((m) => m.publicKey === C)).toBe(false)
   })
 
+  it('ignore un kick adressé au propriétaire', () => {
+    useConversationStore.getState().addConversation({
+      id: groupId,
+      type: 'group',
+      groupId,
+      unreadCount: 0,
+      muted: false,
+      pinned: false,
+      archived: false,
+      createdAt: 1,
+      updatedAt: 1,
+    })
+
+    dispatch('handleGroupUpdate', { action: 'member:kicked', groupId }, B)
+
+    expect(group().members.some((m) => m.publicKey === A)).toBe(true)
+    expect(useGroupStore.getState().getGroup(groupId)).toBeDefined()
+    expect(useConversationStore.getState().getConversation(groupId)).toBeDefined()
+  })
+
   it('applique un kick reçu sans cible et quitte le groupe', () => {
+    const identity = useIdentityStore.getState().identity!
+    useIdentityStore.setState({
+      identity: { ...identity, keyPair: { ...identity.keyPair, publicKey: C } },
+    })
     useConversationStore.getState().addConversation({
       id: groupId,
       type: 'group',
@@ -164,6 +188,26 @@ describe('rôles et effectif', () => {
 
     expect(useGroupStore.getState().getGroup(groupId)).toBeUndefined()
     expect(useConversationStore.getState().getConversation(groupId)).toBeUndefined()
+  })
+
+  it('kickMember refuse le propriétaire sans envoyer de kick', async () => {
+    await expect(groupService.kickMember(groupId, A)).rejects.toThrow()
+    expect(p2pService.sendMessage).not.toHaveBeenCalled()
+    expect(group().members.some((m) => m.publicKey === A)).toBe(true)
+  })
+
+  it('kickMember inscrit une exclusion que le join ne contourne pas', async () => {
+    await groupService.kickMember(groupId, C)
+
+    expect(group().members.some((m) => m.publicKey === C)).toBe(false)
+    expect(group().kickedMembers).toContain(C)
+
+    dispatch('handleGroupUpdate', {
+      action: 'member:joined',
+      groupId,
+      member: member(C, 'Carol', 'member'),
+    }, C)
+    expect(group().members.some((m) => m.publicKey === C)).toBe(false)
   })
 
   it('n’accepte un départ qu’au nom du partant', () => {

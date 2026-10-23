@@ -139,6 +139,57 @@ describe('snapshot d’effectif reçu', () => {
   })
 })
 
+describe('exclusions', () => {
+  it('un admin propage une exclusion par son snapshot', () => {
+    dispatch({ groupId, action: 'roster:sync', members: [], kickedMembers: [C] }, B)
+
+    expect(memberKeys()).not.toContain(C)
+    expect(group().kickedMembers).toContain(C)
+  })
+
+  it('ignore une exclusion venue d’un simple membre', () => {
+    dispatch({
+      groupId,
+      action: 'roster:sync',
+      members: [{ publicKey: A, displayName: 'Alice' }],
+      kickedMembers: [B],
+    }, C)
+
+    expect(memberKeys()).toContain(B)
+    expect(group().kickedMembers ?? []).not.toContain(B)
+  })
+
+  it('ignore le join auto-annoncé ou relayé d’un exclu', () => {
+    useGroupStore.getState().markMemberKicked(groupId, C)
+
+    dispatch({ groupId, action: 'member:joined', member: member(C, 'Carol', 'member') }, C)
+    expect(memberKeys()).not.toContain(C)
+
+    dispatch({ groupId, action: 'member:joined', member: member(C, 'Carol', 'member') }, B)
+    expect(memberKeys()).not.toContain(C)
+  })
+
+  it('quitte le groupe quand un snapshot d’admin nous exclut', () => {
+    const identity = useIdentityStore.getState().identity!
+    useIdentityStore.setState({
+      identity: { ...identity, keyPair: { ...identity.keyPair, publicKey: C } },
+    })
+
+    dispatch({ groupId, action: 'roster:sync', members: [A, B], kickedMembers: [C] }, B)
+
+    expect(useGroupStore.getState().getGroup(groupId)).toBeUndefined()
+  })
+
+  it('émet ses exclusions dans le snapshot', async () => {
+    useGroupStore.getState().markMemberKicked(groupId, C)
+
+    await groupService.syncGroupRostersWithPeer(B)
+
+    const [, , payload] = vi.mocked(p2pService.sendMessage).mock.calls[0] as [string, string, Record<string, unknown>]
+    expect(payload.kickedMembers).toEqual([C])
+  })
+})
+
 describe('snapshot d’effectif émis', () => {
   it('l’envoie aux seuls groupes partagés, sans rôles ni propriétaire', async () => {
     const other = useGroupStore.getState().createGroup({

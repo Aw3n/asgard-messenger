@@ -191,6 +191,48 @@ describe('instantané d’invitation', () => {
     expect(group!.channels[0].id).toBe('general-group-1')
     expect(group!.activeChannelId).toBe('general-group-1')
   })
+
+  it('transporte les exclusions sans les recréer comme membres', () => {
+    const payload = buildGroupInvitePayload(
+      { ...fixtureGroup(), kickedMembers: [C] },
+      { publicKey: A, displayName: 'Alice' },
+    )
+    // Même si un instantané périmé liste encore l'exclu, la tombe gagne.
+    const group = groupFromInvite(payload, { publicKey: B, displayName: 'Bob' })
+
+    expect(group).not.toBeNull()
+    expect(group!.members.map((m) => m.publicKey)).not.toContain(C)
+    expect(group!.kickedMembers).toEqual([C])
+
+    const compact = buildGroupInvitePayload(fixtureGroup(), { publicKey: A, displayName: 'Alice' })
+    expect(compact.kickedMembers).toEqual([])
+  })
+
+  it('refuse une invitation qui nous liste comme exclu', async () => {
+    const payload = buildGroupInvitePayload(
+      { ...fixtureGroup(), kickedMembers: [B] },
+      { publicKey: A, displayName: 'Alice' },
+    )
+    seedIdentity(B, 'Bob')
+    resetStores()
+
+    expect(groupFromInvite(payload, { publicKey: B, displayName: 'Bob' })).toBeNull()
+    await acceptInvite(payload, A)
+    expect(useGroupStore.getState().getGroup('group-1')).toBeUndefined()
+  })
+
+  it('inviteMember refuse de réinviter un contact exclu', async () => {
+    const group = useGroupStore.getState().createGroup({
+      name: 'Équipe',
+      ownerId: A,
+      ownerDisplayName: 'Alice',
+    })
+    useGroupStore.getState().markMemberKicked(group.id, B)
+
+    await expect(groupService.inviteMember(group.id, B)).rejects.toThrow()
+    expect(vi.mocked(p2pService.sendMessage).mock.calls.some(([, type]) => type === 'group:invite'))
+      .toBe(false)
+  })
 })
 
 describe('GroupService — invitation par contact', () => {
