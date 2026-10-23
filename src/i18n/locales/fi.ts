@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Poista keskustelu kiinnityksestä",
       "chat.unarchiveConversation": "Palauta keskustelu arkistosta",
       "chat.archived": "Arkistoidut",
+      "settings.firewallManualHint": "Avaa Asetukset > Verkko ja määritä palomuuri manuaalisesti.",
+      "contacts.reloadedFromStorage": "Hyperbeestä löytyi {{total}} yhteystietoa, {{restored}} uutta palautettiin.",
     }
 }

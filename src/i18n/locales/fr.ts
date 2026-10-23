@@ -869,5 +869,7 @@ export default {
       "chat.unpinConversation": "Désépingler la conversation",
       "chat.unarchiveConversation": "Désarchiver la conversation",
       "chat.archived": "Archivées",
+      "settings.firewallManualHint": "Ouvrez les Paramètres > Réseau pour configurer le pare-feu manuellement.",
+      "contacts.reloadedFromStorage": "{{total}} contacts trouvés dans Hyperbee, {{restored}} nouveaux restaurés.",
     }
 }

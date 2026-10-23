@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Atspraust sarunu",
       "chat.unarchiveConversation": "Atjaunot sarunu no arhīva",
       "chat.archived": "Arhivētās",
+      "settings.firewallManualHint": "Atveriet Iestatījumi > Tīkls, lai manuāli konfigurētu ugunsmūri.",
+      "contacts.reloadedFromStorage": "Hyperbee atrasti {{total}} kontakti, atjaunoti {{restored}} jauni.",
     }
 }

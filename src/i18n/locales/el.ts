@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Αποκαρφίτσωση συνομιλίας",
       "chat.unarchiveConversation": "Επαναφορά συνομιλίας από αρχείο",
       "chat.archived": "Αρχειοθετημένες",
+      "settings.firewallManualHint": "Ανοίξτε Ρυθμίσεις > Δίκτυο για να ρυθμίσετε το τείχος προστασίας χειροκίνητα.",
+      "contacts.reloadedFromStorage": "Βρέθηκαν {{total}} επαφές στο Hyperbee, αποκαταστάθηκαν {{restored}} νέες.",
     }
 }

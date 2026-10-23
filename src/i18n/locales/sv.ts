@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Ta bort fästning av konversation",
       "chat.unarchiveConversation": "Återställ konversation från arkiv",
       "chat.archived": "Arkiverade",
+      "settings.firewallManualHint": "Öppna Inställningar > Nätverk för att konfigurera brandväggen manuellt.",
+      "contacts.reloadedFromStorage": "{{total}} kontakter hittades i Hyperbee, {{restored}} nya återställdes.",
     }
 }

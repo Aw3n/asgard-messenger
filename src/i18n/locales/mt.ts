@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Neħħi l-konverżazzjoni mill-pin",
       "chat.unarchiveConversation": "Erġa' ġib il-konverżazzjoni mill-arkivju",
       "chat.archived": "Arkivjati",
+      "settings.firewallManualHint": "Iftaħ Settings > Network biex tikkonfigura l-firewall manwalment.",
+      "contacts.reloadedFromStorage": "Instabu {{total}} kuntatti fil-Hyperbee, ġew restawrati {{restored}} ġodda.",
     }
 }

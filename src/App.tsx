@@ -57,6 +57,7 @@ import { ModalContainer } from '@/components/modals/ModalContainer'
 import { IncomingCallOverlay } from '@/components/overlays/IncomingCallOverlay'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useCallStore } from '@/stores/callStore'
+import i18n from '@/i18n/config'
 import type { Contact } from '@/types'
 
 /**
@@ -607,11 +608,11 @@ const App: React.FC = () => {
               if (uacResult) {
                 dlog('[App] Firewall configured successfully via UAC elevation')
                 const addToast = useUIStore.getState().addToast
-                addToast({ type: 'success', title: 'Firewall configuré', message: 'Les connexions P2P sont maintenant autorisées.' })
+                addToast({ type: 'success', title: i18n.t('settings.firewallSuccess'), message: i18n.t('settings.firewallConfigured') })
               } else {
                 dlog('[App] Firewall UAC elevation failed or was cancelled')
                 const addToast = useUIStore.getState().addToast
-                addToast({ type: 'warning', title: 'Firewall non configuré', message: 'Ouvrez les Paramètres > Réseau pour configurer le firewall manuellement.' })
+                addToast({ type: 'warning', title: i18n.t('settings.firewallNotConfigured'), message: i18n.t('settings.firewallManualHint') })
               }
             } else {
               dlog('[App] Firewall configured successfully (silent)')

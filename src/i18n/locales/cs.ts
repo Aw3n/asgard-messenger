@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Odepnout konverzaci",
       "chat.unarchiveConversation": "Obnovit konverzaci z archivu",
       "chat.archived": "Archivované",
+      "settings.firewallManualHint": "Otevřete Nastavení > Síť a ručně nakonfigurujte firewall.",
+      "contacts.reloadedFromStorage": "V Hyperbee nalezeno {{total}} kontaktů, obnoveno {{restored}} nových.",
     }
 }

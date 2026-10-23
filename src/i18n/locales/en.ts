@@ -879,5 +879,7 @@ export default {
       "chat.unpinConversation": "Unpin conversation",
       "chat.unarchiveConversation": "Unarchive conversation",
       "chat.archived": "Archived",
+      "settings.firewallManualHint": "Open Settings > Network to configure the firewall manually.",
+      "contacts.reloadedFromStorage": "Found {{total}} contacts in Hyperbee, restored {{restored}} new ones.",
     }
 }

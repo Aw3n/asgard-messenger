@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Anulează fixarea conversației",
       "chat.unarchiveConversation": "Restaurează conversația din arhivă",
       "chat.archived": "Arhivate",
+      "settings.firewallManualHint": "Deschideți Setări > Rețea pentru a configura manual paravanul de firewall.",
+      "contacts.reloadedFromStorage": "{{total}} contacte găsite în Hyperbee, {{restored}} noi restaurate.",
     }
 }

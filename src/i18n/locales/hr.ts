@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Odkvači razgovor",
       "chat.unarchiveConversation": "Vrati razgovor iz arhive",
       "chat.archived": "Arhivirano",
+      "settings.firewallManualHint": "Otvorite Postavke > Mreža da biste ručno konfigurirali vatrozid.",
+      "contacts.reloadedFromStorage": "Pronađeno {{total}} kontakata u Hyperbeeju, obnovljeno {{restored}} novih.",
     }
 }

@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Odepnij rozmowę",
       "chat.unarchiveConversation": "Przywróć rozmowę z archiwum",
       "chat.archived": "Zarchiwizowane",
+      "settings.firewallManualHint": "Otwórz Ustawienia > Sieć, aby ręcznie skonfigurować zaporę.",
+      "contacts.reloadedFromStorage": "Znaleziono {{total}} kontaktów w Hyperbee, przywrócono {{restored}} nowych.",
     }
 }

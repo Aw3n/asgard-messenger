@@ -868,6 +868,8 @@ export const translations = {
       "chat.unpinConversation": "Désépingler la conversation",
       "chat.unarchiveConversation": "Désarchiver la conversation",
       "chat.archived": "Archivées",
+      "settings.firewallManualHint": "Ouvrez les Paramètres > Réseau pour configurer le pare-feu manuellement.",
+      "contacts.reloadedFromStorage": "{{total}} contacts trouvés dans Hyperbee, {{restored}} nouveaux restaurés.",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1739,6 +1741,8 @@ export const translations = {
       "chat.unpinConversation": "Gesprek losmaken",
       "chat.unarchiveConversation": "Gesprek uit archief halen",
       "chat.archived": "Gearchiveerd",
+      "settings.firewallManualHint": "Open Instellingen > Netwerk om de firewall handmatig te configureren.",
+      "contacts.reloadedFromStorage": "{{total}} contacten gevonden in Hyperbee, {{restored}} nieuwe hersteld.",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2610,6 +2614,8 @@ export const translations = {
       "chat.unpinConversation": "Unterhaltung nicht mehr anheften",
       "chat.unarchiveConversation": "Unterhaltung aus dem Archiv holen",
       "chat.archived": "Archiviert",
+      "settings.firewallManualHint": "Öffnen Sie Einstellungen > Netzwerk, um die Firewall manuell zu konfigurieren.",
+      "contacts.reloadedFromStorage": "{{total}} Kontakte in Hyperbee gefunden, {{restored}} neue wiederhergestellt.",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3481,6 +3487,8 @@ export const translations = {
       "chat.unpinConversation": "Rimuovi conversazione fissata",
       "chat.unarchiveConversation": "Ripristina conversazione",
       "chat.archived": "Archiviate",
+      "settings.firewallManualHint": "Apri Impostazioni > Rete per configurare il firewall manualmente.",
+      "contacts.reloadedFromStorage": "{{total}} contatti trovati in Hyperbee, {{restored}} nuovi ripristinati.",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4352,6 +4360,8 @@ export const translations = {
       "chat.unpinConversation": "Desfijar conversación",
       "chat.unarchiveConversation": "Desarchivar conversación",
       "chat.archived": "Archivadas",
+      "settings.firewallManualHint": "Abre Ajustes > Red para configurar el cortafuegos manualmente.",
+      "contacts.reloadedFromStorage": "{{total}} contactos encontrados en Hyperbee, {{restored}} nuevos restaurados.",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5224,6 +5234,8 @@ export const translations = {
       "chat.unpinConversation": "Desafixar conversa",
       "chat.unarchiveConversation": "Desarquivar conversa",
       "chat.archived": "Arquivadas",
+      "settings.firewallManualHint": "Abra Definições > Rede para configurar a firewall manualmente.",
+      "contacts.reloadedFromStorage": "{{total}} contactos encontrados no Hyperbee, {{restored}} novos restaurados.",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6096,6 +6108,8 @@ export const translations = {
       "chat.unpinConversation": "Αποκαρφίτσωση συνομιλίας",
       "chat.unarchiveConversation": "Επαναφορά συνομιλίας από αρχείο",
       "chat.archived": "Αρχειοθετημένες",
+      "settings.firewallManualHint": "Ανοίξτε Ρυθμίσεις > Δίκτυο για να ρυθμίσετε το τείχος προστασίας χειροκίνητα.",
+      "contacts.reloadedFromStorage": "Βρέθηκαν {{total}} επαφές στο Hyperbee, αποκαταστάθηκαν {{restored}} νέες.",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6968,6 +6982,8 @@ export const translations = {
       "chat.unpinConversation": "Fjern fastgørelse af samtale",
       "chat.unarchiveConversation": "Gendan samtale fra arkiv",
       "chat.archived": "Arkiverede",
+      "settings.firewallManualHint": "Åbn Indstillinger > Netværk for at konfigurere firewallen manuelt.",
+      "contacts.reloadedFromStorage": "{{total}} kontakter fundet i Hyperbee, {{restored}} nye gendannet.",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7840,6 +7856,8 @@ export const translations = {
       "chat.unpinConversation": "Poista keskustelu kiinnityksestä",
       "chat.unarchiveConversation": "Palauta keskustelu arkistosta",
       "chat.archived": "Arkistoidut",
+      "settings.firewallManualHint": "Avaa Asetukset > Verkko ja määritä palomuuri manuaalisesti.",
+      "contacts.reloadedFromStorage": "Hyperbeestä löytyi {{total}} yhteystietoa, {{restored}} uutta palautettiin.",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8712,6 +8730,8 @@ export const translations = {
       "chat.unpinConversation": "Ta bort fästning av konversation",
       "chat.unarchiveConversation": "Återställ konversation från arkiv",
       "chat.archived": "Arkiverade",
+      "settings.firewallManualHint": "Öppna Inställningar > Nätverk för att konfigurera brandväggen manuellt.",
+      "contacts.reloadedFromStorage": "{{total}} kontakter hittades i Hyperbee, {{restored}} nya återställdes.",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9584,6 +9604,8 @@ export const translations = {
       "chat.unpinConversation": "Odkvači razgovor",
       "chat.unarchiveConversation": "Vrati razgovor iz arhive",
       "chat.archived": "Arhivirano",
+      "settings.firewallManualHint": "Otvorite Postavke > Mreža da biste ručno konfigurirali vatrozid.",
+      "contacts.reloadedFromStorage": "Pronađeno {{total}} kontakata u Hyperbeeju, obnovljeno {{restored}} novih.",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10456,6 +10478,8 @@ export const translations = {
       "chat.unpinConversation": "Eemalda vestluse kinnitus",
       "chat.unarchiveConversation": "Taasta vestlus arhiivist",
       "chat.archived": "Arhiveeritud",
+      "settings.firewallManualHint": "Avage Seaded > Võrk, et tulemüür käsitsi seadistada.",
+      "contacts.reloadedFromStorage": "Hyperbeest leiti {{total}} kontakti, taastati {{restored}} uut.",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11328,6 +11352,8 @@ export const translations = {
       "chat.unpinConversation": "Beszélgetés rögzítésének feloldása",
       "chat.unarchiveConversation": "Beszélgetés visszaállítása az archívumból",
       "chat.archived": "Archivált",
+      "settings.firewallManualHint": "Nyissa meg a Beállítások > Hálózat menüpontot a tűzfal kézi beállításához.",
+      "contacts.reloadedFromStorage": "{{total}} névjegy található a Hyperbee-ben, {{restored}} új visszaállítva.",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12200,6 +12226,8 @@ export const translations = {
       "chat.unpinConversation": "Atspraust sarunu",
       "chat.unarchiveConversation": "Atjaunot sarunu no arhīva",
       "chat.archived": "Arhivētās",
+      "settings.firewallManualHint": "Atveriet Iestatījumi > Tīkls, lai manuāli konfigurētu ugunsmūri.",
+      "contacts.reloadedFromStorage": "Hyperbee atrasti {{total}} kontakti, atjaunoti {{restored}} jauni.",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13072,6 +13100,8 @@ export const translations = {
       "chat.unpinConversation": "Atsegti pokalbį",
       "chat.unarchiveConversation": "Grąžinti pokalbį iš archyvo",
       "chat.archived": "Archyvuoti",
+      "settings.firewallManualHint": "Atidarykite Nustatymai > Tinklas, kad rankiniu būdu sukonfigūruotumėte užkardą.",
+      "contacts.reloadedFromStorage": "Hyperbee rasta {{total}} kontaktų, atkurti {{restored}} nauji.",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13944,6 +13974,8 @@ export const translations = {
       "chat.unpinConversation": "Neħħi l-konverżazzjoni mill-pin",
       "chat.unarchiveConversation": "Erġa' ġib il-konverżazzjoni mill-arkivju",
       "chat.archived": "Arkivjati",
+      "settings.firewallManualHint": "Iftaħ Settings > Network biex tikkonfigura l-firewall manwalment.",
+      "contacts.reloadedFromStorage": "Instabu {{total}} kuntatti fil-Hyperbee, ġew restawrati {{restored}} ġodda.",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14816,6 +14848,8 @@ export const translations = {
       "chat.unpinConversation": "Odepnij rozmowę",
       "chat.unarchiveConversation": "Przywróć rozmowę z archiwum",
       "chat.archived": "Zarchiwizowane",
+      "settings.firewallManualHint": "Otwórz Ustawienia > Sieć, aby ręcznie skonfigurować zaporę.",
+      "contacts.reloadedFromStorage": "Znaleziono {{total}} kontaktów w Hyperbee, przywrócono {{restored}} nowych.",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15688,6 +15722,8 @@ export const translations = {
       "chat.unpinConversation": "Odopnúť konverzáciu",
       "chat.unarchiveConversation": "Obnoviť konverzáciu z archívu",
       "chat.archived": "Archivované",
+      "settings.firewallManualHint": "Otvorte Nastavenia > Sieť, aby ste manuálne nakonfigurovali firewall.",
+      "contacts.reloadedFromStorage": "V Hyperbee sa našlo {{total}} kontaktov, obnovených {{restored}} nových.",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16560,6 +16596,8 @@ export const translations = {
       "chat.unpinConversation": "Odpni pogovor",
       "chat.unarchiveConversation": "Obnovi pogovor iz arhiva",
       "chat.archived": "Arhivirano",
+      "settings.firewallManualHint": "Odprite Nastavitve > Omrežje, da ročno konfigurirate požarni zid.",
+      "contacts.reloadedFromStorage": "V Hyperbee najdenih {{total}} stikov, obnovljenih {{restored}} novih.",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17432,6 +17470,8 @@ export const translations = {
       "chat.unpinConversation": "Odepnout konverzaci",
       "chat.unarchiveConversation": "Obnovit konverzaci z archivu",
       "chat.archived": "Archivované",
+      "settings.firewallManualHint": "Otevřete Nastavení > Síť a ručně nakonfigurujte firewall.",
+      "contacts.reloadedFromStorage": "V Hyperbee nalezeno {{total}} kontaktů, obnoveno {{restored}} nových.",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18304,6 +18344,8 @@ export const translations = {
       "chat.unpinConversation": "Откачи разговор",
       "chat.unarchiveConversation": "Възстанови разговор от архива",
       "chat.archived": "Архивирани",
+      "settings.firewallManualHint": "Отворете Настройки > Мрежа, за да конфигурирате защитната стена ръчно.",
+      "contacts.reloadedFromStorage": "Намерени {{total}} контакта в Hyperbee, възстановени {{restored}} нови.",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19176,6 +19218,8 @@ export const translations = {
       "chat.unpinConversation": "Díphionnáil comhrá",
       "chat.unarchiveConversation": "Aisghnóthaigh comhrá ón gcartlann",
       "chat.archived": "Cartlannaithe",
+      "settings.firewallManualHint": "Oscail Socruithe > Líonra chun an balla dóiteáin a chumrú de láimh.",
+      "contacts.reloadedFromStorage": "Fuarthas {{total}} teagmháil i Hyperbee, athchóiríodh {{restored}} ceann nua.",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20048,6 +20092,8 @@ export const translations = {
       "chat.unpinConversation": "Anulează fixarea conversației",
       "chat.unarchiveConversation": "Restaurează conversația din arhivă",
       "chat.archived": "Arhivate",
+      "settings.firewallManualHint": "Deschideți Setări > Rețea pentru a configura manual paravanul de firewall.",
+      "contacts.reloadedFromStorage": "{{total}} contacte găsite în Hyperbee, {{restored}} noi restaurate.",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20929,6 +20975,8 @@ export const translations = {
       "chat.unpinConversation": "Unpin conversation",
       "chat.unarchiveConversation": "Unarchive conversation",
       "chat.archived": "Archived",
+      "settings.firewallManualHint": "Open Settings > Network to configure the firewall manually.",
+      "contacts.reloadedFromStorage": "Found {{total}} contacts in Hyperbee, restored {{restored}} new ones.",
     }
   },
 
@@ -21802,6 +21850,8 @@ export const translations = {
       "chat.unpinConversation": "Відкріпити розмову",
       "chat.unarchiveConversation": "Відновити розмову з архіву",
       "chat.archived": "Архівовані",
+      "settings.firewallManualHint": "Відкрийте Налаштування > Мережа, щоб налаштувати брандмауер вручну.",
+      "contacts.reloadedFromStorage": "Знайдено {{total}} контактів у Hyperbee, відновлено {{restored}} нових.",
     }
   },
 }

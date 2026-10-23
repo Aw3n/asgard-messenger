@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Відкріпити розмову",
       "chat.unarchiveConversation": "Відновити розмову з архіву",
       "chat.archived": "Архівовані",
+      "settings.firewallManualHint": "Відкрийте Налаштування > Мережа, щоб налаштувати брандмауер вручну.",
+      "contacts.reloadedFromStorage": "Знайдено {{total}} контактів у Hyperbee, відновлено {{restored}} нових.",
     }
 }

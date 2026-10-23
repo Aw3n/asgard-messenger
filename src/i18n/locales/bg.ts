@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Откачи разговор",
       "chat.unarchiveConversation": "Възстанови разговор от архива",
       "chat.archived": "Архивирани",
+      "settings.firewallManualHint": "Отворете Настройки > Мрежа, за да конфигурирате защитната стена ръчно.",
+      "contacts.reloadedFromStorage": "Намерени {{total}} контакта в Hyperbee, възстановени {{restored}} нови.",
     }
 }

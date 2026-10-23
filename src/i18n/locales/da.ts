@@ -870,5 +870,7 @@ export default {
       "chat.unpinConversation": "Fjern fastgørelse af samtale",
       "chat.unarchiveConversation": "Gendan samtale fra arkiv",
       "chat.archived": "Arkiverede",
+      "settings.firewallManualHint": "Åbn Indstillinger > Netværk for at konfigurere firewallen manuelt.",
+      "contacts.reloadedFromStorage": "{{total}} kontakter fundet i Hyperbee, {{restored}} nye gendannet.",
     }
 }

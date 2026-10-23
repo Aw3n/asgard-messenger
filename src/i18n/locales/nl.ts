@@ -869,5 +869,7 @@ export default {
       "chat.unpinConversation": "Gesprek losmaken",
       "chat.unarchiveConversation": "Gesprek uit archief halen",
       "chat.archived": "Gearchiveerd",
+      "settings.firewallManualHint": "Open Instellingen > Netwerk om de firewall handmatig te configureren.",
+      "contacts.reloadedFromStorage": "{{total}} contacten gevonden in Hyperbee, {{restored}} nieuwe hersteld.",
     }
 }

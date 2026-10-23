@@ -183,7 +183,10 @@ export const ContactsPage: React.FC = () => {
                       }
                     }
                     console.log('[ContactsPage] Restored', restored, 'contacts from Hyperbee')
-                    alert(`Found ${storedContacts.length} contacts in Hyperbee, restored ${restored} new ones`)
+                    alert(t('contacts.reloadedFromStorage', {
+                      total: storedContacts.length,
+                      restored,
+                    }))
                   } else {
                     alert(t('contacts.error.noContactsFound'))
                   }

@@ -869,5 +869,7 @@ export default {
       "chat.unpinConversation": "Desfijar conversación",
       "chat.unarchiveConversation": "Desarchivar conversación",
       "chat.archived": "Archivadas",
+      "settings.firewallManualHint": "Abre Ajustes > Red para configurar el cortafuegos manualmente.",
+      "contacts.reloadedFromStorage": "{{total}} contactos encontrados en Hyperbee, {{restored}} nuevos restaurados.",
     }
 }
