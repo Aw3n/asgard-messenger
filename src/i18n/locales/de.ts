@@ -866,5 +866,8 @@ export default {
       "notifications.mentionedYou": "{{name}} hat dich erwähnt",
       "chat.sendToStart": "Sende eine Nachricht, um mit {{name}} zu chatten.",
       "chat.unmuteConversation": "Stummschaltung der Unterhaltung aufheben",
+      "chat.unpinConversation": "Unterhaltung nicht mehr anheften",
+      "chat.unarchiveConversation": "Unterhaltung aus dem Archiv holen",
+      "chat.archived": "Archiviert",
     }
 }

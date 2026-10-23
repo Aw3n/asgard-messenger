@@ -29,6 +29,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     activeConversationId,
     setActiveConversation,
     muteConversation,
+    pinConversation,
+    archiveConversation,
   } = useConversationStore()
 
   const navigate = useNavigate()
@@ -123,24 +125,47 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
       }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#C8D0E8' }}>{t('nav.messages')}</h2>
-        <button
-          onClick={onNewChat}
-          style={{
-            width: '32px', height: '32px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '8px', border: 'none', background: 'transparent',
-            color: 'rgba(200,208,232,0.5)', cursor: 'pointer',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(79,195,247,0.12)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          aria-label={t('chat.newConversation')}
-          title={t('chat.newConversation')}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-          </svg>
-        </button>
+        <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#C8D0E8' }}>
+          {filter.archivedOnly ? t('chat.archived') : t('nav.messages')}
+        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            onClick={() => setFilter({ archivedOnly: !filter.archivedOnly })}
+            aria-pressed={!!filter.archivedOnly}
+            aria-label={t('chat.archived')}
+            title={t('chat.archived')}
+            style={{
+              width: '32px', height: '32px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '8px', border: 'none', background: 'transparent',
+              color: filter.archivedOnly ? '#4FC3F7' : 'rgba(200,208,232,0.5)',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(79,195,247,0.12)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/>
+            </svg>
+          </button>
+          <button
+            onClick={onNewChat}
+            style={{
+              width: '32px', height: '32px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '8px', border: 'none', background: 'transparent',
+              color: 'rgba(200,208,232,0.5)', cursor: 'pointer',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(79,195,247,0.12)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            aria-label={t('chat.newConversation')}
+            title={t('chat.newConversation')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -183,6 +208,34 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
             className="fixed z-50 mica-card border border-asgard-border rounded-xl p-1 shadow-modal min-w-[180px]"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
+            <ContextMenuItem
+              label={t(contextMenu.conv.pinned ? 'chat.unpinConversation' : 'chat.pinConversation')}
+              icon={
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/>
+                </svg>
+              }
+              onClick={() => {
+                pinConversation(contextMenu.conv.id, !contextMenu.conv.pinned)
+                setContextMenu(null)
+              }}
+            />
+            <ContextMenuItem
+              label={t(contextMenu.conv.archived ? 'chat.unarchiveConversation' : 'chat.archiveConversation')}
+              icon={
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/>
+                </svg>
+              }
+              onClick={() => {
+                const conv = contextMenu.conv
+                archiveConversation(conv.id, !conv.archived)
+                // Archiver le fil affiché le laisse sans entrée dans la liste :
+                // revenir à l'accueil évite un écran de conversation orphelin.
+                if (!conv.archived && activeConversationId === conv.id) navigate('/conversations')
+                setContextMenu(null)
+              }}
+            />
             <ContextMenuItem
               label={t(contextMenu.conv.muted ? 'chat.unmuteConversation' : 'chat.muteConversation')}
               icon={
@@ -296,6 +349,14 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
             <span className="text-xxs px-1.5 py-0.5 rounded-full bg-asgard-away/15 text-asgard-away flex-shrink-0 ml-2">
               {t('contacts.pendingBadge')}
             </span>
+          )}
+          {conv.pinned && (
+            <svg
+              width="11" height="11" viewBox="0 0 24 24" fill="currentColor"
+              className="text-asgard-glacier flex-shrink-0 ml-2" aria-hidden="true"
+            >
+              <path d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/>
+            </svg>
           )}
           {conv.updatedAt > 0 && (
             <span className="text-xxs text-asgard-text-muted flex-shrink-0 ml-2">

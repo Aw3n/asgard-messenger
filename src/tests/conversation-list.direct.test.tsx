@@ -117,4 +117,41 @@ describe('liste des conversations', () => {
     fireEvent.click(screen.getByText('chat.unmuteConversation'))
     expect(useConversationStore.getState().conversations[direct.id].muted).toBe(false)
   })
+
+  it('épingle puis désépingle depuis le menu contextuel', () => {
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    fireEvent.click(screen.getByText('chat.pinConversation'))
+    expect(useConversationStore.getState().conversations[direct.id].pinned).toBe(true)
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    fireEvent.click(screen.getByText('chat.unpinConversation'))
+    expect(useConversationStore.getState().conversations[direct.id].pinned).toBe(false)
+  })
+
+  it('archive, montre la vue archivée puis désarchive', () => {
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    fireEvent.click(screen.getByText('chat.archiveConversation'))
+    expect(useConversationStore.getState().conversations[direct.id].archived).toBe(true)
+    expect(screen.queryByText('Bob')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'chat.archived' }))
+    expect(screen.getByText('Bob')).toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    fireEvent.click(screen.getByText('chat.unarchiveConversation'))
+    expect(useConversationStore.getState().conversations[direct.id].archived).toBe(false)
+    expect(screen.queryByText('Bob')).toBeNull()
+  })
 })

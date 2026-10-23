@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} σας ανέφερε",
       "chat.sendToStart": "Στείλτε ένα μήνυμα για να ξεκινήσετε συνομιλία με {{name}}.",
       "chat.unmuteConversation": "Επανενεργοποίηση ήχου συνομιλίας",
+      "chat.unpinConversation": "Αποκαρφίτσωση συνομιλίας",
+      "chat.unarchiveConversation": "Επαναφορά συνομιλίας από αρχείο",
+      "chat.archived": "Αρχειοθετημένες",
     }
 }

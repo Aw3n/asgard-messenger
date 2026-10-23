@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} mainitsi sinut",
       "chat.sendToStart": "Lähetä viesti aloittaaksesi keskustelun käyttäjän {{name}} kanssa.",
       "chat.unmuteConversation": "Palauta keskustelun ääni",
+      "chat.unpinConversation": "Poista keskustelu kiinnityksestä",
+      "chat.unarchiveConversation": "Palauta keskustelu arkistosta",
+      "chat.archived": "Arkistoidut",
     }
 }

@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "Luaigh {{name}} thú",
       "chat.sendToStart": "Seol teachtaireacht chun tús a chur ag caint le {{name}}.",
       "chat.unmuteConversation": "Cuir fuaim an chomhrá ar ais",
+      "chat.unpinConversation": "Díphionnáil comhrá",
+      "chat.unarchiveConversation": "Aisghnóthaigh comhrá ón gcartlann",
+      "chat.archived": "Cartlannaithe",
     }
 }

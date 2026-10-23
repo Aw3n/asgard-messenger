@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} megemlített téged",
       "chat.sendToStart": "Küldjön üzenetet, hogy beszélgetni kezdjen vele: {{name}}.",
       "chat.unmuteConversation": "Beszélgetés némításának feloldása",
+      "chat.unpinConversation": "Beszélgetés rögzítésének feloldása",
+      "chat.unarchiveConversation": "Beszélgetés visszaállítása az archívumból",
+      "chat.archived": "Archivált",
     }
 }

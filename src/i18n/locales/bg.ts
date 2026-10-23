@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} ви спомена",
       "chat.sendToStart": "Изпратете съобщение, за да започнете разговор с {{name}}.",
       "chat.unmuteConversation": "Включи звука на разговора",
+      "chat.unpinConversation": "Откачи разговор",
+      "chat.unarchiveConversation": "Възстанови разговор от архива",
+      "chat.archived": "Архивирани",
     }
 }

@@ -865,6 +865,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} vous a mentionné",
       "chat.sendToStart": "Envoyez un message pour commencer à discuter avec {{name}}.",
       "chat.unmuteConversation": "Rétablir le son de la conversation",
+      "chat.unpinConversation": "Désépingler la conversation",
+      "chat.unarchiveConversation": "Désarchiver la conversation",
+      "chat.archived": "Archivées",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1733,6 +1736,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} heeft je vermeld",
       "chat.sendToStart": "Stuur een bericht om een gesprek te beginnen met {{name}}.",
       "chat.unmuteConversation": "Geluid van gesprek herstellen",
+      "chat.unpinConversation": "Gesprek losmaken",
+      "chat.unarchiveConversation": "Gesprek uit archief halen",
+      "chat.archived": "Gearchiveerd",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2601,6 +2607,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} hat dich erwähnt",
       "chat.sendToStart": "Sende eine Nachricht, um mit {{name}} zu chatten.",
       "chat.unmuteConversation": "Stummschaltung der Unterhaltung aufheben",
+      "chat.unpinConversation": "Unterhaltung nicht mehr anheften",
+      "chat.unarchiveConversation": "Unterhaltung aus dem Archiv holen",
+      "chat.archived": "Archiviert",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3469,6 +3478,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} ti ha menzionato",
       "chat.sendToStart": "Invia un messaggio per iniziare a parlare con {{name}}.",
       "chat.unmuteConversation": "Riattiva l'audio della conversazione",
+      "chat.unpinConversation": "Rimuovi conversazione fissata",
+      "chat.unarchiveConversation": "Ripristina conversazione",
+      "chat.archived": "Archiviate",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4337,6 +4349,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} te ha mencionado",
       "chat.sendToStart": "Envía un mensaje para empezar a hablar con {{name}}.",
       "chat.unmuteConversation": "Reactivar el sonido de la conversación",
+      "chat.unpinConversation": "Desfijar conversación",
+      "chat.unarchiveConversation": "Desarchivar conversación",
+      "chat.archived": "Archivadas",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5206,6 +5221,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} mencionou você",
       "chat.sendToStart": "Envie uma mensagem para começar a conversar com {{name}}.",
       "chat.unmuteConversation": "Reativar o som da conversa",
+      "chat.unpinConversation": "Desafixar conversa",
+      "chat.unarchiveConversation": "Desarquivar conversa",
+      "chat.archived": "Arquivadas",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6075,6 +6093,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} σας ανέφερε",
       "chat.sendToStart": "Στείλτε ένα μήνυμα για να ξεκινήσετε συνομιλία με {{name}}.",
       "chat.unmuteConversation": "Επανενεργοποίηση ήχου συνομιλίας",
+      "chat.unpinConversation": "Αποκαρφίτσωση συνομιλίας",
+      "chat.unarchiveConversation": "Επαναφορά συνομιλίας από αρχείο",
+      "chat.archived": "Αρχειοθετημένες",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -6944,6 +6965,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} nævnte dig",
       "chat.sendToStart": "Send en besked for at begynde at tale med {{name}}.",
       "chat.unmuteConversation": "Slå lyd til i samtale",
+      "chat.unpinConversation": "Fjern fastgørelse af samtale",
+      "chat.unarchiveConversation": "Gendan samtale fra arkiv",
+      "chat.archived": "Arkiverede",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7813,6 +7837,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} mainitsi sinut",
       "chat.sendToStart": "Lähetä viesti aloittaaksesi keskustelun käyttäjän {{name}} kanssa.",
       "chat.unmuteConversation": "Palauta keskustelun ääni",
+      "chat.unpinConversation": "Poista keskustelu kiinnityksestä",
+      "chat.unarchiveConversation": "Palauta keskustelu arkistosta",
+      "chat.archived": "Arkistoidut",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8682,6 +8709,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} nämnde dig",
       "chat.sendToStart": "Skicka ett meddelande för att börja prata med {{name}}.",
       "chat.unmuteConversation": "Slå på ljud för konversation",
+      "chat.unpinConversation": "Ta bort fästning av konversation",
+      "chat.unarchiveConversation": "Återställ konversation från arkiv",
+      "chat.archived": "Arkiverade",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9551,6 +9581,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} vas je spomenuo",
       "chat.sendToStart": "Pošaljite poruku da započnete razgovor s {{name}}.",
       "chat.unmuteConversation": "Uključi zvuk razgovora",
+      "chat.unpinConversation": "Odkvači razgovor",
+      "chat.unarchiveConversation": "Vrati razgovor iz arhive",
+      "chat.archived": "Arhivirano",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10420,6 +10453,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} mainis sind",
       "chat.sendToStart": "Saatke sõnum, et alustada vestlust kasutajaga {{name}}.",
       "chat.unmuteConversation": "Lülita vestluse heli sisse",
+      "chat.unpinConversation": "Eemalda vestluse kinnitus",
+      "chat.unarchiveConversation": "Taasta vestlus arhiivist",
+      "chat.archived": "Arhiveeritud",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11289,6 +11325,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} megemlített téged",
       "chat.sendToStart": "Küldjön üzenetet, hogy beszélgetni kezdjen vele: {{name}}.",
       "chat.unmuteConversation": "Beszélgetés némításának feloldása",
+      "chat.unpinConversation": "Beszélgetés rögzítésének feloldása",
+      "chat.unarchiveConversation": "Beszélgetés visszaállítása az archívumból",
+      "chat.archived": "Archivált",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12158,6 +12197,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} jūs pieminēja",
       "chat.sendToStart": "Nosūtiet ziņojumu, lai sāktu sarunu ar {{name}}.",
       "chat.unmuteConversation": "Ieslēgt sarunas skaņu",
+      "chat.unpinConversation": "Atspraust sarunu",
+      "chat.unarchiveConversation": "Atjaunot sarunu no arhīva",
+      "chat.archived": "Arhivētās",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13027,6 +13069,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} jus paminėjo",
       "chat.sendToStart": "Išsiųskite žinutę, kad pradėtumėte pokalbį su {{name}}.",
       "chat.unmuteConversation": "Įjungti pokalbio garsą",
+      "chat.unpinConversation": "Atsegti pokalbį",
+      "chat.unarchiveConversation": "Grąžinti pokalbį iš archyvo",
+      "chat.archived": "Archyvuoti",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -13896,6 +13941,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} għamel referenza għalik",
       "chat.sendToStart": "Ibgħat messaġġ biex tibda titkellem ma' {{name}}.",
       "chat.unmuteConversation": "Erġa' ixgħel il-ħoss tal-konverżazzjoni",
+      "chat.unpinConversation": "Neħħi l-konverżazzjoni mill-pin",
+      "chat.unarchiveConversation": "Erġa' ġib il-konverżazzjoni mill-arkivju",
+      "chat.archived": "Arkivjati",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14765,6 +14813,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} wspomniał o Tobie",
       "chat.sendToStart": "Wyślij wiadomość, aby rozpocząć rozmowę z {{name}}.",
       "chat.unmuteConversation": "Włącz dźwięk rozmowy",
+      "chat.unpinConversation": "Odepnij rozmowę",
+      "chat.unarchiveConversation": "Przywróć rozmowę z archiwum",
+      "chat.archived": "Zarchiwizowane",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15634,6 +15685,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} vás spomenul",
       "chat.sendToStart": "Pošlite správu, aby začať konverzáciu s {{name}}.",
       "chat.unmuteConversation": "Zapnúť zvuk konverzácie",
+      "chat.unpinConversation": "Odopnúť konverzáciu",
+      "chat.unarchiveConversation": "Obnoviť konverzáciu z archívu",
+      "chat.archived": "Archivované",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16503,6 +16557,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} vas je omenil",
       "chat.sendToStart": "Pošljite sporočilo, da začnete pogovor s {{name}}.",
       "chat.unmuteConversation": "Vklopi zvok pogovora",
+      "chat.unpinConversation": "Odpni pogovor",
+      "chat.unarchiveConversation": "Obnovi pogovor iz arhiva",
+      "chat.archived": "Arhivirano",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17372,6 +17429,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} vás zmínil",
       "chat.sendToStart": "Pošlete zprávu a začněte konverzovat s {{name}}.",
       "chat.unmuteConversation": "Zapnout zvuk konverzace",
+      "chat.unpinConversation": "Odepnout konverzaci",
+      "chat.unarchiveConversation": "Obnovit konverzaci z archivu",
+      "chat.archived": "Archivované",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18241,6 +18301,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} ви спомена",
       "chat.sendToStart": "Изпратете съобщение, за да започнете разговор с {{name}}.",
       "chat.unmuteConversation": "Включи звука на разговора",
+      "chat.unpinConversation": "Откачи разговор",
+      "chat.unarchiveConversation": "Възстанови разговор от архива",
+      "chat.archived": "Архивирани",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19110,6 +19173,9 @@ export const translations = {
       "notifications.mentionedYou": "Luaigh {{name}} thú",
       "chat.sendToStart": "Seol teachtaireacht chun tús a chur ag caint le {{name}}.",
       "chat.unmuteConversation": "Cuir fuaim an chomhrá ar ais",
+      "chat.unpinConversation": "Díphionnáil comhrá",
+      "chat.unarchiveConversation": "Aisghnóthaigh comhrá ón gcartlann",
+      "chat.archived": "Cartlannaithe",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -19979,6 +20045,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} te-a menționat",
       "chat.sendToStart": "Trimiteți un mesaj pentru a începe conversația cu {{name}}.",
       "chat.unmuteConversation": "Reactivează sunetul conversației",
+      "chat.unpinConversation": "Anulează fixarea conversației",
+      "chat.unarchiveConversation": "Restaurează conversația din arhivă",
+      "chat.archived": "Arhivate",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -20857,6 +20926,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} mentioned you",
       "chat.sendToStart": "Send a message to start talking with {{name}}.",
       "chat.unmuteConversation": "Unmute conversation",
+      "chat.unpinConversation": "Unpin conversation",
+      "chat.unarchiveConversation": "Unarchive conversation",
+      "chat.archived": "Archived",
     }
   },
 
@@ -21727,6 +21799,9 @@ export const translations = {
       "notifications.mentionedYou": "{{name}} згадав вас",
       "chat.sendToStart": "Надішліть повідомлення, щоб почати розмову з {{name}}.",
       "chat.unmuteConversation": "Увімкнути звук розмови",
+      "chat.unpinConversation": "Відкріпити розмову",
+      "chat.unarchiveConversation": "Відновити розмову з архіву",
+      "chat.archived": "Архівовані",
     }
   },
 }

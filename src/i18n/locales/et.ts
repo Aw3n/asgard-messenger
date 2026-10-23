@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} mainis sind",
       "chat.sendToStart": "Saatke sõnum, et alustada vestlust kasutajaga {{name}}.",
       "chat.unmuteConversation": "Lülita vestluse heli sisse",
+      "chat.unpinConversation": "Eemalda vestluse kinnitus",
+      "chat.unarchiveConversation": "Taasta vestlus arhiivist",
+      "chat.archived": "Arhiveeritud",
     }
 }

@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} għamel referenza għalik",
       "chat.sendToStart": "Ibgħat messaġġ biex tibda titkellem ma' {{name}}.",
       "chat.unmuteConversation": "Erġa' ixgħel il-ħoss tal-konverżazzjoni",
+      "chat.unpinConversation": "Neħħi l-konverżazzjoni mill-pin",
+      "chat.unarchiveConversation": "Erġa' ġib il-konverżazzjoni mill-arkivju",
+      "chat.archived": "Arkivjati",
     }
 }

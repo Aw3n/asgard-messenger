@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} jus paminėjo",
       "chat.sendToStart": "Išsiųskite žinutę, kad pradėtumėte pokalbį su {{name}}.",
       "chat.unmuteConversation": "Įjungti pokalbio garsą",
+      "chat.unpinConversation": "Atsegti pokalbį",
+      "chat.unarchiveConversation": "Grąžinti pokalbį iš archyvo",
+      "chat.archived": "Archyvuoti",
     }
 }

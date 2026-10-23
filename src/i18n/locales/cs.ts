@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} vás zmínil",
       "chat.sendToStart": "Pošlete zprávu a začněte konverzovat s {{name}}.",
       "chat.unmuteConversation": "Zapnout zvuk konverzace",
+      "chat.unpinConversation": "Odepnout konverzaci",
+      "chat.unarchiveConversation": "Obnovit konverzaci z archivu",
+      "chat.archived": "Archivované",
     }
 }

@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} nämnde dig",
       "chat.sendToStart": "Skicka ett meddelande för att börja prata med {{name}}.",
       "chat.unmuteConversation": "Slå på ljud för konversation",
+      "chat.unpinConversation": "Ta bort fästning av konversation",
+      "chat.unarchiveConversation": "Återställ konversation från arkiv",
+      "chat.archived": "Arkiverade",
     }
 }

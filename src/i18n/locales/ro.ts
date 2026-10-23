@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} te-a menționat",
       "chat.sendToStart": "Trimiteți un mesaj pentru a începe conversația cu {{name}}.",
       "chat.unmuteConversation": "Reactivează sunetul conversației",
+      "chat.unpinConversation": "Anulează fixarea conversației",
+      "chat.unarchiveConversation": "Restaurează conversația din arhivă",
+      "chat.archived": "Arhivate",
     }
 }

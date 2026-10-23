@@ -867,5 +867,8 @@ export default {
       "notifications.mentionedYou": "{{name}} nævnte dig",
       "chat.sendToStart": "Send en besked for at begynde at tale med {{name}}.",
       "chat.unmuteConversation": "Slå lyd til i samtale",
+      "chat.unpinConversation": "Fjern fastgørelse af samtale",
+      "chat.unarchiveConversation": "Gendan samtale fra arkiv",
+      "chat.archived": "Arkiverede",
     }
 }
