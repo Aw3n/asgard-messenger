@@ -15,6 +15,7 @@ import { ringtoneService } from '@/services/RingtoneService'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { useCallStore } from '@/stores/callStore'
+import { useContactStore } from '@/stores/contactStore'
 import type { CallRecord } from '@/stores/callStore'
 import type { GroupMember, ProtocolMessage } from '@/types'
 
@@ -68,6 +69,7 @@ beforeEach(() => {
     groupPresence: {},
     channelTyping: {},
   })
+  useContactStore.setState({ contacts: {} })
   useCallStore.setState({
     activeCall: null,
     incomingCall: null,
@@ -106,6 +108,26 @@ afterEach(() => {
 })
 
 describe('offre d’appel', () => {
+  it('décline un appel d’un contact bloqué', () => {
+    useContactStore.setState({
+      contacts: {
+        [B]: {
+          publicKey: B,
+          displayName: 'Bob',
+          status: 'online',
+          relation: 'blocked',
+          verified: true,
+          addedAt: Date.now(),
+        },
+      },
+    })
+
+    dispatch('call:offer', { type: 'audio', callerName: 'Bob' }, B)
+
+    expect(useCallStore.getState().incomingCall).toBeNull()
+    expect(p2pService.sendMessage).toHaveBeenCalledWith(B, 'call:reject', { reason: 'blocked' })
+  })
+
   it('refuse un type autre que audio ou vidéo', () => {
     dispatch('call:offer', { type: 'hologram', callerName: 'Bob' }, B)
     expect(useCallStore.getState().incomingCall).toBeNull()

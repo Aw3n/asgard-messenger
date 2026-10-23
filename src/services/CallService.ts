@@ -351,6 +351,12 @@ class CallService {
       const type = payload.type
 
       const contact = useContactStore.getState().getContact(msg.from)
+      // Le blocage coupait déjà les messages, la présence et la saisie ; un
+      // contact bloqué pouvait encore faire sonner et ouvrir la fenêtre d'appel.
+      if (contact?.relation === 'blocked') {
+        p2pService.sendMessage(msg.from, 'call:reject', { reason: 'blocked' }).catch(() => {})
+        return
+      }
       const callerName = CallService.callName(payload.callerName, msg.from.slice(0, 8))
 
       // A group call names a group and a roster: accept it only from a member of
