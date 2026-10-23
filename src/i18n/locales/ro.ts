@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Istoricul nu a putut fi încărcat",
       "chat.pinnedMessages": "Mesaje fixate",
       "search.moreResults": "Alte rezultate nu sunt afișate — rafinați căutarea.",
+      "groups.muteMember": "Pune membrul în tăcere",
+      "groups.unmuteMember": "Scoate membrul din tăcere",
+      "groups.memberMuted": "Membrul este în tăcere",
+      "groups.memberUnmuted": "Membrul a ieșit din tăcere",
+      "groups.muteFailed": "Nu s-a putut modifica starea de tăcere a membrului",
+      "groups.mutedInGroup": "Sunteți în tăcere în acest grup",
     }
 }

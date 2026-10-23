@@ -4,10 +4,12 @@
  * Une signature prouve qui parle, pas ce que l'expéditeur a le droit de faire.
  * Ces tests fixent la règle : métadonnées, rôles, exclusions, canaux, mutes et
  * messages ne s'appliquent que si l'émetteur est le membre concerné ou un
- * administrateur du groupe local.
+ * administrateur du groupe local — et un membre en sourdine ne publie plus, ni
+ * chez lui ni chez les autres.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { groupService } from '@/services/GroupService'
+import { fileService } from '@/services/FileService'
 import { p2pService } from '@/services/P2PService'
 import { storageService } from '@/services/StorageService'
 import { useIdentityStore } from '@/stores/identityStore'
@@ -308,6 +310,99 @@ describe('mute', () => {
     const target = group().members.find((m) => m.publicKey === C)!
     expect(target.canPost).toBe(false)
     expect(target.mutedBy).toBe(B)
+  })
+
+  it('épargne le propriétaire, en réception comme en envoi', async () => {
+    dispatch('handleGroupUpdate', { action: 'member:muted', groupId, targetPublicKey: A, mutedBy: D }, B)
+    expect(group().members.find((m) => m.publicKey === A)?.canPost).toBe(true)
+
+    await expect(groupService.muteMember(groupId, A)).rejects.toThrow()
+    expect(group().members.find((m) => m.publicKey === A)?.canPost).toBe(true)
+  })
+
+  it('ne laisse pas un membre lever lui-même sa sourdine', () => {
+    dispatch('handleGroupUpdate', { action: 'member:muted', groupId, targetPublicKey: C, mutedBy: A }, B)
+    dispatch('handleGroupUpdate', { action: 'member:unmuted', groupId, targetPublicKey: C }, C)
+
+    expect(group().members.find((m) => m.publicKey === C)?.canPost).toBe(false)
+  })
+
+  it('mute et rétablit depuis le client de l’admin, diffusion comprise', async () => {
+    await groupService.muteMember(groupId, C)
+    expect(group().members.find((m) => m.publicKey === C)?.canPost).toBe(false)
+    expect(p2pService.broadcastToPeers).toHaveBeenLastCalledWith(
+      expect.anything(),
+      'group:update',
+      expect.objectContaining({ action: 'member:muted', groupId, targetPublicKey: C, mutedBy: A }),
+    )
+
+    await groupService.unmuteMember(groupId, C)
+    expect(group().members.find((m) => m.publicKey === C)?.canPost).toBe(true)
+    expect(p2pService.broadcastToPeers).toHaveBeenLastCalledWith(
+      expect.anything(),
+      'group:update',
+      expect.objectContaining({ action: 'member:unmuted', groupId, targetPublicKey: C }),
+    )
+  })
+
+  it('refuse de muter depuis un simple membre', async () => {
+    useIdentityStore.setState((state) => ({
+      identity: { ...state.identity!, keyPair: { ...state.identity!.keyPair, publicKey: C } },
+    }))
+
+    await expect(groupService.muteMember(groupId, B)).rejects.toThrow()
+    expect(group().members.find((m) => m.publicKey === B)?.canPost).toBe(true)
+  })
+})
+
+/**
+ * La sourdine n'arrête rien si le client visé continue de publier et si les
+ * autres acceptent ce qu'il envoie : ces deux gardes sont la raison d'être de
+ * l'action de modération.
+ */
+describe('publication sous sourdine', () => {
+  const textOf = (id: string, sender: string, content: string): Record<string, unknown> => ({
+    groupId,
+    channelId,
+    message: { id, senderId: sender, content, type: 'text', timestamp: Date.now(), status: 'sent' },
+  })
+
+  it('écarte le message d’un membre mis en sourdine par un admin', () => {
+    dispatch('handleGroupUpdate', { action: 'member:muted', groupId, targetPublicKey: C, mutedBy: A }, B)
+    dispatch('handleGroupMessage', textOf('m-muted', C, 'malgré la sourdine'), C, 'group:message')
+
+    expect(useMessageStore.getState().getMessage('m-muted', channelId)).toBeUndefined()
+  })
+
+  it('rend la parole dès que l’admin rétablit le membre', () => {
+    dispatch('handleGroupUpdate', { action: 'member:muted', groupId, targetPublicKey: C, mutedBy: A }, B)
+    dispatch('handleGroupUpdate', { action: 'member:unmuted', groupId, targetPublicKey: C }, B)
+    expect(group().members.find((m) => m.publicKey === C)?.canPost).toBe(true)
+
+    dispatch('handleGroupMessage', textOf('m-back', C, 'de nouveau'), C, 'group:message')
+
+    expect(useMessageStore.getState().getMessage('m-back', channelId)?.content).toBe('de nouveau')
+  })
+
+  it('refuse l’envoi de texte depuis le client d’un membre en sourdine', async () => {
+    useGroupStore.getState().muteMember(groupId, A, B)
+
+    await expect(groupService.sendGroupMessage(groupId, channelId, 'je force la main')).rejects.toThrow()
+
+    expect(useMessageStore.getState().messages[channelId] ?? []).toEqual([])
+    expect(p2pService.broadcastToPeers).not.toHaveBeenCalled()
+  })
+
+  it('refuse la pièce jointe envoyée par un membre en sourdine', async () => {
+    useGroupStore.getState().muteMember(groupId, A, B)
+    // Valeur d’échec : la sourdine doit couper avant cet appel, jamais l’atteindre.
+    const multicast = vi.spyOn(fileService, 'sendFileToMulticast').mockRejectedValue(new Error('jointe atteinte'))
+
+    await expect(
+      groupService.sendFileToGroup(new File(['x'], 'contrat.pdf'), groupId, channelId),
+    ).rejects.toThrow()
+
+    expect(multicast).not.toHaveBeenCalled()
   })
 })
 

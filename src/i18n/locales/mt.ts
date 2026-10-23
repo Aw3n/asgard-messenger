@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "L-istorja ma setgħetx titgħabba",
       "chat.pinnedMessages": "Messaġġi mwaqqa'",
       "search.moreResults": "Aktar riżultati ma jurux — irfina t-tiftix.",
+      "groups.muteMember": "Ġibed il-membru",
+      "groups.unmuteMember": "Neħħi l-ġibed mill-membru",
+      "groups.memberMuted": "Il-membru inġibed",
+      "groups.memberUnmuted": "In-neħħiet il-ġibed mill-membru",
+      "groups.muteFailed": "Ma setg'etx tinbidel il-ġibed tal-membru",
+      "groups.mutedInGroup": "Int ġibed f’din il-gruppa",
     }
 }

@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Historiaa ei voitu ladata",
       "chat.pinnedMessages": "Kiinnitetyt viestit",
       "search.moreResults": "Lisää tuloksia ei näytetä — tarkenna hakua.",
+      "groups.muteMember": "Mykistä jäsen",
+      "groups.unmuteMember": "Poista jäsenen mykistys",
+      "groups.memberMuted": "Jäsen mykistetty",
+      "groups.memberUnmuted": "Jäsenen mykistys poistettu",
+      "groups.muteFailed": "Jäsenen mykistystä ei voitu muuttaa",
+      "groups.mutedInGroup": "Sinut on mykistetty tässä ryhmässä",
     }
 }

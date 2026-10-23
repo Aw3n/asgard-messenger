@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Históriu sa nepodarilo načítať",
       "chat.pinnedMessages": "Pripnuté správy",
       "search.moreResults": "Ďalšie výsledky sa nezobrazujú — spresnite vyhľadávanie.",
+      "groups.muteMember": "Stlmiť člena",
+      "groups.unmuteMember": "Zrušiť stlmenie člena",
+      "groups.memberMuted": "Člen stlmený",
+      "groups.memberUnmuted": "Stlmenie člena zrušené",
+      "groups.muteFailed": "Zmenu stlmenia člena sa nepodarilo",
+      "groups.mutedInGroup": "V tejto skupine ste stlmený",
     }
 }

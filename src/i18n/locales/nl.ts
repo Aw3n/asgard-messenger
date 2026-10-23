@@ -885,5 +885,11 @@ export default {
       "chat.historyLoadFailed": "Geschiedenis kon niet worden geladen",
       "chat.pinnedMessages": "Vastgezette berichten",
       "search.moreResults": "Andere resultaten worden niet weergegeven — verfijn de zoekopdracht.",
+      "groups.muteMember": "Lid dempen",
+      "groups.unmuteMember": "Dempen van lid opheffen",
+      "groups.memberMuted": "Lid gedempt",
+      "groups.memberUnmuted": "Dempen van lid opgeheven",
+      "groups.muteFailed": "Dempen van lid wijzigen is mislukt",
+      "groups.mutedInGroup": "Je bent gedempt in deze groep",
     }
 }

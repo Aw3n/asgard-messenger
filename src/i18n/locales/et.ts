@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Ajalugu ei saanud laadida",
       "chat.pinnedMessages": "Kinnitatud sõnumid",
       "search.moreResults": "Rohkem tulemusi ei kuvata — täpsusta otsingut.",
+      "groups.muteMember": "Summuta liige",
+      "groups.unmuteMember": "Lõpeta liikme summutamine",
+      "groups.memberMuted": "Liige on summutatud",
+      "groups.memberUnmuted": "Liikme summutamine lõpetatud",
+      "groups.muteFailed": "Liikme summutamist ei õnnestunud muuta",
+      "groups.mutedInGroup": "Sind on selles rühmas summutatud",
     }
 }

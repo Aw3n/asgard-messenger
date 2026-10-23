@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Історію не вдалося завантажити",
       "chat.pinnedMessages": "Закріплені повідомлення",
       "search.moreResults": "Інші результати не показані — уточніть пошук.",
+      "groups.muteMember": "Заглушити учасника",
+      "groups.unmuteMember": "Зняти заглушення з учасника",
+      "groups.memberMuted": "Учасника заглушено",
+      "groups.memberUnmuted": "З учасника знято заглушення",
+      "groups.muteFailed": "Не вдалося змінити заглушення учасника",
+      "groups.mutedInGroup": "Ви заглушені в цій групі",
     }
 }

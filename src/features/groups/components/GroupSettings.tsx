@@ -225,6 +225,16 @@ const InviteContactsSection: React.FC<{ groupId: string }> = ({ groupId }) => {
 
 // ─── Member Management ─────────────────────────────────────────────────────────
 
+/** Le rôle s'affiche traduit : rendu brut, « admin » ou « guest » restait
+ *  anglais dans les 25 langues. */
+const ROLE_LABEL_KEYS: Record<MemberRole, string> = {
+  owner: 'common.owner',
+  admin: 'common.admin',
+  moderator: 'common.moderator',
+  member: 'common.member',
+  guest: 'common.guest',
+}
+
 const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
   const { t } = useTranslation()
   const getMembers = useGroupStore((s) => s.getMembers)
@@ -250,11 +260,23 @@ const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
     }
   }
 
+  const handleMute = async (publicKey: string, muted: boolean) => {
+    try {
+      if (muted) await groupService.unmuteMember(groupId, publicKey)
+      else await groupService.muteMember(groupId, publicKey)
+      addToast({ type: 'success', title: muted ? t('groups.memberUnmuted') : t('groups.memberMuted') })
+    } catch (err) {
+      addToast({ type: 'error', title: t('groups.muteFailed') })
+    }
+  }
+
   return (
     <div className="space-y-1">
       {members.map((member) => {
         const isSelf = member.publicKey === identity?.keyPair.publicKey
         const isOwner = member.role === 'owner'
+        const isMuted = member.canPost === false
+        const muteLabel = isMuted ? t('groups.unmuteMember') : t('groups.muteMember')
 
         return (
           <div
@@ -274,7 +296,7 @@ const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
                   <span className="text-xs text-asgard-text-muted ml-1">({t('contacts.you')})</span>
                 )}
               </p>
-              <p className="text-xs text-asgard-text-muted capitalize">{member.role}</p>
+              <p className="text-xs text-asgard-text-muted">{t(ROLE_LABEL_KEYS[member.role])}</p>
             </div>
 
             {/* Admin actions */}
@@ -289,6 +311,19 @@ const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
                   <option value="moderator">{t('common.moderator')}</option>
                   <option value="admin">{t('common.admin')}</option>
                 </select>
+                <button
+                  onClick={() => handleMute(member.publicKey, isMuted)}
+                  aria-label={muteLabel}
+                  title={muteLabel}
+                  aria-pressed={isMuted}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d={isMuted
+                      ? 'M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.31 6-6.72h-1.7z'
+                      : 'M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l6 6zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.76-.48 2.51-.98L19.73 21 21 19.73 4.27 3z'} />
+                  </svg>
+                </button>
                 <button
                   onClick={() => handleKick(member.publicKey)}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"

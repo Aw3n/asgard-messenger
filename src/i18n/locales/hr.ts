@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Povijest se nije mogla učitati",
       "chat.pinnedMessages": "Zakačene poruke",
       "search.moreResults": "Još rezultata nije prikazano — pojasnite pretragu.",
+      "groups.muteMember": "Utišaj člana",
+      "groups.unmuteMember": "Ukini utišavanje člana",
+      "groups.memberMuted": "Član utišan",
+      "groups.memberUnmuted": "Utišavanje člana poništeno",
+      "groups.muteFailed": "Utišavanje člana nije bilo moguće promijeniti",
+      "groups.mutedInGroup": "Utišani ste u ovoj grupi",
     }
 }

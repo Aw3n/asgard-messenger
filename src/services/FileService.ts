@@ -1179,7 +1179,10 @@ class FileService {
     if (typeof channelId !== 'string' || channelId.length === 0 || channelId.length > 128) return null
     for (const group of Object.values(useGroupStore.getState().groups)) {
       if (!group.channels.some((channel) => channel.id === channelId)) continue
-      if (!group.members.some((member) => member.publicKey === sender)) continue
+      const member = group.members.find((m) => m.publicKey === sender)
+      // Un membre en sourdine ne publie pas, même par pièce jointe : le roster
+      // est la seule autorité que le groupe partage.
+      if (!member || member.canPost === false) continue
       return { groupId: group.id }
     }
     return null

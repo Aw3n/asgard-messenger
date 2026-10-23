@@ -895,5 +895,11 @@ export default {
       "chat.historyLoadFailed": "History could not be loaded",
       "chat.pinnedMessages": "Pinned messages",
       "search.moreResults": "Other results are not shown — refine your search.",
+      "groups.muteMember": "Mute member",
+      "groups.unmuteMember": "Unmute member",
+      "groups.memberMuted": "Member muted",
+      "groups.memberUnmuted": "Member unmuted",
+      "groups.muteFailed": "Couldn’t change the member’s mute",
+      "groups.mutedInGroup": "You are muted in this group",
     }
 }

@@ -32,13 +32,19 @@ describe('catalogues de langue', () => {
 
   /**
    * Une clé nouvelle n'est livrée que rendue dans TOUTES les langues — vérifiée
-   * par i18n, pas relue dans la table. Trois venues corriger du texte codé en dur
-   * dans le JSX : la barre des épinglés (français), la mention de licence
-   * (« MIT License. » accolé à un nom déjà traduit), l'annonce de résultats coupés.
+   * par i18n, pas relue dans la table. Quatre venues corriger du texte codé en
+   * dur dans le JSX ou une action sans visage : la barre des épinglés (français),
+   * la mention de licence (« MIT License. » accolé à un nom déjà traduit),
+   * l'annonce de résultats coupés, la sourdine d'un membre (six chaînes pour une
+   * action que seul le code savait poser).
    */
   it('rend les livrées récentes dans chacune des 25 langues', async () => {
     await i18nReady
-    const keys = ['chat.pinnedMessages', 'settings.openSourceLicense', 'search.moreResults'] as const
+    const keys = [
+      'chat.pinnedMessages', 'settings.openSourceLicense', 'search.moreResults',
+      'groups.muteMember', 'groups.unmuteMember', 'groups.memberMuted',
+      'groups.memberUnmuted', 'groups.muteFailed', 'groups.mutedInGroup',
+    ] as const
     for (const key of keys) {
       for (const { code } of SUPPORTED_LANGUAGES) {
         await changeLanguage(code)
@@ -48,6 +54,20 @@ describe('catalogues de langue', () => {
         // La phrase ne doit plus traîner son reste anglais hors de l'anglais.
         if (code !== 'en') expect(value).not.toMatch(/MIT License/)
       }
+    }
+  })
+
+  /**
+   * « Mettre en sourdine » et « rétablir » sont deux actions contraires posées
+   * sur le même bouton : une table recopiée de travers leur donnerait le même
+   * texte, et l'administrateur ne saurait plus lequel il appuie.
+   */
+  it('distingue l’action de sourdine de son contraire dans chaque langue', async () => {
+    await i18nReady
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      expect(i18n.t('groups.muteMember'), code).not.toBe(i18n.t('groups.unmuteMember'))
+      expect(i18n.t('groups.memberMuted'), code).not.toBe(i18n.t('groups.memberUnmuted'))
     }
   })
 })

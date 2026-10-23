@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Historici se nepodařilo načíst",
       "chat.pinnedMessages": "Připnuté zprávy",
       "search.moreResults": "Další výsledky nejsou zobrazeny — upřesněte hledání.",
+      "groups.muteMember": "Ztlumit člena",
+      "groups.unmuteMember": "Zrušit ztlumení člena",
+      "groups.memberMuted": "Člen ztlumen",
+      "groups.memberUnmuted": "Ztlumení člena zrušeno",
+      "groups.muteFailed": "Změnu ztlumení člena se nepodařilo provést",
+      "groups.mutedInGroup": "V této skupině jste ztlumeni",
     }
 }

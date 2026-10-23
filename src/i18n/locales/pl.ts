@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Nie udało się załadować historii",
       "chat.pinnedMessages": "Przypięte wiadomości",
       "search.moreResults": "Inne wyniki nie są wyświetlane — zawęź wyszukiwanie.",
+      "groups.muteMember": "Wycisz członka",
+      "groups.unmuteMember": "Wyłącz wyciszenie członka",
+      "groups.memberMuted": "Członek wyciszony",
+      "groups.memberUnmuted": "Wyciszenie członka wyłączone",
+      "groups.muteFailed": "Nie udało się zmienić wyciszenia członka",
+      "groups.mutedInGroup": "Jesteś wyciszony w tej grupie",
     }
 }

@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Historikken kunne ikke indlæses",
       "chat.pinnedMessages": "Fastgjorte beskeder",
       "search.moreResults": "Flere resultater vises ikke — præciser søgningen.",
+      "groups.muteMember": "Gør medlem stum",
+      "groups.unmuteMember": "Ophæv stumhed for medlem",
+      "groups.memberMuted": "Medlem gjort stum",
+      "groups.memberUnmuted": "Medlem kan skrive igen",
+      "groups.muteFailed": "Ændring af stumhed for medlem mislykkedes",
+      "groups.mutedInGroup": "Du er gjort stum i denne gruppe",
     }
 }

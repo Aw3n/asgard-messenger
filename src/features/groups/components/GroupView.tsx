@@ -140,6 +140,9 @@ export const GroupView: React.FC = () => {
   // Épingler est réservé aux mêmes rôles que côté service ; les autres membres
   // ne doivent pas voir une action qui échouerait.
   const canPin = !!currentMember && ['owner', 'admin', 'moderator'].includes(currentMember.role)
+  // Sourdine posée par un administrateur : le composeur se ferme ici, le
+  // service refuse l'envoi de toute façon.
+  const isMuted = currentMember?.canPost === false
 
   const handleSend = useCallback(
     (content: string) => {
@@ -149,6 +152,9 @@ export const GroupView: React.FC = () => {
       setReplyTo(undefined)
       followOwnSendRef.current = true
       groupService.sendGroupMessage(activeGroup.id, channelId, content, undefined, undefined, quoted?.id)
+        .catch((err) => {
+          console.warn('[GroupView] sendGroupMessage failed:', err)
+        })
     },
     [identity, channelId, activeGroup, replyTo]
   )
@@ -599,7 +605,10 @@ export const GroupView: React.FC = () => {
           onCancelEdit={() => setEditingMessage(undefined)}
           onFiles={handleFiles}
           onCancelReply={() => setReplyTo(undefined)}
-          placeholder={t('groups.messageChannel', { channelName: activeChannel?.name ?? t('groups.general') })}
+          disabled={isMuted}
+          placeholder={isMuted
+            ? t('groups.mutedInGroup')
+            : t('groups.messageChannel', { channelName: activeChannel?.name ?? t('groups.general') })}
         />
       </div>
 

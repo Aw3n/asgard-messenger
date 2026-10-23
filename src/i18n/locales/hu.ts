@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Az előzmények nem tölthetők be",
       "chat.pinnedMessages": "Kitűzött üzenetek",
       "search.moreResults": "További eredmények nem jelennek meg — pontosítsa a keresést.",
+      "groups.muteMember": "Tag némítása",
+      "groups.unmuteMember": "Tag némításának feloldása",
+      "groups.memberMuted": "Tag lenémítva",
+      "groups.memberUnmuted": "Tag némítása feloldva",
+      "groups.muteFailed": "A tag némítását nem sikerült módosítani",
+      "groups.mutedInGroup": "Ebben a csoportban le vagy némítva",
     }
 }

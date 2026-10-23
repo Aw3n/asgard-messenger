@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Istorijos nepavyko įkelti",
       "chat.pinnedMessages": "Prisegtos žinutės",
       "search.moreResults": "Daugiau rezultatų nerodoma — patikslinkite paiešką.",
+      "groups.muteMember": "Nutildyti narą",
+      "groups.unmuteMember": "Atšaukti nario nutildymą",
+      "groups.memberMuted": "Narys nutildytas",
+      "groups.memberUnmuted": "Nario nutildymas atšauktas",
+      "groups.muteFailed": "Nario nutildymo pakeisti nepavyko",
+      "groups.mutedInGroup": "Šioje grupėje esate nutildytas",
     }
 }

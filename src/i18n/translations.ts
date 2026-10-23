@@ -884,6 +884,12 @@ export const translations = {
       "chat.historyLoadFailed": "Impossible de charger l’historique",
       "chat.pinnedMessages": "Messages épinglés",
       "search.moreResults": "D’autres résultats ne sont pas affichés — affinez la recherche.",
+      "groups.muteMember": "Mettre le membre en sourdine",
+      "groups.unmuteMember": "Rétablir le membre",
+      "groups.memberMuted": "Membre mis en sourdine",
+      "groups.memberUnmuted": "Membre rétabli",
+      "groups.muteFailed": "Impossible de modifier la sourdine du membre",
+      "groups.mutedInGroup": "Vous êtes en sourdine dans ce groupe",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1771,6 +1777,12 @@ export const translations = {
       "chat.historyLoadFailed": "Geschiedenis kon niet worden geladen",
       "chat.pinnedMessages": "Vastgezette berichten",
       "search.moreResults": "Andere resultaten worden niet weergegeven — verfijn de zoekopdracht.",
+      "groups.muteMember": "Lid dempen",
+      "groups.unmuteMember": "Dempen van lid opheffen",
+      "groups.memberMuted": "Lid gedempt",
+      "groups.memberUnmuted": "Dempen van lid opgeheven",
+      "groups.muteFailed": "Dempen van lid wijzigen is mislukt",
+      "groups.mutedInGroup": "Je bent gedempt in deze groep",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2658,6 +2670,12 @@ export const translations = {
       "chat.historyLoadFailed": "Verlauf konnte nicht geladen werden",
       "chat.pinnedMessages": "Angeheftete Nachrichten",
       "search.moreResults": "Weitere Ergebnisse werden nicht angezeigt — verfeinern Sie die Suche.",
+      "groups.muteMember": "Mitglied stummschalten",
+      "groups.unmuteMember": "Stummschaltung des Mitglieds aufheben",
+      "groups.memberMuted": "Mitglied stummgeschaltet",
+      "groups.memberUnmuted": "Stummschaltung des Mitglieds aufgehoben",
+      "groups.muteFailed": "Stummschaltung des Mitglieds konnte nicht geändert werden",
+      "groups.mutedInGroup": "Sie sind in dieser Gruppe stummgeschaltet",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3545,6 +3563,12 @@ export const translations = {
       "chat.historyLoadFailed": "Impossibile caricare la cronologia",
       "chat.pinnedMessages": "Messaggi fissati",
       "search.moreResults": "Altri risultati non sono visualizzati — affina la ricerca.",
+      "groups.muteMember": "Silenzia membro",
+      "groups.unmuteMember": "Riattiva membro",
+      "groups.memberMuted": "Membro silenziato",
+      "groups.memberUnmuted": "Membro riattivato",
+      "groups.muteFailed": "Impossibile modificare il silenzio del membro",
+      "groups.mutedInGroup": "Sei stato silenziato in questo gruppo",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4432,6 +4456,12 @@ export const translations = {
       "chat.historyLoadFailed": "No se pudo cargar el historial",
       "chat.pinnedMessages": "Mensajes fijados",
       "search.moreResults": "Hay más resultados sin mostrar — refina la búsqueda.",
+      "groups.muteMember": "Silenciar miembro",
+      "groups.unmuteMember": "Reactivar miembro",
+      "groups.memberMuted": "Miembro silenciado",
+      "groups.memberUnmuted": "Miembro reactivado",
+      "groups.muteFailed": "No se pudo cambiar el silencio del miembro",
+      "groups.mutedInGroup": "Estás silenciado en este grupo",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5320,6 +5350,12 @@ export const translations = {
       "chat.historyLoadFailed": "Não foi possível carregar o histórico",
       "chat.pinnedMessages": "Mensagens fixadas",
       "search.moreResults": "Há mais resultados não exibidos — refine a pesquisa.",
+      "groups.muteMember": "Silenciar membro",
+      "groups.unmuteMember": "Reativar membro",
+      "groups.memberMuted": "Membro silenciado",
+      "groups.memberUnmuted": "Membro reativado",
+      "groups.muteFailed": "Não foi possível alterar o silêncio do membro",
+      "groups.mutedInGroup": "Está silenciado neste grupo",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6208,6 +6244,12 @@ export const translations = {
       "chat.historyLoadFailed": "Το ιστορικό δεν μπόρεσε να φορτωθεί",
       "chat.pinnedMessages": "Καρφιτσωμένα μηνύματα",
       "search.moreResults": "Δεν εμφανίζονται άλλα αποτελέσματα — βελτιώστε την αναζήτηση.",
+      "groups.muteMember": "Σίγαση μέλους",
+      "groups.unmuteMember": "Άρση σίγασης μέλους",
+      "groups.memberMuted": "Μέλος σε σίγαση",
+      "groups.memberUnmuted": "Η σίγαση του μέλους άρθηκε",
+      "groups.muteFailed": "Η αλλαγή σίγασης του μέλους απέτυχε",
+      "groups.mutedInGroup": "Είστε σε σίγαση σε αυτή την ομάδα",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7096,6 +7138,12 @@ export const translations = {
       "chat.historyLoadFailed": "Historikken kunne ikke indlæses",
       "chat.pinnedMessages": "Fastgjorte beskeder",
       "search.moreResults": "Flere resultater vises ikke — præciser søgningen.",
+      "groups.muteMember": "Gør medlem stum",
+      "groups.unmuteMember": "Ophæv stumhed for medlem",
+      "groups.memberMuted": "Medlem gjort stum",
+      "groups.memberUnmuted": "Medlem kan skrive igen",
+      "groups.muteFailed": "Ændring af stumhed for medlem mislykkedes",
+      "groups.mutedInGroup": "Du er gjort stum i denne gruppe",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7984,6 +8032,12 @@ export const translations = {
       "chat.historyLoadFailed": "Historiaa ei voitu ladata",
       "chat.pinnedMessages": "Kiinnitetyt viestit",
       "search.moreResults": "Lisää tuloksia ei näytetä — tarkenna hakua.",
+      "groups.muteMember": "Mykistä jäsen",
+      "groups.unmuteMember": "Poista jäsenen mykistys",
+      "groups.memberMuted": "Jäsen mykistetty",
+      "groups.memberUnmuted": "Jäsenen mykistys poistettu",
+      "groups.muteFailed": "Jäsenen mykistystä ei voitu muuttaa",
+      "groups.mutedInGroup": "Sinut on mykistetty tässä ryhmässä",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8872,6 +8926,12 @@ export const translations = {
       "chat.historyLoadFailed": "Historiken kunde inte laddas",
       "chat.pinnedMessages": "Nålade meddelanden",
       "search.moreResults": "Fler resultat visas inte — förfina sökningen.",
+      "groups.muteMember": "Tysta medlem",
+      "groups.unmuteMember": "Aktivera medlem igen",
+      "groups.memberMuted": "Medlem tystad",
+      "groups.memberUnmuted": "Medlem aktiverad igen",
+      "groups.muteFailed": "Det gick inte att ändra tystnad för medlem",
+      "groups.mutedInGroup": "Du är tystad i den här gruppen",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9760,6 +9820,12 @@ export const translations = {
       "chat.historyLoadFailed": "Povijest se nije mogla učitati",
       "chat.pinnedMessages": "Zakačene poruke",
       "search.moreResults": "Još rezultata nije prikazano — pojasnite pretragu.",
+      "groups.muteMember": "Utišaj člana",
+      "groups.unmuteMember": "Ukini utišavanje člana",
+      "groups.memberMuted": "Član utišan",
+      "groups.memberUnmuted": "Utišavanje člana poništeno",
+      "groups.muteFailed": "Utišavanje člana nije bilo moguće promijeniti",
+      "groups.mutedInGroup": "Utišani ste u ovoj grupi",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10648,6 +10714,12 @@ export const translations = {
       "chat.historyLoadFailed": "Ajalugu ei saanud laadida",
       "chat.pinnedMessages": "Kinnitatud sõnumid",
       "search.moreResults": "Rohkem tulemusi ei kuvata — täpsusta otsingut.",
+      "groups.muteMember": "Summuta liige",
+      "groups.unmuteMember": "Lõpeta liikme summutamine",
+      "groups.memberMuted": "Liige on summutatud",
+      "groups.memberUnmuted": "Liikme summutamine lõpetatud",
+      "groups.muteFailed": "Liikme summutamist ei õnnestunud muuta",
+      "groups.mutedInGroup": "Sind on selles rühmas summutatud",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11536,6 +11608,12 @@ export const translations = {
       "chat.historyLoadFailed": "Az előzmények nem tölthetők be",
       "chat.pinnedMessages": "Kitűzött üzenetek",
       "search.moreResults": "További eredmények nem jelennek meg — pontosítsa a keresést.",
+      "groups.muteMember": "Tag némítása",
+      "groups.unmuteMember": "Tag némításának feloldása",
+      "groups.memberMuted": "Tag lenémítva",
+      "groups.memberUnmuted": "Tag némítása feloldva",
+      "groups.muteFailed": "A tag némítását nem sikerült módosítani",
+      "groups.mutedInGroup": "Ebben a csoportban le vagy némítva",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12424,6 +12502,12 @@ export const translations = {
       "chat.historyLoadFailed": "Vēsturi nevarēja ielādēt",
       "chat.pinnedMessages": "Piesprausti ziņojumi",
       "search.moreResults": "Vairāk rezultātu netiek rādīti — precizējiet meklēšanu.",
+      "groups.muteMember": "Apklusināt dalībnieku",
+      "groups.unmuteMember": "Atcelt dalībnieka apklusināšanu",
+      "groups.memberMuted": "Dalībnieks apklusināts",
+      "groups.memberUnmuted": "Dalībnieka apklusināšana atcelta",
+      "groups.muteFailed": "Dalībnieka apklusinājumu nevarēja mainīt",
+      "groups.mutedInGroup": "Jūs esat apklusināts šajā grupā",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13312,6 +13396,12 @@ export const translations = {
       "chat.historyLoadFailed": "Istorijos nepavyko įkelti",
       "chat.pinnedMessages": "Prisegtos žinutės",
       "search.moreResults": "Daugiau rezultatų nerodoma — patikslinkite paiešką.",
+      "groups.muteMember": "Nutildyti narą",
+      "groups.unmuteMember": "Atšaukti nario nutildymą",
+      "groups.memberMuted": "Narys nutildytas",
+      "groups.memberUnmuted": "Nario nutildymas atšauktas",
+      "groups.muteFailed": "Nario nutildymo pakeisti nepavyko",
+      "groups.mutedInGroup": "Šioje grupėje esate nutildytas",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14200,6 +14290,12 @@ export const translations = {
       "chat.historyLoadFailed": "L-istorja ma setgħetx titgħabba",
       "chat.pinnedMessages": "Messaġġi mwaqqa'",
       "search.moreResults": "Aktar riżultati ma jurux — irfina t-tiftix.",
+      "groups.muteMember": "Ġibed il-membru",
+      "groups.unmuteMember": "Neħħi l-ġibed mill-membru",
+      "groups.memberMuted": "Il-membru inġibed",
+      "groups.memberUnmuted": "In-neħħiet il-ġibed mill-membru",
+      "groups.muteFailed": "Ma setg'etx tinbidel il-ġibed tal-membru",
+      "groups.mutedInGroup": "Int ġibed f’din il-gruppa",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -15088,6 +15184,12 @@ export const translations = {
       "chat.historyLoadFailed": "Nie udało się załadować historii",
       "chat.pinnedMessages": "Przypięte wiadomości",
       "search.moreResults": "Inne wyniki nie są wyświetlane — zawęź wyszukiwanie.",
+      "groups.muteMember": "Wycisz członka",
+      "groups.unmuteMember": "Wyłącz wyciszenie członka",
+      "groups.memberMuted": "Członek wyciszony",
+      "groups.memberUnmuted": "Wyciszenie członka wyłączone",
+      "groups.muteFailed": "Nie udało się zmienić wyciszenia członka",
+      "groups.mutedInGroup": "Jesteś wyciszony w tej grupie",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15976,6 +16078,12 @@ export const translations = {
       "chat.historyLoadFailed": "Históriu sa nepodarilo načítať",
       "chat.pinnedMessages": "Pripnuté správy",
       "search.moreResults": "Ďalšie výsledky sa nezobrazujú — spresnite vyhľadávanie.",
+      "groups.muteMember": "Stlmiť člena",
+      "groups.unmuteMember": "Zrušiť stlmenie člena",
+      "groups.memberMuted": "Člen stlmený",
+      "groups.memberUnmuted": "Stlmenie člena zrušené",
+      "groups.muteFailed": "Zmenu stlmenia člena sa nepodarilo",
+      "groups.mutedInGroup": "V tejto skupine ste stlmený",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16864,6 +16972,12 @@ export const translations = {
       "chat.historyLoadFailed": "Zgodovine ni bilo mogoče naložiti",
       "chat.pinnedMessages": "Pripeta sporočila",
       "search.moreResults": "Več rezultatov ni prikazanih — zožite iskanje.",
+      "groups.muteMember": "Utišaj člana",
+      "groups.unmuteMember": "Odstrani utišanje člana",
+      "groups.memberMuted": "Član utišan",
+      "groups.memberUnmuted": "Utišanje člana odstranjeno",
+      "groups.muteFailed": "Spremembe utišanja člana ni bilo mogoče izvesti",
+      "groups.mutedInGroup": "V tej skupini ste utišani",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17752,6 +17866,12 @@ export const translations = {
       "chat.historyLoadFailed": "Historici se nepodařilo načíst",
       "chat.pinnedMessages": "Připnuté zprávy",
       "search.moreResults": "Další výsledky nejsou zobrazeny — upřesněte hledání.",
+      "groups.muteMember": "Ztlumit člena",
+      "groups.unmuteMember": "Zrušit ztlumení člena",
+      "groups.memberMuted": "Člen ztlumen",
+      "groups.memberUnmuted": "Ztlumení člena zrušeno",
+      "groups.muteFailed": "Změnu ztlumení člena se nepodařilo provést",
+      "groups.mutedInGroup": "V této skupině jste ztlumeni",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18640,6 +18760,12 @@ export const translations = {
       "chat.historyLoadFailed": "Историята не можа да се зареди",
       "chat.pinnedMessages": "Закачени съобщения",
       "search.moreResults": "Други резултати не се показват — стеснете търсенето.",
+      "groups.muteMember": "Заглуши член",
+      "groups.unmuteMember": "Махни заглушаването на член",
+      "groups.memberMuted": "Членът е заглушен",
+      "groups.memberUnmuted": "Заглушаването на члена е премахнато",
+      "groups.muteFailed": "Промяната на заглушаването на члена не успя",
+      "groups.mutedInGroup": "Вие сте заглушени в тази група",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19528,6 +19654,12 @@ export const translations = {
       "chat.historyLoadFailed": "Níorbh fhéidir an stair a lódáil",
       "chat.pinnedMessages": "Teachtaireachtaí pionnáilte",
       "search.moreResults": "Níl torthaí eile á dtaispeáint — déan cuardach níos cruinne.",
+      "groups.muteMember": "Balbhaigh ball",
+      "groups.unmuteMember": "Bain balbhacht den bhall",
+      "groups.memberMuted": "Tá an ball balbhaithe",
+      "groups.memberUnmuted": "Baineadh balbhacht den bhall",
+      "groups.muteFailed": "Theip ar athrú balbhachta an bhalla",
+      "groups.mutedInGroup": "Tá tú balbhaithe sa ngrúpa seo",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20416,6 +20548,12 @@ export const translations = {
       "chat.historyLoadFailed": "Istoricul nu a putut fi încărcat",
       "chat.pinnedMessages": "Mesaje fixate",
       "search.moreResults": "Alte rezultate nu sunt afișate — rafinați căutarea.",
+      "groups.muteMember": "Pune membrul în tăcere",
+      "groups.unmuteMember": "Scoate membrul din tăcere",
+      "groups.memberMuted": "Membrul este în tăcere",
+      "groups.memberUnmuted": "Membrul a ieșit din tăcere",
+      "groups.muteFailed": "Nu s-a putut modifica starea de tăcere a membrului",
+      "groups.mutedInGroup": "Sunteți în tăcere în acest grup",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21313,6 +21451,12 @@ export const translations = {
       "chat.historyLoadFailed": "History could not be loaded",
       "chat.pinnedMessages": "Pinned messages",
       "search.moreResults": "Other results are not shown — refine your search.",
+      "groups.muteMember": "Mute member",
+      "groups.unmuteMember": "Unmute member",
+      "groups.memberMuted": "Member muted",
+      "groups.memberUnmuted": "Member unmuted",
+      "groups.muteFailed": "Couldn’t change the member’s mute",
+      "groups.mutedInGroup": "You are muted in this group",
     }
   },
 
@@ -22202,6 +22346,12 @@ export const translations = {
       "chat.historyLoadFailed": "Історію не вдалося завантажити",
       "chat.pinnedMessages": "Закріплені повідомлення",
       "search.moreResults": "Інші результати не показані — уточніть пошук.",
+      "groups.muteMember": "Заглушити учасника",
+      "groups.unmuteMember": "Зняти заглушення з учасника",
+      "groups.memberMuted": "Учасника заглушено",
+      "groups.memberUnmuted": "З учасника знято заглушення",
+      "groups.muteFailed": "Не вдалося змінити заглушення учасника",
+      "groups.mutedInGroup": "Ви заглушені в цій групі",
     }
   },
 }

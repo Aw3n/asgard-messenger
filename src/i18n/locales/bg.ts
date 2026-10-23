@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Историята не можа да се зареди",
       "chat.pinnedMessages": "Закачени съобщения",
       "search.moreResults": "Други резултати не се показват — стеснете търсенето.",
+      "groups.muteMember": "Заглуши член",
+      "groups.unmuteMember": "Махни заглушаването на член",
+      "groups.memberMuted": "Членът е заглушен",
+      "groups.memberUnmuted": "Заглушаването на члена е премахнато",
+      "groups.muteFailed": "Промяната на заглушаването на члена не успя",
+      "groups.mutedInGroup": "Вие сте заглушени в тази група",
     }
 }

@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Το ιστορικό δεν μπόρεσε να φορτωθεί",
       "chat.pinnedMessages": "Καρφιτσωμένα μηνύματα",
       "search.moreResults": "Δεν εμφανίζονται άλλα αποτελέσματα — βελτιώστε την αναζήτηση.",
+      "groups.muteMember": "Σίγαση μέλους",
+      "groups.unmuteMember": "Άρση σίγασης μέλους",
+      "groups.memberMuted": "Μέλος σε σίγαση",
+      "groups.memberUnmuted": "Η σίγαση του μέλους άρθηκε",
+      "groups.muteFailed": "Η αλλαγή σίγασης του μέλους απέτυχε",
+      "groups.mutedInGroup": "Είστε σε σίγαση σε αυτή την ομάδα",
     }
 }

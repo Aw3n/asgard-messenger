@@ -885,5 +885,11 @@ export default {
       "chat.historyLoadFailed": "Verlauf konnte nicht geladen werden",
       "chat.pinnedMessages": "Angeheftete Nachrichten",
       "search.moreResults": "Weitere Ergebnisse werden nicht angezeigt — verfeinern Sie die Suche.",
+      "groups.muteMember": "Mitglied stummschalten",
+      "groups.unmuteMember": "Stummschaltung des Mitglieds aufheben",
+      "groups.memberMuted": "Mitglied stummgeschaltet",
+      "groups.memberUnmuted": "Stummschaltung des Mitglieds aufgehoben",
+      "groups.muteFailed": "Stummschaltung des Mitglieds konnte nicht geändert werden",
+      "groups.mutedInGroup": "Sie sind in dieser Gruppe stummgeschaltet",
     }
 }

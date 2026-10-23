@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Níorbh fhéidir an stair a lódáil",
       "chat.pinnedMessages": "Teachtaireachtaí pionnáilte",
       "search.moreResults": "Níl torthaí eile á dtaispeáint — déan cuardach níos cruinne.",
+      "groups.muteMember": "Balbhaigh ball",
+      "groups.unmuteMember": "Bain balbhacht den bhall",
+      "groups.memberMuted": "Tá an ball balbhaithe",
+      "groups.memberUnmuted": "Baineadh balbhacht den bhall",
+      "groups.muteFailed": "Theip ar athrú balbhachta an bhalla",
+      "groups.mutedInGroup": "Tá tú balbhaithe sa ngrúpa seo",
     }
 }

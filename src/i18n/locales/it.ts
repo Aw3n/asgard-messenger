@@ -885,5 +885,11 @@ export default {
       "chat.historyLoadFailed": "Impossibile caricare la cronologia",
       "chat.pinnedMessages": "Messaggi fissati",
       "search.moreResults": "Altri risultati non sono visualizzati — affina la ricerca.",
+      "groups.muteMember": "Silenzia membro",
+      "groups.unmuteMember": "Riattiva membro",
+      "groups.memberMuted": "Membro silenziato",
+      "groups.memberUnmuted": "Membro riattivato",
+      "groups.muteFailed": "Impossibile modificare il silenzio del membro",
+      "groups.mutedInGroup": "Sei stato silenziato in questo gruppo",
     }
 }

@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Não foi possível carregar o histórico",
       "chat.pinnedMessages": "Mensagens fixadas",
       "search.moreResults": "Há mais resultados não exibidos — refine a pesquisa.",
+      "groups.muteMember": "Silenciar membro",
+      "groups.unmuteMember": "Reativar membro",
+      "groups.memberMuted": "Membro silenciado",
+      "groups.memberUnmuted": "Membro reativado",
+      "groups.muteFailed": "Não foi possível alterar o silêncio do membro",
+      "groups.mutedInGroup": "Está silenciado neste grupo",
     }
 }

@@ -701,6 +701,12 @@ class GroupService {
       throw new Error('Insufficient permissions')
     }
 
+    // Comme l'exclusion, la sourdine épargne le propriétaire : il ne peut pas
+    // être réduit au silence par un admin.
+    if (store.getGroup(groupId)?.ownerId === targetPublicKey) {
+      throw new Error('Cannot mute the group owner')
+    }
+
     store.muteMember(groupId, targetPublicKey, identity.keyPair.publicKey)
 
     const memberKeys = this.getGroupMemberKeys(groupId)
@@ -752,6 +758,13 @@ class GroupService {
 
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group) return
+
+    // Sourdine : un `canPost` false sur sa propre ligne du roster vient d'un
+    // administrateur et a été diffusé au groupe entier. Sans ce garde, le
+    // musellement restait une icône et le membre continuait de publier.
+    if (group.members.some((m) => m.publicKey === identity.keyPair.publicKey && m.canPost === false)) {
+      throw new Error('Muted in this group')
+    }
 
     // Copie locale de la citation : le destinataire la résoudra par
     // identifiant, mais l'auteur doit voir l'aperçu immédiatement.
@@ -940,6 +953,11 @@ class GroupService {
 
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group) return
+
+    // Même garde que l'envoi de texte : une pièce jointe est une publication.
+    if (group.members.some((m) => m.publicKey === identity.keyPair.publicKey && m.canPost === false)) {
+      throw new Error('Muted in this group')
+    }
 
     // Get member public keys (excluding self)
     const memberKeys = this.getGroupMemberKeys(groupId)
@@ -1717,6 +1735,10 @@ class GroupService {
         if (!isAdmin) return
         const target = boundedKey(payload.targetPublicKey)
         if (!target) return
+        // Le fondateur ne peut être réduit au silence par personne : la sourdine
+        // arrêtant désormais la publication chez tout le groupe, un admin vérolé
+        // aurait sinon fermé la bouche du propriétaire pour de bon.
+        if (group.ownerId === target) return
         store.muteMember(groupId, target, sender)
         break
       }
@@ -1804,8 +1826,12 @@ class GroupService {
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group) return
 
-    const isMember = group.members.some((m) => m.publicKey === msg.from)
-    if (!isMember) return
+    const sender = group.members.find((m) => m.publicKey === msg.from)
+    if (!sender) return
+    // Un membre mis en sourdine par un administrateur ne publie plus : son
+    // propre client refuse déjà l'envoi, mais un client modifié passerait —
+    // ici le message est écarté chez tout le reste du groupe.
+    if (sender.canPost === false) return
 
     // LEGACY INVITES: a joiner used to invent its own « general » channel id.
     // Its first group message then referenced a channel missing from this

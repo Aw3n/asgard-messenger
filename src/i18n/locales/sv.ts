@@ -886,5 +886,11 @@ export default {
       "chat.historyLoadFailed": "Historiken kunde inte laddas",
       "chat.pinnedMessages": "Nålade meddelanden",
       "search.moreResults": "Fler resultat visas inte — förfina sökningen.",
+      "groups.muteMember": "Tysta medlem",
+      "groups.unmuteMember": "Aktivera medlem igen",
+      "groups.memberMuted": "Medlem tystad",
+      "groups.memberUnmuted": "Medlem aktiverad igen",
+      "groups.muteFailed": "Det gick inte att ändra tystnad för medlem",
+      "groups.mutedInGroup": "Du är tystad i den här gruppen",
     }
 }

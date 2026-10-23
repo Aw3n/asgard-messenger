@@ -316,6 +316,20 @@ describe('transferts de groupe', () => {
     expect(messages()).toEqual([])
   })
 
+  it('écarte la pièce jointe d’un membre mis en sourdine', async () => {
+    useGroupStore.getState().muteMember(groupId, B, A)
+
+    await incoming(B, 'transfer-4005', {
+      binary: true,
+      totalChunks: 1,
+      conversationId: channelId,
+      groupTransferId,
+    }, { size: CHUNK })
+
+    expect(service.receiveBuffers.size).toBe(0)
+    expect(messages()).toEqual([])
+  })
+
   it('accepte un membre et rattache le fichier au canal, puis accuse avec le vrai groupId', async () => {
     await incoming(B, 'transfer-4003', {
       binary: true,
