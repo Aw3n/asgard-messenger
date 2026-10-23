@@ -39,12 +39,12 @@ class IntersectionObserverStub {
 vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
 
 function renderModal(onClose = vi.fn()) {
-  render(
+  const view = render(
     <MemoryRouter>
       <SearchModal isOpen onClose={onClose} />
     </MemoryRouter>
   )
-  return { input: screen.getByRole('combobox'), onClose }
+  return { input: screen.getByRole('combobox'), onClose, view }
 }
 
 afterEach(() => {
@@ -90,5 +90,39 @@ describe('recherche globale au clavier', () => {
 
     fireEvent.change(input, { target: { value: 'a' } })
     expect(input.getAttribute('aria-activedescendant')).toBeNull()
+  })
+
+  it('garde le focus dans la modale : Tab et ⇧Tab bouclent', () => {
+    const { input } = renderModal()
+    const options = screen.getAllByRole('option')
+    const last = options[options.length - 1]
+
+    last.focus()
+    fireEvent.keyDown(last, { key: 'Tab' })
+    expect(document.activeElement).toBe(input)
+
+    fireEvent.keyDown(input, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(last)
+  })
+
+  it('rend le focus à l’élément déclencheur à la fermeture', () => {
+    const trigger = document.createElement('button')
+    trigger.textContent = 'ouvrir'
+    document.body.appendChild(trigger)
+    trigger.focus()
+
+    const onClose = vi.fn()
+    const view = render(
+      <MemoryRouter>
+        <SearchModal isOpen onClose={onClose} />
+      </MemoryRouter>
+    )
+    view.rerender(
+      <MemoryRouter>
+        <SearchModal isOpen={false} onClose={onClose} />
+      </MemoryRouter>
+    )
+
+    expect(document.activeElement).toBe(trigger)
   })
 })

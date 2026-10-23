@@ -25,6 +25,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   // -1 = aucune ligne sélectionnée : ↑↓ la choisit, ↵ l'ouvre (cf. footer).
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  // Élément qui avait le focus à l'ouverture (souvent le champ de saisie du
+  // chat) : le rendre à la fermeture évite de renvoyer l'utilisateur au body.
+  const restoreFocusRef = useRef<HTMLElement | null>(null)
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { results, contactResults, messageResults, groupResults } = useSearch(query)
@@ -35,14 +39,45 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
     { id: 'groups', label: t('search.groups') },
   ]
 
-  // Focus input when opened
+  // Focus input when opened, restore it when closed
   useEffect(() => {
     if (isOpen) {
+      restoreFocusRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null
       setQuery('')
       setActiveTab('all')
-      setTimeout(() => inputRef.current?.focus(), 50)
+      const timer = setTimeout(() => inputRef.current?.focus(), 50)
+      return () => {
+        clearTimeout(timer)
+        const previous = restoreFocusRef.current
+        restoreFocusRef.current = null
+        if (previous?.isConnected) previous.focus()
+      }
     }
   }, [isOpen])
+
+  // Tab ne doit pas sortir d'une modale : le cycle revient au premier contrôle
+  // focusable (et ⇧Tab au dernier), sinon le focus part derrière le backdrop.
+  const trapTab = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return
+    const root = dialogRef.current
+    if (!root) return
+    const focusables = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    )
+    if (focusables.length === 0) return
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -132,6 +167,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
 
         {/* Modal */}
         <motion.div
+          ref={dialogRef}
+          onKeyDown={trapTab}
           initial={{ opacity: 0, scale: 0.95, y: -20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -20 }}
