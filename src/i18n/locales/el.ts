@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Σήμανση όλων ως αναγνωσμένων",
       "chat.scrollToLatest": "Μετάβαση στα πιο πρόσφατα μηνύματα",
       "chat.newMessages": "Νέα μηνύματα",
+      "search.searching": "Αναζήτηση στο ιστορικό…",
     }
 }

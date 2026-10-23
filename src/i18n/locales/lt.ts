@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Pažymėti viską kaip skaitytą",
       "chat.scrollToLatest": "Pereiti prie naujausių žinučių",
       "chat.newMessages": "Nauji pranešimai",
+      "search.searching": "Ieškoma istorijoje…",
     }
 }

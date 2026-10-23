@@ -53,6 +53,9 @@ export function useSearch(query: string) {
   // dans les résultats, pas seulement au prochain changement de requête.
   const messagesByConversation = useMessageStore((s) => s.messages)
   const [storageMessages, setStorageMessages] = useState<StoredMatch[]>([])
+  // La recherche Hyperbee est un IPC par conversation : pendant ce temps la
+  // modale ne doit pas annoncer « aucun résultat » comme si elle avait fini.
+  const [isSearching, setIsSearching] = useState(false)
 
   // Identité stable des conversations : évite de relancer la recherche à
   // chaque mise à jour d'aperçu ou de compteur non lu. Les canaux de groupe
@@ -66,6 +69,7 @@ export function useSearch(query: string) {
     const q = query.toLowerCase().trim()
     if (!q || !window.asgard?.storage?.searchMessages) {
       setStorageMessages([])
+      setIsSearching(false)
       return
     }
 
@@ -82,9 +86,11 @@ export function useSearch(query: string) {
     }
     if (targets.length === 0) {
       setStorageMessages([])
+      setIsSearching(false)
       return
     }
     let cancelled = false
+    setIsSearching(true)
 
     const timer = setTimeout(() => {
       const searchPromises = targets.map(async (target) => {
@@ -115,6 +121,7 @@ export function useSearch(query: string) {
           }
         }
         setStorageMessages(Array.from(byKey.values()))
+        setIsSearching(false)
       })
     }, STORAGE_SEARCH_DEBOUNCE_MS)
 
@@ -221,5 +228,5 @@ export function useSearch(query: string) {
   const messageResults = useMemo(() => results.filter((r) => r.type === 'message'), [results])
   const groupResults = useMemo(() => results.filter((r) => r.type === 'group'), [results])
 
-  return { results, contactResults, messageResults, groupResults }
+  return { results, contactResults, messageResults, groupResults, isSearching }
 }

@@ -874,6 +874,7 @@ export const translations = {
       "chat.markAllAsRead": "Tout marquer comme lu",
       "chat.scrollToLatest": "Revenir aux messages les plus récents",
       "chat.newMessages": "Nouveaux messages",
+      "search.searching": "Recherche dans l’historique…",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1751,6 +1752,7 @@ export const translations = {
       "chat.markAllAsRead": "Alles als gelezen markeren",
       "chat.scrollToLatest": "Terug naar de nieuwste berichten",
       "chat.newMessages": "Nieuwe berichten",
+      "search.searching": "Geschiedenis doorzoeken…",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2628,6 +2630,7 @@ export const translations = {
       "chat.markAllAsRead": "Alle als gelesen markieren",
       "chat.scrollToLatest": "Zu den neuesten Nachrichten springen",
       "chat.newMessages": "Neue Nachrichten",
+      "search.searching": "Verlauf wird durchsucht…",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3505,6 +3508,7 @@ export const translations = {
       "chat.markAllAsRead": "Segna tutto come letto",
       "chat.scrollToLatest": "Vai ai messaggi più recenti",
       "chat.newMessages": "Nuovi messaggi",
+      "search.searching": "Ricerca nella cronologia…",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4382,6 +4386,7 @@ export const translations = {
       "chat.markAllAsRead": "Marcar todo como leído",
       "chat.scrollToLatest": "Ir a los mensajes más recientes",
       "chat.newMessages": "Mensajes nuevos",
+      "search.searching": "Buscando en el historial…",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5260,6 +5265,7 @@ export const translations = {
       "chat.markAllAsRead": "Marcar tudo como lido",
       "chat.scrollToLatest": "Ir para as mensagens mais recentes",
       "chat.newMessages": "Mensagens novas",
+      "search.searching": "A procurar no histórico…",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6138,6 +6144,7 @@ export const translations = {
       "chat.markAllAsRead": "Σήμανση όλων ως αναγνωσμένων",
       "chat.scrollToLatest": "Μετάβαση στα πιο πρόσφατα μηνύματα",
       "chat.newMessages": "Νέα μηνύματα",
+      "search.searching": "Αναζήτηση στο ιστορικό…",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7016,6 +7023,7 @@ export const translations = {
       "chat.markAllAsRead": "Markér alle som læst",
       "chat.scrollToLatest": "Gå til de nyeste beskeder",
       "chat.newMessages": "Nye beskeder",
+      "search.searching": "Søger i historikken…",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7894,6 +7902,7 @@ export const translations = {
       "chat.markAllAsRead": "Merkitse kaikki luetuiksi",
       "chat.scrollToLatest": "Siirry uusimpiin viesteihin",
       "chat.newMessages": "Uudet viestit",
+      "search.searching": "Haetaan historiasta…",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8772,6 +8781,7 @@ export const translations = {
       "chat.markAllAsRead": "Markera alla som lästa",
       "chat.scrollToLatest": "Gå till de senaste meddelandena",
       "chat.newMessages": "Nya meddelanden",
+      "search.searching": "Söker i historiken…",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9650,6 +9660,7 @@ export const translations = {
       "chat.markAllAsRead": "Označi sve kao pročitano",
       "chat.scrollToLatest": "Idi na najnovije poruke",
       "chat.newMessages": "Nove poruke",
+      "search.searching": "Pretraživanje povijesti…",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10528,6 +10539,7 @@ export const translations = {
       "chat.markAllAsRead": "Märgi kõik loetuks",
       "chat.scrollToLatest": "Mine uusimate sõnumite juurde",
       "chat.newMessages": "Uued sõnumid",
+      "search.searching": "Ajaloo otsimine…",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11406,6 +11418,7 @@ export const translations = {
       "chat.markAllAsRead": "Összes megjelölése olvasottként",
       "chat.scrollToLatest": "Ugrás a legújabb üzenetekhez",
       "chat.newMessages": "Új üzenetek",
+      "search.searching": "Előzmények keresése…",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12284,6 +12297,7 @@ export const translations = {
       "chat.markAllAsRead": "Atzīmēt visu kā lasītu",
       "chat.scrollToLatest": "Pāriet uz jaunākajām ziņām",
       "chat.newMessages": "Jauni ziņojumi",
+      "search.searching": "Vēstures meklēšana…",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13162,6 +13176,7 @@ export const translations = {
       "chat.markAllAsRead": "Pažymėti viską kaip skaitytą",
       "chat.scrollToLatest": "Pereiti prie naujausių žinučių",
       "chat.newMessages": "Nauji pranešimai",
+      "search.searching": "Ieškoma istorijoje…",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14040,6 +14055,7 @@ export const translations = {
       "chat.markAllAsRead": "Immarka kollha bħala moqrija",
       "chat.scrollToLatest": "Mur għall-aktar messaġġi reċenti",
       "chat.newMessages": "Messaġġi ġodda",
+      "search.searching": "Qed tfittex fl-istorja…",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14918,6 +14934,7 @@ export const translations = {
       "chat.markAllAsRead": "Oznacz wszystko jako przeczytane",
       "chat.scrollToLatest": "Przejdź do najnowszych wiadomości",
       "chat.newMessages": "Nowe wiadomości",
+      "search.searching": "Wyszukiwanie w historii…",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15796,6 +15813,7 @@ export const translations = {
       "chat.markAllAsRead": "Označiť všetko ako prečítané",
       "chat.scrollToLatest": "Prejsť na najnovšie správy",
       "chat.newMessages": "Nové správy",
+      "search.searching": "Prehľadávanie histórie…",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16674,6 +16692,7 @@ export const translations = {
       "chat.markAllAsRead": "Označi vse kot prebrano",
       "chat.scrollToLatest": "Pojdi na najnovejša sporočila",
       "chat.newMessages": "Nova sporočila",
+      "search.searching": "Iskanje po zgodovini…",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17552,6 +17571,7 @@ export const translations = {
       "chat.markAllAsRead": "Označit vše jako přečtené",
       "chat.scrollToLatest": "Přejít na nejnovější zprávy",
       "chat.newMessages": "Nové zprávy",
+      "search.searching": "Prohledávání historie…",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18430,6 +18450,7 @@ export const translations = {
       "chat.markAllAsRead": "Маркирай всичко като прочетено",
       "chat.scrollToLatest": "Към най-новите съобщения",
       "chat.newMessages": "Нови съобщения",
+      "search.searching": "Търсене в историята…",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19308,6 +19329,7 @@ export const translations = {
       "chat.markAllAsRead": "Marcáil gach rud mar léite",
       "chat.scrollToLatest": "Téigh go dtí na teachtaireachtaí is déanaí",
       "chat.newMessages": "Teachtaireachtaí nua",
+      "search.searching": "Ag cuardach na staire…",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20186,6 +20208,7 @@ export const translations = {
       "chat.markAllAsRead": "Marchează totul ca citit",
       "chat.scrollToLatest": "Mergi la cele mai recente mesaje",
       "chat.newMessages": "Mesaje noi",
+      "search.searching": "Se caută în istoric…",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21073,6 +21096,7 @@ export const translations = {
       "chat.markAllAsRead": "Mark all as read",
       "chat.scrollToLatest": "Jump to latest messages",
       "chat.newMessages": "New messages",
+      "search.searching": "Searching history…",
     }
   },
 
@@ -21952,6 +21976,7 @@ export const translations = {
       "chat.markAllAsRead": "Позначити все як прочитане",
       "chat.scrollToLatest": "Перейти до найновіших повідомлень",
       "chat.newMessages": "Нові повідомлення",
+      "search.searching": "Пошук в історії…",
     }
   },
 }

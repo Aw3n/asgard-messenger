@@ -32,7 +32,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { results, contactResults, messageResults, groupResults } = useSearch(query)
+  const { results, contactResults, messageResults, groupResults, isSearching } = useSearch(query)
   const tabs: { id: SearchTab; label: string }[] = [
     { id: 'all', label: t('search.all') },
     { id: 'messages', label: t('search.messages') },
@@ -258,7 +258,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
               </div>
             )}
 
-            {query.trim() && filteredResults.length === 0 && (
+            {query.trim() && filteredResults.length === 0 && isSearching && (
+              <div className="flex flex-col items-center justify-center py-10 text-asgard-text-muted">
+                <span className="w-5 h-5 border-2 border-asgard-glacier border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm mt-3">{t('search.searching')}</p>
+              </div>
+            )}
+
+            {query.trim() && filteredResults.length === 0 && !isSearching && (
               <div className="flex flex-col items-center justify-center py-10 text-asgard-text-muted">
                 <p className="text-sm">{t('search.noResults')}</p>
                 <p className="text-xs mt-1">{t('search.tryDifferent')}</p>
@@ -290,8 +297,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                 {t('search.open')}
               </span>
             </div>
-            <span className="text-xxs text-asgard-text-muted">
-              {query.trim() ? t('search.resultsCount', { count: filteredResults.length }) : ''}
+            <span className="text-xxs text-asgard-text-muted" role="status">
+              {!query.trim()
+                ? ''
+                : isSearching
+                  ? t('search.searching')
+                  : t('search.resultsCount', { count: filteredResults.length })}
             </span>
           </div>
         </motion.div>

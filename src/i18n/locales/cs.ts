@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Označit vše jako přečtené",
       "chat.scrollToLatest": "Přejít na nejnovější zprávy",
       "chat.newMessages": "Nové zprávy",
+      "search.searching": "Prohledávání historie…",
     }
 }

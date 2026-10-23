@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Merkitse kaikki luetuiksi",
       "chat.scrollToLatest": "Siirry uusimpiin viesteihin",
       "chat.newMessages": "Uudet viestit",
+      "search.searching": "Haetaan historiasta…",
     }
 }

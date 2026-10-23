@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Markér alle som læst",
       "chat.scrollToLatest": "Gå til de nyeste beskeder",
       "chat.newMessages": "Nye beskeder",
+      "search.searching": "Søger i historikken…",
     }
 }

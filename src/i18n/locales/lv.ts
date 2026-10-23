@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Atzīmēt visu kā lasītu",
       "chat.scrollToLatest": "Pāriet uz jaunākajām ziņām",
       "chat.newMessages": "Jauni ziņojumi",
+      "search.searching": "Vēstures meklēšana…",
     }
 }

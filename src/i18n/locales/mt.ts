@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Immarka kollha bħala moqrija",
       "chat.scrollToLatest": "Mur għall-aktar messaġġi reċenti",
       "chat.newMessages": "Messaġġi ġodda",
+      "search.searching": "Qed tfittex fl-istorja…",
     }
 }

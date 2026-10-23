@@ -875,5 +875,6 @@ export default {
       "chat.markAllAsRead": "Alle als gelesen markieren",
       "chat.scrollToLatest": "Zu den neuesten Nachrichten springen",
       "chat.newMessages": "Neue Nachrichten",
+      "search.searching": "Verlauf wird durchsucht…",
     }
 }

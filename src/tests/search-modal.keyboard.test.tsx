@@ -24,6 +24,7 @@ vi.mock('@/hooks/useSearch', () => {
       contactResults: results,
       messageResults: [],
       groupResults: [],
+      isSearching: false,
     }),
   }
 })

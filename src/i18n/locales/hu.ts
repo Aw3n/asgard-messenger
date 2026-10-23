@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Összes megjelölése olvasottként",
       "chat.scrollToLatest": "Ugrás a legújabb üzenetekhez",
       "chat.newMessages": "Új üzenetek",
+      "search.searching": "Előzmények keresése…",
     }
 }

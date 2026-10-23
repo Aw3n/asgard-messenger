@@ -876,5 +876,6 @@ export default {
       "chat.markAllAsRead": "Маркирай всичко като прочетено",
       "chat.scrollToLatest": "Към най-новите съобщения",
       "chat.newMessages": "Нови съобщения",
+      "search.searching": "Търсене в историята…",
     }
 }

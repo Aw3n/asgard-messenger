@@ -121,6 +121,34 @@ describe('useSearch', () => {
     expect(result.current.messageResults).toHaveLength(0)
   })
 
+  it('signale la recherche profonde tant que les IPC ne sont pas revenus', async () => {
+    let resolveSearch: (value: Message[]) => void = () => {}
+    searchMessages.mockImplementation(
+      () => new Promise<Message[]>((resolve) => { resolveSearch = resolve })
+    )
+
+    const { result } = renderHook(() => useSearch('bonjour'))
+
+    expect(result.current.isSearching).toBe(true)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300)
+    })
+    expect(searchMessages).toHaveBeenCalledTimes(1)
+    expect(result.current.isSearching).toBe(true)
+
+    await act(async () => {
+      resolveSearch([])
+    })
+    expect(result.current.isSearching).toBe(false)
+  })
+
+  it('ne signale rien quand aucune recherche profonde n’est lancée', () => {
+    const { result } = renderHook(() => useSearch(''))
+
+    expect(result.current.isSearching).toBe(false)
+    expect(searchMessages).not.toHaveBeenCalled()
+  })
+
   it('affiche un message reçu après le montage sans changer la requête', () => {
     const { result } = renderHook(() => useSearch('bonjour'))
     expect(result.current.messageResults).toHaveLength(1)
