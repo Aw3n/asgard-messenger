@@ -31,6 +31,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     muteConversation,
     pinConversation,
     archiveConversation,
+    clearUnread,
+    incrementUnread,
   } = useConversationStore()
 
   const navigate = useNavigate()
@@ -208,6 +210,21 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
             className="fixed z-50 mica-card border border-asgard-border rounded-xl p-1 shadow-modal min-w-[180px]"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
+            <ContextMenuItem
+              label={t(contextMenu.conv.unreadCount > 0 ? 'chat.markAsRead' : 'chat.markAsUnread')}
+              icon={
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+              }
+              onClick={() => {
+                const conv = contextMenu.conv
+                if (conv.unreadCount > 0) clearUnread(conv.id)
+                else incrementUnread(conv.id)
+                setContextMenu(null)
+              }}
+            />
+            <div className="h-px bg-asgard-border my-0.5" />
             <ContextMenuItem
               label={t(contextMenu.conv.pinned ? 'chat.unpinConversation' : 'chat.pinConversation')}
               icon={

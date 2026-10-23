@@ -118,6 +118,25 @@ describe('liste des conversations', () => {
     expect(useConversationStore.getState().conversations[direct.id].muted).toBe(false)
   })
 
+  it('marque lu puis non lu depuis le menu contextuel', () => {
+    useConversationStore.setState({
+      conversations: { [direct.id]: { ...direct, unreadCount: 3 } },
+    })
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    fireEvent.click(screen.getByText('chat.markAsRead'))
+    expect(useConversationStore.getState().conversations[direct.id].unreadCount).toBe(0)
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+    fireEvent.click(screen.getByText('chat.markAsUnread'))
+    expect(useConversationStore.getState().conversations[direct.id].unreadCount).toBe(1)
+  })
+
   it('épingle puis désépingle depuis le menu contextuel', () => {
     render(
       <MemoryRouter>
