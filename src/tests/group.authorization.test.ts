@@ -34,6 +34,7 @@ type Handler =
   | 'handleGroupTyping'
   | 'handleGroupRead'
   | 'handleGroupPin'
+  | 'handleGroupReaction'
 
 const dispatch = (
   handler: Handler,
@@ -391,5 +392,85 @@ describe('indicateurs et épingles', () => {
     const after = group().channels.find((ch) => ch.id === channelId)!.pinnedMessageIds!
     expect(after).not.toContain('efface')
     expect(after).not.toContain('k'.repeat(200))
+  })
+})
+
+describe('réactions', () => {
+  const seedMessage = (id: string, conversationId = channelId) => {
+    useMessageStore.getState().addMessage({
+      id,
+      conversationId,
+      senderId: A,
+      type: 'text',
+      content: 'salut',
+      timestamp: 1,
+      status: 'sent',
+    } as Message)
+  }
+  const reactionsOf = (id: string, conversationId = channelId) =>
+    useMessageStore.getState().getMessage(id, conversationId)?.reactions ?? []
+
+  it('applique la réaction d’un membre et la persiste', () => {
+    seedMessage('m-react')
+
+    dispatch('handleGroupReaction', {
+      groupId, channelId, messageId: 'm-react', emoji: '👍', action: 'add',
+    }, C, 'group:reaction')
+
+    expect(reactionsOf('m-react')).toEqual([{ emoji: '👍', users: [C], count: 1 }])
+    expect(storageService.saveMessage).toHaveBeenCalled()
+  })
+
+  it('ignore une réaction d’un non-membre', () => {
+    seedMessage('m-react')
+
+    dispatch('handleGroupReaction', {
+      groupId, channelId, messageId: 'm-react', emoji: '👍', action: 'add',
+    }, D, 'group:reaction')
+
+    expect(reactionsOf('m-react')).toHaveLength(0)
+  })
+
+  it('n’atteint pas un message d’un autre canal', () => {
+    seedMessage('m-dm', 'dm-cross')
+
+    dispatch('handleGroupReaction', {
+      groupId, channelId, messageId: 'm-dm', emoji: '👍', action: 'add',
+    }, C, 'group:reaction')
+
+    expect(reactionsOf('m-dm', 'dm-cross')).toHaveLength(0)
+  })
+
+  it('borne l’emoji et refuse une action inconnue', () => {
+    seedMessage('m-react')
+
+    dispatch('handleGroupReaction', {
+      groupId, channelId, messageId: 'm-react', emoji: 'x'.repeat(17), action: 'add',
+    }, C, 'group:reaction')
+    dispatch('handleGroupReaction', {
+      groupId, channelId, messageId: 'm-react', emoji: '👍', action: 'toggle',
+    }, C, 'group:reaction')
+
+    expect(reactionsOf('m-react')).toHaveLength(0)
+  })
+
+  it('toggleGroupReaction ajoute puis retire, et diffuse chaque étape', async () => {
+    seedMessage('m-react')
+
+    await groupService.toggleGroupReaction(groupId, channelId, 'm-react', '🔥')
+    expect(reactionsOf('m-react')).toEqual([{ emoji: '🔥', users: [A], count: 1 }])
+    expect(p2pService.broadcastToPeers).toHaveBeenLastCalledWith(
+      expect.arrayContaining([B, C]),
+      'group:reaction',
+      expect.objectContaining({ groupId, channelId, messageId: 'm-react', emoji: '🔥', action: 'add' }),
+    )
+
+    await groupService.toggleGroupReaction(groupId, channelId, 'm-react', '🔥')
+    expect(reactionsOf('m-react')).toHaveLength(0)
+    expect(p2pService.broadcastToPeers).toHaveBeenLastCalledWith(
+      expect.any(Array),
+      'group:reaction',
+      expect.objectContaining({ emoji: '🔥', action: 'remove' }),
+    )
   })
 })

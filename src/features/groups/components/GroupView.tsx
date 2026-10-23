@@ -14,6 +14,7 @@ import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfer
 import { callService } from '@/services/CallService'
 import { groupService } from '@/services/GroupService'
 import { useTranslation } from 'react-i18next'
+import type { Message } from '@/types'
 
 /**
  * GroupView — main view for a selected group.
@@ -28,14 +29,16 @@ export const GroupView: React.FC = () => {
   const [showMembers, setShowMembers] = useState(true)
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
 
-  if (!activeGroup) {
-    return <GroupEmptyState />
-  }
-
   const channelId = activeChannel?.id ?? ''
   // CRITICAL: Select messages reactively from the store
   const messages = useMessageStore((s) => channelId ? (s.messages[channelId] ?? []) : [])
   const typingUsers = useNetworkStore((s) => s.getTypingUsers(channelId))
+  const currentMember = activeGroup?.members.find(
+    (member) => member.publicKey === identity?.keyPair.publicKey,
+  )
+  // Épingler est réservé aux mêmes rôles que côté service ; les autres membres
+  // ne doivent pas voir une action qui échouerait.
+  const canPin = !!currentMember && ['owner', 'admin', 'moderator'].includes(currentMember.role)
 
   const handleSend = useCallback(
     (content: string) => {
@@ -44,6 +47,29 @@ export const GroupView: React.FC = () => {
       groupService.sendGroupMessage(activeGroup.id, channelId, content)
     },
     [identity, channelId, activeGroup]
+  )
+
+  const handleReaction = useCallback(
+    (message: Message, emoji: string) => {
+      if (!activeGroup || !channelId) return
+      groupService.toggleGroupReaction(activeGroup.id, channelId, message.id, emoji).catch((err) => {
+        console.warn('[GroupView] toggleGroupReaction failed:', err)
+      })
+    },
+    [activeGroup, channelId]
+  )
+
+  const handlePin = useCallback(
+    (message: Message) => {
+      if (!activeGroup || !channelId) return
+      const operation = message.pinned
+        ? groupService.unpinMessage(activeGroup.id, channelId, message.id)
+        : groupService.pinMessage(activeGroup.id, channelId, message.id)
+      operation.catch((err) => {
+        console.warn('[GroupView] pin operation failed:', err)
+      })
+    },
+    [activeGroup, channelId]
   )
 
   // PERFORMANCE: Handle file sends to group using multicast
@@ -65,6 +91,12 @@ export const GroupView: React.FC = () => {
       groupService.announceGroupPresence(activeGroup.id)
     }
   }, [activeGroup?.id])
+
+  // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
+  // doit rendre le même nombre de hooks qu'avec, sinon React casse l'ordre.
+  if (!activeGroup) {
+    return <GroupEmptyState />
+  }
 
   return (
     <div className="flex h-full">
@@ -163,6 +195,8 @@ export const GroupView: React.FC = () => {
                   isOwn={message.senderId === identity?.keyPair.publicKey}
                   senderName={getMemberName(activeGroup, message.senderId)}
                   showSender
+                  onReaction={handleReaction}
+                  onPin={canPin ? handlePin : undefined}
                 />
               )}
               components={{

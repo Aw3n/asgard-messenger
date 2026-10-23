@@ -39,6 +39,8 @@ class GroupService {
   private static readonly MAX_CUSTOM_STATUS = 200
   private static readonly MAX_MENTIONS = 32
   private static readonly MAX_MENTION_PREVIEW = 300
+  /** Une réaction est un emoji, pas un texte : même borne que le 1:1. */
+  private static readonly MAX_REACTION_CHARS = 16
   /** Effectif maximal échangé dans un seul snapshot d'effectif. */
   private static readonly MAX_ROSTER_SYNC = 256
   private static readonly MESSAGE_TYPES = new Set(['text', 'mention', 'image', 'file'])
@@ -127,6 +129,11 @@ class GroupService {
     // Listen for group pin updates
     p2pService.on('message:group:pin', (msg: ProtocolMessage) => {
       this.handleGroupPin(msg)
+    })
+
+    // Listen for group message reactions
+    p2pService.on('message:group:reaction', (msg: ProtocolMessage) => {
+      this.handleGroupReaction(msg)
     })
 
     // Listen for group mention notifications
@@ -1035,6 +1042,45 @@ class GroupService {
   }
 
   /**
+   * Toggle an emoji reaction on a group message: optimistic local update,
+   * persisted, then broadcast to the group's members. Mirrors the 1:1 path so
+   * a reaction survives a restart and reaches every connected member.
+   */
+  async toggleGroupReaction(groupId: string, channelId: string, messageId: string, emoji: string): Promise<void> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return
+    if (typeof emoji !== 'string' || emoji.length === 0 || emoji.length > GroupService.MAX_REACTION_CHARS) return
+
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return
+    if (!group.channels.some((channel) => channel.id === channelId)) return
+
+    const store = useMessageStore.getState()
+    const message = store.getMessage(messageId, channelId)
+    if (!message || message.deleted) return
+
+    const hasReacted = message.reactions?.some(
+      (reaction) => reaction.emoji === emoji && reaction.users.includes(identity.keyPair.publicKey),
+    ) ?? false
+    if (hasReacted) {
+      store.removeReaction(messageId, channelId, emoji, identity.keyPair.publicKey)
+    } else {
+      store.addReaction(messageId, channelId, emoji, identity.keyPair.publicKey)
+    }
+    const updated = store.getMessage(messageId, channelId)
+    if (updated) storageService.saveMessage(channelId, updated).catch(console.error)
+
+    const memberKeys = this.getGroupMemberKeys(groupId)
+    await p2pService.broadcastToPeers(memberKeys, 'group:reaction', {
+      groupId,
+      channelId,
+      messageId,
+      emoji,
+      action: hasReacted ? 'remove' : 'add',
+    }).catch(console.error)
+  }
+
+  /**
    * Mark messages as read in a group channel and notify peers.
    */
   async markAsRead(groupId: string, channelId: string, messageIds: string[]): Promise<void> {
@@ -1893,6 +1939,45 @@ class GroupService {
     } else if (action === 'unpin') {
       store.unpinChannelMessage(groupId, channelId, messageId)
     }
+  }
+
+  /**
+   * Handle a reaction on a group message.
+   *
+   * A reaction is a self-declaration from a member, on a message that actually
+   * lives in one of that group's own channels: a guessed message id must not
+   * reach a 1:1 conversation or another group's channel.
+   */
+  private handleGroupReaction(msg: ProtocolMessage): void {
+    const payload = msg.payload as Record<string, unknown> | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const groupId = payload.groupId
+    const channelId = payload.channelId
+    const messageId = payload.messageId
+    const emoji = payload.emoji
+    const action = payload.action
+
+    if (typeof groupId !== 'string' || !groupId || groupId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof channelId !== 'string' || !channelId || channelId.length > GroupService.MAX_GROUP_FIELD) return
+    if (typeof messageId !== 'string' || !messageId || messageId.length > GroupService.MAX_MESSAGE_ID) return
+    if (typeof emoji !== 'string' || emoji.length === 0 || emoji.length > GroupService.MAX_REACTION_CHARS) return
+    if (action !== 'add' && action !== 'remove') return
+
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === msg.from)) return
+    if (!group.channels.some((channel) => channel.id === channelId)) return
+
+    const store = useMessageStore.getState()
+    const message = store.getMessage(messageId, channelId)
+    if (!message || message.deleted) return
+
+    if (action === 'add') {
+      store.addReaction(messageId, channelId, emoji, msg.from)
+    } else {
+      store.removeReaction(messageId, channelId, emoji, msg.from)
+    }
+    const updated = store.getMessage(messageId, channelId)
+    if (updated) storageService.saveMessage(channelId, updated).catch(console.error)
   }
 
   /**
