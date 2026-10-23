@@ -17,6 +17,8 @@ interface MessageBubbleProps {
   showSender?: boolean
   /** CHAT SETTINGS (collapseMessages): consecutive message from the same sender — compact layout */
   compact?: boolean
+  /** Résultat de recherche atteint : la bulle se repère quelques instants. */
+  highlighted?: boolean
   onReply?: (message: Message) => void
   onEdit?: (message: Message) => void
   /** Réessaie l'envoi d'un message passé en échec définitif. */
@@ -39,6 +41,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   senderName,
   showSender = false,
   compact = false,
+  highlighted = false,
   onReply,
   onEdit,
   onRetry,
@@ -134,7 +137,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         // CHAT SETTINGS (density + collapseMessages): vertical rhythm per row
         compact ? 'py-0 px-4' : chatSettings.density === 'compact' ? 'py-0.5 px-4' : chatSettings.density === 'cozy' ? 'py-1 px-4' : 'py-1.5 px-4',
         isOwn ? 'flex-row-reverse' : 'flex-row',
-        'items-end gap-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-asgard-glacier/40'
+        'items-end gap-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-asgard-glacier/40',
+        highlighted && 'bg-asgard-glacier/10 ring-1 ring-inset ring-asgard-glacier/50'
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}

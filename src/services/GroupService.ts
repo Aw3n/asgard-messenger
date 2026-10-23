@@ -1249,6 +1249,41 @@ class GroupService {
   }
 
   /**
+   * Charge les messages autour d'une date pour ouvrir un résultat de recherche
+   * profond dans son contexte. Mêmes contrôles d'appartenance que la pagination.
+   */
+  async loadChannelMessageContext(
+    groupId: string,
+    channelId: string,
+    timestamp: number,
+    limit = 50,
+  ): Promise<void> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return
+    if (!group.channels.some((channel) => channel.id === channelId)) return
+
+    try {
+      const [before, after] = await Promise.all([
+        storageService.getMessages(channelId, {
+          before: timestamp + 1,
+          limit,
+          reverse: true,
+        }),
+        storageService.getMessages(channelId, {
+          after: timestamp,
+          limit,
+        }),
+      ])
+      const merged = [...before, ...after]
+      if (merged.length > 0) useMessageStore.getState().addMessages(channelId, merged)
+    } catch (err) {
+      console.error('[GroupService] Failed to load channel message context:', err)
+    }
+  }
+
+  /**
    * Mark messages as read in a group channel and notify peers.
    */
   async markAsRead(groupId: string, channelId: string, messageIds: string[]): Promise<void> {

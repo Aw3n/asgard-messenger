@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 import { useGroupStore } from '@/stores/groupStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useMessageStore } from '@/stores/messageStore'
@@ -21,6 +22,8 @@ import { useTranslation } from 'react-i18next'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
 import { countIncomingAfter } from '@/utils/incomingAfter'
 import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
+import { parseMessageJump } from '@/utils/messageJump'
+import { useMessageJump } from '@/hooks/useMessageJump'
 import type { Message } from '@/types'
 
 const HISTORY_PAGE_SIZE = 50
@@ -55,6 +58,7 @@ export const GroupView: React.FC = () => {
   const lastSeenMessageIdRef = React.useRef<string | undefined>(undefined)
   const followOwnSendRef = React.useRef(false)
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
+  const location = useLocation()
 
   const channelId = activeChannel?.id ?? ''
   const activeGroupId = activeGroup?.id
@@ -255,11 +259,14 @@ export const GroupView: React.FC = () => {
   // qu'en 1:1, si bien qu'un redémarrage vidait les groupes) puis vaut lecture :
   // le compteur n'était incrémenté qu'en dehors du canal actif et rien ne le
   // remettait à zéro, donc sa pastille restait indéfiniment allumée.
+  const initialChannelLoadRef = React.useRef<Promise<unknown>>(Promise.resolve())
   useEffect(() => {
     if (!activeGroupId || !channelId || !groupViewVisible) return
     let cancelled = false
     const openChannel = async () => {
-      await groupService.loadChannelMessages(activeGroupId, channelId)
+      const load = groupService.loadChannelMessages(activeGroupId, channelId)
+      initialChannelLoadRef.current = load
+      await load
       if (cancelled) return
       const channel = useGroupStore.getState().getGroup(activeGroupId)?.channels.find((c) => c.id === channelId)
       if (!channel?.unreadCount) return
@@ -317,6 +324,40 @@ export const GroupView: React.FC = () => {
       loadingOlderRef.current = false
     }
   }, [activeGroupId, channelId, historyKey, paginationState.exhausted])
+
+  // Même saut que le fil 1:1 : un résultat de recherche profond doit ouvrir le
+  // canal sur son message, chargé depuis Hyperbee si nécessaire.
+  const jumpRequest = React.useMemo(
+    () => parseMessageJump(location.state, channelId || undefined),
+    [location.state, channelId]
+  )
+  const waitForInitialHistory = useCallback(() => initialChannelLoadRef.current, [])
+  const loadJumpContext = useCallback(async (timestamp: number) => {
+    if (!activeGroupId || !channelId) return
+    await groupService.loadChannelMessageContext(activeGroupId, channelId, timestamp)
+  }, [activeGroupId, channelId])
+  const handleJumpPrepended = useCallback((added: number) => {
+    setPagination((state) => {
+      const base = state.key === historyKey ? state.firstItemIndex : FIRST_ITEM_INDEX
+      return {
+        key: historyKey,
+        firstItemIndex: Math.max(0, base - added),
+        exhausted: state.key === historyKey ? state.exhausted : false,
+      }
+    })
+  }, [historyKey])
+  const handleJumpStart = useCallback(() => setAtBottom(false), [])
+  const highlightedMessageId = useMessageJump({
+    request: jumpRequest,
+    dataId: channelId || undefined,
+    messages,
+    firstItemIndex: paginationState.firstItemIndex,
+    virtuosoRef,
+    waitForInitialHistory,
+    loadContext: loadJumpContext,
+    onPrependedMessages: handleJumpPrepended,
+    onJumpStart: handleJumpStart,
+  })
 
   // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
   // doit rendre le même nombre de hooks qu'avec, sinon React casse l'ordre.
@@ -434,6 +475,7 @@ export const GroupView: React.FC = () => {
                     isOwn={message.senderId === identity?.keyPair.publicKey}
                     senderName={getMemberName(activeGroup, message.senderId)}
                     showSender
+                    highlighted={message.id === highlightedMessageId}
                     onReply={(msg) => {
                       setEditingMessage(undefined)
                       setReplyTo(msg)

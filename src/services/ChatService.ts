@@ -2845,6 +2845,30 @@ class ChatService {
   }
 
   /**
+   * Load the messages surrounding a date, to open a deep search result in
+   * context. The target itself is included with the page before it.
+   */
+  async loadMessageContext(conversationId: string, timestamp: number, limit = 50): Promise<void> {
+    try {
+      const [before, after] = await Promise.all([
+        storageService.getMessages(conversationId, {
+          before: timestamp + 1,
+          limit,
+          reverse: true,
+        }),
+        storageService.getMessages(conversationId, {
+          after: timestamp,
+          limit,
+        }),
+      ])
+      const merged = [...before, ...after]
+      if (merged.length > 0) useMessageStore.getState().addMessages(conversationId, merged)
+    } catch (err) {
+      console.error('[ChatService] Failed to load message context:', err)
+    }
+  }
+
+  /**
    * Search messages in a conversation by content.
    * OPTIMIZATION: Uses Hyperbee range scan with early termination in main process.
    */

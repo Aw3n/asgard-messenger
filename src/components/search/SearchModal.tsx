@@ -120,14 +120,21 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
       useGroupStore.getState().setActiveGroup(result.group.id)
       handleNavigate(`/groups/${result.group.id}`)
     } else if (result.type === 'message' && result.message) {
+      // La vue doit ouvrir CE message, pas le bas du fil : la cible voyage avec
+      // la navigation et sera chargée depuis Hyperbee si elle est trop ancienne.
+      const jump = {
+        messageId: result.message.id,
+        messageTimestamp: result.message.timestamp,
+        conversationId: result.channelId ?? result.message.conversationId,
+      }
       if (result.groupId && result.channelId) {
         // Sélectionner le canal avant la route : GroupView lit ces deux ids
         // du store pour afficher le bon fil.
         useGroupStore.getState().setActiveGroup(result.groupId)
         useGroupStore.getState().setActiveChannel(result.channelId)
-        handleNavigate(`/groups/${result.groupId}/channels/${result.channelId}`)
+        handleNavigate(`/groups/${result.groupId}/channels/${result.channelId}`, jump)
       } else {
-        handleNavigate(`/conversations/${result.message.conversationId}`)
+        handleNavigate(`/conversations/${result.message.conversationId}`, jump)
       }
     }
   }, [handleNavigate])

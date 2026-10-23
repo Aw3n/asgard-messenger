@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
@@ -27,6 +27,8 @@ import { presenceMeta, isLivePresence } from '@/utils/presence'
 import { watchWindowVisibility } from '@/utils/windowVisibility'
 import { countIncomingAfter } from '@/utils/incomingAfter'
 import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
+import { parseMessageJump } from '@/utils/messageJump'
+import { useMessageJump } from '@/hooks/useMessageJump'
 import { formatLastSeen } from '@/utils/time'
 import type { Message } from '@/types'
 
@@ -57,6 +59,7 @@ export const ChatView: React.FC = () => {
   const followOwnSendRef = useRef(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const navigate = useNavigate()
+  const location = useLocation()
 
   const identity = useIdentityStore((s) => s.identity)
   const getConversation = useConversationStore((s) => s.getConversation)
@@ -184,10 +187,45 @@ export const ChatView: React.FC = () => {
   }, [])
 
   // Load message history from Hyperbee storage when conversation opens
+  const initialHistoryLoadRef = useRef<Promise<unknown>>(Promise.resolve())
   useEffect(() => {
     if (!resolvedId) return
-    chatService.loadMessages(resolvedId).catch(console.error)
+    initialHistoryLoadRef.current = chatService.loadMessages(resolvedId).catch(console.error)
   }, [resolvedId])
+
+  // Un résultat de recherche profond peut viser un message plus ancien que la
+  // page de démarrage : charger son contexte, puis le centrer.
+  const jumpRequest = React.useMemo(
+    () => parseMessageJump(location.state, conversationId),
+    [location.state, conversationId]
+  )
+  const waitForInitialHistory = useCallback(() => initialHistoryLoadRef.current, [])
+  const loadJumpContext = useCallback(async (timestamp: number) => {
+    if (!resolvedId) return
+    await chatService.loadMessageContext(resolvedId, timestamp)
+  }, [resolvedId])
+  const handleJumpPrepended = useCallback((added: number) => {
+    setPagination((state) => {
+      const base = state.dataId === dataId ? state.firstItemIndex : FIRST_ITEM_INDEX
+      return {
+        dataId,
+        firstItemIndex: Math.max(0, base - added),
+        exhausted: state.dataId === dataId ? state.exhausted : false,
+      }
+    })
+  }, [dataId])
+  const handleJumpStart = useCallback(() => setAtBottom(false), [])
+  const highlightedMessageId = useMessageJump({
+    request: jumpRequest,
+    dataId,
+    messages,
+    firstItemIndex: paginationState.firstItemIndex,
+    virtuosoRef,
+    waitForInitialHistory,
+    loadContext: loadJumpContext,
+    onPrependedMessages: handleJumpPrepended,
+    onJumpStart: handleJumpStart,
+  })
 
   // PAGINATION: l'ouverture ne charge que les derniers messages ; remonter en
   // haut du fil doit aller chercher la suite au lieu de laisser un trou.
@@ -531,6 +569,7 @@ export const ChatView: React.FC = () => {
                   message={message}
                   isOwn={message.senderId === identity?.keyPair.publicKey}
                   senderName={contact?.displayName}
+                  highlighted={message.id === highlightedMessageId}
                   // CHAT SETTINGS (collapseMessages): group consecutive messages from
                   // the same sender within 5 minutes — only the last one shows its
                   // timestamp, the others render in compact mode.
