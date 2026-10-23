@@ -115,6 +115,9 @@ const ProfileSection: React.FC = () => {
   // Status from store (live, not local state)
   const currentStatus = identity?.profile.status ?? 'online'
   const [showQR, setShowQR] = useState(false)
+  const statusGroupId = React.useId()
+  const customStatusId = React.useId()
+  const aboutId = React.useId()
 
   const handleSave = async () => {
     await updateProfile({ 
@@ -194,12 +197,15 @@ const ProfileSection: React.FC = () => {
 
         {/* Status selector */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.status')}</label>
-          <div className="flex gap-2 flex-wrap">
+          {/* Un <label> détaché d'un champ ne nomme rien : le titre d'un groupe
+              de boutons se porte par aria-labelledby sur le groupe. */}
+          <p id={statusGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.status')}</p>
+          <div role="group" aria-labelledby={statusGroupId} className="flex gap-2 flex-wrap">
             {statusOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => handleStatusChange(opt.value)}
+                aria-pressed={currentStatus === opt.value}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition-colors ${
                   currentStatus === opt.value
                     ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -216,8 +222,9 @@ const ProfileSection: React.FC = () => {
 
         {/* Custom status message */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-1.5">{t('settings.customStatus')}</label>
+          <label htmlFor={customStatusId} className="text-sm font-medium text-asgard-text-secondary block mb-1.5">{t('settings.customStatus')}</label>
           <input
+            id={customStatusId}
             type="text"
             className="asgard-input w-full p-3 text-sm"
             value={customStatus}
@@ -236,8 +243,9 @@ const ProfileSection: React.FC = () => {
         />
 
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-1.5">{t('settings.about')}</label>
+          <label htmlFor={aboutId} className="text-sm font-medium text-asgard-text-secondary block mb-1.5">{t('settings.about')}</label>
           <textarea
+            id={aboutId}
             className="asgard-input w-full p-3 text-sm resize-none"
             value={about}
             onChange={(e) => setAbout(e.target.value)}
@@ -351,6 +359,8 @@ const FONT_SIZE_CHOICES = [
 const AppearanceSection: React.FC = () => {
   const { theme, setTheme, settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
+  const themeGroupId = React.useId()
+  const fontSizeGroupId = React.useId()
 
   return (
     <div>
@@ -358,12 +368,13 @@ const AppearanceSection: React.FC = () => {
       <div className="space-y-6">
         {/* Theme */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.theme')}</label>
-          <div className="flex gap-3">
+          <p id={themeGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.theme')}</p>
+          <div role="group" aria-labelledby={themeGroupId} className="flex gap-3">
             {THEME_CHOICES.map(({ id, labelKey }) => (
               <button
                 key={id}
                 onClick={() => setTheme(id)}
+                aria-pressed={theme === id}
                 className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${
                   theme === id
                     ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -381,12 +392,13 @@ const AppearanceSection: React.FC = () => {
 
         {/* Font size */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.fontSize')}</label>
-          <div className="flex gap-3">
+          <p id={fontSizeGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.fontSize')}</p>
+          <div role="group" aria-labelledby={fontSizeGroupId} className="flex gap-3">
             {FONT_SIZE_CHOICES.map(({ id, labelKey }) => (
               <button
                 key={id}
                 onClick={() => updateSettings({ fontSize: id })}
+                aria-pressed={settings.fontSize === id}
                 className={`flex-1 py-2 rounded-xl border text-sm transition-colors ${
                   settings.fontSize === id
                     ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -624,6 +636,7 @@ const ChatSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
   const chat = settings.chat
+  const densityGroupId = React.useId()
 
 return (
       <div>
@@ -674,14 +687,15 @@ return (
           />
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+            <p id={densityGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">
               {t('settings.messageDensity')}
-            </label>
-            <div className="flex gap-3">
+            </p>
+            <div role="group" aria-labelledby={densityGroupId} className="flex gap-3">
               {(['comfortable', 'compact', 'cozy'] as const).map((d) => (
                 <button
                   key={d}
                   onClick={() => updateSettings({ chat: { ...chat, density: d } })}
+                  aria-pressed={chat.density === d}
                   className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
                     chat.density === d
                       ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -704,6 +718,8 @@ const MediaSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
   const media = settings.media
+  const videoQualityGroupId = React.useId()
+  const audioQualityGroupId = React.useId()
 
 return (
       <div>
@@ -747,14 +763,15 @@ return (
           />
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+            <p id={videoQualityGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">
               {t('settings.defaultVideoQuality')}
-            </label>
-            <div className="flex gap-3">
+            </p>
+            <div role="group" aria-labelledby={videoQualityGroupId} className="flex gap-3">
               {(['auto', 'low', 'medium', 'high'] as const).map((q) => (
                 <button
                   key={q}
                   onClick={() => updateSettings({ media: { ...media, videoQuality: q } })}
+                  aria-pressed={media.videoQuality === q}
                   className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
                     media.videoQuality === q
                       ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -768,14 +785,15 @@ return (
           </div>
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+            <p id={audioQualityGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">
               {t('settings.defaultAudioQuality')}
-            </label>
-            <div className="flex gap-3">
+            </p>
+            <div role="group" aria-labelledby={audioQualityGroupId} className="flex gap-3">
               {(['low', 'medium', 'high'] as const).map((q) => (
                 <button
                   key={q}
                   onClick={() => updateSettings({ media: { ...media, audioQuality: q } })}
+                  aria-pressed={media.audioQuality === q}
                   className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
                     media.audioQuality === q
                       ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -851,6 +869,7 @@ const NetworkSection: React.FC = () => {
   const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
   const net = settings.network
+  const maxPeersId = React.useId()
   const [isSuspending, setIsSuspending] = useState(false)
   const swarmSuspended = useNetworkStore((s) => s.swarmSuspended)
   const setSwarmSuspended = useNetworkStore((s) => s.setSwarmSuspended)
@@ -1076,8 +1095,9 @@ return (
             onChange={handleRelayToggle}
           />
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.maxPeers')}</label>
+            <label htmlFor={maxPeersId} className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.maxPeers')}</label>
             <input
+              id={maxPeersId}
               type="range"
               min={4}
               max={128}
@@ -1365,6 +1385,9 @@ const DevicesSection: React.FC = () => {
   const [selectedSpeaker, setSelectedSpeaker] = useState<string>('')
   const [hasPermission, setHasPermission] = useState(false)
   const [micLevel, setMicLevel] = useState(0)
+  const micId = React.useId()
+  const camId = React.useId()
+  const speakerId = React.useId()
   const micTestRef = useRef<(() => void) | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const cameraTestRef = useRef<(() => void) | null>(null)
@@ -1470,7 +1493,7 @@ return (
           )}
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+            <label htmlFor={micId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
               <span className="flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
                   <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
@@ -1479,6 +1502,7 @@ return (
               </span>
             </label>
             <select
+              id={micId}
               value={selectedMic}
               onChange={(e) => handleMicChange(e.target.value)}
               className="asgard-input w-full text-sm"
@@ -1511,7 +1535,7 @@ return (
           </div>
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+            <label htmlFor={camId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
               <span className="flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
                   <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
@@ -1520,6 +1544,7 @@ return (
               </span>
             </label>
             <select
+              id={camId}
               value={selectedCam}
               onChange={(e) => handleCamChange(e.target.value)}
               className="asgard-input w-full text-sm"
@@ -1551,7 +1576,7 @@ return (
           </div>
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+            <label htmlFor={speakerId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
               <span className="flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
                   <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v8H7V4zm0 14v-4h10v4H7z"/>
@@ -1560,6 +1585,7 @@ return (
               </span>
             </label>
             <select
+              id={speakerId}
               value={selectedSpeaker}
               onChange={(e) => handleSpeakerChange(e.target.value)}
               className="asgard-input w-full text-sm"
