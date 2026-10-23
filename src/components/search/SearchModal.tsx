@@ -206,15 +206,21 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
               role="combobox"
               aria-expanded={filteredResults.length > 0}
               aria-controls="search-results"
+              aria-autocomplete="list"
               aria-activedescendant={selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined}
+              autoComplete="off"
+              spellCheck={false}
               className="flex-1 bg-transparent text-sm text-asgard-text-primary placeholder:text-asgard-text-muted outline-none"
             />
             {query && (
               <button
+                type="button"
                 onClick={() => setQuery('')}
+                aria-label={t('common.close')}
+                title={t('common.close')}
                 className="text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                 </svg>
               </button>
@@ -229,7 +235,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             {tabs.map((tab) => (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
+                aria-pressed={activeTab === tab.id}
                 className={cn(
                   'px-3 py-2 text-xs font-medium transition-colors border-b-2 -mb-px',
                   activeTab === tab.id
@@ -444,6 +452,7 @@ const SearchIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
     className="text-asgard-text-muted"
   >
     <circle cx="11" cy="11" r="8" />

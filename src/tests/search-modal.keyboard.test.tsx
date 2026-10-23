@@ -106,6 +106,24 @@ describe('recherche globale au clavier', () => {
     expect(document.activeElement).toBe(last)
   })
 
+  it('nomme le bouton d’effacement et annonce le filtre actif', () => {
+    const { input } = renderModal()
+    fireEvent.change(input, { target: { value: 'ali' } })
+
+    const clear = screen.getByRole('button', { name: 'common.close' })
+    expect(input).toHaveValue('ali')
+    fireEvent.click(clear)
+    expect(input).toHaveValue('')
+
+    const all = screen.getByRole('button', { name: 'search.all' })
+    const messages = screen.getByRole('button', { name: 'search.messages' })
+    expect(all).toHaveAttribute('aria-pressed', 'true')
+    expect(messages).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(messages)
+    expect(messages).toHaveAttribute('aria-pressed', 'true')
+    expect(all).toHaveAttribute('aria-pressed', 'false')
+  })
+
   it('garde la modale montée le temps de son animation de fermeture', () => {
     const onClose = vi.fn()
     const view = render(
