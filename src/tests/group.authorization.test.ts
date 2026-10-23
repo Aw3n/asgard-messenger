@@ -474,3 +474,84 @@ describe('réactions', () => {
     )
   })
 })
+
+describe('réponses citées', () => {
+  const seed = (id: string, senderId = B) => {
+    useMessageStore.getState().addMessage({
+      id,
+      conversationId: channelId,
+      senderId,
+      type: 'text',
+      content: 'message d’origine',
+      timestamp: 1,
+      status: 'sent',
+    } as Message)
+  }
+
+  it('résout la citation dans notre copie du canal, pas dans le payload', () => {
+    seed('m-origin')
+
+    dispatch('handleGroupMessage', {
+      groupId,
+      channelId,
+      message: {
+        id: 'm-reply',
+        senderId: C,
+        content: 'ma réponse',
+        timestamp: Date.now(),
+        type: 'text',
+        replyTo: { id: 'm-origin', senderId: D, content: 'contenu falsifié', type: 'text' },
+      },
+    }, C, 'group:message')
+
+    expect(useMessageStore.getState().getMessage('m-reply', channelId)?.replyTo).toEqual({
+      id: 'm-origin',
+      senderId: B,
+      content: 'message d’origine',
+      type: 'text',
+    })
+  })
+
+  it('ignore une citation introuvable ou supprimée', () => {
+    seed('m-deleted')
+    useMessageStore.getState().deleteMessage('m-deleted', channelId)
+
+    for (const quoteId of ['m-deleted', 'm-absent']) {
+      dispatch('handleGroupMessage', {
+        groupId,
+        channelId,
+        message: {
+          id: `m-reply-${quoteId}`,
+          senderId: C,
+          content: 'réponse',
+          timestamp: Date.now(),
+          type: 'text',
+          replyTo: { id: quoteId },
+        },
+      }, C, 'group:message')
+      expect(useMessageStore.getState().getMessage(`m-reply-${quoteId}`, channelId)?.replyTo).toBeUndefined()
+    }
+  })
+
+  it('attache l’aperçu de la citation envoyée et le diffuse', async () => {
+    seed('m-origin')
+
+    await groupService.sendGroupMessage(groupId, channelId, 'ma réponse', undefined, undefined, 'm-origin')
+
+    const sent = useMessageStore.getState().messages[channelId].at(-1)!
+    expect(sent.senderId).toBe(A)
+    expect(sent.replyTo).toEqual({
+      id: 'm-origin',
+      senderId: B,
+      content: 'message d’origine',
+      type: 'text',
+    })
+    expect(p2pService.broadcastToPeers).toHaveBeenLastCalledWith(
+      expect.arrayContaining([B, C]),
+      'group:message',
+      expect.objectContaining({
+        message: expect.objectContaining({ replyTo: expect.objectContaining({ id: 'm-origin' }) }),
+      }),
+    )
+  })
+})

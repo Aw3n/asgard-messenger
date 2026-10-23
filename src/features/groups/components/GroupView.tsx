@@ -29,6 +29,7 @@ export const GroupView: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false)
   const [showMembers, setShowMembers] = useState(true)
   const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
+  const [replyTo, setReplyTo] = useState<Message | undefined>()
   const virtuosoRef = React.useRef<VirtuosoHandle>(null)
 
   const channelId = activeChannel?.id ?? ''
@@ -46,9 +47,11 @@ export const GroupView: React.FC = () => {
     (content: string) => {
       // Send message via P2P to group members
       if (!identity || !channelId || !activeGroup) return
-      groupService.sendGroupMessage(activeGroup.id, channelId, content)
+      const quoted = replyTo
+      setReplyTo(undefined)
+      groupService.sendGroupMessage(activeGroup.id, channelId, content, undefined, undefined, quoted?.id)
     },
-    [identity, channelId, activeGroup]
+    [identity, channelId, activeGroup, replyTo]
   )
 
   const handleReaction = useCallback(
@@ -93,6 +96,12 @@ export const GroupView: React.FC = () => {
       groupService.announceGroupPresence(activeGroup.id)
     }
   }, [activeGroup?.id])
+
+  // Une citation appartient au canal où elle a été choisie : changer de canal
+  // ne doit pas envoyer une réponse pointant vers un message invisible.
+  useEffect(() => {
+    setReplyTo(undefined)
+  }, [channelId])
 
   // Tous les hooks sont appelés avant cette sortie : sans groupe, le composant
   // doit rendre le même nombre de hooks qu'avec, sinon React casse l'ordre.
@@ -197,6 +206,7 @@ export const GroupView: React.FC = () => {
                   isOwn={message.senderId === identity?.keyPair.publicKey}
                   senderName={getMemberName(activeGroup, message.senderId)}
                   showSender
+                  onReply={setReplyTo}
                   onReaction={handleReaction}
                   onPin={canPin ? handlePin : undefined}
                   onForward={setForwardMessage}
@@ -220,8 +230,10 @@ export const GroupView: React.FC = () => {
         {/* Message input */}
         <MessageInput
           conversationId={channelId}
+          replyTo={replyTo}
           onSend={handleSend}
           onFiles={handleFiles}
+          onCancelReply={() => setReplyTo(undefined)}
           placeholder={t('groups.messageChannel', { channelName: activeChannel?.name ?? t('groups.general') })}
         />
       </div>

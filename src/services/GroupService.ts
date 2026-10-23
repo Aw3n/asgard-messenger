@@ -729,13 +729,23 @@ class GroupService {
     channelId: string,
     content: string,
     type: 'text' | 'image' | 'file' = 'text',
-    mentions?: Array<{ publicKey: string; displayName: string; startIndex: number; endIndex: number }>
+    mentions?: Array<{ publicKey: string; displayName: string; startIndex: number; endIndex: number }>,
+    replyToId?: string
   ): Promise<void> {
     const identity = useIdentityStore.getState().identity
     if (!identity) return
 
     const group = useGroupStore.getState().getGroup(groupId)
     if (!group) return
+
+    // Copie locale de la citation : le destinataire la résoudra par
+    // identifiant, mais l'auteur doit voir l'aperçu immédiatement.
+    const quoted = replyToId
+      ? useMessageStore.getState().getMessage(replyToId, channelId)
+      : undefined
+    const replyTo = quoted && !quoted.deleted
+      ? { id: quoted.id, senderId: quoted.senderId, content: quoted.content, type: quoted.type }
+      : undefined
 
     // Create the message locally first
     // CRITICAL: Include groupId on the message for routing, offline sync, and tracking.
@@ -751,6 +761,7 @@ class GroupService {
       status: 'sent' as const,
       mentions,
       groupId,
+      ...(replyTo ? { replyTo } : {}),
       // Per-recipient delivery tracking: initialized empty, filled as receipts arrive
       deliveryReceipts: {} as Record<string, 'delivered' | 'read'>,
       readBy: [] as string[],
@@ -1613,6 +1624,20 @@ class GroupService {
       })
       : []
 
+    // La citation est résolue dans notre propre copie du canal : le contenu
+    // affiché ne peut pas être choisi par l'expéditeur.
+    let replyTo: Message['replyTo']
+    const rawReply = raw.replyTo
+    if (rawReply && typeof rawReply === 'object') {
+      const replyId = (rawReply as Record<string, unknown>).id
+      if (typeof replyId === 'string' && replyId.length > 0 && replyId.length <= GroupService.MAX_MESSAGE_ID) {
+        const quoted = useMessageStore.getState().getMessage(replyId, channelId)
+        if (quoted && !quoted.deleted) {
+          replyTo = { id: quoted.id, senderId: quoted.senderId, content: quoted.content, type: quoted.type }
+        }
+      }
+    }
+
     const message: Message & { groupId: string } = {
       id: raw.id,
       conversationId: channelId,
@@ -1622,6 +1647,7 @@ class GroupService {
       timestamp,
       status: 'delivered',
       groupId,
+      ...(replyTo ? { replyTo } : {}),
       ...(mentions.length > 0 ? { mentions } : {}),
     }
 
