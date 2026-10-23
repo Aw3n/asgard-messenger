@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
+import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { fileService } from '@/services/FileService'
 import { useMessageStore } from '@/stores/messageStore'
 import { useUIStore } from '@/stores/uiStore'
@@ -231,31 +232,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
 
   const handleSaveAs = async (e?: React.MouseEvent) => {
     e?.stopPropagation()
-    if (!attachment.blobKey) {
-      addToast({ type: 'error', title: t('chat.downloadUnavailable'), message: t('chat.fileNotYetAvailable') })
-      return
-    }
-    console.log('[FileAttachment] saveAs blobKey:', attachment.blobKey, 'name:', attachment.name)
-    const result = await window.asgard.file.saveAs(attachment.blobKey, attachment.name)
-    if (!result.success) {
-      console.warn('[FileAttachment] Save failed:', result.reason, result.message)
-      try {
-        window.asgard.debugLog(`[FileAttachment] Save failed: ${result.reason}${result.message ? ' - ' + result.message : ''}`)
-      } catch {}
-      if (result.reason === 'canceled') return
-      const isLegacyBlobId = /^\d+$/.test(attachment.blobKey)
-      addToast({
-        type: 'error',
-        title: t('chat.downloadFailed'),
-        message: result.reason === 'not-found'
-          ? (isLegacyBlobId
-              ? t('chat.legacyFileNotDownloadable')
-              : t('chat.fileNotFoundLocally'))
-          : (result.message ?? t('chat.saveError')),
-      })
-    } else {
-      addToast({ type: 'success', title: t('chat.fileSaved'), message: result.filePath, duration: 3000 })
-    }
+    await saveAttachmentToDisk(attachment, t)
   }
 
   /**

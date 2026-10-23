@@ -17,6 +17,7 @@ import { p2pService } from '@/services/P2PService'
 import { storageService } from '@/services/StorageService'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useMessageStore } from '@/stores/messageStore'
+import { useUIStore } from '@/stores/uiStore'
 import type { Message } from '@/types'
 
 vi.mock('react-i18next', () => ({
@@ -267,5 +268,51 @@ describe('ChatService — renvoi d’un message en échec', () => {
 
     await expect(chatService.retryMessage(message.id, message.conversationId, peer)).rejects.toThrow('Message not found')
     expect(sendSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('enregistrer sous depuis le menu du message', () => {
+  const saveAs = () => vi.mocked(window.asgard.file.saveAs)
+  const titles = () => useUIStore.getState().toasts.map((toast) => toast.title)
+
+  function renderFileMessage() {
+    useUIStore.setState({ toasts: [] })
+    saveAs().mockReset()
+    const message = makeMessage({
+      type: 'file',
+      attachments: [{
+        id: 'att-1', type: 'document', name: 'note.txt', size: 12,
+        mimeType: 'text/plain', blobKey: 'blob-1',
+      }],
+    })
+    render(<MessageBubble message={message} isOwn />)
+    return {
+      row: screen.getByRole('group', { name: 'chat.messageActions' }),
+      message,
+    }
+  }
+
+  it('annonce l’échec de l’enregistrement', async () => {
+    const { row } = renderFileMessage()
+    saveAs().mockResolvedValue({ success: false, reason: 'not-found' })
+
+    fireEvent.contextMenu(row, { clientX: 120, clientY: 80 })
+    fireEvent.click(screen.getByText('chat.downloadNamedFile'))
+
+    // Le menu téléchargeait sans rien dire : la panne doit se voir ici comme
+    // dans le widget de pièce jointe.
+    await waitFor(() => expect(titles()).toEqual(['chat.downloadFailed']))
+    expect(saveAs()).toHaveBeenCalledWith('blob-1', 'note.txt')
+  })
+
+  it('annonce le chemin écrit', async () => {
+    const { row } = renderFileMessage()
+    saveAs().mockResolvedValue({ success: true, filePath: 'C:/users/note.txt' })
+
+    fireEvent.contextMenu(row, { clientX: 120, clientY: 80 })
+    fireEvent.click(screen.getByText('chat.downloadNamedFile'))
+
+    await waitFor(() => expect(titles()).toEqual(['chat.fileSaved']))
+    expect(useUIStore.getState().toasts[0].message).toBe('C:/users/note.txt')
   })
 })

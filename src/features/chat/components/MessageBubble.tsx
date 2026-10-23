@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
+import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { formatMessageTime } from '@/utils/time'
 import { useUIStore } from '@/stores/uiStore'
 import { FileAttachment } from './FileAttachment'
@@ -341,15 +342,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 label={t('chat.downloadNamedFile', { name: message.attachments[0].name })}
                 onClick={async () => {
                   const firstAttachment = message.attachments?.[0]
-                  if (firstAttachment?.blobKey) {
-                    const result = await window.asgard.file.saveAs(firstAttachment.blobKey, firstAttachment.name)
-                    if (!result.success) {
-                      console.warn('[MessageBubble] Save failed:', result.reason, result.message)
-                      try {
-                        window.asgard.debugLog(`[MessageBubble] Save failed: ${result.reason}${result.message ? ' - ' + result.message : ''}`)
-                      } catch {}
-                    }
-                  }
+                  if (firstAttachment) await saveAttachmentToDisk(firstAttachment, t)
                   setContextMenu(null)
                 }}
               />
