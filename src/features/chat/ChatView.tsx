@@ -17,6 +17,7 @@ import { ActiveTransfersWidget } from './components/ActiveTransfersWidget'
 import { Avatar } from '@/components/ui/Avatar'
 import { MuteButton } from '@/components/ui/MuteButton'
 import { UnreadDivider } from '@/components/ui/UnreadDivider'
+import { HistoryFailureNotice } from '@/components/ui/HistoryFailureNotice'
 import { chatService } from '@/services/ChatService'
 import { p2pService } from '@/services/P2PService'
 import { cryptoService } from '@/services/CryptoService'
@@ -196,7 +197,8 @@ export const ChatView: React.FC = () => {
 
   // Load message history from Hyperbee storage when conversation opens
   const initialHistoryLoadRef = useRef<Promise<unknown>>(Promise.resolve())
-  const { noticeHistoryError, historyLoaded } = useHistoryErrorNotice(dataId)
+  const { noticeHistoryError, historyLoaded, historyFailed, retryHistory, historyRetry } =
+    useHistoryErrorNotice(dataId)
   useEffect(() => {
     if (!resolvedId) return
     initialHistoryLoadRef.current = chatService
@@ -208,7 +210,7 @@ export const ChatView: React.FC = () => {
         else historyLoaded()
       })
       .catch(console.error)
-  }, [resolvedId, noticeHistoryError, historyLoaded])
+  }, [resolvedId, noticeHistoryError, historyLoaded, historyRetry])
 
   // Un résultat de recherche profond peut viser un message plus ancien que la
   // page de démarrage : charger son contexte, puis le centrer.
@@ -588,7 +590,11 @@ export const ChatView: React.FC = () => {
           </div>
         )}
         {messages.length === 0 ? (
-          <ConversationStart name={displayName} />
+          historyFailed ? (
+            <HistoryFailureNotice onRetry={retryHistory} />
+          ) : (
+            <ConversationStart name={displayName} />
+          )
         ) : (
           <div
             className="h-full"

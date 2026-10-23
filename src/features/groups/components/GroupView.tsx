@@ -15,6 +15,7 @@ import { MessageInput } from '@/features/chat/components/MessageInput'
 import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
 import { ForwardModal } from '@/features/chat/components/ForwardModal'
 import { UnreadDivider } from '@/components/ui/UnreadDivider'
+import { HistoryFailureNotice } from '@/components/ui/HistoryFailureNotice'
 import { MuteButton } from '@/components/ui/MuteButton'
 import { callService } from '@/services/CallService'
 import { groupService } from '@/services/GroupService'
@@ -266,7 +267,8 @@ export const GroupView: React.FC = () => {
   // le compteur n'était incrémenté qu'en dehors du canal actif et rien ne le
   // remettait à zéro, donc sa pastille restait indéfiniment allumée.
   const initialChannelLoadRef = React.useRef<Promise<unknown>>(Promise.resolve())
-  const { noticeHistoryError, historyLoaded } = useHistoryErrorNotice(historyKey)
+  const { noticeHistoryError, historyLoaded, historyFailed, retryHistory, historyRetry } =
+    useHistoryErrorNotice(historyKey)
   useEffect(() => {
     if (!activeGroupId || !channelId || !groupViewVisible) return
     let cancelled = false
@@ -305,7 +307,7 @@ export const GroupView: React.FC = () => {
     }
     void openChannel()
     return () => { cancelled = true }
-  }, [activeGroupId, channelId, groupViewVisible, noticeHistoryError, historyLoaded])
+  }, [activeGroupId, channelId, groupViewVisible, noticeHistoryError, historyLoaded, historyRetry])
 
   // PAGINATION: l'ouverture ne charge que les derniers messages du canal ;
   // remonter en haut doit aller chercher la suite dans Hyperbee.
@@ -498,10 +500,14 @@ export const GroupView: React.FC = () => {
         {/* Messages */}
         <div className="relative flex-1 overflow-hidden">
           {messages.length === 0 ? (
-            <ChannelStartMessage
-              channelName={activeChannel?.name ?? t('groups.general')}
-              groupName={activeGroup.name}
-            />
+            historyFailed ? (
+              <HistoryFailureNotice onRetry={retryHistory} />
+            ) : (
+              <ChannelStartMessage
+                channelName={activeChannel?.name ?? t('groups.general')}
+                groupName={activeGroup.name}
+              />
+            )
           ) : (
             <Virtuoso
               ref={virtuosoRef}

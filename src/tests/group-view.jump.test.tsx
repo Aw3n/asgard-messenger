@@ -3,7 +3,7 @@
  * contexte du message visé, puis le centrer et le surligner.
  */
 import React from 'react'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Group, Message } from '@/types'
@@ -128,6 +128,7 @@ function makeMessage(id: string, timestamp: number): Message {
 beforeEach(() => {
   scrollToIndexMock.mockClear()
   vi.mocked(groupService.loadOlderChannelMessages).mockClear()
+  vi.mocked(groupService.loadChannelMessages).mockClear()
   for (const key of Object.keys(virtuosoProps)) delete virtuosoProps[key]
   useMessageStore.setState({ messages: {} })
   useUIStore.setState({ toasts: [] })
@@ -296,9 +297,31 @@ describe('GroupView : panne de lecture du canal', () => {
     // Un canal vide et un canal illisible se ressemblaient à l'écran : le
     // second doit être dit.
     await waitFor(() => expect(toastTitles()).toEqual(['chat.historyLoadFailed']))
-    // Et le canal reste affichable : la liste vide doit partager une référence
-    // stable, sinon la vue se relance sans fin.
-    expect(screen.getByText('groups.welcomeToChannel')).toBeInTheDocument()
+    // La panne reste affichée après le toast, et le canal reste ouvrable : la
+    // vue ne se relance que si la liste vide partage une référence stable.
+    expect(screen.getByRole('alert')).toHaveTextContent('chat.historyLoadFailed')
+    expect(screen.queryByText('groups.welcomeToChannel')).not.toBeInTheDocument()
+  })
+
+  it('rejoue la panne de démarrage du canal depuis l’écran', async () => {
+    openChannelVisibly()
+    const recent = [makeMessage('recent-1', 5_000), makeMessage('recent-2', 5_001)]
+    vi.mocked(groupService.loadChannelMessages)
+      .mockResolvedValueOnce(null)
+      .mockImplementationOnce(async () => {
+        useMessageStore.getState().addMessages(CHANNEL_ID, recent)
+        return recent
+      })
+
+    renderChannel()
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(groupService.loadChannelMessages).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.retry' }))
+
+    await waitFor(() => expect(groupService.loadChannelMessages).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-1')).toBeInTheDocument())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('n’annonce rien sur un canal vraiment vide', async () => {
@@ -309,5 +332,6 @@ describe('GroupView : panne de lecture du canal', () => {
 
     await waitFor(() => expect(screen.getByText('groups.welcomeToChannel')).toBeInTheDocument())
     expect(toastTitles()).toEqual([])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })

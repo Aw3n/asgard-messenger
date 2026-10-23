@@ -7,7 +7,7 @@
  * pagination : la panne était prise pour une fin d'historique.
  */
 import React from 'react'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Conversation } from '@/types'
@@ -152,6 +152,7 @@ function makeMessage(id: string, timestamp: number): Message {
 beforeEach(() => {
   scrollToIndexMock.mockClear()
   vi.mocked(chatService.loadOlderMessages).mockClear()
+  vi.mocked(chatService.loadMessages).mockClear()
   for (const key of Object.keys(virtuosoProps)) delete virtuosoProps[key]
   useMessageStore.setState({ messages: {} })
   useUIStore.setState({ toasts: [] })
@@ -337,7 +338,30 @@ describe('ChatView : panne de lecture de l’historique', () => {
     await waitFor(() => expect(toastTitles()).toEqual(['chat.historyLoadFailed']))
     // Le fil doit rester affichable malgré la panne : la liste vide doit
     // partager une référence stable, sinon la vue se relance sans fin.
-    expect(screen.getByText(/chat\.sendToStart/)).toBeInTheDocument()
+    expect(screen.queryByText(/chat\.sendToStart/)).not.toBeInTheDocument()
+    // Un fil vide parce qu'il n'a rien chargé n'est pas un fil vide : la panne
+    // reste à l'écran quand le toast s'est effacé.
+    expect(screen.getByRole('alert')).toHaveTextContent('chat.historyLoadFailed')
+  })
+
+  it('rejoue la panne de démarrage depuis l’écran', async () => {
+    const recent = [makeMessage('recent-1', 5_000), makeMessage('recent-2', 5_001)]
+    vi.mocked(chatService.loadMessages)
+      .mockResolvedValueOnce(null)
+      .mockImplementationOnce(async (conversationId: string) => {
+        useMessageStore.getState().addMessages(conversationId, recent)
+        return recent
+      })
+
+    renderThread()
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(chatService.loadMessages).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.retry' }))
+
+    await waitFor(() => expect(chatService.loadMessages).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-1')).toBeInTheDocument())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('n’annonce rien sur un fil vraiment vide', async () => {
@@ -347,5 +371,6 @@ describe('ChatView : panne de lecture de l’historique', () => {
 
     await waitFor(() => expect(screen.getByText(/chat\.sendToStart/)).toBeInTheDocument())
     expect(toastTitles()).toEqual([])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
