@@ -11,13 +11,21 @@ interface GroupItemProps {
   group: Group
   isActive: boolean
   onClick: () => void
+  onContextMenu?: (e: React.MouseEvent) => void
+  onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void
 }
 
 /**
  * GroupItem — renders a single group in the group list.
  * Shows avatar, name, member count, and total unread badge.
  */
-export const GroupItem: React.FC<GroupItemProps> = ({ group, isActive, onClick }) => {
+export const GroupItem: React.FC<GroupItemProps> = ({
+  group,
+  isActive,
+  onClick,
+  onContextMenu,
+  onKeyDown,
+}) => {
   const { t } = useTranslation()
   const memberCount = group.members.length
   const totalUnread = group.channels.reduce((sum, ch) => sum + ch.unreadCount, 0)
@@ -49,6 +57,9 @@ export const GroupItem: React.FC<GroupItemProps> = ({ group, isActive, onClick }
     <motion.button
       layout
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
+      aria-haspopup="menu"
       aria-current={isActive ? 'true' : undefined}
       className={cn(
         'w-full flex items-center gap-3 px-3 py-2.5',

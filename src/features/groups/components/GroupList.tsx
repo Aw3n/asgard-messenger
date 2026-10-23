@@ -1,14 +1,20 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useGroupStore } from '@/stores/groupStore'
+import { useConversationStore } from '@/stores/conversationStore'
 import { GroupItem } from './GroupItem'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { cn } from '@/utils/cn'
+import type { Group } from '@/types'
 
 interface GroupListProps {
   onCreateGroup: () => void
 }
+
+const totalUnread = (group: Group): number =>
+  group.channels.reduce((sum, channel) => sum + channel.unreadCount, 0)
 
 /**
  * GroupList — left panel listing all groups with search and create button.
@@ -25,11 +31,121 @@ export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const groups = getFilteredGroups()
 
+  // Le clic droit reprend les deux actions que la liste 1:1 offre déjà et qui
+  // ont un sens au niveau d'un groupe : tout marquer lu, couper les alertes.
+  const [contextMenu, setContextMenu] = useState<{
+    group: Group
+    x: number
+    y: number
+    muted: boolean
+    fromKeyboard?: boolean
+  } | null>(null)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+  const menuTriggerRef = React.useRef<HTMLElement | null>(null)
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setLocalSearch(value)
     useGroupStore.setState((s) => ({ ...s, searchQuery: value }))
   }
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, group: Group) => {
+    e.preventDefault()
+    setContextMenu({
+      group,
+      x: e.clientX,
+      y: e.clientY,
+      muted: useConversationStore.getState().getConversation(group.id)?.muted ?? false,
+    })
+  }, [])
+
+  // Maj+F10 et la touche Menu ouvrent le menu contextuel comme le clic droit.
+  const handleItemKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>, group: Group) => {
+      if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return
+      e.preventDefault()
+      const rect = e.currentTarget.getBoundingClientRect()
+      menuTriggerRef.current = e.currentTarget
+      setContextMenu({
+        group,
+        x: Math.max(8, Math.min(rect.left + 16, window.innerWidth - 220)),
+        y: Math.max(8, Math.min(rect.top + 16, window.innerHeight - 200)),
+        muted: useConversationStore.getState().getConversation(group.id)?.muted ?? false,
+        fromKeyboard: true,
+      })
+    },
+    []
+  )
+
+  const markGroupRead = useCallback(() => {
+    if (!contextMenu) return
+    const store = useGroupStore.getState()
+    for (const channel of contextMenu.group.channels) {
+      store.clearChannelUnread(contextMenu.group.id, channel.id)
+    }
+    setContextMenu(null)
+  }, [contextMenu])
+
+  const toggleGroupMute = useCallback(() => {
+    if (!contextMenu) return
+    useConversationStore
+      .getState()
+      .muteConversation(contextMenu.group.id, !contextMenu.muted)
+    setContextMenu(null)
+  }, [contextMenu])
+
+  // Ferme le menu au clic extérieur, gère Échap, flèches et Tab au clavier.
+  React.useEffect(() => {
+    if (!contextMenu) return
+    const clickHandler = () => setContextMenu(null)
+    const keyHandler = (e: KeyboardEvent) => {
+      const menu = menuRef.current
+      if (!menu) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setContextMenu(null)
+        const trigger = menuTriggerRef.current
+        menuTriggerRef.current = null
+        if (trigger?.isConnected) trigger.focus()
+        return
+      }
+      const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
+      if (items.length === 0) return
+      const active = document.activeElement as HTMLButtonElement | null
+      const index = active ? items.indexOf(active) : -1
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const step = e.key === 'ArrowDown' ? 1 : -1
+        const next = index === -1
+          ? (step === 1 ? 0 : items.length - 1)
+          : (index + step + items.length) % items.length
+        items[next]?.focus()
+      } else if (e.key === 'Home') {
+        e.preventDefault()
+        items[0]?.focus()
+      } else if (e.key === 'End') {
+        e.preventDefault()
+        items[items.length - 1]?.focus()
+      } else if (e.key === 'Tab') {
+        e.preventDefault()
+        if (index === -1) {
+          items[0]?.focus()
+          return
+        }
+        const next = (index + (e.shiftKey ? -1 : 1) + items.length) % items.length
+        items[next]?.focus()
+      }
+    }
+    window.addEventListener('click', clickHandler)
+    window.addEventListener('keydown', keyHandler)
+    if (contextMenu.fromKeyboard) {
+      menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+    }
+    return () => {
+      window.removeEventListener('click', clickHandler)
+      window.removeEventListener('keydown', keyHandler)
+    }
+  }, [contextMenu])
 
   return (
     <div className="flex flex-col h-full bg-asgard-surface border-r border-asgard-border">
@@ -100,11 +216,63 @@ export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
                 group={group}
                 isActive={group.id === activeGroupId}
                 onClick={() => setActiveGroup(group.id)}
+                onContextMenu={(e) => handleContextMenu(e, group)}
+                onKeyDown={(e) => handleItemKeyDown(e, group)}
               />
             ))
           )}
         </AnimatePresence>
       </div>
+
+      {/* Context menu */}
+      <AnimatePresence>
+        {contextMenu && (
+          <motion.div
+            ref={menuRef}
+            role="menu"
+            aria-label={contextMenu.group.name}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            className="fixed z-50 mica-card border border-asgard-border rounded-xl p-1 shadow-modal min-w-[180px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            {totalUnread(contextMenu.group) > 0 && (
+              <button
+                type="button"
+                role="menuitem"
+                tabIndex={-1}
+                onClick={markGroupRead}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
+                  'text-asgard-text-secondary hover:bg-asgard-surface-alt hover:text-asgard-text-primary'
+                )}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                </svg>
+                {t('chat.markAsRead')}
+              </button>
+            )}
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={toggleGroupMute}
+              className={cn(
+                'w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
+                'text-asgard-text-secondary hover:bg-asgard-surface-alt hover:text-asgard-text-primary'
+              )}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+              </svg>
+              {t(contextMenu.muted ? 'chat.unmuteConversation' : 'chat.muteConversation')}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
