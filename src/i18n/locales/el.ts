@@ -137,7 +137,7 @@ export default {
       "chat.startConversation": "Έναρξη συνομιλίας",
       "chat.today": "Σήμερα",
       "chat.typeMessage": "Γράψτε ένα μήνυμα…",
-      "chat.typing": "γράφει…",
+      "chat.typing": "πληκτρολογεί…",
       "chat.unpin": "Ξεκαρφίτσωμα",
       "chat.voiceMessage": "Ηχητικό μήνυμα",
       "chat.yesterday": "Χθες",

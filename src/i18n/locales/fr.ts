@@ -137,7 +137,7 @@ export default {
       "chat.startConversation": "Démarrer une conversation",
       "chat.today": "Aujourd'hui",
       "chat.typeMessage": "Écrivez un message…",
-      "chat.typing": "écrit…",
+      "chat.typing": "en train d’écrire…",
       "chat.unpin": "Désépingler",
       "chat.voiceMessage": "Message vocal",
       "chat.yesterday": "Hier",

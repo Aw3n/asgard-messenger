@@ -137,7 +137,7 @@ export default {
       "chat.startConversation": "Tosaigh comhrá",
       "chat.today": "Inniu",
       "chat.typeMessage": "Scríobh teachtaireacht…",
-      "chat.typing": "ag clóscríobh…",
+      "chat.typing": "ag scríobh…",
       "chat.unpin": "Díphionnáil",
       "chat.voiceMessage": "Teachtaireacht gutha",
       "chat.yesterday": "Inné",

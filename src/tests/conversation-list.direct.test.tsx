@@ -36,6 +36,7 @@ import { ConversationList } from '@/features/chat/components/ConversationList'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useGroupStore } from '@/stores/groupStore'
+import { useNetworkStore } from '@/stores/networkStore'
 
 const PEER = 'b'.repeat(64)
 
@@ -89,6 +90,7 @@ beforeEach(() => {
   })
   useContactStore.setState({ contacts: { [PEER]: contact } })
   useGroupStore.setState({ groups: {} })
+  useNetworkStore.setState({ typingUsers: {} })
 })
 
 afterEach(() => {
@@ -242,6 +244,23 @@ describe('liste des conversations', () => {
     expect(useConversationStore.getState().conversations[group.id].unreadCount).toBe(0)
     expect(useGroupStore.getState().groups[group.id].channels[0].unreadCount).toBe(0)
     expect(button).toBeDisabled()
+  })
+
+  it('affiche la frappe du contact à la place de l’aperçu', () => {
+    useNetworkStore.setState({ typingUsers: { [direct.id]: new Set([PEER]) } })
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('chat.typing')).toBeInTheDocument()
+
+    act(() => {
+      useNetworkStore.getState().setTyping(direct.id, PEER, false)
+    })
+    expect(screen.queryByText('chat.typing')).toBeNull()
+    expect(screen.getByText('chat.startConversation')).toBeInTheDocument()
   })
 
   it('ouvre le menu au clavier, navigue et le referme par Échap', async () => {
