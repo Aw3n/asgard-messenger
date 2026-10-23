@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Uudet viestit",
       "search.searching": "Haetaan historiasta…",
       "nav.unreadCount": "Lukemattomat: {{count}}",
+      "messageInput.removeFile": "Poista liite",
     }
 }

@@ -877,5 +877,6 @@ export default {
       "chat.newMessages": "Nieuwe berichten",
       "search.searching": "Geschiedenis doorzoeken…",
       "nav.unreadCount": "Ongelezen: {{count}}",
+      "messageInput.removeFile": "Bijlage verwijderen",
     }
 }

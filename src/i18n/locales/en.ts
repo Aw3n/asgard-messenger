@@ -887,5 +887,6 @@ export default {
       "chat.newMessages": "New messages",
       "search.searching": "Searching history…",
       "nav.unreadCount": "Unread: {{count}}",
+      "messageInput.removeFile": "Remove attachment",
     }
 }

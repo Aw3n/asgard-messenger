@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Nauji pranešimai",
       "search.searching": "Ieškoma istorijoje…",
       "nav.unreadCount": "Neskaityti: {{count}}",
+      "messageInput.removeFile": "Pašalinti priedą",
     }
 }

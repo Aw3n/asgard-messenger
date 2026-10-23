@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Nye beskeder",
       "search.searching": "Søger i historikken…",
       "nav.unreadCount": "Ulæste: {{count}}",
+      "messageInput.removeFile": "Fjern vedhæftning",
     }
 }

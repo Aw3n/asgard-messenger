@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Nové správy",
       "search.searching": "Prehľadávanie histórie…",
       "nav.unreadCount": "Neprečítané: {{count}}",
+      "messageInput.removeFile": "Odstrániť prílohu",
     }
 }

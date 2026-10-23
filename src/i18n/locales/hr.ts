@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Nove poruke",
       "search.searching": "Pretraživanje povijesti…",
       "nav.unreadCount": "Nepročitano: {{count}}",
+      "messageInput.removeFile": "Ukloni privitak",
     }
 }

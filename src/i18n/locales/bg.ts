@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Нови съобщения",
       "search.searching": "Търсене в историята…",
       "nav.unreadCount": "Непрочетени: {{count}}",
+      "messageInput.removeFile": "Премахване на прикачения файл",
     }
 }

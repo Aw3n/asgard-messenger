@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Mensagens novas",
       "search.searching": "A procurar no histórico…",
       "nav.unreadCount": "Não lidos: {{count}}",
+      "messageInput.removeFile": "Remover anexo",
     }
 }

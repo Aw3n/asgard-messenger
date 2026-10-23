@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Jauni ziņojumi",
       "search.searching": "Vēstures meklēšana…",
       "nav.unreadCount": "Neizlasīti: {{count}}",
+      "messageInput.removeFile": "Noņemt pielikumu",
     }
 }

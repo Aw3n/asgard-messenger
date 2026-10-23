@@ -876,6 +876,7 @@ export const translations = {
       "chat.newMessages": "Nouveaux messages",
       "search.searching": "Recherche dans l’historique…",
       "nav.unreadCount": "Non lus : {{count}}",
+      "messageInput.removeFile": "Retirer la pièce jointe",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -1755,6 +1756,7 @@ export const translations = {
       "chat.newMessages": "Nieuwe berichten",
       "search.searching": "Geschiedenis doorzoeken…",
       "nav.unreadCount": "Ongelezen: {{count}}",
+      "messageInput.removeFile": "Bijlage verwijderen",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -2634,6 +2636,7 @@ export const translations = {
       "chat.newMessages": "Neue Nachrichten",
       "search.searching": "Verlauf wird durchsucht…",
       "nav.unreadCount": "Ungelesen: {{count}}",
+      "messageInput.removeFile": "Anhang entfernen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -3513,6 +3516,7 @@ export const translations = {
       "chat.newMessages": "Nuovi messaggi",
       "search.searching": "Ricerca nella cronologia…",
       "nav.unreadCount": "Non letti: {{count}}",
+      "messageInput.removeFile": "Rimuovi allegato",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -4392,6 +4396,7 @@ export const translations = {
       "chat.newMessages": "Mensajes nuevos",
       "search.searching": "Buscando en el historial…",
       "nav.unreadCount": "Sin leer: {{count}}",
+      "messageInput.removeFile": "Quitar adjunto",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -5272,6 +5277,7 @@ export const translations = {
       "chat.newMessages": "Mensagens novas",
       "search.searching": "A procurar no histórico…",
       "nav.unreadCount": "Não lidos: {{count}}",
+      "messageInput.removeFile": "Remover anexo",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -6152,6 +6158,7 @@ export const translations = {
       "chat.newMessages": "Νέα μηνύματα",
       "search.searching": "Αναζήτηση στο ιστορικό…",
       "nav.unreadCount": "Μη αναγνωσμένα: {{count}}",
+      "messageInput.removeFile": "Αφαίρεση συνημμένου",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -7032,6 +7039,7 @@ export const translations = {
       "chat.newMessages": "Nye beskeder",
       "search.searching": "Søger i historikken…",
       "nav.unreadCount": "Ulæste: {{count}}",
+      "messageInput.removeFile": "Fjern vedhæftning",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -7912,6 +7920,7 @@ export const translations = {
       "chat.newMessages": "Uudet viestit",
       "search.searching": "Haetaan historiasta…",
       "nav.unreadCount": "Lukemattomat: {{count}}",
+      "messageInput.removeFile": "Poista liite",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -8792,6 +8801,7 @@ export const translations = {
       "chat.newMessages": "Nya meddelanden",
       "search.searching": "Söker i historiken…",
       "nav.unreadCount": "Olästa: {{count}}",
+      "messageInput.removeFile": "Ta bort bilaga",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -9672,6 +9682,7 @@ export const translations = {
       "chat.newMessages": "Nove poruke",
       "search.searching": "Pretraživanje povijesti…",
       "nav.unreadCount": "Nepročitano: {{count}}",
+      "messageInput.removeFile": "Ukloni privitak",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -10552,6 +10563,7 @@ export const translations = {
       "chat.newMessages": "Uued sõnumid",
       "search.searching": "Ajaloo otsimine…",
       "nav.unreadCount": "Lugemata: {{count}}",
+      "messageInput.removeFile": "Eemalda manus",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -11432,6 +11444,7 @@ export const translations = {
       "chat.newMessages": "Új üzenetek",
       "search.searching": "Előzmények keresése…",
       "nav.unreadCount": "Olvasatlan: {{count}}",
+      "messageInput.removeFile": "Melléklet eltávolítása",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -12312,6 +12325,7 @@ export const translations = {
       "chat.newMessages": "Jauni ziņojumi",
       "search.searching": "Vēstures meklēšana…",
       "nav.unreadCount": "Neizlasīti: {{count}}",
+      "messageInput.removeFile": "Noņemt pielikumu",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -13192,6 +13206,7 @@ export const translations = {
       "chat.newMessages": "Nauji pranešimai",
       "search.searching": "Ieškoma istorijoje…",
       "nav.unreadCount": "Neskaityti: {{count}}",
+      "messageInput.removeFile": "Pašalinti priedą",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -14072,6 +14087,7 @@ export const translations = {
       "chat.newMessages": "Messaġġi ġodda",
       "search.searching": "Qed tfittex fl-istorja…",
       "nav.unreadCount": "Mhux moqrija: {{count}}",
+      "messageInput.removeFile": "Neħħi l-anness",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -14952,6 +14968,7 @@ export const translations = {
       "chat.newMessages": "Nowe wiadomości",
       "search.searching": "Wyszukiwanie w historii…",
       "nav.unreadCount": "Nieprzeczytane: {{count}}",
+      "messageInput.removeFile": "Usuń załącznik",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -15832,6 +15849,7 @@ export const translations = {
       "chat.newMessages": "Nové správy",
       "search.searching": "Prehľadávanie histórie…",
       "nav.unreadCount": "Neprečítané: {{count}}",
+      "messageInput.removeFile": "Odstrániť prílohu",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -16712,6 +16730,7 @@ export const translations = {
       "chat.newMessages": "Nova sporočila",
       "search.searching": "Iskanje po zgodovini…",
       "nav.unreadCount": "Neprebrano: {{count}}",
+      "messageInput.removeFile": "Odstrani prilogo",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -17592,6 +17611,7 @@ export const translations = {
       "chat.newMessages": "Nové zprávy",
       "search.searching": "Prohledávání historie…",
       "nav.unreadCount": "Nepřečtené: {{count}}",
+      "messageInput.removeFile": "Odebrat přílohu",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -18472,6 +18492,7 @@ export const translations = {
       "chat.newMessages": "Нови съобщения",
       "search.searching": "Търсене в историята…",
       "nav.unreadCount": "Непрочетени: {{count}}",
+      "messageInput.removeFile": "Премахване на прикачения файл",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -19352,6 +19373,7 @@ export const translations = {
       "chat.newMessages": "Teachtaireachtaí nua",
       "search.searching": "Ag cuardach na staire…",
       "nav.unreadCount": "Gan léamh: {{count}}",
+      "messageInput.removeFile": "Bain an ceangaltán",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -20232,6 +20254,7 @@ export const translations = {
       "chat.newMessages": "Mesaje noi",
       "search.searching": "Se caută în istoric…",
       "nav.unreadCount": "Necitite: {{count}}",
+      "messageInput.removeFile": "Elimină atașamentul",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -21121,6 +21144,7 @@ export const translations = {
       "chat.newMessages": "New messages",
       "search.searching": "Searching history…",
       "nav.unreadCount": "Unread: {{count}}",
+      "messageInput.removeFile": "Remove attachment",
     }
   },
 
@@ -22002,6 +22026,7 @@ export const translations = {
       "chat.newMessages": "Нові повідомлення",
       "search.searching": "Пошук в історії…",
       "nav.unreadCount": "Непрочитані: {{count}}",
+      "messageInput.removeFile": "Вилучити вкладення",
     }
   },
 }

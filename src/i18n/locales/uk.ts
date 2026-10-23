@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Нові повідомлення",
       "search.searching": "Пошук в історії…",
       "nav.unreadCount": "Непрочитані: {{count}}",
+      "messageInput.removeFile": "Вилучити вкладення",
     }
 }

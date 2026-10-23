@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Mesaje noi",
       "search.searching": "Se caută în istoric…",
       "nav.unreadCount": "Necitite: {{count}}",
+      "messageInput.removeFile": "Elimină atașamentul",
     }
 }

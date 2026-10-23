@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Uued sõnumid",
       "search.searching": "Ajaloo otsimine…",
       "nav.unreadCount": "Lugemata: {{count}}",
+      "messageInput.removeFile": "Eemalda manus",
     }
 }

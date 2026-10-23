@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Új üzenetek",
       "search.searching": "Előzmények keresése…",
       "nav.unreadCount": "Olvasatlan: {{count}}",
+      "messageInput.removeFile": "Melléklet eltávolítása",
     }
 }

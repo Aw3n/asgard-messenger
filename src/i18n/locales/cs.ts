@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Nové zprávy",
       "search.searching": "Prohledávání historie…",
       "nav.unreadCount": "Nepřečtené: {{count}}",
+      "messageInput.removeFile": "Odebrat přílohu",
     }
 }

@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Νέα μηνύματα",
       "search.searching": "Αναζήτηση στο ιστορικό…",
       "nav.unreadCount": "Μη αναγνωσμένα: {{count}}",
+      "messageInput.removeFile": "Αφαίρεση συνημμένου",
     }
 }

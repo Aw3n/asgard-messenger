@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Nova sporočila",
       "search.searching": "Iskanje po zgodovini…",
       "nav.unreadCount": "Neprebrano: {{count}}",
+      "messageInput.removeFile": "Odstrani prilogo",
     }
 }

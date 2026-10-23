@@ -877,5 +877,6 @@ export default {
       "chat.newMessages": "Nuovi messaggi",
       "search.searching": "Ricerca nella cronologia…",
       "nav.unreadCount": "Non letti: {{count}}",
+      "messageInput.removeFile": "Rimuovi allegato",
     }
 }

@@ -877,5 +877,6 @@ export default {
       "chat.newMessages": "Nouveaux messages",
       "search.searching": "Recherche dans l’historique…",
       "nav.unreadCount": "Non lus : {{count}}",
+      "messageInput.removeFile": "Retirer la pièce jointe",
     }
 }

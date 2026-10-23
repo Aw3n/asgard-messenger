@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Nya meddelanden",
       "search.searching": "Söker i historiken…",
       "nav.unreadCount": "Olästa: {{count}}",
+      "messageInput.removeFile": "Ta bort bilaga",
     }
 }

@@ -877,5 +877,6 @@ export default {
       "chat.newMessages": "Neue Nachrichten",
       "search.searching": "Verlauf wird durchsucht…",
       "nav.unreadCount": "Ungelesen: {{count}}",
+      "messageInput.removeFile": "Anhang entfernen",
     }
 }

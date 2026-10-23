@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Messaġġi ġodda",
       "search.searching": "Qed tfittex fl-istorja…",
       "nav.unreadCount": "Mhux moqrija: {{count}}",
+      "messageInput.removeFile": "Neħħi l-anness",
     }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
@@ -21,6 +21,57 @@ interface MessageInputProps {
   placeholder?: string
   /** BROADCAST MODE: When true, show read-only banner instead of input */
   broadcastReadOnly?: boolean
+}
+
+/**
+ * Vignette d'une pièce jointe en attente. L'URL blob appartient à la vignette :
+ * créée avant peinture et révoquée au démontage. La créer au rendu du
+ * composeur fuyait une URL à chaque frappe.
+ */
+const PendingFileChip: React.FC<{ file: File; onRemove: () => void }> = ({ file, onRemove }) => {
+  const { t } = useTranslation()
+  const [preview, setPreview] = useState<string | null>(null)
+
+  useLayoutEffect(() => {
+    if (!file.type.startsWith('image/')) {
+      setPreview(null)
+      return
+    }
+    const url = URL.createObjectURL(file)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+
+  return (
+    <div className="flex items-center gap-2 bg-asgard-surface-alt border border-asgard-border rounded-lg px-2 py-1.5">
+      {preview ? (
+        <div className="w-8 h-8 rounded bg-asgard-surface-alt overflow-hidden flex-shrink-0">
+          <img
+            src={preview}
+            alt={file.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="w-8 h-8 rounded bg-asgard-nordic/20 flex items-center justify-center flex-shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
+            <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/>
+          </svg>
+        </div>
+      )}
+      <span className="text-xs text-asgard-text-secondary truncate max-w-[120px]">{file.name}</span>
+      <button
+        onClick={onRemove}
+        className="text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
+        aria-label={`${t('messageInput.removeFile')} — ${file.name}`}
+        title={t('messageInput.removeFile')}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </div>
+  )
 }
 
 /**
@@ -438,32 +489,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           >
             <div className="flex flex-wrap gap-2 px-4 py-2 border-b border-asgard-border/30">
               {pendingFiles.map((file, index) => (
-                <div key={index} className="flex items-center gap-2 bg-asgard-surface-alt border border-asgard-border rounded-lg px-2 py-1.5">
-                  {file.type.startsWith('image/') ? (
-                    <div className="w-8 h-8 rounded bg-asgard-surface-alt overflow-hidden flex-shrink-0">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 rounded bg-asgard-nordic/20 flex items-center justify-center flex-shrink-0">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
-                        <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/>
-                      </svg>
-                    </div>
-                  )}
-                  <span className="text-xs text-asgard-text-secondary truncate max-w-[120px]">{file.name}</span>
-                  <button
-                    onClick={() => removePendingFile(index)}
-                    className="text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                  </button>
-                </div>
+                <PendingFileChip key={index} file={file} onRemove={() => removePendingFile(index)} />
               ))}
             </div>
           </motion.div>

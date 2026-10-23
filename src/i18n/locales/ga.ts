@@ -878,5 +878,6 @@ export default {
       "chat.newMessages": "Teachtaireachtaí nua",
       "search.searching": "Ag cuardach na staire…",
       "nav.unreadCount": "Gan léamh: {{count}}",
+      "messageInput.removeFile": "Bain an ceangaltán",
     }
 }
