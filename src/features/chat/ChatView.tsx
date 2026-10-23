@@ -28,7 +28,9 @@ import { watchWindowVisibility } from '@/utils/windowVisibility'
 import { countIncomingAfter } from '@/utils/incomingAfter'
 import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
 import { parseMessageJump } from '@/utils/messageJump'
+import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
+import { useNewerMessages } from '@/hooks/useNewerMessages'
 import { formatLastSeen } from '@/utils/time'
 import type { Message } from '@/types'
 
@@ -205,8 +207,21 @@ export const ChatView: React.FC = () => {
   const waitForInitialHistory = useCallback(() => initialHistoryLoadRef.current, [])
   const loadJumpContext = useCallback(async (timestamp: number) => {
     if (!resolvedId) return
-    await chatService.loadMessageContext(resolvedId, timestamp)
+    return chatService.loadMessageContext(resolvedId, timestamp)
   }, [resolvedId])
+  // La page de contexte s'arrête bien avant la fenêtre récente : charger la
+  // suite seulement quand la vue s'en approche évite un trou définitif.
+  const loadNewerGapMessages = useCallback(async (cursor: MessageCursor, limit: number) => {
+    if (!resolvedId) return []
+    return chatService.loadNewerMessages(resolvedId, cursor.timestamp, cursor.id, limit)
+  }, [resolvedId])
+  const { gapArmed, armGap, onRangeChanged } = useNewerMessages({
+    dataId,
+    messages,
+    firstItemIndex: paginationState.firstItemIndex,
+    pageSize: HISTORY_PAGE_SIZE,
+    loadNewer: loadNewerGapMessages,
+  })
   const handleJumpPrepended = useCallback((added: number) => {
     setPagination((state) => {
       const base = state.dataId === dataId ? state.firstItemIndex : FIRST_ITEM_INDEX
@@ -227,6 +242,7 @@ export const ChatView: React.FC = () => {
     waitForInitialHistory,
     loadContext: loadJumpContext,
     onPrependedMessages: handleJumpPrepended,
+    onNewerGap: armGap,
     onJumpStart: handleJumpStart,
   })
 
@@ -558,9 +574,12 @@ export const ChatView: React.FC = () => {
             data={messages}
             firstItemIndex={paginationState.firstItemIndex}
             startReached={() => { void loadOlderMessages() }}
+            rangeChanged={onRangeChanged}
             // Ne suit le bas que si l'utilisateur y est déjà : remonter pour
             // relire l'historique ne doit pas être annulé par chaque arrivée.
-            followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
+            // Pendant un comblement de couture, l'ajout de page ne doit pas
+            // non plus tirer la vue vers le bas.
+            followOutput={(atBottom) => (atBottom && !gapArmed ? 'smooth' : false)}
             atBottomStateChange={setAtBottom}
             className="h-full virtual-list"
             initialTopMostItemIndex={messages.length - 1}

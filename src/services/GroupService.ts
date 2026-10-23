@@ -10,6 +10,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { fileService } from './FileService'
 import { storageService } from './StorageService'
 import { generateId } from '@/utils/id'
+import { sortMessagesByCursor } from '@/utils/messageGap'
 import { speakText } from '@/utils/speech'
 import { ringtoneService } from './RingtoneService'
 import i18n from '@/i18n/config'
@@ -1257,12 +1258,12 @@ class GroupService {
     channelId: string,
     timestamp: number,
     limit = 50,
-  ): Promise<void> {
+  ): Promise<Message[]> {
     const identity = useIdentityStore.getState().identity
-    if (!identity) return
+    if (!identity) return []
     const group = useGroupStore.getState().getGroup(groupId)
-    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return
-    if (!group.channels.some((channel) => channel.id === channelId)) return
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return []
+    if (!group.channels.some((channel) => channel.id === channelId)) return []
 
     try {
       const [before, after] = await Promise.all([
@@ -1276,10 +1277,43 @@ class GroupService {
           limit,
         }),
       ])
-      const merged = [...before, ...after]
+      const merged = sortMessagesByCursor([...before, ...after])
       if (merged.length > 0) useMessageStore.getState().addMessages(channelId, merged)
+      return merged
     } catch (err) {
       console.error('[GroupService] Failed to load channel message context:', err)
+      return []
+    }
+  }
+
+  /**
+   * Charge la page qui suit une clé précise (couture après un saut profond).
+   * Mêmes contrôles d'appartenance que la pagination vers le haut.
+   */
+  async loadNewerChannelMessages(
+    groupId: string,
+    channelId: string,
+    afterTimestamp: number,
+    afterId: string,
+    limit = 50,
+  ): Promise<Message[]> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) return []
+    const group = useGroupStore.getState().getGroup(groupId)
+    if (!group?.members.some((member) => member.publicKey === identity.keyPair.publicKey)) return []
+    if (!group.channels.some((channel) => channel.id === channelId)) return []
+
+    try {
+      const stored = await storageService.getMessages(channelId, {
+        after: afterTimestamp,
+        afterId,
+        limit,
+      })
+      if (stored.length > 0) useMessageStore.getState().addMessages(channelId, stored)
+      return stored
+    } catch (err) {
+      console.error('[GroupService] Failed to load newer channel messages:', err)
+      return []
     }
   }
 

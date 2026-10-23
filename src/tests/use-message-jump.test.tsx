@@ -12,6 +12,7 @@ import type { VirtuosoHandle } from 'react-virtuoso'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useMessageJump } from '@/hooks/useMessageJump'
 import { useMessageStore } from '@/stores/messageStore'
+import type { MessageCursor } from '@/utils/messageGap'
 import type { MessageJumpState } from '@/utils/messageJump'
 import type { Message } from '@/types'
 
@@ -40,12 +41,13 @@ function makeRef() {
 interface HarnessProps {
   request: MessageJumpState | null
   virtuosoRef: RefObject<VirtuosoHandle>
-  loadContext: (timestamp: number) => Promise<unknown>
+  loadContext: (timestamp: number) => Promise<Message[] | void>
   waitForInitialHistory: () => Promise<unknown>
   onJumpStart: () => void
+  onNewerGap?: (cursor: MessageCursor, boundary: MessageCursor) => void
 }
 
-function Harness({ request, virtuosoRef, loadContext, waitForInitialHistory, onJumpStart }: HarnessProps) {
+function Harness({ request, virtuosoRef, loadContext, waitForInitialHistory, onJumpStart, onNewerGap }: HarnessProps) {
   const messages = useMessageStore((s) => s.messages[CONVERSATION] ?? [])
   const [firstItemIndex, setFirstItemIndex] = useState(100_000)
   const highlightedId = useMessageJump({
@@ -57,6 +59,7 @@ function Harness({ request, virtuosoRef, loadContext, waitForInitialHistory, onJ
     waitForInitialHistory,
     loadContext,
     onPrependedMessages: (added) => setFirstItemIndex((index) => index - added),
+    onNewerGap,
     onJumpStart,
   })
   return <div data-testid="highlighted">{highlightedId ?? ''}</div>
@@ -79,8 +82,10 @@ describe('saut vers un message', () => {
     const contextMessages = [makeMessage('avant', 900), target, makeMessage('apres', 1_100)]
     const loadContext = vi.fn(async () => {
       useMessageStore.getState().addMessages(CONVERSATION, contextMessages)
+      return contextMessages
     })
     const onJumpStart = vi.fn()
+    const onNewerGap = vi.fn()
     const { ref: virtuosoRef, scrollToIndex } = makeRef()
     const request: MessageJumpState = {
       messageId: target.id,
@@ -95,12 +100,19 @@ describe('saut vers un message', () => {
         loadContext={loadContext}
         waitForInitialHistory={() => Promise.resolve()}
         onJumpStart={onJumpStart}
+        onNewerGap={onNewerGap}
       />
     )
 
     await waitFor(() => expect(screen.getByTestId('highlighted')).toHaveTextContent('cible'))
     expect(loadContext).toHaveBeenCalledWith(1_000)
     expect(onJumpStart).toHaveBeenCalledTimes(1)
+    // Le contexte s'arrête bien avant la fenêtre récente : la couture est
+    // signalée avec le dernier message chargé et le premier déjà présent.
+    expect(onNewerGap).toHaveBeenCalledWith(
+      { timestamp: 1_100, id: 'apres' },
+      { timestamp: 5_000, id: 'recent-1' },
+    )
     // 3 messages insérés devant la fenêtre : l'index Virtuoso recule d'autant,
     // la cible étant le 2e message chargé (index de données 1).
     await waitFor(() => expect(scrollToIndex).toHaveBeenCalledWith({
@@ -138,6 +150,39 @@ describe('saut vers un message', () => {
       align: 'center',
       behavior: 'auto',
     }))
+  })
+
+  it('n’arme pas de couture quand le contexte rejoint la fenêtre récente', async () => {
+    useMessageStore.setState({
+      messages: { [CONVERSATION]: [makeMessage('recent-1', 5_000)] },
+    })
+    const target = makeMessage('cible', 1_000)
+    const contextMessages = [
+      makeMessage('avant', 900),
+      target,
+      makeMessage('apres', 1_100),
+      makeMessage('recent-1', 5_000),
+    ]
+    const loadContext = vi.fn(async () => {
+      useMessageStore.getState().addMessages(CONVERSATION, contextMessages)
+      return contextMessages
+    })
+    const onNewerGap = vi.fn()
+    const { ref: virtuosoRef } = makeRef()
+
+    render(
+      <Harness
+        request={{ messageId: target.id, messageTimestamp: target.timestamp, conversationId: CONVERSATION }}
+        virtuosoRef={virtuosoRef}
+        loadContext={loadContext}
+        waitForInitialHistory={() => Promise.resolve()}
+        onJumpStart={vi.fn()}
+        onNewerGap={onNewerGap}
+      />
+    )
+
+    await waitFor(() => expect(screen.getByTestId('highlighted')).toHaveTextContent('cible'))
+    expect(onNewerGap).not.toHaveBeenCalled()
   })
 
   it('ignore une cible qui appartient à un autre fil', async () => {

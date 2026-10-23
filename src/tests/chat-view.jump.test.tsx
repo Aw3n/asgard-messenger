@@ -6,13 +6,16 @@
  * mauvais endroit.
  */
 import React from 'react'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Conversation } from '@/types'
 import type { Message } from '@/types'
 
-const { scrollToIndexMock } = vi.hoisted(() => ({ scrollToIndexMock: vi.fn() }))
+const { scrollToIndexMock, virtuosoProps } = vi.hoisted(() => ({
+  scrollToIndexMock: vi.fn(),
+  virtuosoProps: {} as Record<string, unknown>,
+}))
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
@@ -24,6 +27,7 @@ vi.mock('react-virtuoso', async () => {
   const Virtuoso = ReactModule.forwardRef(
     (props: { data: Message[]; itemContent: (index: number, message: Message) => React.ReactNode }, ref: React.Ref<unknown>) => {
       ReactModule.useImperativeHandle(ref, () => ({ scrollToIndex: scrollToIndexMock }))
+      Object.assign(virtuosoProps, props)
       return ReactModule.createElement(
         'div',
         { 'data-testid': 'virtual-list' },
@@ -72,6 +76,7 @@ vi.mock('@/services/ChatService', () => ({
   chatService: {
     loadMessages: vi.fn(),
     loadMessageContext: vi.fn(),
+    loadNewerMessages: vi.fn(),
     probeContact: vi.fn(),
     sendReadReceipt: vi.fn(async () => {}),
     sendTyping: vi.fn(async () => {}),
@@ -143,6 +148,7 @@ function makeMessage(id: string, timestamp: number): Message {
 
 beforeEach(() => {
   scrollToIndexMock.mockClear()
+  for (const key of Object.keys(virtuosoProps)) delete virtuosoProps[key]
   useMessageStore.setState({ messages: {} })
   useConversationStore.setState({
     conversations: { [CONVERSATION_ID]: { ...conversation } },
@@ -162,11 +168,13 @@ beforeEach(() => {
     return recent
   })
   vi.mocked(chatService.loadMessageContext).mockImplementation(async (conversationId: string) => {
-    useMessageStore.getState().addMessages(conversationId, [
+    const contextMessages = [
       makeMessage('avant', 900),
       makeMessage('cible', 1_000),
       makeMessage('apres', 1_100),
-    ])
+    ]
+    useMessageStore.getState().addMessages(conversationId, contextMessages)
+    return contextMessages
   })
 })
 
@@ -198,5 +206,43 @@ describe('ChatView : saut vers un message', () => {
       align: 'center',
       behavior: 'auto',
     }))
+  })
+
+  it('comble la couture vers la fenêtre récente au défilement', async () => {
+    const gapPage = [makeMessage('gap-1', 2_000), makeMessage('gap-2', 3_000)]
+    vi.mocked(chatService.loadNewerMessages).mockImplementation(async (conversationId: string) => {
+      useMessageStore.getState().addMessages(conversationId, gapPage)
+      return gapPage
+    })
+
+    render(
+      <MemoryRouter
+        initialEntries={[{
+          pathname: `/conversations/${CONVERSATION_ID}`,
+          state: { messageId: 'cible', messageTimestamp: 1_000, conversationId: CONVERSATION_ID },
+        }]}
+      >
+        <Routes>
+          <Route path="/conversations/:conversationId" element={<ChatView />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    await waitFor(() => expect(screen.getByTestId('bubble-cible')).toHaveAttribute('data-highlighted', 'true'))
+
+    // Le contexte s'arrête à 1100 ; la fenêtre récente commence à 5000.
+    const notifyRange = virtuosoProps.rangeChanged as (range: { endIndex: number }) => void
+    act(() => notifyRange({ endIndex: 4 }))
+
+    await waitFor(() => expect(chatService.loadNewerMessages).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      1_100,
+      'apres',
+      50,
+    ))
+    await waitFor(() => expect(screen.getByTestId('bubble-gap-1')).toBeInTheDocument())
+    expect(chatService.loadNewerMessages).toHaveBeenCalledTimes(1)
+    // La page ajoutée ne doit pas tirer la vue vers le bas pendant la couture.
+    expect((virtuosoProps.followOutput as (atBottom: boolean) => unknown)(true)).toBe(false)
   })
 })

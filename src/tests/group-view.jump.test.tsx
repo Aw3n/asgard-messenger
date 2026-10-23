@@ -3,12 +3,15 @@
  * contexte du message visé, puis le centrer et le surligner.
  */
 import React from 'react'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Group, Message } from '@/types'
 
-const { scrollToIndexMock } = vi.hoisted(() => ({ scrollToIndexMock: vi.fn() }))
+const { scrollToIndexMock, virtuosoProps } = vi.hoisted(() => ({
+  scrollToIndexMock: vi.fn(),
+  virtuosoProps: {} as Record<string, unknown>,
+}))
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
@@ -20,6 +23,7 @@ vi.mock('react-virtuoso', async () => {
   const Virtuoso = ReactModule.forwardRef(
     (props: { data: Message[]; itemContent: (index: number, message: Message) => React.ReactNode }, ref: React.Ref<unknown>) => {
       ReactModule.useImperativeHandle(ref, () => ({ scrollToIndex: scrollToIndexMock }))
+      Object.assign(virtuosoProps, props)
       return ReactModule.createElement(
         'div',
         { 'data-testid': 'virtual-list' },
@@ -64,6 +68,7 @@ vi.mock('@/services/GroupService', () => ({
   groupService: {
     loadChannelMessages: vi.fn(),
     loadChannelMessageContext: vi.fn(),
+    loadNewerChannelMessages: vi.fn(),
     announceGroupPresence: vi.fn(),
     sendTypingIndicator: vi.fn(async () => {}),
     markAsRead: vi.fn(async () => {}),
@@ -121,6 +126,7 @@ function makeMessage(id: string, timestamp: number): Message {
 
 beforeEach(() => {
   scrollToIndexMock.mockClear()
+  for (const key of Object.keys(virtuosoProps)) delete virtuosoProps[key]
   useMessageStore.setState({ messages: {} })
   useGroupStore.setState({
     groups: { [GROUP_ID]: { ...group } },
@@ -141,11 +147,13 @@ beforeEach(() => {
     useMessageStore.getState().addMessages(CHANNEL_ID, recent)
   })
   vi.mocked(groupService.loadChannelMessageContext).mockImplementation(async () => {
-    useMessageStore.getState().addMessages(CHANNEL_ID, [
+    const contextMessages = [
       makeMessage('avant', 900),
       makeMessage('cible', 1_000),
       makeMessage('apres', 1_100),
-    ])
+    ]
+    useMessageStore.getState().addMessages(CHANNEL_ID, contextMessages)
+    return contextMessages
   })
 })
 
@@ -173,5 +181,41 @@ describe('GroupView : saut vers un message', () => {
       align: 'center',
       behavior: 'auto',
     }))
+  })
+
+  it('comble la couture du canal vers la fenêtre récente', async () => {
+    useGroupStore.setState({ groupViewVisible: true })
+    const gapPage = [makeMessage('gap-1', 2_000), makeMessage('gap-2', 3_000)]
+    vi.mocked(groupService.loadNewerChannelMessages).mockImplementation(async () => {
+      useMessageStore.getState().addMessages(CHANNEL_ID, gapPage)
+      return gapPage
+    })
+
+    render(
+      <MemoryRouter
+        initialEntries={[{
+          pathname: `/groups/${GROUP_ID}/channels/${CHANNEL_ID}`,
+          state: { messageId: 'cible', messageTimestamp: 1_000, conversationId: CHANNEL_ID },
+        }]}
+      >
+        <GroupView />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => expect(screen.getByTestId('bubble-cible')).toHaveAttribute('data-highlighted', 'true'))
+
+    const notifyRange = virtuosoProps.rangeChanged as (range: { endIndex: number }) => void
+    act(() => notifyRange({ endIndex: 4 }))
+
+    await waitFor(() => expect(groupService.loadNewerChannelMessages).toHaveBeenCalledWith(
+      GROUP_ID,
+      CHANNEL_ID,
+      1_100,
+      'apres',
+      50,
+    ))
+    await waitFor(() => expect(screen.getByTestId('bubble-gap-1')).toBeInTheDocument())
+    expect(groupService.loadNewerChannelMessages).toHaveBeenCalledTimes(1)
+    expect((virtuosoProps.followOutput as (atBottom: boolean) => unknown)(true)).toBe(false)
   })
 })

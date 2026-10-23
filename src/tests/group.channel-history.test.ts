@@ -142,6 +142,82 @@ describe('remonter l’historique d’un canal', () => {
   })
 })
 
+describe('combler la couture d’un canal', () => {
+  it('demande la page après la clé exacte et la fusionne', async () => {
+    const getMessages = vi.spyOn(storageService, 'getMessages').mockResolvedValue([
+      message('m-5', B, 5_000),
+      message('m-6', A, 6_000),
+    ])
+    useMessageStore.getState().addMessages(channelId, [message('m-4', A, 4_000)])
+
+    const returned = await groupService.loadNewerChannelMessages(
+      groupId,
+      channelId,
+      4_000,
+      'm-4',
+      50,
+    )
+
+    expect(getMessages).toHaveBeenCalledWith(channelId, {
+      after: 4_000,
+      afterId: 'm-4',
+      limit: 50,
+    })
+    expect(returned.map((m) => m.id)).toEqual(['m-5', 'm-6'])
+    expect(useMessageStore.getState().messages[channelId]?.map((m) => m.id)).toEqual([
+      'm-4',
+      'm-5',
+      'm-6',
+    ])
+  })
+
+  it('ne lit ni un canal inconnu ni un groupe dont on n’est pas membre', async () => {
+    const getMessages = vi.spyOn(storageService, 'getMessages').mockResolvedValue([])
+    useIdentityStore.setState({
+      identity: {
+        keyPair: { publicKey: 'd'.repeat(64), secretKey: 'f'.repeat(128) },
+        profile: { publicKey: 'd'.repeat(64), displayName: 'Dave', status: 'online', createdAt: 0, updatedAt: 0 },
+      },
+      isSetup: true,
+    })
+
+    await groupService.loadNewerChannelMessages(groupId, channelId, 3_001, 'm-3')
+    useIdentityStore.setState({
+      identity: {
+        keyPair: { publicKey: A, secretKey: 'f'.repeat(128) },
+        profile: { publicKey: A, displayName: 'Alice', status: 'online', createdAt: 0, updatedAt: 0 },
+      },
+      isSetup: true,
+    })
+    await groupService.loadNewerChannelMessages(groupId, 'canal-inconnu', 3_001, 'm-3')
+
+    expect(getMessages).not.toHaveBeenCalled()
+  })
+})
+
+describe('contexte d’un saut dans un canal', () => {
+  it('rend les pages fusionnées dans l’ordre des clés du stockage', async () => {
+    const getMessages = vi.spyOn(storageService, 'getMessages').mockImplementation(
+      async (_channelId, options) => {
+        if (options?.reverse) {
+          return [
+            message('cible-b', B, 1_000),
+            message('cible-a', B, 1_000),
+            message('avant', B, 900),
+          ]
+        }
+        return [message('apres', A, 1_100)]
+      },
+    )
+
+    const returned = await groupService.loadChannelMessageContext(groupId, channelId, 1_000, 50)
+
+    expect(getMessages).toHaveBeenCalledWith(channelId, { before: 1_001, limit: 50, reverse: true })
+    expect(getMessages).toHaveBeenCalledWith(channelId, { after: 1_000, limit: 50 })
+    expect(returned.map((m) => m.id)).toEqual(['avant', 'cible-a', 'cible-b', 'apres'])
+  })
+})
+
 describe('ouverture d’un canal = lecture', () => {
   it('remet le compteur à zéro et envoie les accusés de lecture', async () => {
     // createGroup sélectionne le groupe : un message n'est « non lu » que

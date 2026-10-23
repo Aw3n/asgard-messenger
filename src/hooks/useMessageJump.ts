@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import type { VirtuosoHandle } from 'react-virtuoso'
 import { useMessageStore } from '@/stores/messageStore'
+import { compareMessageCursor, newestMessageCursor, type MessageCursor } from '@/utils/messageGap'
 import type { MessageJumpState } from '@/utils/messageJump'
 import type { Message } from '@/types'
 
@@ -16,10 +17,15 @@ interface UseMessageJumpOptions {
   virtuosoRef: RefObject<VirtuosoHandle>
   /** Résout quand la page la plus récente du fil est chargée. */
   waitForInitialHistory: () => Promise<unknown>
-  /** Charge et fusionne une page autour de cette date. */
-  loadContext: (timestamp: number) => Promise<unknown>
+  /** Charge et fusionne une page autour de cette date ; rend la page obtenue. */
+  loadContext: (timestamp: number) => Promise<Message[] | void>
   /** Décale l'ancrage Virtuoso du nombre de messages insérés avant la fenêtre. */
   onPrependedMessages: (count: number) => void
+  /**
+   * Signale la couture entre la page de contexte et la fenêtre récente :
+   * des messages restent à charger entre `cursor` et `boundary`.
+   */
+  onNewerGap?: (cursor: MessageCursor, boundary: MessageCursor) => void
   /** Le suivi du bas doit être coupé avant l'arrivée des messages. */
   onJumpStart?: () => void
 }
@@ -40,6 +46,7 @@ export function useMessageJump({
   waitForInitialHistory,
   loadContext,
   onPrependedMessages,
+  onNewerGap,
   onJumpStart,
 }: UseMessageJumpOptions): string | undefined {
   const [pending, setPending] = useState<MessageJumpState | null>(null)
@@ -52,6 +59,9 @@ export function useMessageJump({
   // Lu dans requestAnimationFrame : l'ancrage peut avoir été corrigé entre-temps.
   const firstItemIndexRef = useRef(firstItemIndex)
   firstItemIndexRef.current = firstItemIndex
+  // Le callback de couture peut changer sans devoir relancer le chargement.
+  const onNewerGapRef = useRef(onNewerGap)
+  onNewerGapRef.current = onNewerGap
 
   // Changer de fil abandonne une cible qui appartenait à l'ancien.
   useEffect(() => {
@@ -88,7 +98,12 @@ export function useMessageJump({
       const before = useMessageStore.getState().messages[targetDataId] ?? []
       if (before.some((message) => message.id === targetMessageId)) return
       const beforeIds = new Set(before.map((message) => message.id))
-      await loadContext(timestamp)
+      // Le premier message de la fenêtre déjà chargée borne la couture : au-delà,
+      // la page suivante est déjà en mémoire.
+      const initialOldest = before[0]
+        ? { timestamp: before[0].timestamp, id: before[0].id }
+        : null
+      const page = await loadContext(timestamp)
       if (dataIdRef.current !== targetDataId) return
       const after = useMessageStore.getState().messages[targetDataId] ?? []
       let added = 0
@@ -96,7 +111,18 @@ export function useMessageJump({
         if (!beforeIds.has(message.id)) added++
       }
       if (added > 0) onPrependedMessages(added)
-      if (!after.some((message) => message.id === targetMessageId)) setPending(null)
+      if (!after.some((message) => message.id === targetMessageId)) {
+        setPending(null)
+        return
+      }
+      const contextNewest = Array.isArray(page) ? newestMessageCursor(page) : null
+      if (
+        contextNewest &&
+        initialOldest &&
+        compareMessageCursor(contextNewest, initialOldest) < 0
+      ) {
+        onNewerGapRef.current?.(contextNewest, initialOldest)
+      }
     })()
   }, [pending, dataId, waitForInitialHistory, loadContext, onPrependedMessages])
 

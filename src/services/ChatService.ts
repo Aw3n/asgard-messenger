@@ -13,6 +13,7 @@ import { useNetworkStore } from '@/stores/networkStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { generateId } from '@/utils/id'
+import { sortMessagesByCursor } from '@/utils/messageGap'
 import { speakText } from '@/utils/speech'
 import i18n from '@/i18n/config'
 import {
@@ -2847,8 +2848,9 @@ class ChatService {
   /**
    * Load the messages surrounding a date, to open a deep search result in
    * context. The target itself is included with the page before it.
+   * Returns the page in storage order so the caller knows its newest exact key.
    */
-  async loadMessageContext(conversationId: string, timestamp: number, limit = 50): Promise<void> {
+  async loadMessageContext(conversationId: string, timestamp: number, limit = 50): Promise<Message[]> {
     try {
       const [before, after] = await Promise.all([
         storageService.getMessages(conversationId, {
@@ -2861,10 +2863,38 @@ class ChatService {
           limit,
         }),
       ])
-      const merged = [...before, ...after]
+      const merged = sortMessagesByCursor([...before, ...after])
       if (merged.length > 0) useMessageStore.getState().addMessages(conversationId, merged)
+      return merged
     } catch (err) {
       console.error('[ChatService] Failed to load message context:', err)
+      return []
+    }
+  }
+
+  /**
+   * Load the page that follows an exact message key (gap after a deep jump).
+   * The identifier keeps messages sharing the same millisecond in the page.
+   */
+  async loadNewerMessages(
+    conversationId: string,
+    afterTimestamp: number,
+    afterId: string,
+    limit = 50,
+  ): Promise<Message[]> {
+    try {
+      const messages = await storageService.getMessages(conversationId, {
+        after: afterTimestamp,
+        afterId,
+        limit,
+      })
+      if (messages.length > 0) {
+        useMessageStore.getState().addMessages(conversationId, messages)
+      }
+      return messages
+    } catch (err) {
+      console.error('[ChatService] Failed to load newer messages:', err)
+      return []
     }
   }
 

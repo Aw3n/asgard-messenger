@@ -120,14 +120,18 @@ export class StorageService {
    */
   async getMessages(
     conversationId: string,
-    options?: { limit?: number; before?: number; after?: number; reverse?: boolean }
+    options?: { limit?: number; before?: number; after?: number; afterId?: string; reverse?: boolean }
   ): Promise<SerializedMessage[]> {
     const bee = await this.getMessagesBee(conversationId)
     const messages: SerializedMessage[] = []
 
     const rangeOpts: Record<string, unknown> = {}
     if (options?.after) {
-      rangeOpts.gt = `${options.after}:\uffff`
+      // Une reprise après une clé précise doit inclure les messages qui
+      // partagent le même milliseconde mais suivent cet identifiant.
+      rangeOpts.gt = options.afterId
+        ? `${options.after}:${options.afterId}`
+        : `${options.after}:\uffff`
     } else if (!options?.before) {
       // No range specified — get all
     }

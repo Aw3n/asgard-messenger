@@ -117,7 +117,7 @@ export interface AsgardAPI {
     getSize: () => Promise<number>
     saveMessage: (conversationId: string, message: unknown) => Promise<void>
     saveMessages: (conversationId: string, messages: unknown[]) => Promise<void>
-    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; reverse?: boolean }) => Promise<unknown[]>
+    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; afterId?: string; reverse?: boolean }) => Promise<unknown[]>
     getLastMessages: (conversationId: string, count?: number) => Promise<unknown[]>
     getLatestMessage: (conversationId: string) => Promise<unknown | null>
     clearMessages: (conversationId: string) => Promise<void>
@@ -380,7 +380,7 @@ contextBridge.exposeInMainWorld('asgard', {
       ipcRenderer.invoke('storage:saveMessage', conversationId, message),
     saveMessages: (conversationId: string, messages: unknown[]) =>
       ipcRenderer.invoke('storage:saveMessages', conversationId, messages),
-    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; reverse?: boolean }) =>
+    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; afterId?: string; reverse?: boolean }) =>
       ipcRenderer.invoke('storage:getMessages', conversationId, options),
     getLastMessages: (conversationId: string, count?: number) =>
       ipcRenderer.invoke('storage:getLastMessages', conversationId, count),

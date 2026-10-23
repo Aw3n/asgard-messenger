@@ -23,7 +23,9 @@ import { watchWindowVisibility } from '@/utils/windowVisibility'
 import { countIncomingAfter } from '@/utils/incomingAfter'
 import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
 import { parseMessageJump } from '@/utils/messageJump'
+import type { MessageCursor } from '@/utils/messageGap'
 import { useMessageJump } from '@/hooks/useMessageJump'
+import { useNewerMessages } from '@/hooks/useNewerMessages'
 import type { Message } from '@/types'
 
 const HISTORY_PAGE_SIZE = 50
@@ -337,8 +339,27 @@ export const GroupView: React.FC = () => {
   const waitForInitialHistory = useCallback(() => initialChannelLoadRef.current, [])
   const loadJumpContext = useCallback(async (timestamp: number) => {
     if (!activeGroupId || !channelId) return
-    await groupService.loadChannelMessageContext(activeGroupId, channelId, timestamp)
+    return groupService.loadChannelMessageContext(activeGroupId, channelId, timestamp)
   }, [activeGroupId, channelId])
+  // Même couture que le fil 1:1 : le contexte du saut s'arrête avant la
+  // fenêtre récente, la suite se charge en approchant du dernier message.
+  const loadNewerGapMessages = useCallback(async (cursor: MessageCursor, limit: number) => {
+    if (!activeGroupId || !channelId) return []
+    return groupService.loadNewerChannelMessages(
+      activeGroupId,
+      channelId,
+      cursor.timestamp,
+      cursor.id,
+      limit,
+    )
+  }, [activeGroupId, channelId])
+  const { gapArmed, armGap, onRangeChanged } = useNewerMessages({
+    dataId: channelId || undefined,
+    messages,
+    firstItemIndex: paginationState.firstItemIndex,
+    pageSize: HISTORY_PAGE_SIZE,
+    loadNewer: loadNewerGapMessages,
+  })
   const handleJumpPrepended = useCallback((added: number) => {
     setPagination((state) => {
       const base = state.key === historyKey ? state.firstItemIndex : FIRST_ITEM_INDEX
@@ -359,6 +380,7 @@ export const GroupView: React.FC = () => {
     waitForInitialHistory,
     loadContext: loadJumpContext,
     onPrependedMessages: handleJumpPrepended,
+    onNewerGap: armGap,
     onJumpStart: handleJumpStart,
   })
 
@@ -465,7 +487,8 @@ export const GroupView: React.FC = () => {
               data={messages}
               firstItemIndex={paginationState.firstItemIndex}
               startReached={() => { void loadOlderMessages() }}
-              followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
+              rangeChanged={onRangeChanged}
+              followOutput={(atBottom) => (atBottom && !gapArmed ? 'smooth' : false)}
               atBottomStateChange={setAtBottom}
               className="h-full virtual-list"
               initialTopMostItemIndex={messages.length - 1}

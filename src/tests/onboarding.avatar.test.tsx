@@ -49,9 +49,11 @@ describe('avatar de l’onboarding', () => {
     expect(upload.className).toContain('focus-visible:opacity-100')
 
     const createElement = vi.spyOn(document, 'createElement')
-    const before = createElement.mock.calls.filter(([tag]) => tag === 'input').length
+    // Le typage Electron ajoute une surcharge `webview` à createElement :
+    // comparer la balise comme chaîne évite une fausse incompatibilité.
+    const before = createElement.mock.calls.filter(([tag]) => (tag as string) === 'input').length
     fireEvent.click(upload)
-    const after = createElement.mock.calls.filter(([tag]) => tag === 'input').length
+    const after = createElement.mock.calls.filter(([tag]) => (tag as string) === 'input').length
     expect(after).toBe(before + 1)
   })
 })
