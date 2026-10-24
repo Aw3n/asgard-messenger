@@ -2,6 +2,7 @@ import { BrowserWindow, Menu, Tray, app, nativeImage } from 'electron'
 import type { NativeImage } from 'electron'
 import path from 'path'
 import { paintUnreadDot, UNREAD_DOT_SIZE } from './utils/unreadDot'
+import { createTrayActivation, type TrayActivation } from './utils/trayActivation'
 
 interface TrayStrings {
   tooltip: string
@@ -55,6 +56,7 @@ export class AsgardTray {
   private lang: string
   private unread = 0
   private overlayIcon: NativeImage | null = null
+  private activation: TrayActivation | null = null
   private static readonly MAX_TOOLTIP_UNREAD = 99
 
   constructor(win: BrowserWindow, lang: string = 'en') {
@@ -181,16 +183,30 @@ export class AsgardTray {
       this.tray = new Tray(trayIcon)
       this.refreshMenu()
 
-      this.tray.on('double-click', () => {
-        if (this.win.isVisible()) {
-          this.win.hide()
-        } else {
-          this.win.show()
-          this.win.focus()
-        }
-      })
+      // Windows n'activait l'icône qu'au double-clic alors que le geste attendu
+      // sur cette plateforme est le clic simple ; l'arbitre évite le
+      // clignotement d'une bascule par clic lors d'un double-clic. Sur macOS,
+      // le clic gauche ouvre le menu contextuel natif : on n'y touche pas.
+      if (process.platform === 'win32') {
+        this.activation = createTrayActivation(() => this.toggleWindow())
+        this.tray.on('click', this.activation.click)
+        this.tray.on('double-click', this.activation.doubleClick)
+      } else {
+        this.tray.on('double-click', () => this.toggleWindow())
+      }
     } catch (err) {
       console.warn('[AsgardTray] Could not create tray:', err)
+    }
+  }
+
+  /** Ramène la fenêtre devant, ou la range dans le tray si elle est déjà là. */
+  private toggleWindow(): void {
+    if (this.win.isDestroyed()) return
+    if (this.win.isVisible()) {
+      this.win.hide()
+    } else {
+      this.win.show()
+      this.win.focus()
     }
   }
 
@@ -226,6 +242,8 @@ export class AsgardTray {
   }
 
   destroy(): void {
+    this.activation?.cancel()
+    this.activation = null
     this.tray?.destroy()
     this.tray = null
   }
