@@ -163,6 +163,13 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
       await window.asgard.network.blockPeer(noiseKey, blocked)
     } catch (err) {
       console.error('[ContactDetailView] Failed to apply network block:', err)
+      // Le blocage local, lui, a bien pris : les messages entrants sont
+      // filtrés. Mais le pare-feu ignore encore la clé Noise, donc le pair
+      // peut toujours se connecter. Ne pas le taire.
+      addToast({
+        type: 'error',
+        title: t(blocked ? 'contacts.blockNetworkFailed' : 'contacts.unblockNetworkFailed'),
+      })
     }
   }
 
