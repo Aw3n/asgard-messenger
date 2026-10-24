@@ -172,6 +172,20 @@ describe('offre d’appel', () => {
     expect(incoming?.participants).toEqual([B, A])
   })
 
+  it('nomme un appel de groupe sans nom dans la langue de l’interface', () => {
+    useGroupStore.getState().updateGroup(groupId, { name: '' })
+    dispatch('call:offer', {
+      type: 'audio',
+      callerName: 'Bob',
+      isGroupCall: true,
+      groupId,
+      participants: [B, A],
+    }, B)
+
+    // « Group Call » restait anglais dans les 25 langues.
+    expect(useCallStore.getState().incomingCall?.peerName).toBe('Appel de groupe')
+  })
+
   it('décline un second appel au lieu de remplacer la sonnerie en cours', () => {
     dispatch('call:offer', { type: 'audio', callerName: 'Bob' }, B)
     dispatch('call:offer', { type: 'audio', callerName: 'Carol' }, C)

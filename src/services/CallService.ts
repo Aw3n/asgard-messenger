@@ -376,7 +376,7 @@ class CallService {
         }
         groupId = payload.groupId as string
         const group = useGroupStore.getState().getGroup(groupId)
-        groupName = CallService.callName(payload.groupName, group?.name ?? 'Group Call')
+        groupName = CallService.callName(payload.groupName, group?.name || i18n.t('calls.groupCall'))
         const declared = Array.isArray(payload.participants) ? payload.participants : []
         participants = [...new Set([
           msg.from,
@@ -391,7 +391,7 @@ class CallService {
       const call: CallRecord = {
         id: `call-${Date.now()}`,
         peerId: msg.from,
-        peerName: isGroupCall ? (groupName ?? 'Group Call') : (contact?.displayName ?? callerName),
+        peerName: isGroupCall ? (groupName ?? i18n.t('calls.groupCall')) : (contact?.displayName ?? callerName),
         peerAvatar: contact?.avatar ?? CallService.callAvatar(payload.callerAvatar),
         type,
         status: 'incoming',

@@ -235,7 +235,9 @@ export const Avatar: React.FC<AvatarProps> = ({
         {showImage ? (
           <img
             src={src}
-            alt={name ?? 'Avatar'}
+            // Sans nom, l'image ne porte aucune information : un texte de repli
+            // anglais (« Avatar ») n'aidait personne et restait non traduit.
+            alt={name ?? ''}
             className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
@@ -539,6 +541,7 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
   memberAvatars = [],
   className,
 }) => {
+  const { t } = useTranslation()
   const sizeConfig = sizes[size]
   const initials = getInitials(name)
   const seed = name ?? 'group'
@@ -556,7 +559,9 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
         >
           <img
             src={src}
-            alt={name ?? 'Group'}
+            // Le repli d'un groupe sans nom est déjà traduit pour la recherche :
+            // même intention, même catalogue.
+            alt={name ?? t('search.groupFallback')}
             className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
@@ -595,7 +600,7 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
                 {member.src ? (
                   <img
                     src={member.src}
-                    alt={member.name ?? 'Member'}
+                    alt={member.name ?? t('common.member')}
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
