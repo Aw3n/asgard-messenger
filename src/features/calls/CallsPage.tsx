@@ -343,13 +343,13 @@ export const CallsPage: React.FC = () => {
             </div>
           ) : (
             <div className="divide-y divide-asgard-border">
-              {groupedHistory.map((group) => (
-                <div key={group.peerId}>
-                  {/* Main entry: latest call for this contact */}
-                  <div
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-asgard-surface transition-colors cursor-pointer"
-                    onClick={() => setExpandedPeer(expandedPeer === group.peerId ? null : group.peerId)}
-                  >
+              {groupedHistory.map((group, index) => {
+                // Une rangée d'un seul appel ne déplie rien : elle ne doit ni
+                // se présenter comme cliquable ni avaler le clic.
+                const expandable = group.totalCount > 1
+                const regionId = `call-history-${index}`
+                const rowContent = (
+                  <>
                     <Avatar
                       src={group.peerAvatar}
                       name={group.peerName}
@@ -376,23 +376,50 @@ export const CallsPage: React.FC = () => {
                       </div>
                     </div>
                     {/* Call count badge */}
-                    {group.totalCount > 1 && (
+                    {expandable && (
                       <span className="text-xs px-1.5 py-0.5 rounded-full bg-asgard-glacier/15 text-asgard-glacier font-medium">
                         {group.totalCount}
                       </span>
                     )}
                     <span className="text-xs text-asgard-text-muted">{formatDate(group.latestCall.startedAt)}</span>
                     {/* Expand indicator */}
-                    {group.totalCount > 1 && (
+                    {expandable && (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={`text-asgard-text-muted transition-transform ${expandedPeer === group.peerId ? 'rotate-180' : ''}`}>
                         <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
                       </svg>
+                    )}
+                  </>
+                )
+                return (
+                <div key={group.peerId}>
+                  {/* Main entry: latest call for this contact */}
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${expandable ? 'hover:bg-asgard-surface' : ''}`}>
+                    {expandable ? (
+                      // Un <button> ne peut pas contenir les blocs de la
+                      // rangée (avatar, textes) : rôle explicite + clavier.
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setExpandedPeer(expandedPeer === group.peerId ? null : group.peerId)}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return
+                          e.preventDefault()
+                          setExpandedPeer(expandedPeer === group.peerId ? null : group.peerId)
+                        }}
+                        aria-expanded={expandedPeer === group.peerId}
+                        aria-controls={regionId}
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-asgard-glacier/60"
+                      >
+                        {rowContent}
+                      </div>
+                    ) : (
+                      <div className="flex flex-1 min-w-0 items-center gap-3">{rowContent}</div>
                     )}
                     {/* Rappel direct — vaut aussi pour un appel manqué, le cas
                         le plus fréquent. Un appel de groupe n'est reformable
                         que si la liste de ses participants est connue. */}
                     {(!group.latestCall.isGroupCall || (group.latestCall.participants?.length ?? 0) > 0) && (
-                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-1">
                         <button
                           onClick={() => recall(group, 'audio')}
                           className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
@@ -415,8 +442,8 @@ export const CallsPage: React.FC = () => {
                     )}
                   </div>
                   {/* Expanded: show all calls for this contact */}
-                  {expandedPeer === group.peerId && group.totalCount > 1 && (
-                    <div className="bg-asgard-deep-black/30 px-4 pb-2">
+                  {expandedPeer === group.peerId && expandable && (
+                    <div id={regionId} className="bg-asgard-deep-black/30 px-4 pb-2">
                       {group.allCalls.slice(1).map((call) => (
                         <div key={call.id} className="flex items-center gap-3 py-2 border-t border-asgard-border/50">
                           <div className="flex-1 min-w-0">
@@ -441,7 +468,8 @@ export const CallsPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

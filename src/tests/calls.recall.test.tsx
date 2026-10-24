@@ -84,3 +84,38 @@ describe('rappel depuis l’historique des appels', () => {
     expect(screen.queryByTitle('calls.videoCall')).toBeNull()
   })
 })
+
+describe('rangée d’historique dépliable', () => {
+  const olderCall: CallRecord = { ...missedCall, id: 'call-plus-ancien', startedAt: Date.now() - 60_000 }
+
+  it('s’ouvre au clic d’un bouton et annonce son état', () => {
+    useCallStore.setState({ history: [missedCall, olderCall] })
+    render(<CallsPage />)
+
+    const row = screen.getByRole('button', { expanded: false, name: /Camille/ })
+    expect(row).toHaveAttribute('tabindex', '0')
+    const regionId = row.getAttribute('aria-controls')
+    expect(regionId).toBeTruthy()
+
+    fireEvent.click(row)
+
+    expect(screen.getByRole('button', { expanded: true, name: /Camille/ })).toBe(row)
+    expect(document.getElementById(regionId!)).not.toBeNull()
+
+    fireEvent.keyDown(row, { key: 'Enter' })
+    expect(screen.getByRole('button', { expanded: false, name: /Camille/ })).toBe(row)
+    expect(document.getElementById(regionId!)).toBeNull()
+
+    fireEvent.keyDown(row, { key: ' ' })
+    expect(screen.getByRole('button', { expanded: true, name: /Camille/ })).toBe(row)
+  })
+
+  it('un appel unique ne se présente pas comme dépliable', () => {
+    useCallStore.setState({ history: [missedCall] })
+    render(<CallsPage />)
+
+    expect(screen.queryByRole('button', { name: /Camille/ })).toBeNull()
+    expect(document.querySelector('[aria-expanded]')).toBeNull()
+    expect(document.querySelector('.cursor-pointer')).toBeNull()
+  })
+})
