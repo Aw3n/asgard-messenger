@@ -319,7 +319,6 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
       <AnimatePresence>
         {showConfirmEmpty && (
           <EmptyTrashConfirm
-            count={trashItems.length}
             onClose={() => setShowConfirmEmpty(false)}
             onConfirm={handleEmptyTrash}
           />
@@ -334,8 +333,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
  * une page déjà utilisable, il doit se refermer sur Échap et ne pas laisser Tab
  * repartir dans la liste qu'il recouvre.
  */
-const EmptyTrashConfirm: React.FC<{ count: number; onClose: () => void; onConfirm: () => void }> = ({
-  count,
+const EmptyTrashConfirm: React.FC<{ onClose: () => void; onConfirm: () => void }> = ({
   onClose,
   onConfirm,
 }) => {
@@ -368,7 +366,7 @@ const EmptyTrashConfirm: React.FC<{ count: number; onClose: () => void; onConfir
           {t('settings.emptyTrashConfirm')}
         </h3>
         <p className="text-sm text-asgard-text-secondary mb-4">
-          {t('settings.emptyTrashWarning', { count })}
+          {t('settings.emptyTrashWarning')}
         </p>
         <div className="flex gap-3 justify-end">
           <button

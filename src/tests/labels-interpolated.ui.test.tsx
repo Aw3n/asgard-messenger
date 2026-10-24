@@ -1,9 +1,10 @@
 /**
- * Quatre libellés recevaient des paramètres que leur traduction n'utilisait
- * pas : le compteur de vues d'un partage, la taille totale des téléchargements,
- * le nom du canal dans le composeur et le nom de la conversation à supprimer
- * (la phrase affichait le mot « name ») restaient invisibles. Les panneaux sont
- * rendus ici avec le vrai catalogue français, et les 25 langues sont balayées.
+ * Six libellés recevaient des paramètres que leur traduction n'utilisait pas :
+ * le compteur de vues d'un partage, la taille totale des téléchargements, le
+ * nom du canal dans le composeur, le nom de la conversation à supprimer (la
+ * phrase affichait le mot « name »), puis le compte de la corbeille et celui
+ * des liens actifs. Les panneaux sont rendus ici avec le vrai catalogue
+ * français, et les 25 langues sont balayées.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
@@ -11,6 +12,7 @@ import '@/i18n/config'
 import { translations } from '@/i18n/translations'
 import { ShareLinksManager } from '@/features/settings/components/ShareLinksManager'
 import { DownloadHistory } from '@/features/settings/components/DownloadHistory'
+import { TrashManager } from '@/features/settings/components/TrashManager'
 
 vi.mock('@/services/FileService', () => ({
   fileService: {
@@ -34,6 +36,18 @@ vi.mock('@/services/FileService', () => ({
     getDownloadStats: () => ({ total: 1, totalSize: 1536, byType: { image: 1 }, recentCount: 1 }),
     searchDownloadHistory: () => [],
     clearDownloadHistory: vi.fn(),
+    getTrashBin: () => [{
+      blobKey: 'blob-1',
+      fileName: 'photo.png',
+      fileSize: 1536,
+      mimeType: 'image/png',
+      deletedAt: Date.now(),
+      expiresAt: Date.now() + 86_400_000,
+    }],
+    getTrashStats: () => ({ count: 1, totalSize: 1536 }),
+    restoreFromTrash: vi.fn(),
+    permanentDelete: vi.fn().mockResolvedValue(true),
+    emptyTrash: vi.fn().mockResolvedValue(true),
   },
 }))
 
@@ -42,6 +56,8 @@ const REQUIRED: Record<string, string[]> = {
   'settings.totalSize': ['size'],
   'groups.messageChannel': ['channelName'],
   'chat.deleteWarning': ['name'],
+  'settings.trashItems': ['count'],
+  'settings.activeLinks': ['count'],
 }
 
 afterEach(cleanup)
@@ -67,6 +83,13 @@ describe('libellés interpolés', () => {
     render(<ShareLinksManager />)
 
     expect(screen.getByText('Vues : 3 / 10')).toBeInTheDocument()
+    expect(screen.getByText('Liens actifs : 1')).toBeInTheDocument()
+  })
+
+  it('la corbeille annonce son nombre d’éléments', () => {
+    render(<TrashManager onClose={() => {}} />)
+
+    expect(screen.getByText('Éléments : 1')).toBeInTheDocument()
   })
 
   it('l’historique affiche la taille totale', () => {
