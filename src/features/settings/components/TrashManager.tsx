@@ -3,12 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/cn'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { useMessageStore } from '@/stores/messageStore'
 import { getCurrentLanguage } from '@/i18n/config'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
 
 interface TrashEntry {
   blobKey: string
+  fileName?: string
+  mimeType?: string
+  fileSize?: number
   deletedAt: number
   expiresAt: number
 }
@@ -21,6 +25,9 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
   const [trashItems, setTrashItems] = useState<TrashEntry[]>([])
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showConfirmEmpty, setShowConfirmEmpty] = useState(false)
+  // Sortir une entrée de la corbeille ne suffit pas : la pièce jointe du fil
+  // reste marquée « supprimée » tant que le store des messages ne l'apprend pas.
+  const restoreFileAttachment = useMessageStore((s) => s.restoreFileAttachment)
   // La croix du panneau ne fait que redire ce que la touche réglée fait déjà :
   // ce panneau-là l'ignorait encore, il la reçoit comme les autres dialogues.
   const dialogRef = useDialogBehavior(onClose)
@@ -37,6 +44,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
 
   const handleRestore = (blobKey: string) => {
     fileService.restoreFromTrash(blobKey)
+    restoreFileAttachment(blobKey)
     loadTrash()
     setSelectedItems((prev) => {
       const next = new Set(prev)
@@ -73,6 +81,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
   const handleBulkRestore = () => {
     selectedItems.forEach((blobKey) => {
       fileService.restoreFromTrash(blobKey)
+      restoreFileAttachment(blobKey)
     })
     loadTrash()
     setSelectedItems(new Set())
@@ -235,8 +244,8 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
 
                   {/* File info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-asgard-text-primary truncate font-mono">
-                      {item.blobKey.slice(0, 16)}...
+                    <p className="text-sm text-asgard-text-primary truncate">
+                      {item.fileName ?? `${item.blobKey.slice(0, 16)}...`}
                     </p>
                     <p className="text-xs text-asgard-text-muted">
                       {t('settings.deletedAt')}: {new Date(item.deletedAt).toLocaleDateString(getCurrentLanguage())}

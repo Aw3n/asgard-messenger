@@ -80,6 +80,12 @@ interface MessageState {
   useTemplate: (id: string) => void
   // File actions
   deleteFileAttachment: (messageId: string, conversationId: string, attachmentId: string) => Promise<boolean>
+  /**
+   * Annule la marque « supprimé » posée par deleteFileAttachment, dans tous les
+   * messages qui portent ce blob. Rend le nombre de pièces restaurées : zéro
+   * signifie que la corbeille garde une entrée orpheline.
+   */
+  restoreFileAttachment: (blobKey: string) => number
   downloadFileAttachment: (attachment: MessageAttachment) => Promise<string>
   /**
    * Publie dans le store l'URL locale (ré)solue d'une pièce jointe. Nécessaire
@@ -804,7 +810,11 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
       if (!attachment || !attachment.blobKey) return false
 
       // Delete the file via FileService
-      const deleted = await fileService.deleteSentFile(attachment.blobKey)
+      const deleted = await fileService.deleteSentFile(attachment.blobKey, {
+        fileName: attachment.name,
+        mimeType: attachment.mimeType,
+        fileSize: attachment.size,
+      })
       if (!deleted) return false
 
       // Le fichier n'est plus : l'URL d'objet qui servait à l'afficher ne sert
@@ -837,6 +847,49 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
       console.error('[MessageStore] deleteFileAttachment failed:', err)
       return false
     }
+  },
+
+  restoreFileAttachment: (blobKey) => {
+    const restored: { messageId: string; conversationId: string; attachment: MessageAttachment }[] = []
+    set((state) => {
+      let changed = false
+      const messages = { ...state.messages }
+      for (const [conversationId, convMessages] of Object.entries(state.messages)) {
+        let convChanged = false
+        const next = convMessages.map((m) => {
+          if (!m.attachments?.some((a) => a.blobKey === blobKey && a.deleted)) return m
+          convChanged = true
+          return {
+            ...m,
+            attachments: m.attachments.map((a) => {
+              if (a.blobKey !== blobKey || !a.deleted) return a
+              const attachment = { ...a, deleted: false }
+              restored.push({ messageId: m.id, conversationId, attachment })
+              return attachment
+            }),
+          }
+        })
+        if (convChanged) {
+          messages[conversationId] = next
+          changed = true
+        }
+      }
+      return changed ? { messages } : state
+    })
+
+    // L'URL d'objet a été libérée à la suppression : sans relecture, l'aperçu
+    // resterait vide alors que le blob est encore sur disque.
+    void (async () => {
+      const { fileService } = await import('@/services/FileService')
+      for (const { messageId, conversationId, attachment } of restored) {
+        try {
+          const url = await fileService.resolveLocalUrl(attachment)
+          if (url) get().setAttachmentLocalUrl(messageId, conversationId, attachment.id, url)
+        } catch { /* blob purgé : la pièce revient sans aperçu */ }
+      }
+    })()
+
+    return restored.length
   },
 
   setAttachmentLocalUrl: (messageId, conversationId, attachmentId, localUrl) => {

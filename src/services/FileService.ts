@@ -5647,7 +5647,10 @@ class FileService {
    * Delete a sent file (marks as deleted, moves to trash).
    * The file will no longer be accessible to recipients.
    */
-  async deleteSentFile(blobKey: string): Promise<boolean> {
+  async deleteSentFile(
+    blobKey: string,
+    meta?: { fileName?: string; mimeType?: string; fileSize?: number },
+  ): Promise<boolean> {
     try {
       // Mark as deleted
       this.deletedFiles.add(blobKey)
@@ -5658,9 +5661,15 @@ class FileService {
       // Clear duplicate tracking entries
       this.clearDuplicateCache()
 
+      // Une seconde suppression du même blob ne crée pas une seconde ligne.
+      this.trashBin = this.trashBin.filter((entry) => entry.blobKey !== blobKey)
+
       // Add to trash bin
       this.trashBin.push({
         blobKey,
+        fileName: meta?.fileName,
+        mimeType: meta?.mimeType,
+        fileSize: meta?.fileSize,
         deletedAt: Date.now(),
         expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
       })
@@ -7181,6 +7190,10 @@ interface VoiceSegment {
 
 interface TrashEntry {
   blobKey: string
+  /** Ce que l'utilisateur reconnaît du fichier ; absent pour un appel sans métadonnées. */
+  fileName?: string
+  mimeType?: string
+  fileSize?: number
   deletedAt: number
   expiresAt: number
 }
