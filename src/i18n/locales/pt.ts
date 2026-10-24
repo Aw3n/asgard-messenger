@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Coluna atualizada",
       "settings.speakers": "Colunas",
       "settings.stopTest": "Parar teste",
+      "settings.storageSizeUnavailable": "Tamanho utilizado indisponível",
       "settings.storageSubtitle": "Gere dados locais e transferências",
       "settings.suspended": "Suspenso",
       "settings.testCamera": "Testar câmara",

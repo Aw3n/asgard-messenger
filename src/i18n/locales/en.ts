@@ -823,6 +823,7 @@ export default {
       "settings.speakerUpdated": "Speaker updated",
       "settings.speakers": "Speakers",
       "settings.stopTest": "Stop test",
+      "settings.storageSizeUnavailable": "Used size unavailable",
       "settings.storageSubtitle": "Manage local data and downloads",
       "settings.suspended": "Suspended",
       "settings.testCamera": "Test camera",

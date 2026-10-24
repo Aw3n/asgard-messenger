@@ -814,6 +814,7 @@ export default {
       "settings.speakerUpdated": "Reproduktor aktualizovaný",
       "settings.speakers": "Reproduktory",
       "settings.stopTest": "Zastaviť test",
+      "settings.storageSizeUnavailable": "Použitá veľkosť nie je dostupná",
       "settings.storageSubtitle": "Spravujte lokálne údaje a sťahovania",
       "settings.suspended": "Pozastavené",
       "settings.testCamera": "Testovať kameru",

@@ -814,6 +814,7 @@ export default {
       "settings.speakerUpdated": "Zvočnik posodobljen",
       "settings.speakers": "Zvočniki",
       "settings.stopTest": "Ustavi test",
+      "settings.storageSizeUnavailable": "Uporabljena velikost ni na voljo",
       "settings.storageSubtitle": "Upravljajte lokalne podatke in prenose",
       "settings.suspended": "Zaustavljeno",
       "settings.testCamera": "Testiraj kamero",

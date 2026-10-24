@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Zvučnik ažuriran",
       "settings.speakers": "Zvučnici",
       "settings.stopTest": "Zaustavi test",
+      "settings.storageSizeUnavailable": "Iskorištena veličina nije dostupna",
       "settings.storageSubtitle": "Upravljajte lokalnim podacima i preuzimanjima",
       "settings.suspended": "Obustavljeno",
       "settings.testCamera": "Testiraj kameru",

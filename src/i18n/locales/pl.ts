@@ -814,6 +814,7 @@ export default {
       "settings.speakerUpdated": "Głośnik zaktualizowany",
       "settings.speakers": "Głośniki",
       "settings.stopTest": "Zatrzymaj test",
+      "settings.storageSizeUnavailable": "Użyty rozmiar niedostępny",
       "settings.storageSubtitle": "Zarządzaj lokalnymi danymi i pobraniami",
       "settings.suspended": "Wstrzymano",
       "settings.testCamera": "Testuj kamerę",

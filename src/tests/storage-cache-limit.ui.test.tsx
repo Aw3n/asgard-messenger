@@ -10,7 +10,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { useUIStore } from '@/stores/uiStore'
@@ -134,6 +134,40 @@ describe('curseur de plafond', () => {
     expect(block.length).toBeGreaterThan(200)
     expect(block).toMatch(/const \{ settings, updateSettings \} = useUIStore\(\)/)
     expect(block).not.toMatch(/useUIStore\.getState\(\)\.settings/)
+  })
+})
+
+describe('mesure de la taille utilisée', () => {
+  it('annonce une mesure indisponible et propose de réessayer', async () => {
+    const getSize = vi.fn()
+      .mockRejectedValueOnce(new Error('pont fermé'))
+      .mockResolvedValueOnce(250 * MB)
+    Object.assign(window.asgard.storage, { getSize })
+    await openStorage()
+
+    // L'échec restait avalé : la ligne affichait « ... (0%) » sans fin, comme
+    // une mesure toujours en cours sur un stockage vide.
+    expect(await screen.findByText('settings.storageSizeUnavailable')).toBeInTheDocument()
+    expect(screen.queryByText(/\(0%\)/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.retry' }))
+
+    expect(await screen.findByText(/250\.0 MB settings\.usedOf 500 MB \(50%\)/)).toBeInTheDocument()
+    expect(screen.queryByText('settings.storageSizeUnavailable')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'common.retry' })).toBeNull()
+  })
+
+  it('ne prétend pas 0 % pendant la mesure', async () => {
+    let settle: (bytes: number) => void = () => {}
+    Object.assign(window.asgard.storage, {
+      getSize: vi.fn(() => new Promise<number>((resolve) => { settle = resolve })),
+    })
+    await openStorage()
+
+    expect(screen.getByText('...')).toBeInTheDocument()
+    expect(screen.queryByText(/\(0%\)/)).toBeNull()
+
+    await act(async () => { settle(0) })
   })
 })
 

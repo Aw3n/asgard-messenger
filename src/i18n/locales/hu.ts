@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Hangszóró frissítve",
       "settings.speakers": "Hangszórók",
       "settings.stopTest": "Teszt leállítása",
+      "settings.storageSizeUnavailable": "A használt méret nem érhető el",
       "settings.storageSubtitle": "Helyi adatok és letöltések kezelése",
       "settings.suspended": "Felfüggesztve",
       "settings.testCamera": "Kamera tesztelése",

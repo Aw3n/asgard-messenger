@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Högtalare uppdaterad",
       "settings.speakers": "Högtalare",
       "settings.stopTest": "Stoppa test",
+      "settings.storageSizeUnavailable": "Använd storlek är inte tillgänglig",
       "settings.storageSubtitle": "Hantera lokal data och nedladdningar",
       "settings.suspended": "Pausad",
       "settings.testCamera": "Testa kamera",

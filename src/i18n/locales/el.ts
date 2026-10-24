@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Το ηχείο ενημερώθηκε",
       "settings.speakers": "Ηχεία",
       "settings.stopTest": "Διακοπή δοκιμής",
+      "settings.storageSizeUnavailable": "Το μέγεθος που χρησιμοποιείται δεν είναι διαθέσιμο",
       "settings.storageSubtitle": "Διαχειριστείτε τοπικά δεδομένα και λήψεις",
       "settings.suspended": "Ανεσταλμένο",
       "settings.testCamera": "Δοκιμή κάμερας",

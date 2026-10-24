@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Garsiakalbis atnaujintas",
       "settings.speakers": "Garsiakalbiai",
       "settings.stopTest": "Sustabdyti testą",
+      "settings.storageSizeUnavailable": "Naudojamas dydis nepasiekiamas",
       "settings.storageSubtitle": "Tvarkykite vietinius duomenis ir atsisiuntimus",
       "settings.suspended": "Sustabdyta",
       "settings.testCamera": "Testuoti kamerą",

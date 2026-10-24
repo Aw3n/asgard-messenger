@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Kaiutin päivitetty",
       "settings.speakers": "Kaiuttimet",
       "settings.stopTest": "Pysäytä testi",
+      "settings.storageSizeUnavailable": "Käytetty koko ei saatavilla",
       "settings.storageSubtitle": "Hallinnoi paikallisia tietoja ja latauksia",
       "settings.suspended": "Keskeytetty",
       "settings.testCamera": "Testaa kamera",

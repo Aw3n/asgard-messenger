@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Skaļrunis atjaunināts",
       "settings.speakers": "Skaļruņi",
       "settings.stopTest": "Apturēt testu",
+      "settings.storageSizeUnavailable": "Izmantotais apjoms nav pieejams",
       "settings.storageSubtitle": "Pārvaldiet vietējos datus un lejupielādes",
       "settings.suspended": "Apturēts",
       "settings.testCamera": "Testēt kameru",

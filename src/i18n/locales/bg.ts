@@ -814,6 +814,7 @@ export default {
       "settings.speakerUpdated": "Говорителят е обновен",
       "settings.speakers": "Говорители",
       "settings.stopTest": "Спиране на теста",
+      "settings.storageSizeUnavailable": "Използваният размер не е наличен",
       "settings.storageSubtitle": "Управлявайте локални данни и изтегляния",
       "settings.suspended": "Спряно",
       "settings.testCamera": "Тестване на камерата",

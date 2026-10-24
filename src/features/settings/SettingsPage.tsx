@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -1218,17 +1218,23 @@ const StorageSection: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [realStorageSize, setRealStorageSize] = useState<number | null>(null)
+  const [storageSizeError, setStorageSizeError] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
   const [showShareLinks, setShowShareLinks] = useState(false)
   const [showDownloads, setShowDownloads] = useState(false)
   const [showFavorites, setShowFavorites] = useState(false)
 
   // Fetch real storage size on mount
-  useEffect(() => {
+  const loadStorageSize = useCallback(() => {
     window.asgard.storage.getSize().then((size) => {
       setRealStorageSize(size)
-    }).catch(() => {})
+      setStorageSizeError(false)
+    }).catch(() => setStorageSizeError(true))
   }, [])
+
+  useEffect(() => {
+    loadStorageSize()
+  }, [loadStorageSize])
 
   const formatBytes = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`
@@ -1323,8 +1329,24 @@ return (
               />
             </div>
             <p className="text-xs text-asgard-text-muted">
-              {realStorageSize !== null ? formatBytes(usedBytes) : '...'} {t('settings.usedOf')} {settings.storage.cacheSize} MB ({usedPercent}%)
+              {realStorageSize !== null
+                ? `${formatBytes(usedBytes)} ${t('settings.usedOf')} ${settings.storage.cacheSize} MB (${usedPercent}%)`
+                : storageSizeError
+                  ? t('settings.storageSizeUnavailable')
+                  : '...'}
             </p>
+            {storageSizeError && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStorageSizeError(false)
+                  loadStorageSize()
+                }}
+                className="mt-1 text-xs text-asgard-glacier hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-asgard-glacier/60 rounded"
+              >
+                {t('common.retry')}
+              </button>
+            )}
             <div className="mt-4">
               <label htmlFor={cacheLimitId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
                 {t('settings.cacheLimitLabel')}

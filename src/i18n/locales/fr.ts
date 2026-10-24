@@ -686,6 +686,7 @@ export default {
       "settings.statusUpdated": "Le statut est mis à jour immédiatement",
       "settings.stopTest": "Arrêter le test",
       "settings.storage": "Stockage",
+      "settings.storageSizeUnavailable": "Taille utilisée indisponible",
       "settings.storageSubtitle": "Gérez les données locales et les téléchargements",
       "settings.surfaceColor": "Couleur de surface",
       "settings.suspended": "Suspendu",

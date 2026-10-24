@@ -814,6 +814,7 @@ export default {
       "settings.speakerUpdated": "Callaire nuashonraithe",
       "settings.speakers": "Callairí",
       "settings.stopTest": "Stad tástáil",
+      "settings.storageSizeUnavailable": "Níl an méid úsáidte ar fáil",
       "settings.storageSubtitle": "Bainistigh sonraí áitiúla agus íoslódálacha",
       "settings.suspended": "Ar fionraí",
       "settings.testCamera": "Tástáil ceamara",

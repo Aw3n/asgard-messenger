@@ -814,6 +814,7 @@ export default {
       "settings.speakerUpdated": "Difuzor actualizat",
       "settings.speakers": "Difuzoare",
       "settings.stopTest": "Oprește testul",
+      "settings.storageSizeUnavailable": "Dimensiunea utilizată nu este disponibilă",
       "settings.storageSubtitle": "Gestionează datele locale și descărcările",
       "settings.suspended": "Suspendat",
       "settings.testCamera": "Testează camera",

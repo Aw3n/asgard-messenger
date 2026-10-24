@@ -795,6 +795,7 @@ export default {
       "settings.speakerUpdated": "Динамік оновлено",
       "settings.speakers": "Динаміки",
       "settings.stopTest": "Зупинити тест",
+      "settings.storageSizeUnavailable": "Використаний розмір недоступний",
       "settings.storageSubtitle": "Керуйте локальними даними та завантаженнями",
       "settings.suspended": "Призупинено",
       "settings.testCamera": "Тестувати камеру",

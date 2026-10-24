@@ -822,6 +822,7 @@ export default {
       "settings.speakerUpdated": "Kõlar uuendatud",
       "settings.speakers": "Kõlarid",
       "settings.stopTest": "Peata test",
+      "settings.storageSizeUnavailable": "Kasutatud maht pole saadaval",
       "settings.storageSubtitle": "Hallake kohalikke andmeid ja allalaadimisi",
       "settings.suspended": "Peatatud",
       "settings.testCamera": "Testi kaamerat",

@@ -840,6 +840,7 @@ export default {
       "settings.speakerUpdated": "Altoparlante aggiornato",
       "settings.speakers": "Altoparlanti",
       "settings.stopTest": "Interrompi test",
+      "settings.storageSizeUnavailable": "Dimensione utilizzata non disponibile",
       "settings.storageSubtitle": "Gestisci dati locali e download",
       "settings.suspended": "Sospeso",
       "settings.testCamera": "Testa fotocamera",

@@ -814,6 +814,7 @@ export default {
       "settings.speakerUpdated": "Spiker aġġornat",
       "settings.speakers": "Spikers",
       "settings.stopTest": "Waqqaf it-test",
+      "settings.storageSizeUnavailable": "Id-daqs użat mhuwiex disponibbli",
       "settings.storageSubtitle": "Immaniġġja data lokali u downloads",
       "settings.suspended": "Sospiż",
       "settings.testCamera": "Ittestja l-kamera",
