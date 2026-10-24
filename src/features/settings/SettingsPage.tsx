@@ -1637,6 +1637,8 @@ const DevicesSection: React.FC = () => {
   const [selectedSpeaker, setSelectedSpeaker] = useState<string>('')
   const [hasPermission, setHasPermission] = useState(false)
   const [micLevel, setMicLevel] = useState(0)
+  const [micTesting, setMicTesting] = useState(false)
+  const [cameraTesting, setCameraTesting] = useState(false)
   const micId = React.useId()
   const camId = React.useId()
   const speakerId = React.useId()
@@ -1681,16 +1683,36 @@ const DevicesSection: React.FC = () => {
     setSelectedMic(deviceId)
     mediaDeviceService.setPreferredDevice('audioinput', deviceId)
     addToast({ type: 'success', title: t('toast.microphoneUpdated') })
-    // Restart mic test with new device
-    micTestRef.current?.()
-    const stop = await mediaDeviceService.testMicrophone(deviceId, setMicLevel).catch(() => null)
-    micTestRef.current = stop ?? null
+    // Choisir un micro ne l'allume pas : seule une mesure déjà lancée suit le
+    // nouveau périphérique (l'ancien flux restait sinon actif, invisible).
+    if (!micTestRef.current) return
+    micTestRef.current()
+    micTestRef.current = null
+    setMicLevel(0)
+    try {
+      micTestRef.current = await mediaDeviceService.testMicrophone(deviceId, setMicLevel)
+    } catch {
+      setMicTesting(false)
+      addToast({ type: 'error', title: t('settings.microphoneTestFailed') })
+    }
   }
-
   const handleCamChange = async (deviceId: string) => {
     setSelectedCam(deviceId)
     mediaDeviceService.setPreferredDevice('videoinput', deviceId)
     addToast({ type: 'success', title: t('toast.cameraUpdated') })
+    // Même règle que le micro : l'aperçu ouvert suit le nouveau choix.
+    if (!cameraTestRef.current) return
+    cameraTestRef.current()
+    cameraTestRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+    try {
+      const { stream, stop } = await mediaDeviceService.testCamera(deviceId)
+      if (videoRef.current) videoRef.current.srcObject = stream
+      cameraTestRef.current = stop
+    } catch {
+      setCameraTesting(false)
+      addToast({ type: 'error', title: t('toast.cameraTestFailed') })
+    }
   }
 
   const handleSpeakerChange = (deviceId: string) => {
@@ -1704,11 +1726,13 @@ const DevicesSection: React.FC = () => {
       micTestRef.current()
       micTestRef.current = null
       setMicLevel(0)
+      setMicTesting(false)
       return
     }
     if (!selectedMic) return
     try {
       micTestRef.current = await mediaDeviceService.testMicrophone(selectedMic, setMicLevel)
+      setMicTesting(true)
     } catch {
       addToast({ type: 'error', title: t('settings.microphoneTestFailed') })
     }
@@ -1719,6 +1743,7 @@ const DevicesSection: React.FC = () => {
       cameraTestRef.current()
       cameraTestRef.current = null
       if (videoRef.current) videoRef.current.srcObject = null
+      setCameraTesting(false)
       return
     }
     if (!selectedCam) return
@@ -1726,6 +1751,8 @@ const DevicesSection: React.FC = () => {
       const { stream, stop } = await mediaDeviceService.testCamera(selectedCam)
       if (videoRef.current) videoRef.current.srcObject = stream
       cameraTestRef.current = stop
+      // L'aperçu était piloté par une ref : aucun rendu ne le montrait jamais.
+      setCameraTesting(true)
     } catch {
       addToast({ type: 'error', title: t('toast.cameraTestFailed') })
     }
@@ -1774,7 +1801,7 @@ return (
                   onClick={handleTestMic}
                   className="text-xs text-asgard-glacier hover:underline"
                 >
-                  {micTestRef.current ? t('settings.stopTest') : t('settings.testMic')}
+                  {micTesting ? t('settings.stopTest') : t('settings.testMic')}
                 </button>
                 <div className="flex-1 h-2 bg-asgard-surface-alt rounded-full overflow-hidden">
                   <div
@@ -1816,7 +1843,7 @@ return (
                   onClick={handleTestCamera}
                   className="text-xs text-asgard-glacier hover:underline mb-2"
                 >
-                  {cameraTestRef.current ? t('settings.stopPreview') : t('settings.testCamera')}
+                  {cameraTesting ? t('settings.stopPreview') : t('settings.testCamera')}
                 </button>
                 <video
                   ref={videoRef}
@@ -1824,7 +1851,7 @@ return (
                   playsInline
                   muted
                   className="w-full max-w-xs rounded-xl border border-asgard-border bg-black"
-                  style={{ display: cameraTestRef.current ? 'block' : 'none' }}
+                  style={{ display: cameraTesting ? 'block' : 'none' }}
                 />
               </div>
             )}
