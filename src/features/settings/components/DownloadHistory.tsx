@@ -141,7 +141,7 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
           <div>
             <h2 className="text-lg font-semibold text-asgard-text-primary">{t('settings.downloadHistory')}</h2>
             <p className="text-xs text-asgard-text-muted">
-              {stats.total} {t('settings.files')} · {formatBytes(stats.totalSize)} · {stats.recentCount} {t('chat.today').toLowerCase()}
+              {t('settings.totalDownloads', { count: stats.total })} · {formatBytes(stats.totalSize)} · {stats.recentCount} {t('chat.today').toLowerCase()}
             </p>
           </div>
         </div>

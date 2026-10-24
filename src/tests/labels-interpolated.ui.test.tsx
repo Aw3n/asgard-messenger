@@ -92,10 +92,12 @@ describe('libellés interpolés', () => {
     expect(screen.getByText('Éléments : 1')).toBeInTheDocument()
   })
 
-  it('l’historique affiche la taille totale', () => {
+  it('l’historique accorde le nombre de téléchargements au singulier', () => {
     render(<DownloadHistory />)
 
     expect(screen.getByText('Taille totale : 1.5 KB')).toBeInTheDocument()
+    expect(screen.getByText(/1 téléchargement · 1\.5 KB · 1 aujourd'hui/)).toBeInTheDocument()
+    expect(screen.queryByText(/1 Fichiers/)).not.toBeInTheDocument()
   })
 
   it('le pied de page des partages annonce la durée sans gabarit', () => {
