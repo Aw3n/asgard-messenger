@@ -3199,15 +3199,25 @@ class ChatService {
     const correctedMessage = this.sanitizeIncomingDmMessage(message, msg.from, resolvedId)
     if (!correctedMessage) return
 
+    // Un renvoi garde le même identifiant (file hors ligne, « réessayer ») :
+    // le store déduplique la bulle, mais recompter un non-lu et rejouer la
+    // notification feraient deux alertes pour un seul message. L'accusé,
+    // lui, repart toujours — c'est ce que le pair attend en renvoyant.
+    const alreadyKnown = Boolean(
+      useMessageStore.getState().getMessage(correctedMessage.id, resolvedId)
+    )
+
     // Add message to store
     useMessageStore.getState().addMessage(correctedMessage)
 
-    // Persist message to Hyperbee storage
+    // Persist message to Hyperbee storage (clé timestamp:id, donc idempotent)
     storageService.saveMessage(resolvedId, correctedMessage).catch(console.error)
 
     // RECEIPT: Send a delivery receipt to the sender so their status icon updates
     // from ✓ (sent) to ✓✓ (delivered). Best-effort, non-blocking.
     this.sendDeliveryReceipt(msg.from, [correctedMessage.id]).catch(() => {})
+
+    if (alreadyKnown) return
 
     // CRITICAL: Auto-create conversation if it doesn't exist (new contact messaging us)
     this.ensureConversation(resolvedId, msg.from, correctedMessage)

@@ -1952,7 +1952,13 @@ class GroupService {
       ...(mentions.length > 0 ? { mentions } : {}),
     }
 
-    // Add message to the store — include groupId for routing and tracking
+    // Add message to the store — include groupId for routing and tracking.
+    // Un renvoi de la file hors ligne garde le même identifiant : la bulle est
+    // déjà là, mais un non-lu et une notification de plus seraient des
+    // doublons. L'accusé, lui, repart — c'est ce que le pair attend.
+    const alreadyKnown = Boolean(
+      useMessageStore.getState().getMessage(message.id, channelId)
+    )
     useMessageStore.getState().addMessage(message)
 
     // PERSISTENCE: Save group message to Hyperbee storage so it survives restarts.
@@ -1994,11 +2000,13 @@ class GroupService {
       && groupState.activeGroupId === groupId
       && groupState.activeChannelId === channelId
     if (!viewingChannel) {
-      groupState.incrementChannelUnread(groupId, channelId)
-      // Une mention déjà notifiée par son canal dédié ne se rejoue pas ; sinon
-      // le message non affiché mérite une notification système, réglages respectés.
-      if (!this.notifiedMentionIds.delete(message.id)) {
-        this.notifyGroupMessage(group, message)
+      if (!alreadyKnown) {
+        groupState.incrementChannelUnread(groupId, channelId)
+        // Une mention déjà notifiée par son canal dédié ne se rejoue pas ; sinon
+        // le message non affiché mérite une notification système, réglages respectés.
+        if (!this.notifiedMentionIds.delete(message.id)) {
+          this.notifyGroupMessage(group, message)
+        }
       }
     } else if (
       identity
