@@ -156,6 +156,7 @@ export default {
       "common.away": "Ausente",
       "common.busy": "Ocupado",
       "common.cancel": "Cancelar",
+      "common.clear": "Borrar",
       "common.clipboardError": "No se pudo leer el portapapeles",
       "common.close": "Cerrar",
       "common.confirm": "Confirmar",

@@ -156,6 +156,7 @@ export default {
       "common.away": "Odsoten",
       "common.busy": "Zaseden",
       "common.cancel": "Prekliči",
+      "common.clear": "Počisti",
       "common.clipboardError": "Športišča ni bilo mogoče prebrati",
       "common.close": "Zapri",
       "common.confirm": "Potrdi",

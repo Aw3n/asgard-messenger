@@ -156,6 +156,7 @@ export default {
       "common.away": "Отсъства",
       "common.busy": "Зает",
       "common.cancel": "Отказ",
+      "common.clear": "Изчисти",
       "common.clipboardError": "Не можа да се прочете буферът",
       "common.close": "Затвори",
       "common.confirm": "Потвърди",

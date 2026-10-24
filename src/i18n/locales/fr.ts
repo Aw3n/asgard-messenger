@@ -156,6 +156,7 @@ export default {
       "common.away": "Absent",
       "common.busy": "Occupé",
       "common.cancel": "Annuler",
+      "common.clear": "Effacer",
       "common.clipboardError": "Impossible de lire le presse-papiers",
       "common.close": "Fermer",
       "common.confirm": "Confirmer",

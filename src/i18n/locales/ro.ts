@@ -156,6 +156,7 @@ export default {
       "common.away": "Plecat",
       "common.busy": "Ocupat",
       "common.cancel": "Anulează",
+      "common.clear": "Golește",
       "common.clipboardError": "Nu s-a putut citi clipboard-ul",
       "common.close": "Închide",
       "common.confirm": "Confirmă",

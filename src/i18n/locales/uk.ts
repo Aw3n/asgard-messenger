@@ -228,6 +228,7 @@ export default {
       "common.done": "Готово",
       "common.showing": "Показано",
       "common.muted": "Без звуку",
+      "common.clear": "Очистити",
       "common.clipboardError": "Не вдалося прочитати буфер обміну",
       "chat.newConversation": "Нова розмова",
       "chat.clearMessages": "Очистити повідомлення",

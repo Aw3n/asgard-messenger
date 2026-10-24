@@ -156,6 +156,7 @@ export default {
       "common.away": "Preč",
       "common.busy": "Zaneprázdnený",
       "common.cancel": "Zrušiť",
+      "common.clear": "Vymazať",
       "common.clipboardError": "Nedalo sa prečítať schránka",
       "common.close": "Zavrieť",
       "common.confirm": "Potvrdiť",

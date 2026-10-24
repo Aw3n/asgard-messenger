@@ -156,6 +156,7 @@ export default {
       "common.away": "Prom",
       "common.busy": "Aizņemts",
       "common.cancel": "Atcelt",
+      "common.clear": "Notīrīt",
       "common.clipboardError": "Nevarēja izlasīt starpliktuves saturu",
       "common.close": "Aizvērt",
       "common.confirm": "Apstiprināt",

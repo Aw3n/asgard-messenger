@@ -156,6 +156,7 @@ export default {
       "common.away": "Odsutan",
       "common.busy": "Zauzet",
       "common.cancel": "Odustani",
+      "common.clear": "Očisti",
       "common.clipboardError": "Nije moguće pročitati međuspremnik",
       "common.close": "Zatvori",
       "common.confirm": "Potvrdi",

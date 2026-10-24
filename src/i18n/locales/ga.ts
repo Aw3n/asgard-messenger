@@ -156,6 +156,7 @@ export default {
       "common.away": "As láthair",
       "common.busy": "Gnóthach",
       "common.cancel": "Cealaigh",
+      "common.clear": "Glan",
       "common.clipboardError": "Ní fhéadfaí an gearrán a léamh",
       "common.close": "Dún",
       "common.confirm": "Deimhnigh",

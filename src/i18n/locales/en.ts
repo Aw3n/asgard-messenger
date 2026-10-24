@@ -252,6 +252,7 @@ export default {
       "common.done": "Done",
       "common.showing": "Showing",
       "common.muted": "Muted",
+      "common.clear": "Clear",
       "common.clipboardError": "Could not read clipboard",
       "chat.newConversation": "New conversation",
       "chat.clearMessages": "Clear messages",

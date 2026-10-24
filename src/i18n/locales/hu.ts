@@ -156,6 +156,7 @@ export default {
       "common.away": "Távol",
       "common.busy": "Elfoglalt",
       "common.cancel": "Mégse",
+      "common.clear": "Törlés",
       "common.clipboardError": "A vágólapot nem sikerült olvasni",
       "common.close": "Bezárás",
       "common.confirm": "Megerősítés",

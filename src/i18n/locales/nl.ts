@@ -156,6 +156,7 @@ export default {
       "common.away": "Afwezig",
       "common.busy": "Bezig",
       "common.cancel": "Annuleren",
+      "common.clear": "Wissen",
       "common.clipboardError": "We konden het klembord niet lezen",
       "common.close": "Sluiten",
       "common.confirm": "Bevestigen",

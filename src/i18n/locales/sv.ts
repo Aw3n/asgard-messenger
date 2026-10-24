@@ -156,6 +156,7 @@ export default {
       "common.away": "Borta",
       "common.busy": "Upptagen",
       "common.cancel": "Avbryt",
+      "common.clear": "Rensa",
       "common.clipboardError": "Kunde inte läsa urklipp",
       "common.close": "Stäng",
       "common.confirm": "Bekräfta",

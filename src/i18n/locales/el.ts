@@ -156,6 +156,7 @@ export default {
       "common.away": "Απών",
       "common.busy": "Απασχολημένος",
       "common.cancel": "Ακύρωση",
+      "common.clear": "Καθαρισμός",
       "common.clipboardError": "Δεν ήταν δυνατή η ανάγνωση του προχείρου",
       "common.close": "Κλείσιμο",
       "common.confirm": "Επιβεβαίωση",

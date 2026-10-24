@@ -8,7 +8,7 @@
  * le même cas.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { fireEvent, render, screen, cleanup } from '@testing-library/react'
 import { Input } from '@/components/ui/Input'
 import { AvatarCropDialog } from '@/components/ui/Avatar'
 
@@ -71,6 +71,23 @@ describe('champ de saisie', () => {
 
     expect(screen.getByLabelText('Nom du groupe')).toHaveAttribute('id', 'group-name')
     expect(document.querySelector('label')?.htmlFor).toBe('group-name')
+  })
+
+  it('expose l’effacement comme un bouton nommé', () => {
+    const onClear = vi.fn()
+    render(<Input label="Recherche" value="abc" onChange={() => {}} onClear={onClear} />)
+
+    const clear = screen.getByRole('button', { name: 'common.clear' })
+    expect(clear).toHaveAttribute('type', 'button')
+    fireEvent.click(clear)
+    expect(onClear).toHaveBeenCalledTimes(1)
+  })
+
+  it('laisser un ornement sans action ne crée pas de bouton fantôme', () => {
+    render(<Input label="Recherche" iconRight={<svg data-testid="ornement" />} />)
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.getByTestId('ornement').closest('span')).toHaveAttribute('aria-hidden', 'true')
   })
 })
 

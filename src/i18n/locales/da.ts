@@ -156,6 +156,7 @@ export default {
       "common.away": "Fraværende",
       "common.busy": "Optaget",
       "common.cancel": "Annuller",
+      "common.clear": "Ryd",
       "common.clipboardError": "Kunne ikke læse udklipsholderen",
       "common.close": "Luk",
       "common.confirm": "Bekræft",

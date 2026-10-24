@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -15,6 +16,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
  */
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, hint, icon, iconRight, onClear, className, id, ...props }, ref) => {
+    const { t } = useTranslation()
     // Un <label> sans htmlFor ne nomme rien : le lecteur d'écran annonçait une
     // « zone d'édition » vide sur les onze champs du composant.
     const autoId = React.useId()
@@ -52,16 +54,26 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {(iconRight || (onClear && props.value)) && (
-            <span
-              className="absolute right-3 text-asgard-text-muted cursor-pointer hover:text-asgard-text-primary transition-colors"
-              onClick={onClear}
-            >
-              {iconRight ?? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                </svg>
-              )}
-            </span>
+            onClear ? (
+              // Un <span> cliquable n'existe ni pour la tabulation ni pour le
+              // lecteur d'écran : l'effacement était réservé à la souris.
+              <button
+                type="button"
+                onClick={onClear}
+                aria-label={t('common.clear')}
+                className="absolute right-3 text-asgard-text-muted hover:text-asgard-text-primary focus:outline-none focus-visible:text-asgard-glacier transition-colors"
+              >
+                {iconRight ?? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                )}
+              </button>
+            ) : (
+              <span aria-hidden="true" className="absolute right-3 text-asgard-text-muted pointer-events-none">
+                {iconRight}
+              </span>
+            )
           )}
         </div>
         {error && <p id={`${inputId}-error`} className="text-xs text-red-400">{error}</p>}

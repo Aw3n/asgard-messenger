@@ -156,6 +156,7 @@ export default {
       "common.away": "Abwesend",
       "common.busy": "Beschäftigt",
       "common.cancel": "Abbrechen",
+      "common.clear": "Leeren",
       "common.clipboardError": "Konnte die Zwischenablage nicht lesen",
       "common.close": "Schließen",
       "common.confirm": "Bestätigen",

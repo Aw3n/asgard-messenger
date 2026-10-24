@@ -156,6 +156,7 @@ export default {
       "common.away": "Eemal",
       "common.busy": "Hõivatud",
       "common.cancel": "Tühista",
+      "common.clear": "Tühjenda",
       "common.clipboardError": "Ei saanud lõikelaudu lugeda",
       "common.close": "Sule",
       "common.confirm": "Kinnita",

@@ -156,6 +156,7 @@ export default {
       "common.away": "Zaraz wracam",
       "common.busy": "Zajęty",
       "common.cancel": "Anuluj",
+      "common.clear": "Wyczyść",
       "common.clipboardError": "Nie udało się odczytać schowka",
       "common.close": "Zamknij",
       "common.confirm": "Potwierdź",

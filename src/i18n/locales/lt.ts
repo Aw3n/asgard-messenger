@@ -156,6 +156,7 @@ export default {
       "common.away": "Pasišalęs",
       "common.busy": "Užimtas",
       "common.cancel": "Atšaukti",
+      "common.clear": "Išvalyti",
       "common.clipboardError": "Nepavyko perskaityti iškarpinės",
       "common.close": "Uždaryti",
       "common.confirm": "Patvirtinti",

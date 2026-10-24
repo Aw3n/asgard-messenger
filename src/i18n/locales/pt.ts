@@ -156,6 +156,7 @@ export default {
       "common.away": "Ausente",
       "common.busy": "Ocupado",
       "common.cancel": "Cancelar",
+      "common.clear": "Limpar",
       "common.clipboardError": "Não foi possível ler a área de transferência",
       "common.close": "Fechar",
       "common.confirm": "Confirmar",

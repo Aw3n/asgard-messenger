@@ -156,6 +156,7 @@ export default {
       "common.away": "Assente",
       "common.busy": "Occupato",
       "common.cancel": "Annulla",
+      "common.clear": "Cancella",
       "common.clipboardError": "Impossibile leggere gli appunti",
       "common.close": "Chiudi",
       "common.confirm": "Conferma",

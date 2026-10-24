@@ -156,6 +156,7 @@ export default {
       "common.away": "Pois",
       "common.busy": "Varattu",
       "common.cancel": "Peruuta",
+      "common.clear": "Tyhjennä",
       "common.clipboardError": "Leikepöytää ei voitu lukea",
       "common.close": "Sulje",
       "common.confirm": "Vahvista",

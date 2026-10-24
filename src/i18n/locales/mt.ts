@@ -156,6 +156,7 @@ export default {
       "common.away": "Bogħod",
       "common.busy": "Imħabbat",
       "common.cancel": "Annulla",
+      "common.clear": "Naddaf",
       "common.clipboardError": "Ma nistgħux aqra l-clipboard",
       "common.close": "Agħlaq",
       "common.confirm": "Kkonferma",
