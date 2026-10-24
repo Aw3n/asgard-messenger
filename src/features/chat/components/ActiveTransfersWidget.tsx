@@ -296,7 +296,14 @@ const TransferItem: React.FC<{ transfer: TransferInfo }> = ({ transfer }) => {
 
         {/* Progress bar */}
         <div className="mt-1.5 flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-asgard-border/40 rounded-full overflow-hidden">
+          <div
+            role="progressbar"
+            aria-label={transfer.fileName}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(transfer.progress, 100)}
+            className="flex-1 h-1.5 bg-asgard-border/40 rounded-full overflow-hidden"
+          >
             <motion.div
               className={cn(
                 'h-full rounded-full',
@@ -344,7 +351,9 @@ const TransferItem: React.FC<{ transfer: TransferInfo }> = ({ transfer }) => {
       <button
         onClick={() => fileService.cancelTransfer(transfer.id)}
         className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-asgard-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
-        aria-label={t('common.cancel')}
+        // Plusieurs rangs peuvent coexister : « Annuler » seul ne dit pas
+        // lequel des fichiers en cours serait abandonné.
+        aria-label={`${t('common.cancel')} — ${transfer.fileName}`}
         title={t('common.cancel')}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

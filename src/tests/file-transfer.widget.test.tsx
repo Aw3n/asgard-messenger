@@ -69,6 +69,10 @@ describe('widget de transfert vidéo', () => {
     expect(screen.getByText('video.mp4')).toBeInTheDocument()
     expect(screen.getByText('chat.sendingFile')).toBeInTheDocument()
     expect(fileService.getTransfers()[0].progress).toBe(0)
+    // La barre porte la valeur pour un lecteur d'écran, pas seulement sa largeur.
+    const bar = screen.getByRole('progressbar', { name: 'video.mp4' })
+    expect(bar).toHaveAttribute('aria-valuenow', '0')
+    expect(bar).toHaveAttribute('aria-valuemax', '100')
     expect(p2pService.sendFileDataBatch).not.toHaveBeenCalled()
 
     await act(async () => { compression.resolve(video('video.webm')) })
@@ -79,6 +83,7 @@ describe('widget de transfert vidéo', () => {
     await act(async () => { chunk.resolve() })
     expect(screen.getByText('video.webm')).toBeInTheDocument()
     expect(fileService.getTransfers()[0]).toMatchObject({ progress: 99, status: 'uploading' })
+    await waitFor(() => expect(screen.getByRole('progressbar', { name: 'video.webm' })).toHaveAttribute('aria-valuenow', '99'))
     await act(async () => { completion.resolve(); await sending })
     expect(screen.queryByText('chat.sendingFile')).not.toBeInTheDocument()
     expect(fileService.getTransfers()).toEqual([])
@@ -125,6 +130,9 @@ describe('widget de transfert vidéo', () => {
     })
     expect(screen.getByText('premiere.mp4')).toBeInTheDocument()
     expect(screen.getByText('seconde.mp4')).toBeInTheDocument()
+    // Deux rangs actifs : chaque bouton Annuler nomme son propre fichier.
+    expect(screen.getByRole('button', { name: 'common.cancel — premiere.mp4' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'common.cancel — seconde.mp4' })).toBeInTheDocument()
     const failed = expect(a).rejects.toThrow('déconnecté')
     await act(async () => { first.reject(new Error('déconnecté')); await failed })
     expect(screen.queryByText('premiere.mp4')).not.toBeInTheDocument()
@@ -542,7 +550,7 @@ describe('annulation des transferts', () => {
     expect(screen.getByText('0 B / 256.0 KB')).toBeInTheDocument()
 
     const cancelled = expect(sending).rejects.toBeInstanceOf(TransferCancelledError)
-    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
+    fireEvent.click(screen.getByRole('button', { name: 'common.cancel — a-annuler.mp4' }))
     await waitFor(() => expect(screen.queryByText('a-annuler.mp4')).not.toBeInTheDocument())
     expect(p2pService.sendMessage).toHaveBeenCalledWith('peer', 'file:cancel', { transferId: id })
 

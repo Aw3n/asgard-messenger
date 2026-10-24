@@ -329,7 +329,9 @@ describe('les autres « Annuler » ne referment aucun dialogue', () => {
       source('src/features/chat/components/ActiveTransfersWidget.tsx'),
       'fileService.cancelTransfer(transfer.id)',
     )
-    expect(row).toContain("aria-label={t('common.cancel')}")
+    // Le libellé porte aussi le fichier : plusieurs transferts peuvent être
+    // actifs, « Annuler » seul ne dirait pas lequel serait abandonné.
+    expect(row).toContain("aria-label={`${t('common.cancel')} — ${transfer.fileName}`}")
     expect(row).not.toContain('aria-keyshortcuts')
 
     const manager = openingTag(source('src/features/settings/components/FileTransferManager.tsx'), 'handleCancel(transfer.id)')
