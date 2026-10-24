@@ -685,6 +685,7 @@ export default {
       "settings.appVersion": "Versione {{version}}",
       "settings.dataExported": "Dati esportati con successo",
       "settings.devicesSubtitle": "Microfono, fotocamera e altoparlante",
+      "settings.devicesUnavailable": "Elenco dispositivi non disponibile",
       "settings.exportFailed": "Esportazione fallita",
       "settings.exportFailedMessage": "Impossibile esportare i dati. Riprova.",
       "settings.makeDonationIn": "Fai una donazione in {{currency}}",

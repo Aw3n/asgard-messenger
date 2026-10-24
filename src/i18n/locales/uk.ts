@@ -648,6 +648,7 @@ export default {
       "settings.appVersion": "Версія {{version}}",
       "settings.dataExported": "Дані успішно експортовано",
       "settings.devicesSubtitle": "Мікрофон, камера та динамік",
+      "settings.devicesUnavailable": "Список пристроїв недоступний",
       "settings.exportFailed": "Експорт не вдався",
       "settings.exportFailedMessage": "Не вдалося експортувати дані. Спробуйте ще раз.",
       "settings.makeDonationIn": "Зробіть пожертву в {{currency}}",

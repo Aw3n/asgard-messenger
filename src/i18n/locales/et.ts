@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Versioon {{version}}",
       "settings.dataExported": "Andmed edukalt eksporditud",
       "settings.devicesSubtitle": "Mikrofon, kaamera ja kõlar",
+      "settings.devicesUnavailable": "Seadmete loend pole saadaval",
       "settings.exportFailed": "Eksportimine ebaõnnestus",
       "settings.exportFailedMessage": "Andmeid ei saanud eksportida. Proovige uuesti.",
       "settings.makeDonationIn": "Tehke annetus valuutas {{currency}}",

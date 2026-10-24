@@ -685,6 +685,7 @@ export default {
       "settings.appVersion": "Versie {{version}}",
       "settings.dataExported": "Gegevens succesvol geëxporteerd",
       "settings.devicesSubtitle": "Microfoon, camera en luidspreker",
+      "settings.devicesUnavailable": "Apparatenlijst niet beschikbaar",
       "settings.exportFailed": "Exporteren mislukt",
       "settings.exportFailedMessage": "Kon gegevens niet exporteren. Probeer opnieuw.",
       "settings.makeDonationIn": "Doe een donatie in {{currency}}",

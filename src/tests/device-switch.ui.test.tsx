@@ -8,7 +8,7 @@
  * tests tiennent les trois comportements.
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('react-i18next', () => ({
@@ -18,10 +18,13 @@ vi.mock('react-i18next', () => ({
 
 const testMicrophone = vi.fn()
 const testCamera = vi.fn()
+const devicesState = vi.hoisted(() => ({ error: null as string | null }))
+const deviceListeners = vi.hoisted(() => new Map<string, Set<() => void>>())
 
 vi.mock('@/services/MediaDeviceService', () => ({
   mediaDeviceService: {
     getPreferences: () => ({ audioInput: 'mic-1', videoInput: 'cam-1', audioOutput: 'spk-1' }),
+    getDevicesError: () => devicesState.error,
     getMicrophones: () => [
       { deviceId: 'mic-1', label: 'Micro du casque', kind: 'audioinput' },
       { deviceId: 'mic-2', label: 'Micro du bureau', kind: 'audioinput' },
@@ -32,8 +35,14 @@ vi.mock('@/services/MediaDeviceService', () => ({
     ],
     getSpeakers: () => [{ deviceId: 'spk-1', label: 'Haut-parleurs', kind: 'audiooutput' }],
     hasPermission: () => true,
-    on: () => {},
-    off: () => {},
+    on: (event: string, handler: () => void) => {
+      const handlers = deviceListeners.get(event) ?? new Set()
+      handlers.add(handler)
+      deviceListeners.set(event, handlers)
+    },
+    off: (event: string, handler: () => void) => {
+      deviceListeners.get(event)?.delete(handler)
+    },
     requestPermission: vi.fn().mockResolvedValue(true),
     setPreferredDevice: vi.fn(),
     testMicrophone: (...args: unknown[]) => testMicrophone(...args),
@@ -70,6 +79,8 @@ const camSelect = () => screen.getByRole('combobox', { name: 'settings.camera' }
 const video = () => document.querySelector('video') as HTMLVideoElement
 
 beforeEach(() => {
+  devicesState.error = null
+  deviceListeners.clear()
   testMicrophone.mockResolvedValue(() => {})
   testCamera.mockResolvedValue({ stream: {}, stop: () => {} })
   useUIStore.setState({ toasts: [] })
@@ -105,6 +116,34 @@ describe('aperçu caméra', () => {
     expect(stop).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: 'settings.testCamera' })).toBeInTheDocument()
     expect(video().style.display).toBe('none')
+  })
+})
+
+describe('liste des périphériques', () => {
+  it('dit qu’une lecture en panne n’est pas une machine sans appareil', async () => {
+    devicesState.error = 'Failed to enumerate devices'
+
+    await openDevices()
+
+    expect(screen.getByRole('status')).toHaveTextContent('settings.devicesUnavailable')
+  })
+
+  it('ne le dit pas quand la lecture a réussi', async () => {
+    await openDevices()
+
+    expect(screen.queryByText('settings.devicesUnavailable')).not.toBeInTheDocument()
+  })
+
+  it('met la note à jour quand la lecture échoue après le montage', async () => {
+    await openDevices()
+    expect(screen.queryByText('settings.devicesUnavailable')).not.toBeInTheDocument()
+
+    devicesState.error = 'Failed to enumerate devices'
+    act(() => {
+      deviceListeners.get('devices:error')?.forEach((handler) => handler())
+    })
+
+    expect(await screen.findByRole('status')).toHaveTextContent('settings.devicesUnavailable')
   })
 })
 

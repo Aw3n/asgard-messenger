@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Leagan {{version}}",
       "settings.dataExported": "Sonraí easpórtáilte go rathúil",
       "settings.devicesSubtitle": "Micreafón, ceamara agus cainteoir",
+      "settings.devicesUnavailable": "Níl an liosta gléasanna ar fáil",
       "settings.exportFailed": "Theip ar an easpórtáil",
       "settings.exportFailedMessage": "Níorbh fhéidir na sonraí a easpórtáil. Bain triail eile as.",
       "settings.makeDonationIn": "Déan deontas i {{currency}}",

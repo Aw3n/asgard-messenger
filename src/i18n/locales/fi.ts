@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Versio {{version}}",
       "settings.dataExported": "Tiedot viety onnistuneesti",
       "settings.devicesSubtitle": "Mikrofoni, kamera ja kaiutin",
+      "settings.devicesUnavailable": "Laiteluettelo ei ole saatavilla",
       "settings.exportFailed": "Vienti epäonnistui",
       "settings.exportFailedMessage": "Tietoja ei voitu viedä. Yritä uudelleen.",
       "settings.makeDonationIn": "Tee lahjoitus valuutassa {{currency}}",

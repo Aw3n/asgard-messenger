@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Version {{version}}",
       "settings.dataExported": "Data eksporteret succesfuldt",
       "settings.devicesSubtitle": "Mikrofon, kamera og højttaler",
+      "settings.devicesUnavailable": "Enhedslisten er ikke tilgængelig",
       "settings.exportFailed": "Export mislykkedes",
       "settings.exportFailedMessage": "Kunne ikke eksportere data. Prøv igen.",
       "settings.makeDonationIn": "Giv en donation i {{currency}}",

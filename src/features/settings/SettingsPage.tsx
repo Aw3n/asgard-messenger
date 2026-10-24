@@ -1641,6 +1641,7 @@ const DevicesSection: React.FC = () => {
   const [selectedCam, setSelectedCam] = useState<string>('')
   const [selectedSpeaker, setSelectedSpeaker] = useState<string>('')
   const [hasPermission, setHasPermission] = useState(false)
+  const [devicesUnavailable, setDevicesUnavailable] = useState(false)
   const [micLevel, setMicLevel] = useState(0)
   const [micTesting, setMicTesting] = useState(false)
   const [cameraTesting, setCameraTesting] = useState(false)
@@ -1660,14 +1661,19 @@ const DevicesSection: React.FC = () => {
     setSelectedCam(prefs.videoInput ?? '')
     setSelectedSpeaker(prefs.audioOutput ?? '')
     setHasPermission(mediaDeviceService.hasPermission())
+    // Une énumération ratée rend une liste vide : sans cette lecture, elle
+    // passait pour une machine sans micro ni caméra.
+    setDevicesUnavailable(mediaDeviceService.getDevicesError() !== null)
   }
 
   useEffect(() => {
     refreshDeviceList()
     // Listen for device changes
     mediaDeviceService.on('devices:changed', refreshDeviceList)
+    mediaDeviceService.on('devices:error', refreshDeviceList)
     return () => {
       mediaDeviceService.off('devices:changed', refreshDeviceList)
+      mediaDeviceService.off('devices:error', refreshDeviceList)
       // Stop any active tests
       micTestRef.current?.()
       cameraTestRef.current?.()
@@ -1777,6 +1783,12 @@ return (
                 {t('settings.grantPermission')}
               </Button>
             </div>
+          )}
+
+          {devicesUnavailable && (
+            <p className="text-xs text-yellow-400" role="status">
+              {t('settings.devicesUnavailable')}
+            </p>
           )}
 
           <div>

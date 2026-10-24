@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Versija {{version}}",
       "settings.dataExported": "Duomenys sėkmingai eksportuoti",
       "settings.devicesSubtitle": "Mikrofonas, kamera ir garsiakalbis",
+      "settings.devicesUnavailable": "Įrenginių sąrašas nepasiekiamas",
       "settings.exportFailed": "Eksportavimas nepavyko",
       "settings.exportFailedMessage": "Nepavyko eksportuoti duomenų. Bandykite dar kartą.",
       "settings.makeDonationIn": "Paaukokite {{currency}} valiuta",

@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Версия {{version}}",
       "settings.dataExported": "Данните са експортирани успешно",
       "settings.devicesSubtitle": "Микрофон, камера и високоговорител",
+      "settings.devicesUnavailable": "Списъкът с устройства не е достъпен",
       "settings.exportFailed": "Експортирането е неуспешно",
       "settings.exportFailedMessage": "Данните не можаха да бъдат експортирани. Опитайте отново.",
       "settings.makeDonationIn": "Направете дарение в {{currency}}",

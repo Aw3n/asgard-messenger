@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Versiune {{version}}",
       "settings.dataExported": "Date exportate cu succes",
       "settings.devicesSubtitle": "Microfon, cameră și difuzor",
+      "settings.devicesUnavailable": "Lista dispozitivelor nu este disponibilă",
       "settings.exportFailed": "Exportul a eșuat",
       "settings.exportFailedMessage": "Nu s-au putut exporta datele. Vă rugăm încercați din nou.",
       "settings.makeDonationIn": "Faceți o donație în {{currency}}",

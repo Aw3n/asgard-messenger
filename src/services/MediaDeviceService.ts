@@ -40,6 +40,9 @@ class MediaDeviceService extends EventEmitter<MediaDeviceEvents> {
   private permissionGranted = false
   private monitoring = false
   private initialized = false
+  // Dernière panne d'énumération. La liste vide qui en résulte ne doit pas se
+  // lire comme « aucun périphérique » dans les réglages.
+  private lastError: string | null = null
 
   static getInstance(): MediaDeviceService {
     if (!MediaDeviceService.instance) {
@@ -92,13 +95,24 @@ class MediaDeviceService extends EventEmitter<MediaDeviceEvents> {
       // Auto-select defaults if no preference set
       this.autoSelectDefaults()
 
+      this.lastError = null
       this.emit('devices:changed')
       return this.devices
     } catch (err) {
       console.error('[MediaDeviceService] Failed to enumerate devices:', err)
+      this.lastError = 'Failed to enumerate devices'
       this.emit('devices:error', 'Failed to enumerate devices')
       return []
     }
+  }
+
+  /**
+   * Dernière panne d'énumération, ou null si la dernière lecture a réussi.
+   * Une lecture ratée rend une liste vide qu'il ne faut pas confondre avec
+   * une machine sans périphérique.
+   */
+  getDevicesError(): string | null {
+    return this.lastError
   }
 
   /**
@@ -227,6 +241,9 @@ class MediaDeviceService extends EventEmitter<MediaDeviceEvents> {
     } catch (err) {
       console.error('[MediaDeviceService] Permission denied:', err)
       this.permissionGranted = false
+      // Le refus a son propre bandeau : une note « liste indisponible » en plus
+      // ferait croire à une panne matérielle.
+      this.lastError = null
       this.emit('devices:permission', false)
       this.emit('devices:error', 'Permission denied for media devices')
       return false

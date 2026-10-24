@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Različica {{version}}",
       "settings.dataExported": "Podatki uspešno izvoženi",
       "settings.devicesSubtitle": "Mikrofon, kamera in zvočnik",
+      "settings.devicesUnavailable": "Seznam naprav ni na voljo",
       "settings.exportFailed": "Izvoz ni uspel",
       "settings.exportFailedMessage": "Podatkov ni bilo mogoče izvoziti. Poskusite znova.",
       "settings.makeDonationIn": "Donirajte v {{currency}}",

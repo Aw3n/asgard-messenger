@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Versija {{version}}",
       "settings.dataExported": "Dati veiksmīgi eksportēti",
       "settings.devicesSubtitle": "Mikrofons, kamera un skaļrunis",
+      "settings.devicesUnavailable": "Ierīču saraksts nav pieejams",
       "settings.exportFailed": "Eksportēšana neizdevās",
       "settings.exportFailedMessage": "Nevarēja eksportēt datus. Lūdzu, mēģiniet vēlreiz.",
       "settings.makeDonationIn": "Veiciet ziedojumu {{currency}} valūtā",

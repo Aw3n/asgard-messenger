@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Verżjoni {{version}}",
       "settings.dataExported": "Data esportata b'suċċess",
       "settings.devicesSubtitle": "Mikrofonu, kamera u speaker",
+      "settings.devicesUnavailable": "Il-lista tal-apparati mhix disponibbli",
       "settings.exportFailed": "L-esportazzjoni falliet",
       "settings.exportFailedMessage": "Ma setgħux jiġu esportati d-data. Jekk jogħġbok erġa' pprova.",
       "settings.makeDonationIn": "Agħmel donazzjoni f'{{currency}}",

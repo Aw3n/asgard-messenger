@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Verze {{version}}",
       "settings.dataExported": "Údaje byly úspěšně exportovány",
       "settings.devicesSubtitle": "Mikrofon, kamera a reproduktor",
+      "settings.devicesUnavailable": "Seznam zařízení není dostupný",
       "settings.exportFailed": "Export se nezdařil",
       "settings.exportFailedMessage": "Nepodařilo se exportovat údaje. Zkuste to znovu.",
       "settings.makeDonationIn": "Přispějte v {{currency}}",

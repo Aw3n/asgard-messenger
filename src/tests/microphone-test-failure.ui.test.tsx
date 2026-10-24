@@ -20,6 +20,7 @@ const testMicrophone = vi.fn()
 vi.mock('@/services/MediaDeviceService', () => ({
   mediaDeviceService: {
     getPreferences: () => ({ audioInput: 'mic-1', videoInput: 'cam-1', audioOutput: 'spk-1' }),
+    getDevicesError: () => null,
     getMicrophones: () => [{ deviceId: 'mic-1', label: 'Micro du casque', kind: 'audioinput' }],
     getCameras: () => [{ deviceId: 'cam-1', label: 'Webcam intégrée', kind: 'videoinput' }],
     getSpeakers: () => [{ deviceId: 'spk-1', label: 'Haut-parleurs', kind: 'audiooutput' }],

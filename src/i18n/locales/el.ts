@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Έκδοση {{version}}",
       "settings.dataExported": "Τα δεδομένα εξάχθηκαν επιτυχώς",
       "settings.devicesSubtitle": "Μικρόφωνο, κάμερα και ηχείο",
+      "settings.devicesUnavailable": "Η λίστα συσκευών δεν είναι διαθέσιμη",
       "settings.exportFailed": "Η εξαγωγή απέτυχε",
       "settings.exportFailedMessage": "Δεν ήταν δυνατή η εξαγωγή δεδομένων. Δοκιμάστε ξανά.",
       "settings.makeDonationIn": "Κάντε μια δωρεά σε {{currency}}",

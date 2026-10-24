@@ -667,6 +667,7 @@ export default {
       "settings.appVersion": "Verzió {{version}}",
       "settings.dataExported": "Adatok sikeresen exportálva",
       "settings.devicesSubtitle": "Mikrofon, kamera és hangszóró",
+      "settings.devicesUnavailable": "Az eszközlista nem érhető el",
       "settings.exportFailed": "Az exportálás sikertelen",
       "settings.exportFailedMessage": "Nem sikerült exportálni az adatokat. Kérjük, próbálja újra.",
       "settings.makeDonationIn": "Adományozzon {{currency}}-ban",
