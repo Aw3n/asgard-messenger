@@ -217,10 +217,23 @@ describe('widget de transfert vidéo', () => {
     expect(screen.getByText('recue.mp4')).toBeInTheDocument()
     // Le premier bouton reste l'en-tête repliable (le rang porte désormais
     // sa propre action Annuler).
-    fireEvent.click(screen.getAllByRole('button')[0])
+    const header = screen.getAllByRole('button')[0]
+    // Sans cet état, un lecteur d'écran annonçait un simple bouton et laissait
+    // ignorer que la liste pouvait être masquée.
+    expect(header).toHaveAttribute('aria-expanded', 'true')
+    const listId = header.getAttribute('aria-controls')
+    expect(listId).toBeTruthy()
+    expect(document.getElementById(listId as string)).toHaveTextContent('recue.mp4')
+    // Le chevron ne porte aucune information : son sens est déjà dans l'état.
+    expect(header.querySelector('svg[aria-hidden="true"]')).not.toBeNull()
+    fireEvent.click(header)
     await waitFor(() => expect(screen.queryByText('recue.mp4')).not.toBeInTheDocument())
-    fireEvent.click(screen.getAllByRole('button')[0])
+    expect(header).toHaveAttribute('aria-expanded', 'false')
+    expect(document.getElementById(listId as string)).toBeNull()
+    fireEvent.click(header)
     expect(screen.getByText('recue.mp4')).toBeInTheDocument()
+    expect(header).toHaveAttribute('aria-expanded', 'true')
+    expect(document.getElementById(listId as string)).not.toBeNull()
   })
 
   it('borne la fenêtre des envois groupés sur le même chemin par lot', async () => {

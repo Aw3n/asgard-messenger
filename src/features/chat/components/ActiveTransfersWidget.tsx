@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useId, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
@@ -30,6 +30,9 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
   const { t } = useTranslation()
   const [transfers, setTransfers] = useState<TransferInfo[]>([])
   const [isExpanded, setIsExpanded] = useState(true)
+  // Deux widgets peuvent coexister (fenêtres distinctes) : l'id du panneau doit
+  // rester unique, sinon aria-controls désignerait le panneau de l'autre.
+  const listId = useId()
   const prevProgressRef = useRef<Map<string, { progress: number; timestamp: number }>>(new Map())
 
   useEffect(() => {
@@ -141,7 +144,10 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
       <div className="mica-card border border-asgard-border/60 rounded-2xl overflow-hidden shadow-lg shadow-black/10">
         {/* Header — always visible */}
         <button
+          type="button"
           onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+          aria-controls={listId}
           className="w-full flex items-center gap-3 px-4 py-3 hover:bg-asgard-surface-alt/50 transition-colors"
         >
           {/* Transfer icon with pulse */}
@@ -196,6 +202,7 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
               </span>
             )}
             <motion.svg
+              aria-hidden="true"
               animate={{ rotate: isExpanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}
               width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
@@ -216,7 +223,7 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="border-t border-asgard-border/30 divide-y divide-asgard-border/20 max-h-64 overflow-y-auto">
+              <div id={listId} className="border-t border-asgard-border/30 divide-y divide-asgard-border/20 max-h-64 overflow-y-auto">
                 {transfers.map((transfer) => (
                   <TransferItem key={transfer.id} transfer={transfer} />
                 ))}
