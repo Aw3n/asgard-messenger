@@ -258,6 +258,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
       <div style={{ padding: '8px 12px', flexShrink: 0 }}>
         <Input
           placeholder={t('search.placeholder')}
+          aria-label={t('search.placeholder')}
           value={filter.search ?? ''}
           onChange={handleSearch}
           icon={

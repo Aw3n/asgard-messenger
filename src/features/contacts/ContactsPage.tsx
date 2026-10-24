@@ -273,6 +273,7 @@ export const ContactsPage: React.FC = () => {
         <div className="px-3 py-2 flex-shrink-0">
           <Input
             placeholder={t('search.placeholder')}
+            aria-label={t('search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onClear={searchQuery ? () => setSearchQuery('') : undefined}

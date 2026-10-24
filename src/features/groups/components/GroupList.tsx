@@ -136,6 +136,7 @@ export const GroupList: React.FC<GroupListProps> = ({ onCreateGroup }) => {
       <div className="px-3 py-2 flex-shrink-0">
           <Input
             placeholder={t('groups.searchGroups')}
+            aria-label={t('groups.searchGroups')}
           value={localSearch}
           onChange={handleSearch}
           onClear={localSearch ? () => {

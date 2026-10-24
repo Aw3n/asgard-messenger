@@ -125,6 +125,12 @@ describe('ForwardModal', () => {
     ))
   })
 
+  it('nomme le champ de recherche des conversations', () => {
+    render(<ForwardModal message={message} onClose={() => {}} />)
+
+    expect(screen.getByLabelText('chat.searchConversations')).toHaveAttribute('placeholder', 'chat.searchConversations')
+  })
+
   it('ne propose pas une conversation sans destinataire', () => {
     render(<ForwardModal message={message} onClose={() => {}} />)
 

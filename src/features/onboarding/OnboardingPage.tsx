@@ -582,6 +582,7 @@ const RestoreStep: React.FC<{ onRestored: () => void; onBack: () => void }> = ({
           value={seedInput}
           onChange={(e) => setSeedInput(e.target.value)}
           placeholder={t('onboarding.seedPhrasePlaceholder')}
+          aria-label={t('onboarding.recoveryPhrase')}
           className="w-full h-32 px-4 py-3 rounded-xl bg-asgard-surface border border-asgard-border text-asgard-text-primary placeholder-asgard-text-muted text-sm resize-none focus:outline-none focus:ring-2 focus:ring-asgard-glacier/50"
           disabled={isRestoring}
         />

@@ -56,6 +56,20 @@ function openAddModal(): HTMLInputElement {
   return screen.getByLabelText('contacts.publicKey') as HTMLInputElement
 }
 
+describe('recherche de contacts', () => {
+  it('nomme le champ de recherche pour le lecteur d’écran', () => {
+    render(
+      <MemoryRouter initialEntries={['/contacts']}>
+        <Routes>
+          <Route path="/contacts" element={<ContactsPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByLabelText('search.placeholder')).toHaveAttribute('placeholder', 'search.placeholder')
+  })
+})
+
 describe('collage d’un contact depuis le presse-papiers', () => {
   it('signale un contenu qui n’est pas une clé au lieu de ne rien faire', async () => {
     readText.mockResolvedValue('bonjour tout le monde')

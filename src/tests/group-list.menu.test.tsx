@@ -90,6 +90,12 @@ describe('menu contextuel des groupes', () => {
     })
   })
 
+  it('nomme le champ de recherche des groupes', () => {
+    render(<GroupList onCreateGroup={() => {}} />)
+
+    expect(screen.getByLabelText('groups.searchGroups')).toHaveAttribute('placeholder', 'groups.searchGroups')
+  })
+
   it('solde tous les canaux non lus puis retire l’action', async () => {
     render(<GroupList onCreateGroup={() => {}} />)
 

@@ -110,6 +110,18 @@ describe('liste des conversations', () => {
     expect(screen.queryByText('groupe-abcdef12')).toBeNull()
   })
 
+  it('nomme le champ de recherche pour le lecteur d’écran', () => {
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    // Le placeholder disparaît à la première frappe : il ne peut pas servir
+    // de nom au champ.
+    expect(screen.getByLabelText('search.placeholder')).toHaveAttribute('placeholder', 'search.placeholder')
+  })
+
   it('coupe puis rétablit la sourdine depuis le menu contextuel', () => {
     render(
       <MemoryRouter>

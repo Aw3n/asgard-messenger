@@ -122,6 +122,7 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ message, onClose }) 
         {/* Search */}
         <Input
           placeholder={t('chat.searchConversations')}
+          aria-label={t('chat.searchConversations')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="mb-3"

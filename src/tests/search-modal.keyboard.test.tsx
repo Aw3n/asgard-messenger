@@ -157,6 +157,14 @@ describe('recherche globale au clavier', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(`/contacts|${'a'.repeat(64)}`)
   })
 
+  it('nomme le champ de recherche global', () => {
+    const { input } = renderModal()
+
+    // Le placeholder s'efface dès la première frappe : le combobox a besoin
+    // de son propre nom.
+    expect(input).toHaveAccessibleName('search.placeholder')
+  })
+
   it('nomme le bouton d’effacement et annonce le filtre actif', () => {
     const { input } = renderModal()
     fireEvent.change(input, { target: { value: 'ali' } })

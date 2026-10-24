@@ -63,6 +63,12 @@ const openPage = async () => {
 }
 
 describe('actualiser la connexion au serveur', () => {
+  it('nomme le champ de recherche des appels', async () => {
+    await openPage()
+
+    expect(screen.getByLabelText('search.placeholder')).toHaveAttribute('placeholder', 'search.placeholder')
+  })
+
   it('confirme quand le serveur a vraiment été actualisé', async () => {
     const button = await openPage()
 

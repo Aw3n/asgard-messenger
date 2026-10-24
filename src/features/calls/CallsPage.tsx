@@ -271,6 +271,7 @@ export const CallsPage: React.FC = () => {
         <div className="px-3 py-2 flex-shrink-0">
           <Input
             placeholder={t('search.placeholder')}
+            aria-label={t('search.placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onClear={search ? () => setSearch('') : undefined}

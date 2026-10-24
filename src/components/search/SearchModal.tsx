@@ -233,6 +233,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                 }
               }}
               placeholder={t('search.placeholder')}
+              aria-label={t('search.placeholder')}
               role="combobox"
               aria-expanded={filteredResults.length > 0}
               aria-controls="search-results"
