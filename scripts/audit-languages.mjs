@@ -56,7 +56,10 @@ const refKeys = Object.keys(languages[REF])
 // Une forme plurielle n'a de sens que pour les catégories CLDR que la langue
 // peut sélectionner sur des comptes entiers (les formes réservées aux décimales
 // ne sont jamais rendues par l'UI) ; `one` est porté par la clé de base, vers
-// laquelle i18next retombe, donc aucune entrée `_one` n'est exigée.
+// laquelle i18next retombe, donc aucune entrée `_one` n'est exigée. Une langue
+// reste libre de l'écrire pour distinguer le singulier — le lituanien dit
+// « prisijungęs » pour un membre et « prisijungę » au-delà : c'est une forme
+// de plus, pas une clé intruse.
 const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/
 const pluralBaseOf = (k) => k.slice(0, k.length - k.match(PLURAL_SUFFIX)[0].length)
 const pluralCategoriesForIntegers = (lang) => {
@@ -143,7 +146,9 @@ for (const lang of langs) {
     if (k in languages[REF]) return false
     const m = k.match(PLURAL_SUFFIX)
     if (!m) return true
-    return !refPluralBases.has(pluralBaseOf(k)) || !pluralCats.has(m[1])
+    // Une surcharge plurielle n'est légitime que si sa clé de base existe et
+    // que la langue sélectionne réellement cette catégorie.
+    return !keySet.has(pluralBaseOf(k)) || !pluralCats.has(m[1])
   })
 
   // Untranslated: same value as English (unless allowlisted as local word)

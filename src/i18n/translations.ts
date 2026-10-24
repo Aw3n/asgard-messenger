@@ -14466,6 +14466,7 @@ export const translations = {
       "groups.noGroups": "Kol kas grupių nėra",
       "groups.online": "prisijungę",
       "groups.onlineMembers": "{{count}} prisijungę",
+      "groups.onlineMembers_one": "{{count}} prisijungęs",
       "groups.owner": "Savininkas",
       "groups.ownerLeaveMessage": "Jūs esate šios grupės savininkas. Perduokite nuosavybę arba ištrinkite grupę, kad išeitumėte.",
       "groups.peopleTyping": "{{count}} žmogus rašo…",
