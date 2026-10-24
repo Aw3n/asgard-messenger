@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Дарение в",
       "settings.enableNotifications": "Активиране на известията",
       "settings.enableNotificationsDesc": "Показване на известия от Windows за нови съобщения",
-      "settings.enableRelay": "Активиране на ретранслатор",
-      "settings.enableRelayDesc": "Използване на слепи ретранслатори, когато преките връзки не са налични",
       "settings.exportData": "Експортиране на данни",
       "settings.flushDht": "Изпразване на DHT",
       "settings.dhtFlushed": "DHT е изчистен",

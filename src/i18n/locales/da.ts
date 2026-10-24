@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Doner i",
       "settings.enableNotifications": "Aktiver notifikationer",
       "settings.enableNotificationsDesc": "Vis Windows-notifikationer for nye beskeder",
-      "settings.enableRelay": "Aktiver relay",
-      "settings.enableRelayDesc": "Brug blinde relay-servere, når direkte forbindelser ikke er tilgængelige",
       "settings.exportData": "Eksporter data",
       "settings.firewall": "Firewall",
       "settings.firewallChecking": "Kontrollerer...",

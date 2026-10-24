@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Annetage",
       "settings.enableNotifications": "Luba teated",
       "settings.enableNotificationsDesc": "Kuva Windowsi teated uute sõnumite jaoks",
-      "settings.enableRelay": "Luba releed",
-      "settings.enableRelayDesc": "Kasuta pime-releesid, kui otsesed ühendused pole saadaval",
       "settings.exportData": "Ekspordi andmed",
       "settings.firewall": "Tulemüür",
       "settings.firewallChecking": "Kontrollimine...",

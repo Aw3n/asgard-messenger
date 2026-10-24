@@ -57,7 +57,6 @@ interface UIState {
 
 const defaultSettings: AppSettings = {
   theme: 'dark',
-  language: 'en',
   fontSize: 'medium',
   notifications: {
     enabled: true,
@@ -88,7 +87,6 @@ const defaultSettings: AppSettings = {
     cacheSize: 500,
   },
   network: {
-    relayEnabled: true,
     maxPeers: 64,
   },
   accessibility: {

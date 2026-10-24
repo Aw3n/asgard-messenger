@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Donirajte v",
       "settings.enableNotifications": "Omogoči obvestila",
       "settings.enableNotificationsDesc": "Prikaži obvestila Windows za nova sporočila",
-      "settings.enableRelay": "Omogoči rele",
-      "settings.enableRelayDesc": "Uporabi slepe releje, ko neposredne povezave niso na voljo",
       "settings.exportData": "Izvozi podatke",
       "settings.flushDht": "Izprazni DHT",
       "settings.dhtFlushed": "DHT je počiščen",

@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Paaukoti",
       "settings.enableNotifications": "Įjungti pranešimus",
       "settings.enableNotificationsDesc": "Rodyti Windows pranešimus apie naujas žinutes",
-      "settings.enableRelay": "Įjungti perdavimą",
-      "settings.enableRelayDesc": "Naudoti akluosius perdavėjus, kai tiesioginiai ryšiai nepasiekiami",
       "settings.exportData": "Eksportuoti duomenis",
       "settings.firewall": "Ugniasienė",
       "settings.firewallChecking": "Tikrinama...",

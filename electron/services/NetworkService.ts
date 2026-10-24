@@ -1593,17 +1593,13 @@ export class NetworkService extends EventEmitter {
 
   /**
    * Update network configuration at runtime.
-   * Applies maxPeers and relay settings to the active Hyperswarm instance.
+   * Applies maxPeers to the active Hyperswarm instance.
    */
-  updateConfig(config: { maxPeers?: number; relayEnabled?: boolean }): void {
+  updateConfig(config: { maxPeers?: number }): void {
     if (config.maxPeers !== undefined && this.swarm) {
       // Hyperswarm stores maxPeers as a mutable property
       (this.swarm as unknown as { maxPeers: number }).maxPeers = config.maxPeers
       console.log('[NetworkService] maxPeers updated to', config.maxPeers)
-    }
-    if (config.relayEnabled !== undefined) {
-      // Relay toggle is noted; full effect requires swarm re-init on next connection
-      console.log('[NetworkService] relayEnabled set to', config.relayEnabled)
     }
   }
 
@@ -1944,16 +1940,18 @@ export class NetworkService extends EventEmitter {
 
       return await new Promise<boolean>((resolve) => {
         let settled = false
-        let timer: ReturnType<typeof setTimeout> | undefined
         const finish = (ok: boolean) => {
           if (settled) return
           settled = true
-          if (timer) clearTimeout(timer)
+          clearTimeout(timer)
           // Même garde que R5 : un socket DHT qui n'a pas abouti doit être détruit,
           // sinon il fuit et un ECONNRESET tardif remonte en 'error' sans auditeur.
           if (!ok) socket.destroy()
           resolve(ok)
         }
+        // Le délai court avant l'enregistrement des gestes : 10 s, donc jamais
+        // avant que 'open'/'error' ne puisse être écouté.
+        const timer = setTimeout(() => finish(false), 10000)
         socket.on('open', () => {
           console.log('[NetworkService] Direct peer connection established')
           finish(true)
@@ -1963,8 +1961,6 @@ export class NetworkService extends EventEmitter {
           finish(false)
         })
         socket.on('close', () => finish(false))
-        // Timeout after 10 seconds
-        timer = setTimeout(() => finish(false), 10000)
       })
     } catch (err) {
       console.error('[NetworkService] Direct peer connection failed:', err)

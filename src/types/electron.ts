@@ -50,7 +50,7 @@ export interface AsgardElectronAPI {
     suspend: () => Promise<void>
     resume: () => Promise<void>
     flush: () => Promise<void>
-    updateConfig: (config: { maxPeers?: number; relayEnabled?: boolean }) => Promise<void>
+    updateConfig: (config: { maxPeers?: number }) => Promise<void>
     blockPeer: (noisePublicKeyHex: string, blocked: boolean) => Promise<void>
     getPeerScores: () => Promise<Record<string, { latency: number; score: number }>>
     publishProfile: (displayName: string, avatar?: string) => Promise<boolean>

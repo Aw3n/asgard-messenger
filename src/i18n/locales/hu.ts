@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Adományozás",
       "settings.enableNotifications": "Értesítések engedélyezése",
       "settings.enableNotificationsDesc": "Windows értesítések megjelenítése új üzenetekhez",
-      "settings.enableRelay": "Relé engedélyezése",
-      "settings.enableRelayDesc": "Vak relék használata, ha a közvetlen kapcsolatok nem elérhetők",
       "settings.exportData": "Adatok exportálása",
       "settings.firewall": "Tűzfal",
       "settings.firewallChecking": "Ellenőrzés...",

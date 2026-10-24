@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Prispieť",
       "settings.enableNotifications": "Povoliť upozornenia",
       "settings.enableNotificationsDesc": "Zobraziť upozornenia Windows pre nové správy",
-      "settings.enableRelay": "Povoliť prenos",
-      "settings.enableRelayDesc": "Používať slepé prenosy, keď priame pripojenia nie sú k dispozícii",
       "settings.exportData": "Exportovať údaje",
       "settings.flushDht": "Vyprázdniť DHT",
       "settings.dhtFlushed": "DHT vyčistené",

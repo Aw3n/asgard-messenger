@@ -756,8 +756,6 @@ export default {
       "settings.donationIn": "Spenden in",
       "settings.enableNotifications": "Benachrichtigungen aktivieren",
       "settings.enableNotificationsDesc": "Windows-Benachrichtigungen für neue Nachrichten anzeigen",
-      "settings.enableRelay": "Relais aktivieren",
-      "settings.enableRelayDesc": "Blind-Relays verwenden, wenn direkte Verbindungen nicht verfügbar sind",
       "settings.exportData": "Daten exportieren",
       "settings.firewall": "Firewall",
       "settings.firewallChecking": "Überprüfung...",

@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Donera i",
       "settings.enableNotifications": "Aktivera aviseringar",
       "settings.enableNotificationsDesc": "Visa Windows-aviseringar för nya meddelanden",
-      "settings.enableRelay": "Aktivera relä",
-      "settings.enableRelayDesc": "Använd blinda relän när direkta anslutningar inte är tillgängliga",
       "settings.exportData": "Exportera data",
       "settings.firewall": "Brandvägg",
       "settings.firewallChecking": "Kontrollerar...",

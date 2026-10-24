@@ -719,8 +719,6 @@ export default {
       "settings.donationIn": "Зробити внесок",
       "settings.enableNotifications": "Увімкнути сповіщення",
       "settings.enableNotificationsDesc": "Показувати сповіщення Windows для нових повідомлень",
-      "settings.enableRelay": "Увімкнути ретрансляцію",
-      "settings.enableRelayDesc": "Використовувати сліпі ретранслятори, коли прямі з'єднання недоступні",
       "settings.exportData": "Експортувати дані",
       "settings.flushDht": "Очистити DHT",
       "settings.dhtFlushed": "DHT очищено",

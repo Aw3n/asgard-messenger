@@ -59,7 +59,7 @@ export interface AsgardAPI {
     suspend: () => Promise<void>
     resume: () => Promise<void>
     flush: () => Promise<void>
-    updateConfig: (config: { maxPeers?: number; relayEnabled?: boolean }) => Promise<void>
+    updateConfig: (config: { maxPeers?: number }) => Promise<void>
     blockPeer: (noisePublicKeyHex: string, blocked: boolean) => Promise<void>
     getPeerScores: () => Promise<Record<string, { latency: number; score: number }>>
     publishProfile: (displayName: string, avatar?: string) => Promise<boolean>
@@ -313,7 +313,7 @@ contextBridge.exposeInMainWorld('asgard', {
     suspend: () => ipcRenderer.invoke('network:suspend'),
     resume: () => ipcRenderer.invoke('network:resume'),
     flush: () => ipcRenderer.invoke('network:flush'),
-    updateConfig: (config: { maxPeers?: number; relayEnabled?: boolean }) =>
+    updateConfig: (config: { maxPeers?: number }) =>
       ipcRenderer.invoke('network:updateConfig', config),
     blockPeer: (noisePublicKeyHex: string, blocked: boolean) =>
       ipcRenderer.invoke('network:blockPeer', noisePublicKeyHex, blocked),

@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Lahjoita",
       "settings.enableNotifications": "Ota ilmoitukset käyttöön",
       "settings.enableNotificationsDesc": "Näytä Windows-ilmoitukset uusista viesteistä",
-      "settings.enableRelay": "Ota välitys käyttöön",
-      "settings.enableRelayDesc": "Käytä sokkovälityspalvelimia kun suorat yhteydet eivät ole käytettävissä",
       "settings.exportData": "Vie tiedot",
       "settings.firewall": "Palomuuri",
       "settings.firewallChecking": "Tarkistetaan...",

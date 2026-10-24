@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Donează în",
       "settings.enableNotifications": "Activează notificările",
       "settings.enableNotificationsDesc": "Afișează notificări Windows pentru mesaje noi",
-      "settings.enableRelay": "Activează retransmisia",
-      "settings.enableRelayDesc": "Folosește relee oarbe când conexiunile directe nu sunt disponibile",
       "settings.exportData": "Exportă datele",
       "settings.flushDht": "Golește DHT",
       "settings.dhtFlushed": "DHT golit",

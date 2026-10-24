@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Przekaż darowiznę",
       "settings.enableNotifications": "Włącz powiadomienia",
       "settings.enableNotificationsDesc": "Pokaż powiadomienia Windows dla nowych wiadomości",
-      "settings.enableRelay": "Włącz przekaźnik",
-      "settings.enableRelayDesc": "Używaj ślepych przekaźników, gdy bezpośrednie połączenia nie są dostępne",
       "settings.exportData": "Eksportuj dane",
       "settings.flushDht": "Opróżnij DHT",
       "settings.dhtFlushed": "DHT wyczyszczony",

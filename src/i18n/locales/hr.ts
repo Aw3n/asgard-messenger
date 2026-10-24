@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Donirajte u",
       "settings.enableNotifications": "Omogući obavijesti",
       "settings.enableNotificationsDesc": "Prikaži Windows obavijesti za nove poruke",
-      "settings.enableRelay": "Omogući relej",
-      "settings.enableRelayDesc": "Koristi slijepe releje kada izravne veze nisu dostupne",
       "settings.exportData": "Izvezi podatke",
       "settings.firewall": "Vatreni zid",
       "settings.firewallChecking": "Provjera...",

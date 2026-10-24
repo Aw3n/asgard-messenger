@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Ziedot",
       "settings.enableNotifications": "Iespējot paziņojumus",
       "settings.enableNotificationsDesc": "Rādīt Windows paziņojumus par jauniem ziņojumiem",
-      "settings.enableRelay": "Iespējot retranslatoru",
-      "settings.enableRelayDesc": "Izmantot aklos retranslatorus, ja tiešie savienojumi nav pieejami",
       "settings.exportData": "Eksportēt datus",
       "settings.firewall": "Ugunsmūris",
       "settings.firewallChecking": "Pārbaude...",

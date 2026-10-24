@@ -526,8 +526,6 @@ export default {
       "settings.emptyTrashWarning": "Cette action supprimera définitivement tous les éléments de la corbeille.",
       "settings.enableNotifications": "Activer les notifications",
       "settings.enableNotificationsDesc": "Afficher les notifications Windows pour les nouveaux messages",
-      "settings.enableRelay": "Activer le relais",
-      "settings.enableRelayDesc": "Utiliser des relais aveugles lorsque les connexions directes sont indisponibles",
       "settings.expired": "Expiré",
       "settings.exportData": "Exporter les données",
       "settings.failedTransfers": "{{count}} transfert échoué",

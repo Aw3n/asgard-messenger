@@ -747,8 +747,6 @@ export default {
       "settings.donationIn": "Donate in",
       "settings.enableNotifications": "Enable notifications",
       "settings.enableNotificationsDesc": "Show Windows notifications for new messages",
-      "settings.enableRelay": "Enable relay",
-      "settings.enableRelayDesc": "Use blind relays when direct connections are unavailable",
       "settings.exportData": "Export data",
       "settings.flushDht": "Flush DHT",
       "settings.dhtFlushed": "DHT flushed",

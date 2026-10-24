@@ -756,8 +756,6 @@ export default {
       "settings.donationIn": "Fai una donazione in",
       "settings.enableNotifications": "Attiva notifiche",
       "settings.enableNotificationsDesc": "Mostra notifiche Windows per i nuovi messaggi",
-      "settings.enableRelay": "Attiva relay",
-      "settings.enableRelayDesc": "Usa relay ciechi quando le connessioni dirette non sono disponibili",
       "settings.exportData": "Esporta dati",
       "settings.firewall": "Firewall",
       "settings.firewallChecking": "Verifica...",

@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Δωρεά σε",
       "settings.enableNotifications": "Ενεργοποίηση ειδοποιήσεων",
       "settings.enableNotificationsDesc": "Εμφάνιση ειδοποιήσεων Windows για νέα μηνύματα",
-      "settings.enableRelay": "Ενεργοποίηση αναμετάδοσης",
-      "settings.enableRelayDesc": "Χρήση τυφλών αναμεταδοτών όταν οι άμεσες συνδέσεις δεν είναι διαθέσιμες",
       "settings.exportData": "Εξαγωγή δεδομένων",
       "settings.firewall": "Firewall",
       "settings.firewallChecking": "Έλεγχος...",

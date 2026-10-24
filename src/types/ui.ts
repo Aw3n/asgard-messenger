@@ -3,12 +3,10 @@
  */
 
 export type Theme = 'dark' | 'light' | 'system'
-export type Language = 'en' | 'fr' | 'de' | 'es' | 'ja' | 'zh'
 export type FontSize = 'small' | 'medium' | 'large'
 
 export interface AppSettings {
   theme: Theme
-  language: Language
   fontSize: FontSize
   notifications: NotificationSettings
   privacy: PrivacySettings
@@ -54,9 +52,7 @@ export interface StorageSettings {
 }
 
 export interface NetworkSettings {
-  relayEnabled: boolean
   maxPeers: number
-  bandwidthLimit?: number // KB/s
 }
 
 export interface AccessibilitySettings {

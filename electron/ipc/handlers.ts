@@ -489,7 +489,7 @@ function setupNetworkHandlers(win: BrowserWindow): void {
     await networkService.flush()
   })
 
-  ipcMain.handle('network:updateConfig', async (_event, config: { maxPeers?: number; relayEnabled?: boolean }) => {
+  ipcMain.handle('network:updateConfig', async (_event, config: { maxPeers?: number }) => {
     networkService.updateConfig(config)
   })
 

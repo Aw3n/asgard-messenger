@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Deontas i",
       "settings.enableNotifications": "Cumasaigh fógraí",
       "settings.enableNotificationsDesc": "Taispeáin fógraí Windows do theachtaireachtaí nua",
-      "settings.enableRelay": "Cumasaigh athchraoladh",
-      "settings.enableRelayDesc": "Úsáid athchraoltóirí dall nuair nach bhfuil naisc dhíreacha ar fáil",
       "settings.exportData": "Easpórtáil sonraí",
       "settings.flushDht": "Folmhaigh DHT",
       "settings.dhtFlushed": "DHT glanta",

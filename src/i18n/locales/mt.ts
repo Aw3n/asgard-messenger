@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Agħti donazzjoni",
       "settings.enableNotifications": "Attiva l-avviżi",
       "settings.enableNotificationsDesc": "Uri avviżi Windows għal messaġġi ġodda",
-      "settings.enableRelay": "Attiva relay",
-      "settings.enableRelayDesc": "Uża relays għomja meta l-konnessjonijiet diretti ma jkunux disponibbli",
       "settings.exportData": "Esporta d-data",
       "settings.flushDht": "VoJta DHT",
       "settings.dhtFlushed": "DHT imnaddaf",

@@ -738,8 +738,6 @@ export default {
       "settings.donationIn": "Doar em",
       "settings.enableNotifications": "Ativar notificações",
       "settings.enableNotificationsDesc": "Mostrar notificações do Windows para novas mensagens",
-      "settings.enableRelay": "Ativar relé",
-      "settings.enableRelayDesc": "Usar relés cegos quando as ligações diretas não estão disponíveis",
       "settings.exportData": "Exportar dados",
       "settings.firewall": "Firewall",
       "settings.firewallChecking": "A verificar...",

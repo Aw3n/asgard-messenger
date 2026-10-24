@@ -1039,12 +1039,6 @@ const NetworkSection: React.FC = () => {
     window.asgard.network.updateConfig({ maxPeers: value }).catch(console.error)
   }
 
-  const handleRelayToggle = (value: boolean) => {
-    updateSettings({ network: { ...net, relayEnabled: value } })
-    // Apply to the running Hyperswarm instance
-    window.asgard.network.updateConfig({ relayEnabled: value }).catch(console.error)
-  }
-
   const handleSuspendToggle = async () => {
     setIsSuspending(true)
     try {
@@ -1213,12 +1207,6 @@ return (
             </div>
           </div>
 
-          <ToggleRow
-            label={t('settings.enableRelay')}
-            description={t('settings.enableRelayDesc')}
-            checked={net.relayEnabled}
-            onChange={handleRelayToggle}
-          />
           <div>
             <label htmlFor={maxPeersId} className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.maxPeers')}</label>
             <input
