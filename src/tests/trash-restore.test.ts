@@ -137,4 +137,30 @@ describe('corbeille', () => {
 
     expect(useMessageStore.getState().restoreFileAttachment(BLOB_KEY)).toBe(0)
   })
+
+  it('totalise la taille des fichiers de la corbeille', async () => {
+    await fileService.deleteSentFile('blob-stats-a', { fileName: 'a.bin', fileSize: 2048 })
+    await fileService.deleteSentFile('blob-stats-b', { fileName: 'b.bin', fileSize: 4096 })
+
+    expect(fileService.getTrashStats()).toMatchObject({ count: 2, totalSize: 6144 })
+  })
+
+  it('ne suppose pas une taille pour une entrée qui n’en porte pas', async () => {
+    await fileService.deleteSentFile('blob-stats-legacy', { fileName: 'ancien.bin' })
+    await fileService.deleteSentFile('blob-stats-known', { fileName: 'connu.bin', fileSize: 1024 })
+
+    expect(fileService.getTrashStats()).toMatchObject({ count: 2, totalSize: 1024 })
+  })
+
+  it('retire du total les entrées expirées', async () => {
+    vi.useFakeTimers()
+    try {
+      await fileService.deleteSentFile('blob-stats-exp', { fileName: 'exp.bin', fileSize: 999 })
+      vi.setSystemTime(Date.now() + 31 * 24 * 60 * 60 * 1000)
+
+      expect(fileService.getTrashStats()).toMatchObject({ count: 0, totalSize: 0 })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

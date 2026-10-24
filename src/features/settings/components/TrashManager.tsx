@@ -21,6 +21,13 @@ interface TrashEntry {
 /**
  * TrashManager — manages deleted files with restore and permanent delete options.
  */
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+}
+
 export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { t } = useTranslation()
   const [trashItems, setTrashItems] = useState<TrashEntry[]>([])
@@ -222,6 +229,8 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
                 >
                   {/* Checkbox */}
                   <button
+                    aria-label={item.fileName ?? item.blobKey}
+                    aria-pressed={selectedItems.has(item.blobKey)}
                     onClick={() => {
                       setSelectedItems((prev) => {
                         const next = new Set(prev)
@@ -260,7 +269,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
                       {item.fileName ?? `${item.blobKey.slice(0, 16)}...`}
                     </p>
                     <p className="text-xs text-asgard-text-muted">
-                      {t('settings.deletedAt')}: {new Date(item.deletedAt).toLocaleDateString(getCurrentLanguage())}
+                      {`${t('settings.deletedAt')}: ${new Date(item.deletedAt).toLocaleDateString(getCurrentLanguage())}${item.fileSize ? ` · ${formatBytes(item.fileSize)}` : ''}`}
                     </p>
                   </div>
 
@@ -301,7 +310,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
       {trashItems.length > 0 && (
         <div className="px-6 py-3 border-t border-asgard-border bg-asgard-surface-alt">
           <p className="text-xs text-asgard-text-muted">
-            {t('settings.trashItemsCount', { count: stats.count })}
+            {`${t('settings.trashItemsCount', { count: stats.count })}${stats.totalSize > 0 ? ` · ${formatBytes(stats.totalSize)}` : ''}`}
           </p>
         </div>
       )}

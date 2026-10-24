@@ -87,4 +87,16 @@ describe('panneau de la corbeille', () => {
     expect(screen.getByText('photo vacances.png')).toBeInTheDocument()
     expect(fileService.getTrashBin()).toHaveLength(1)
   })
+
+  it('affiche la taille et nomme la case de sélection', () => {
+    render(<TrashManager onClose={() => {}} />)
+
+    // La taille apparaît sur la ligne et dans le total du pied de panneau.
+    expect(screen.getAllByText(/2\.0 KB/)).toHaveLength(2)
+
+    const checkbox = screen.getByRole('button', { name: 'photo vacances.png' })
+    expect(checkbox).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(checkbox)
+    expect(checkbox).toHaveAttribute('aria-pressed', 'true')
+  })
 })

@@ -5784,7 +5784,9 @@ class FileService {
     const validEntries = this.trashBin.filter((e) => e.expiresAt > now)
     return {
       count: validEntries.length,
-      totalSize: 0, // Size tracking would require additional metadata
+      // Les entrées sans taille (anciennes) comptent pour zéro plutôt que
+      // d'effacer le total des fichiers dont la taille est connue.
+      totalSize: validEntries.reduce((sum, e) => sum + (e.fileSize ?? 0), 0),
       oldestEntry: validEntries.length > 0
         ? Math.min(...validEntries.map((e) => e.deletedAt))
         : 0,
