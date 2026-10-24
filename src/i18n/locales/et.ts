@@ -449,6 +449,8 @@ export default {
       "settings.customStatusPlaceholder": "Millest mõtled?",
       "settings.dark": "Tume",
       "settings.deletePermanently": "Kustuta jäädavalt",
+      "settings.deleteForeverWarning": "Fail „{{name}}“ kustutatakse jäädavalt.",
+      "settings.deleteSelectionWarning": "Valitud failid kustutatakse jäädavalt.",
       "settings.deletedAt": "Kustutatud",
       "settings.deletedFilesWillAppearHere": "Kustutatud failid ilmuvad siia.",
       "settings.deselectAll": "Tühista kõik valikud",

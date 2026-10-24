@@ -538,6 +538,8 @@ export default {
       "settings.useGradient": "Gradient accents",
       "settings.useGradientDesc": "Fills your own bubbles and the primary buttons with a gradient. Turned off, they take one flat colour.",
       "settings.deletePermanently": "Delete permanently",
+      "settings.deleteForeverWarning": "The file “{{name}}” will be permanently deleted.",
+      "settings.deleteSelectionWarning": "The selected files will be permanently deleted.",
       "settings.deletedFilesWillAppearHere": "Deleted files will appear here.",
       "settings.deselectAll": "Deselect all",
       "settings.documents": "Documents",

@@ -449,6 +449,8 @@ export default {
       "settings.customStatusPlaceholder": "Hvad tænker du på?",
       "settings.dark": "Mørk",
       "settings.deletePermanently": "Slet permanent",
+      "settings.deleteForeverWarning": "Filen »{{name}}« slettes permanent.",
+      "settings.deleteSelectionWarning": "De valgte filer slettes permanent.",
       "settings.deletedAt": "Slettet den",
       "settings.deletedFilesWillAppearHere": "Slettede filer vises her.",
       "settings.deselectAll": "Fravælg alle",

@@ -461,6 +461,8 @@ export default {
       "settings.customStatusPlaceholder": "X'qed taħseb?",
       "settings.dark": "Dlam",
       "settings.deletePermanently": "Ħassar b'mod permanenti",
+      "settings.deleteForeverWarning": "Il-fajl “{{name}}” se jitħassar b’mod permanenti.",
+      "settings.deleteSelectionWarning": "Il-fajls magħżula se jitħassru b’mod permanenti.",
       "settings.deletedAt": "Imħassar",
       "settings.deletedFilesWillAppearHere": "Il-fajls miċħuda jidher hawn.",
       "settings.deselectAll": "Neħti l-għażliet kollha",

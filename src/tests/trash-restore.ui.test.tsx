@@ -3,7 +3,7 @@
  * « Restaurer » doit rendre la pièce au fil, pas seulement vider une ligne.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { TrashManager } from '@/features/settings/components/TrashManager'
 import { fileService } from '@/services/FileService'
 import { useMessageStore } from '@/stores/messageStore'
@@ -12,7 +12,10 @@ import type { Message, MessageAttachment } from '@/types'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'fr', changeLanguage: vi.fn() } }),
+  useTranslation: () => ({
+    t: (key: string, opts?: { name?: string }) => (opts?.name ? `${key} ${opts.name}` : key),
+    i18n: { language: 'fr', changeLanguage: vi.fn() },
+  }),
 }))
 
 const CONVERSATION_ID = 'conv-trash-ui'
@@ -63,6 +66,18 @@ afterEach(async () => {
 })
 
 describe('panneau de la corbeille', () => {
+  /** Une suppression définitive est irréversible : la ligne et la sélection
+   *  passent par le dialogue commun, qui nomme le fichier ou la sélection. */
+  const openDelete = () => {
+    fireEvent.click(screen.getByTitle('settings.deletePermanently'))
+    return screen.getByRole('dialog', { name: 'settings.deletePermanently' })
+  }
+
+  const confirmDelete = () => {
+    const dialog = screen.getByRole('dialog', { name: 'settings.deletePermanently' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'settings.deletePermanently' }))
+  }
+
   it('montre le nom du fichier et restaure la pièce au clic', async () => {
     render(<TrashManager onClose={() => {}} />)
 
@@ -76,16 +91,61 @@ describe('panneau de la corbeille', () => {
     expect(fileService.getTrashBin()).toEqual([])
   })
 
+  it('demande confirmation, en nommant le fichier, avant de le supprimer', () => {
+    render(<TrashManager onClose={() => {}} />)
+
+    const dialog = openDelete()
+
+    expect(within(dialog).getByText('settings.deleteForeverWarning photo vacances.png')).toBeInTheDocument()
+    expect(window.asgard.storage.deleteBlob).not.toHaveBeenCalled()
+    expect(fileService.getTrashBin()).toHaveLength(1)
+  })
+
+  it('annuler garde le fichier', async () => {
+    render(<TrashManager onClose={() => {}} />)
+    openDelete()
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'settings.deletePermanently' })).toBeNull())
+    expect(window.asgard.storage.deleteBlob).not.toHaveBeenCalled()
+    expect(fileService.getTrashBin()).toHaveLength(1)
+  })
+
+  it('supprime après confirmation', async () => {
+    render(<TrashManager onClose={() => {}} />)
+    openDelete()
+
+    confirmDelete()
+
+    await waitFor(() => expect(fileService.getTrashBin()).toHaveLength(0))
+    expect(window.asgard.storage.deleteBlob).toHaveBeenCalledWith(BLOB_KEY)
+  })
+
   it('annonce une suppression définitive que le stockage refuse', async () => {
     vi.mocked(window.asgard.storage.deleteBlob).mockRejectedValueOnce(new Error('Storage not initialized'))
 
     render(<TrashManager onClose={() => {}} />)
-    fireEvent.click(screen.getByTitle('settings.deletePermanently'))
+    openDelete()
+    confirmDelete()
 
     await waitFor(() => expect(useUIStore.getState().toasts[0]?.title).toBe('chat.deleteFileFailed'))
     // L'entrée reste : rien ne doit laisser croire que les octets sont partis.
     expect(screen.getByText('photo vacances.png')).toBeInTheDocument()
     expect(fileService.getTrashBin()).toHaveLength(1)
+  })
+
+  it('demande confirmation pour une suppression en lot', async () => {
+    render(<TrashManager onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'photo vacances.png' }))
+    fireEvent.click(screen.getByRole('button', { name: 'common.delete (1)' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'settings.deletePermanently' })
+    expect(within(dialog).getByText('settings.deleteSelectionWarning')).toBeInTheDocument()
+    expect(window.asgard.storage.deleteBlob).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'settings.deletePermanently' }))
+    await waitFor(() => expect(fileService.getTrashBin()).toHaveLength(0))
   })
 
   it('affiche la taille et nomme la case de sélection', () => {

@@ -453,6 +453,8 @@ export default {
       "settings.customStatusPlaceholder": "Što ti je na umu?",
       "settings.dark": "Tamno",
       "settings.deletePermanently": "Trajno izbriši",
+      "settings.deleteForeverWarning": "Datoteka „{{name}}“ bit će trajno izbrisana.",
+      "settings.deleteSelectionWarning": "Odabrane datoteke bit će trajno izbrisane.",
       "settings.deletedAt": "Izbrisano",
       "settings.deletedFilesWillAppearHere": "Izbrisane datoteke pojavit će se ovdje.",
       "settings.deselectAll": "Poništi sve odabire",

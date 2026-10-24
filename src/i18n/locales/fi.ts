@@ -449,6 +449,8 @@ export default {
       "settings.customStatusPlaceholder": "Mitä mietit?",
       "settings.dark": "Tumma",
       "settings.deletePermanently": "Poista pysyvästi",
+      "settings.deleteForeverWarning": "Tiedosto ”{{name}}” poistetaan pysyvästi.",
+      "settings.deleteSelectionWarning": "Valitut tiedostot poistetaan pysyvästi.",
       "settings.deletedAt": "Poistettu",
       "settings.deletedFilesWillAppearHere": "Poistetut tiedostot ilmestyvät tänne.",
       "settings.deselectAll": "Poista valinnat",

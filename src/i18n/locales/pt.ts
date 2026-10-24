@@ -453,6 +453,8 @@ export default {
       "settings.customStatusPlaceholder": "Em que está a pensar?",
       "settings.dark": "Escuro",
       "settings.deletePermanently": "Eliminar permanentemente",
+      "settings.deleteForeverWarning": "O ficheiro «{{name}}» será eliminado definitivamente.",
+      "settings.deleteSelectionWarning": "Os ficheiros selecionados serão eliminados definitivamente.",
       "settings.deletedAt": "Eliminado em",
       "settings.deletedFilesWillAppearHere": "Os ficheiros eliminados aparecerão aqui.",
       "settings.deselectAll": "Desselecionar tudo",

@@ -449,6 +449,8 @@ export default {
       "settings.customStatusPlaceholder": "Τι σκέφτεστε;",
       "settings.dark": "Σκοτεινό",
       "settings.deletePermanently": "Μόνιμη διαγραφή",
+      "settings.deleteForeverWarning": "Το αρχείο «{{name}}» θα διαγραφεί οριστικά.",
+      "settings.deleteSelectionWarning": "Τα επιλεγμένα αρχεία θα διαγραφούν οριστικά.",
       "settings.deletedAt": "Διαγράφηκε στις",
       "settings.deletedFilesWillAppearHere": "Τα διαγραμμένα αρχεία θα εμφανιστούν εδώ.",
       "settings.deselectAll": "Αποεπιλογή όλων",

@@ -467,6 +467,8 @@ export default {
       "settings.customStatusPlaceholder": "Was beschäftigt dich?",
       "settings.dark": "Dunkel",
       "settings.deletePermanently": "Dauerhaft löschen",
+      "settings.deleteForeverWarning": "Die Datei „{{name}}“ wird endgültig gelöscht.",
+      "settings.deleteSelectionWarning": "Die ausgewählten Dateien werden endgültig gelöscht.",
       "settings.deletedAt": "Gelöscht am",
       "settings.deletedFilesWillAppearHere": "Gelöschte Dateien erscheinen hier.",
       "settings.deselectAll": "Alle abwählen",

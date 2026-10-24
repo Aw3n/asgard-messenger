@@ -8,6 +8,7 @@ import { getCurrentLanguage } from '@/i18n/config'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
 import { useUIStore } from '@/stores/uiStore'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface TrashEntry {
   blobKey: string
@@ -33,6 +34,9 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
   const [trashItems, setTrashItems] = useState<TrashEntry[]>([])
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showConfirmEmpty, setShowConfirmEmpty] = useState(false)
+  // Une suppression définitive ne se rattrape pas : la ligne et la sélection
+  // passent par le dialogue commun, nommé quand il vise un seul fichier.
+  const [pendingDelete, setPendingDelete] = useState<{ blobKey: string; name: string } | 'bulk' | null>(null)
   // Sortir une entrée de la corbeille ne suffit pas : la pièce jointe du fil
   // reste marquée « supprimée » tant que le store des messages ne l'apprend pas.
   const restoreFileAttachment = useMessageStore((s) => s.restoreFileAttachment)
@@ -167,7 +171,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
                     {t('settings.restore')} ({selectedItems.size})
                   </button>
                   <button
-                    onClick={handleBulkDelete}
+                    onClick={() => setPendingDelete('bulk')}
                     className="px-3 py-1.5 text-xs text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
                   >
                     {t('common.delete')} ({selectedItems.size})
@@ -290,7 +294,10 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
                       </svg>
                     </button>
                     <button
-                      onClick={() => handlePermanentDelete(item.blobKey)}
+                      onClick={() => setPendingDelete({
+                        blobKey: item.blobKey,
+                        name: item.fileName ?? `${item.blobKey.slice(0, 16)}...`,
+                      })}
                       className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-asgard-text-muted hover:text-red-400 transition-colors"
                       title={t('settings.deletePermanently')}
                     >
@@ -321,6 +328,24 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
           <EmptyTrashConfirm
             onClose={() => setShowConfirmEmpty(false)}
             onConfirm={handleEmptyTrash}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {pendingDelete && (
+          <ConfirmDialog
+            title="settings.deletePermanently"
+            warning={pendingDelete === 'bulk' ? 'settings.deleteSelectionWarning' : 'settings.deleteForeverWarning'}
+            confirmLabel="settings.deletePermanently"
+            name={pendingDelete === 'bulk' ? undefined : pendingDelete.name}
+            onCancel={() => setPendingDelete(null)}
+            onConfirm={() => {
+              const target = pendingDelete
+              setPendingDelete(null)
+              if (target === 'bulk') void handleBulkDelete()
+              else if (target) void handlePermanentDelete(target.blobKey)
+            }}
           />
         )}
       </AnimatePresence>

@@ -461,6 +461,8 @@ export default {
       "settings.customStatusPlaceholder": "Cad atá ar d'intinn?",
       "settings.dark": "Dorcha",
       "settings.deletePermanently": "Scrios go buan",
+      "settings.deleteForeverWarning": "Scriosfar an comhad “{{name}}” go buan.",
+      "settings.deleteSelectionWarning": "Scriosfar na comhaid roghnaithe go buan.",
       "settings.deletedAt": "Scriosta",
       "settings.deletedFilesWillAppearHere": "Beidh comhaid scriosta le feiceáil anseo.",
       "settings.deselectAll": "Díroghnaigh gach rud",

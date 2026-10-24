@@ -515,6 +515,8 @@ export default {
       "settings.useGradient": "Градієнт акцентів",
       "settings.useGradientDesc": "Заповнює ваші бульби та основні кнопки градієнтом. Якщо вимкнено, колір буде однотонний.",
       "settings.deletePermanently": "Видалити остаточно",
+      "settings.deleteForeverWarning": "Файл «{{name}}» буде остаточно вилучено.",
+      "settings.deleteSelectionWarning": "Вибрані файли буде остаточно вилучено.",
       "settings.deletedFilesWillAppearHere": "Видалені файли з'являтимуться тут.",
       "settings.deselectAll": "Скасувати вибір усіх",
       "settings.documents": "Документи",

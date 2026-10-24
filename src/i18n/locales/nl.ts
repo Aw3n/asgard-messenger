@@ -467,6 +467,8 @@ export default {
       "settings.customStatusPlaceholder": "Waar denkt u aan?",
       "settings.dark": "Donker",
       "settings.deletePermanently": "Definitief verwijderen",
+      "settings.deleteForeverWarning": "Het bestand “{{name}}” wordt definitief verwijderd.",
+      "settings.deleteSelectionWarning": "De geselecteerde bestanden worden definitief verwijderd.",
       "settings.deletedAt": "Verwijderd op",
       "settings.deletedFilesWillAppearHere": "Verwijderde bestanden verschijnen hier.",
       "settings.deselectAll": "Alles deselecteren",

@@ -515,6 +515,8 @@ export default {
       "settings.defaultSpeaker": "Haut-parleur par défaut",
       "settings.defaultVideoQuality": "Qualité vidéo par défaut",
       "settings.deletePermanently": "Supprimer définitivement",
+      "settings.deleteForeverWarning": "Le fichier « {{name}} » sera supprimé définitivement.",
+      "settings.deleteSelectionWarning": "Les fichiers sélectionnés seront supprimés définitivement.",
       "settings.deletedAt": "Supprimé le",
       "settings.deletedFilesWillAppearHere": "Les fichiers supprimés apparaîtront ici.",
       "settings.deselectAll": "Tout désélectionner",

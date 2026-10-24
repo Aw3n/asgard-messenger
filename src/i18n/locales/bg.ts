@@ -449,6 +449,8 @@ export default {
       "settings.customStatusPlaceholder": "Какво си мислите?",
       "settings.dark": "Тъмен",
       "settings.deletePermanently": "Изтрий за постоянно",
+      "settings.deleteForeverWarning": "Файлът „{{name}}“ ще бъде изтрит окончателно.",
+      "settings.deleteSelectionWarning": "Избраните файлове ще бъдат изтрити окончателно.",
       "settings.deletedAt": "Изтрито на",
       "settings.deletedFilesWillAppearHere": "Изтритите файлове ще се появят тук.",
       "settings.deselectAll": "Премахни всички избори",

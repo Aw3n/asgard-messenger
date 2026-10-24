@@ -453,6 +453,8 @@ export default {
       "settings.customStatusPlaceholder": "Par ko tu domā?",
       "settings.dark": "Tumšs",
       "settings.deletePermanently": "Dzēst uz visiem laikiem",
+      "settings.deleteForeverWarning": "Datne “{{name}}” tiks neatgriezeniski dzēsta.",
+      "settings.deleteSelectionWarning": "Atlasītās datnes tiks neatgriezeniski dzēstas.",
       "settings.deletedAt": "Dzēsts",
       "settings.deletedFilesWillAppearHere": "Dzēstās datnes parādīsies šeit.",
       "settings.deselectAll": "Noņemt visu atlasi",

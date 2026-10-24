@@ -449,6 +449,8 @@ export default {
       "settings.customStatusPlaceholder": "Mire gondolsz?",
       "settings.dark": "Sötét",
       "settings.deletePermanently": "Végleges törlés",
+      "settings.deleteForeverWarning": "A(z) „{{name}}” fájl véglegesen törlődik.",
+      "settings.deleteSelectionWarning": "A kijelölt fájlok véglegesen törlődnek.",
       "settings.deletedAt": "Törölve",
       "settings.deletedFilesWillAppearHere": "A törölt fájlok itt jelennek meg.",
       "settings.deselectAll": "Kijelölés törlése",

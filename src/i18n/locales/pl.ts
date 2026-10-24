@@ -456,6 +456,8 @@ export default {
       "settings.customStatusPlaceholder": "O czym myślisz?",
       "settings.dark": "Ciemny",
       "settings.deletePermanently": "Usuń trwale",
+      "settings.deleteForeverWarning": "Plik „{{name}}” zostanie trwale usunięty.",
+      "settings.deleteSelectionWarning": "Wybrane pliki zostaną trwale usunięte.",
       "settings.deletedAt": "Usunięto",
       "settings.deletedFilesWillAppearHere": "Usunięte pliki pojawią się tutaj.",
       "settings.deselectAll": "Odznacz wszystkie",

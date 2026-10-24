@@ -453,6 +453,8 @@ export default {
       "settings.customStatusPlaceholder": "La ce te gândești?",
       "settings.dark": "Întunecat",
       "settings.deletePermanently": "Șterge permanent",
+      "settings.deleteForeverWarning": "Fișierul „{{name}}” va fi șters definitiv.",
+      "settings.deleteSelectionWarning": "Fișierele selectate vor fi șterse definitiv.",
       "settings.deletedAt": "Șters la",
       "settings.deletedFilesWillAppearHere": "Fișierele șterse vor apărea aici.",
       "settings.deselectAll": "Deselectează tot",

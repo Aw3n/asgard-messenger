@@ -453,6 +453,8 @@ export default {
       "settings.customStatusPlaceholder": "Na čo myslíš?",
       "settings.dark": "Tmavý",
       "settings.deletePermanently": "Odstrániť natrvalo",
+      "settings.deleteForeverWarning": "Súbor „{{name}}“ bude natrvalo vymazaný.",
+      "settings.deleteSelectionWarning": "Vybrané súbory budú natrvalo vymazané.",
       "settings.deletedAt": "Odstránené",
       "settings.deletedFilesWillAppearHere": "Vymazané súbory sa tu zobrazia.",
       "settings.deselectAll": "Zrušiť všetky výbery",

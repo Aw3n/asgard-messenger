@@ -454,6 +454,8 @@ export default {
       "settings.customStatusPlaceholder": "Apie ką galvoji?",
       "settings.dark": "Tamsus",
       "settings.deletePermanently": "Ištrinti visam laikui",
+      "settings.deleteForeverWarning": "Failas „{{name}}“ bus visam laikui ištrintas.",
+      "settings.deleteSelectionWarning": "Pasirinkti failai bus visam laikui ištrinti.",
       "settings.deletedAt": "Pašalinta",
       "settings.deletedFilesWillAppearHere": "Ištrinti failai atsiras čia.",
       "settings.deselectAll": "Panaikinti visus žymėjimus",

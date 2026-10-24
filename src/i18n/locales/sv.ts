@@ -449,6 +449,8 @@ export default {
       "settings.customStatusPlaceholder": "Vad tänker du på?",
       "settings.dark": "Mörkt",
       "settings.deletePermanently": "Ta bort permanent",
+      "settings.deleteForeverWarning": "Filen ”{{name}}” raderas permanent.",
+      "settings.deleteSelectionWarning": "De valda filerna raderas permanent.",
       "settings.deletedAt": "Raderat den",
       "settings.deletedFilesWillAppearHere": "Raderade filer visas här.",
       "settings.deselectAll": "Avmarkera alla",
