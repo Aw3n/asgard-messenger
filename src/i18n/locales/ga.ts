@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Imíonn an teachtaireacht uait agus uathu siud, agus cuirtear “Teachtaireacht scriosta” ina hionad. Ní féidir é seo a chur ar ceal.",
       "chat.deletePermanentlyWarning": "Imíonn an teachtaireacht uait agus uathu siud gan rian. Ní féidir é seo a chur ar ceal.",
       "chat.deleteForMeWarning": "Imíonn an teachtaireacht ón ngléas seo amháin; beidh sí ag siud eile fós. Ní féidir é seo a chur ar ceal.",
-      "chat.deleteWarning": "Scriosfar gach teachtaireacht agus comhad ó do chomhrá le name go buan.",
+      "chat.deleteWarning": "Scriosfar gach teachtaireacht agus comhad ó do chomhrá le {{name}} go buan.",
       "chat.downloadFailed": "Theip ar an íoslódáil",
       "chat.downloadFile": "Íoslódáil an comhad",
       "chat.downloadNamedFile": "Íoslódáil \"{{name}}\"",

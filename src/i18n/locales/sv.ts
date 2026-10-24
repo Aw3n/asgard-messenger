@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Meddelandet försvinner för dig och för de andra, ersatt med “Meddelande borttaget”. Det går inte att ångra.",
       "chat.deletePermanentlyWarning": "Meddelandet försvinner för dig och för de andra, utan spår. Det går inte att ångra.",
       "chat.deleteForMeWarning": "Meddelandet försvinner bara från den här enheten; de andra behåller det. Det går inte att ångra.",
-      "chat.deleteWarning": "Alla meddelanden och filer från din konversation med name kommer att raderas permanent.",
+      "chat.deleteWarning": "Alla meddelanden och filer från din konversation med {{name}} kommer att raderas permanent.",
       "chat.downloadFailed": "Nedladdning misslyckades",
       "chat.downloadFile": "Ladda ner fil",
       "chat.downloadNamedFile": "Ladda ner \"{{name}}\"",

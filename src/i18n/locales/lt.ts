@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Pranešimas dings jums ir kitiems, vietoje jo – „Pranešimas ištrintas“. Grąžinti nebegalima.",
       "chat.deletePermanentlyWarning": "Pranešimas dings jums ir kitiems, be pėdų. Grąžinti nebegalima.",
       "chat.deleteForMeWarning": "Pranešimas dings tik iš šio įrenginio; kiti jį matys toliau. Grąžinti nebegalima.",
-      "chat.deleteWarning": "Visi pranešimai ir failai iš jūsų pokalbio su name bus visam laikui pašalinti.",
+      "chat.deleteWarning": "Visi pranešimai ir failai iš jūsų pokalbio su {{name}} bus visam laikui pašalinti.",
       "chat.downloadFailed": "Atsisiuntimas nepavyko",
       "chat.downloadFile": "Atsisiųsti failą",
       "chat.downloadNamedFile": "Atsisiųsti \"{{name}}\"",

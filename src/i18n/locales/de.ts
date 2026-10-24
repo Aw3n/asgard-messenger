@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Die Nachricht verschwindet für dich und für alle anderen, ersetzt durch „Nachricht gelöscht“. Das lässt sich nicht rückgängig machen.",
       "chat.deletePermanentlyWarning": "Die Nachricht verschwindet für dich und für alle anderen, ohne Spur. Das lässt sich nicht rückgängig machen.",
       "chat.deleteForMeWarning": "Die Nachricht verschwindet nur von diesem Gerät; alle anderen behalten sie. Das lässt sich nicht rückgängig machen.",
-      "chat.deleteWarning": "Alle Nachrichten und Dateien aus Ihrer Unterhaltung mit name werden dauerhaft gelöscht.",
+      "chat.deleteWarning": "Alle Nachrichten und Dateien aus Ihrer Unterhaltung mit {{name}} werden dauerhaft gelöscht.",
       "chat.downloadFailed": "Download fehlgeschlagen",
       "chat.downloadFile": "Datei herunterladen",
       "chat.downloadNamedFile": "\"{{name}}\" herunterladen",

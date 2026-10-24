@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Il-messaġġ jisparixxi għalik u għall-oħrajn, u jibqa’ “Messaġġ mħassar”. Ma tistax terġa’ lura.",
       "chat.deletePermanentlyWarning": "Il-messaġġ jisparixxi għalik u għall-oħrajn mingħajr ebda sinjal. Ma tistax terġa’ lura.",
       "chat.deleteForMeWarning": "Il-messaġġ jisparixxi minn din l-apparat biss; l-oħrajn iżommuh. Ma tistax terġa’ lura.",
-      "chat.deleteWarning": "Il-messaġġi u l-fajls kollha mill-konversazzjoni tiegħek ma' name jitħassru b'mod permanenti.",
+      "chat.deleteWarning": "Il-messaġġi u l-fajls kollha mill-konversazzjoni tiegħek ma' {{name}} jitħassru b'mod permanenti.",
       "chat.downloadFailed": "Niżżil falla",
       "chat.downloadFile": "Niżżel il-fajl",
       "chat.downloadNamedFile": "Niżżel \"{{name}}\"",

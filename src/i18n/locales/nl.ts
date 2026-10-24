@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Het bericht verdwijnt voor jou en voor de anderen, vervangen door “Bericht verwijderd”. Dit is niet ongedaan te maken.",
       "chat.deletePermanentlyWarning": "Het bericht verdwijnt voor jou en voor de anderen, zonder spoor. Dit is niet ongedaan te maken.",
       "chat.deleteForMeWarning": "Het bericht verdwijnt alleen van dit apparaat; de anderen houden het. Dit is niet ongedaan te maken.",
-      "chat.deleteWarning": "Alle berichten en bestanden van uw gesprek met name worden permanent verwijderd.",
+      "chat.deleteWarning": "Alle berichten en bestanden van uw gesprek met {{name}} worden permanent verwijderd.",
       "chat.downloadFailed": "Download mislukt",
       "chat.downloadFile": "Bestand downloaden",
       "chat.downloadNamedFile": "\"{{name}}\" downloaden",

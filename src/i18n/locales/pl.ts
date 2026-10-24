@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Wiadomość zniknie u ciebie i u pozostałych, zastąpiona „Wiadomość usunięta”. To nieodwracalne.",
       "chat.deletePermanentlyWarning": "Wiadomość zniknie u ciebie i u pozostałych, bez śladu. To nieodwracalne.",
       "chat.deleteForMeWarning": "Wiadomość zniknie tylko z tego urządzenia; pozostali ją zachowają. To nieodwracalne.",
-      "chat.deleteWarning": "Wszystkie wiadomości i pliki z rozmowy z name zostaną trwale usunięte.",
+      "chat.deleteWarning": "Wszystkie wiadomości i pliki z rozmowy z {{name}} zostaną trwale usunięte.",
       "chat.downloadFailed": "Pobieranie nie powiodło się",
       "chat.downloadFile": "Pobierz plik",
       "chat.downloadNamedFile": "Pobierz \"{{name}}\"",

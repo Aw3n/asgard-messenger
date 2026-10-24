@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Mesajul dispare pentru dvs. și pentru ceilalți, înlocuit cu „Mesaj șters”. Acțiunea este ireversibilă.",
       "chat.deletePermanentlyWarning": "Mesajul dispare pentru dvs. și pentru ceilalți, fără urmă. Acțiunea este ireversibilă.",
       "chat.deleteForMeWarning": "Mesajul dispare doar de pe acest dispozitiv; ceilalți îl păstrează. Acțiunea este ireversibilă.",
-      "chat.deleteWarning": "Toate mesajele și fișierele din conversația cu name vor fi șterse definitiv.",
+      "chat.deleteWarning": "Toate mesajele și fișierele din conversația cu {{name}} vor fi șterse definitiv.",
       "chat.downloadFailed": "Descărcarea a eșuat",
       "chat.downloadFile": "Descarcă fișierul",
       "chat.downloadNamedFile": "Descarcă \"{{name}}\"",

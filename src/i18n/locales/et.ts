@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Sõnum kaob teilt ja teistelt, asemele tuleb „Sõnum kustutatud“. Seda ei saa tagasi võtta.",
       "chat.deletePermanentlyWarning": "Sõnum kaob teilt ja teistelt, jälgideta. Seda ei saa tagasi võtta.",
       "chat.deleteForMeWarning": "Sõnum kaob ainult sellelt seadmelt; teistel säilib. Seda ei saa tagasi võtta.",
-      "chat.deleteWarning": "Kõik sõnumid ja failid teie vestlusest name-ga kustutatakse jäädavalt.",
+      "chat.deleteWarning": "Kõik sõnumid ja failid teie vestlusest {{name}}-ga kustutatakse jäädavalt.",
       "chat.downloadFailed": "Allalaadimine ebaõnnestus",
       "chat.downloadFile": "Laadi fail alla",
       "chat.downloadNamedFile": "Laadi \"{{name}}\" alla",

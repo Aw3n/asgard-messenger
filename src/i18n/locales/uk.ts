@@ -113,7 +113,7 @@ export default {
       "chat.cannotUndo": "Цю дію неможливо скасувати",
       "chat.you": "Хтось",
       "chat.e2eEncryption": "Шифрування від кінця до кінця",
-      "chat.deleteWarning": "Усі повідомлення та файли з вашої розмови з name буде остаточно видалено.",
+      "chat.deleteWarning": "Усі повідомлення та файли з вашої розмови з {{name}} буде остаточно видалено.",
       "calls.incomingCall": "Вхідний виклик",
       "calls.outgoingCall": "Вихідний виклик",
       "calls.missedCall": "Пропущений виклик",

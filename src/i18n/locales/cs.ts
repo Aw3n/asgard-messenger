@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Zpráva zmizne vám i ostatním, nahradí ji „Zpráva smazána“. Nedá se to vrátit.",
       "chat.deletePermanentlyWarning": "Zpráva zmizne vám i ostatním bez stopy. Nedá se to vrátit.",
       "chat.deleteForMeWarning": "Zpráva zmizne jen z tohoto zařízení; ostatní si ji nechají. Nedá se to vrátit.",
-      "chat.deleteWarning": "Všechny zprávy a soubory z konverzace s name budou trvale smazány.",
+      "chat.deleteWarning": "Všechny zprávy a soubory z konverzace s {{name}} budou trvale smazány.",
       "chat.downloadFailed": "Stahování selhalo",
       "chat.downloadFile": "Stáhnout soubor",
       "chat.downloadNamedFile": "Stáhnout \"{{name}}\"",

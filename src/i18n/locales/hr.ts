@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Poruka nestaje za vas i za druge, zamijenjena „Poruka izbrisana“. Ovo se ne može poništiti.",
       "chat.deletePermanentlyWarning": "Poruka nestaje za vas i za druge, bez tragova. Ovo se ne može poništiti.",
       "chat.deleteForMeWarning": "Poruka nestaje samo s ovog uređaja; drugi je zadržavaju. Ovo se ne može poništiti.",
-      "chat.deleteWarning": "Sve poruke i datoteke iz vašeg razgovora s name bit će trajno izbrisane.",
+      "chat.deleteWarning": "Sve poruke i datoteke iz vašeg razgovora s {{name}} bit će trajno izbrisane.",
       "chat.downloadFailed": "Preuzimanje nije uspjelo",
       "chat.downloadFile": "Preuzmi datoteku",
       "chat.downloadNamedFile": "Preuzmi \"{{name}}\"",

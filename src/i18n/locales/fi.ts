@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Viesti katoaa sinulta ja muilta, korvaajana “Viesti poistettu”. Tätä ei voi perua.",
       "chat.deletePermanentlyWarning": "Viesti katoaa sinulta ja muilta, ilman jäännöksiä. Tätä ei voi perua.",
       "chat.deleteForMeWarning": "Viesti katoaa vain tältä laitteelta; muut säilyttävät sen. Tätä ei voi perua.",
-      "chat.deleteWarning": "Kaikki keskustelun viestit ja tiedot kumppanin name kanssa poistetaan pysyvästi.",
+      "chat.deleteWarning": "Kaikki keskustelun viestit ja tiedot kumppanin {{name}} kanssa poistetaan pysyvästi.",
       "chat.downloadFailed": "Lataus epäonnistui",
       "chat.downloadFile": "Lataa tiedosto",
       "chat.downloadNamedFile": "Lataa \"{{name}}\"",

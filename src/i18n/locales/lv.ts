@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Ziņojums pazudīs no jums un no pārējiem, vietā «Ziņojums dzēsts». To nevar atsaukt.",
       "chat.deletePermanentlyWarning": "Ziņojums pazudīs no jums un no pārējiem bez pēdām. To nevar atsaukt.",
       "chat.deleteForMeWarning": "Ziņojums pazudīs tikai no šīs ierīces; pārējie to saglabās. To nevar atsaukt.",
-      "chat.deleteWarning": "Visi ziņojumi un faili no sarunas ar name tiks neatgriezeniski dzēsti.",
+      "chat.deleteWarning": "Visi ziņojumi un faili no sarunas ar {{name}} tiks neatgriezeniski dzēsti.",
       "chat.downloadFailed": "Lejupielāde neizdevās",
       "chat.downloadFile": "Lejupielādēt failu",
       "chat.downloadNamedFile": "Lejupielādēt \"{{name}}\"",

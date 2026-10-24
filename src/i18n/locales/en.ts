@@ -119,7 +119,7 @@ export default {
       "chat.cannotUndo": "This action cannot be undone",
       "chat.you": "Someone",
       "chat.e2eEncryption": "End-to-end encryption",
-      "chat.deleteWarning": "All messages and files from your conversation with name will be permanently deleted.",
+      "chat.deleteWarning": "All messages and files from your conversation with {{name}} will be permanently deleted.",
       "calls.incomingCall": "Incoming call",
       "calls.outgoingCall": "Outgoing call",
       "calls.missedCall": "Missed call",

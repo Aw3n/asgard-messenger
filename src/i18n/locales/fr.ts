@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Le message disparaîtra pour vous et pour les autres, remplacé par “Message supprimé”. Cette action est définitive.",
       "chat.deletePermanentlyWarning": "Le message disparaîtra pour vous et pour les autres, sans laisser de mention. Cette action est définitive.",
       "chat.deleteForMeWarning": "Le message disparaîtra de cet appareil uniquement ; les autres le conserveront. Cette action est définitive.",
-      "chat.deleteWarning": "Tous les messages et fichiers de votre conversation avec name seront supprimés définitivement.",
+      "chat.deleteWarning": "Tous les messages et fichiers de votre conversation avec {{name}} seront supprimés définitivement.",
       "chat.downloadFailed": "Téléchargement échoué",
       "chat.downloadFile": "Télécharger le fichier",
       "chat.downloadNamedFile": "Télécharger « {{name}} »",

@@ -1,7 +1,8 @@
 /**
- * Trois libellés recevaient des paramètres que leur traduction n'utilisait
- * pas : le compteur de vues d'un partage, la taille totale des téléchargements
- * et le nom du canal dans le composeur restaient invisibles. Les panneaux sont
+ * Quatre libellés recevaient des paramètres que leur traduction n'utilisait
+ * pas : le compteur de vues d'un partage, la taille totale des téléchargements,
+ * le nom du canal dans le composeur et le nom de la conversation à supprimer
+ * (la phrase affichait le mot « name ») restaient invisibles. Les panneaux sont
  * rendus ici avec le vrai catalogue français, et les 25 langues sont balayées.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -40,6 +41,7 @@ const REQUIRED: Record<string, string[]> = {
   'settings.views': ['used', 'total'],
   'settings.totalSize': ['size'],
   'groups.messageChannel': ['channelName'],
+  'chat.deleteWarning': ['name'],
 }
 
 afterEach(cleanup)

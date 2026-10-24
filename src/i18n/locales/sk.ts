@@ -87,7 +87,7 @@ export default {
       "chat.deleteForEveryoneWarning": "Správa zmizne vám aj ostatným, nahradí ju „Správa odstránená“. Nedá sa to vrátiť.",
       "chat.deletePermanentlyWarning": "Správa zmizne vám aj ostatným bez stopy. Nedá sa to vrátiť.",
       "chat.deleteForMeWarning": "Správa zmizne len z tohto zariadenia; ostatní si ju nechajú. Nedá sa to vrátiť.",
-      "chat.deleteWarning": "Všetky správy a súbory z vašej konverzácie s name budú natrvalo odstránené.",
+      "chat.deleteWarning": "Všetky správy a súbory z vašej konverzácie s {{name}} budú natrvalo odstránené.",
       "chat.downloadFailed": "Sťahovanie zlyhalo",
       "chat.downloadFile": "Stiahnuť súbor",
       "chat.downloadNamedFile": "Stiahnuť \"{{name}}\"",
