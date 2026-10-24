@@ -574,6 +574,7 @@ export const GroupView: React.FC = () => {
                   <MessageBubble
                     message={message}
                     isOwn={message.senderId === identity?.keyPair.publicKey}
+                    ownSenderId={identity?.keyPair.publicKey}
                     senderName={getMemberName(activeGroup, message.senderId)}
                     senderNameFor={(id) => getMemberName(activeGroup, id)}
                     showSender

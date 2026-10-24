@@ -41,6 +41,8 @@ interface MessageBubbleProps {
   onPin?: (message: Message) => void
   /** Nom de l'auteur d'une citation : la vue sait qui se cache derrière la clé. */
   senderNameFor?: (publicKey: string) => string | undefined
+  /** Clé de l'utilisateur courant : distingue ses propres réactions. */
+  ownSenderId?: string
 }
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
@@ -64,6 +66,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onForward,
   onPin,
   senderNameFor,
+  ownSenderId,
 }) => {
   const { t } = useTranslation()
   // CHAT SETTINGS: timestamps, seconds, read status ticks and density
@@ -292,17 +295,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {/* Reactions */}
         {message.reactions && message.reactions.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1 px-1">
-            {message.reactions.map((reaction) => (
-              <motion.button
-                key={reaction.emoji}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => onReaction?.(message, reaction.emoji)}
-                className="flex items-center gap-1 bg-asgard-surface-alt border border-asgard-border rounded-full px-2 py-0.5 text-xs hover:bg-asgard-border transition-colors"
-              >
-                <span>{reaction.emoji}</span>
-                <span className="text-asgard-text-secondary">{reaction.count}</span>
-              </motion.button>
-            ))}
+            {message.reactions.map((reaction) => {
+              // Sans marque, impossible de savoir si cliquer ajoute ou retire
+              // sa propre réaction — le serveur, lui, bascule toujours.
+              const mine = !!ownSenderId && reaction.users.includes(ownSenderId)
+              return (
+                <motion.button
+                  key={reaction.emoji}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => onReaction?.(message, reaction.emoji)}
+                  aria-pressed={mine}
+                  className={cn(
+                    'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors',
+                    mine
+                      ? 'border-asgard-glacier/60 bg-asgard-glacier/15'
+                      : 'border-asgard-border bg-asgard-surface-alt hover:bg-asgard-border',
+                  )}
+                >
+                  <span>{reaction.emoji}</span>
+                  <span className={mine ? 'text-asgard-glacier' : 'text-asgard-text-secondary'}>
+                    {reaction.count}
+                  </span>
+                </motion.button>
+              )
+            })}
           </div>
         )}
       </div>

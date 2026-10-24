@@ -696,6 +696,7 @@ export const ChatView: React.FC = () => {
                 <MessageBubble
                   message={message}
                   isOwn={message.senderId === identity?.keyPair.publicKey}
+                  ownSenderId={identity?.keyPair.publicKey}
                   senderName={contact?.displayName}
                   senderNameFor={senderNameFor}
                   highlighted={message.id === highlightedMessageId}
