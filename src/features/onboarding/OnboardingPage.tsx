@@ -22,6 +22,9 @@ export const OnboardingPage: React.FC = () => {
   const [about, setAbout] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [seedPhrase, setSeedPhrase] = useState<string>('')
+  // L'identité est créée mais sa phrase n'a pas pu être lue : réessayer doit
+  // relire la phrase, jamais regénérer une identité qui écraserait la première.
+  const [identityCreated, setIdentityCreated] = useState(false)
 
   const { createIdentity, updateProfile, identity } = useIdentityStore()
   const addToast = useUIStore((s) => s.addToast)
@@ -30,8 +33,15 @@ export const OnboardingPage: React.FC = () => {
 
   const handleCreateIdentity = async () => {
     setIsCreating(true)
+    // La valeur de l'état ne serait pas encore relue dans le catch : une
+    // variable locale dit ce qui s'est réellement passé dans cet appel.
+    let created = identityCreated
     try {
-      await createIdentity()
+      if (!created) {
+        await createIdentity()
+        created = true
+        setIdentityCreated(true)
+      }
       // COHÉRENCE ARCHI : la seed phrase vient de l'IPC identity:exportSeedPhrase
       // (source de vérité disque, exactement le code inverse de
       // importSeedPhrase → round-trip garanti) plutôt que d'une reconstitution
@@ -40,7 +50,14 @@ export const OnboardingPage: React.FC = () => {
       setSeedPhrase(words.join(' '))
       setStep('seed')
     } catch {
-      addToast({ type: 'error', title: t('onboarding.createFailed'), duration: 4000 })
+      // Une lecture de phrase ratée après coup n'est pas une création ratée :
+      // l'annoncer comme telle poussait à recliquer, et la seconde création
+      // écrasait l'identité dont aucune sauvegarde n'avait été montrée.
+      addToast({
+        type: 'error',
+        title: t(created ? 'settings.recoveryPhraseFailed' : 'onboarding.createFailed'),
+        duration: 4000,
+      })
     } finally {
       setIsCreating(false)
     }
@@ -90,7 +107,12 @@ export const OnboardingPage: React.FC = () => {
           <WelcomeStep key="welcome" onNext={() => setStep('create')} onRestore={() => setStep('restore')} />
         )}
         {step === 'create' && (
-          <CreateStep key="create" onCreate={handleCreateIdentity} isCreating={isCreating} />
+          <CreateStep
+            key="create"
+            onCreate={handleCreateIdentity}
+            isCreating={isCreating}
+            seedOnly={identityCreated}
+          />
         )}
         {step === 'seed' && (
           <SeedStep key="seed" seedPhrase={seedPhrase} onNext={() => setStep('profile')} />
@@ -230,9 +252,10 @@ const WelcomeStep: React.FC<{ onNext: () => void; onRestore: () => void }> = ({ 
   )
 }
 
-const CreateStep: React.FC<{ onCreate: () => void; isCreating: boolean }> = ({
+const CreateStep: React.FC<{ onCreate: () => void; isCreating: boolean; seedOnly: boolean }> = ({
   onCreate,
   isCreating,
+  seedOnly,
 }) => {
   const { t } = useTranslation()
   return (
@@ -277,7 +300,11 @@ const CreateStep: React.FC<{ onCreate: () => void; isCreating: boolean }> = ({
       </div>
 
       <Button size="lg" fullWidth onClick={onCreate} loading={isCreating}>
-        {isCreating ? t('onboarding.generatingKeys') : t('onboarding.createAccount')}
+        {isCreating
+          ? t('onboarding.generatingKeys')
+          : seedOnly
+            ? t('common.retry')
+            : t('onboarding.createAccount')}
       </Button>
     </div>
   </motion.div>
