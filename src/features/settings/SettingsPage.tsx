@@ -1324,6 +1324,9 @@ const StorageSection: React.FC = () => {
     try {
       await window.asgard.storage.clearAll()
       addToast({ type: 'success', title: t('toast.cacheCleared') })
+      // La mesure datait d'avant l'effacement : sans cette relecture, la barre
+      // restait pleine et « vider le cache » semblait sans effet.
+      loadStorageSize()
     } catch {
       addToast({ type: 'error', title: t('toast.failedToClearCache') })
     }

@@ -137,6 +137,42 @@ describe('curseur de plafond', () => {
   })
 })
 
+describe('vidage du cache', () => {
+  it('relit la taille après l’effacement, au lieu de laisser la barre pleine', async () => {
+    const getSize = vi.fn()
+      .mockResolvedValueOnce(600 * MB)
+      .mockResolvedValueOnce(0)
+    const clearAll = vi.fn().mockResolvedValue(undefined)
+    Object.assign(window.asgard.storage, { getSize, clearAll })
+    await openStorage()
+
+    expect(await screen.findByText(/600\.0 MB settings\.usedOf 500 MB \(100%\)/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.clearCache' }))
+
+    expect(await screen.findByText(/0 B settings\.usedOf 500 MB \(0%\)/)).toBeInTheDocument()
+    expect(clearAll).toHaveBeenCalledTimes(1)
+    expect(getSize).toHaveBeenCalledTimes(2)
+  })
+
+  it('garde la mesure affichée quand l’effacement échoue, et le dit', async () => {
+    const getSize = vi.fn().mockResolvedValue(300 * MB)
+    const clearAll = vi.fn().mockRejectedValue(new Error('disque verrouillé'))
+    Object.assign(window.asgard.storage, { getSize, clearAll })
+    await openStorage()
+
+    expect(await screen.findByText(/300\.0 MB settings\.usedOf/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.clearCache' }))
+
+    await waitFor(() =>
+      expect(useUIStore.getState().toasts.some((toast) => toast.title === 'toast.failedToClearCache')).toBe(true),
+    )
+    expect(getSize).toHaveBeenCalledTimes(1)
+    expect(screen.getByText(/300\.0 MB settings\.usedOf/)).toBeInTheDocument()
+  })
+})
+
 describe('mesure de la taille utilisée', () => {
   it('annonce une mesure indisponible et propose de réessayer', async () => {
     const getSize = vi.fn()
