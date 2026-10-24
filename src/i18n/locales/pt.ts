@@ -932,6 +932,8 @@ export default {
       "lightbox.retry": "Tentar novamente",
       "chat.playAudio": "Reproduzir",
       "chat.pauseAudio": "Pausa",
+      "chat.playVideo": "Reproduzir vídeo",
+      "chat.pauseVideo": "Pausar o vídeo",
       "chat.audioPosition": "Posição de reprodução",
       "lightbox.thumbnails": "Miniaturas",
       "lightbox.thumbnail": "Foto {{index}}",

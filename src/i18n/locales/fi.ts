@@ -920,6 +920,8 @@ export default {
       "lightbox.retry": "Yritä uudelleen",
       "chat.playAudio": "Toista",
       "chat.pauseAudio": "Tauko",
+      "chat.playVideo": "Toista video",
+      "chat.pauseVideo": "Keskeytä video",
       "chat.audioPosition": "Toistokohta",
       "lightbox.thumbnails": "Pikkukuvat",
       "lightbox.thumbnail": "Kuva {{index}}",

@@ -920,6 +920,8 @@ export default {
       "lightbox.retry": "Опитай отново",
       "chat.playAudio": "Възпроизвеждане",
       "chat.pauseAudio": "Пауза",
+      "chat.playVideo": "Възпроизведи видеото",
+      "chat.pauseVideo": "Пауза на видеото",
       "chat.audioPosition": "Позиция на възпроизвеждане",
       "lightbox.thumbnails": "Миниатюри",
       "lightbox.thumbnail": "Снимка {{index}}",

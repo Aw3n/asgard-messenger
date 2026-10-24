@@ -919,6 +919,8 @@ export default {
       "lightbox.retry": "Opnieuw proberen",
       "chat.playAudio": "Afspelen",
       "chat.pauseAudio": "Pauze",
+      "chat.playVideo": "Video afspelen",
+      "chat.pauseVideo": "Video pauzeren",
       "chat.audioPosition": "Afspeelpositie",
       "lightbox.thumbnails": "Miniaturen",
       "lightbox.thumbnail": "Foto {{index}}",

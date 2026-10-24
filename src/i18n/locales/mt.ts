@@ -956,6 +956,8 @@ export default {
       "lightbox.retry": "Ipprova mill-ġdid",
       "chat.playAudio": "Ħaddem",
       "chat.pauseAudio": "Pawża",
+      "chat.playVideo": "Ħaddem il-video",
+      "chat.pauseVideo": "Pawża l-video",
       "chat.audioPosition": "Pożizzjoni tar-riproduzzjoni",
       "lightbox.thumbnails": "Miniaturi",
       "lightbox.thumbnail": "Ritratt {{index}}",

@@ -932,6 +932,8 @@ export default {
       "lightbox.retry": "Mēģināt vēlreiz",
       "chat.playAudio": "Atskaņot",
       "chat.pauseAudio": "Pauze",
+      "chat.playVideo": "Atskaņot video",
+      "chat.pauseVideo": "Pauzēt video",
       "chat.audioPosition": "Atskaņošanas pozīcija",
       "lightbox.thumbnails": "Sīktēli",
       "lightbox.thumbnail": "Foto {{index}}",

@@ -920,6 +920,8 @@ export default {
       "lightbox.retry": "Prøv igen",
       "chat.playAudio": "Afspil",
       "chat.pauseAudio": "Pause",
+      "chat.playVideo": "Afspil video",
+      "chat.pauseVideo": "Sæt video på pause",
       "chat.audioPosition": "Afspilningsposition",
       "lightbox.thumbnails": "Miniaturebilleder",
       "lightbox.thumbnail": "Foto {{index}}",

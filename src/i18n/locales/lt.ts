@@ -933,6 +933,8 @@ export default {
       "lightbox.retry": "Bandyti dar kartą",
       "chat.playAudio": "Atkurti",
       "chat.pauseAudio": "Pauzė",
+      "chat.playVideo": "Atkurti vaizdo įrašą",
+      "chat.pauseVideo": "Pristabdyti vaizdo įrašą",
       "chat.audioPosition": "Atkūrimo pozicija",
       "lightbox.thumbnails": "Miniatiūros",
       "lightbox.thumbnail": "Nuotrauka {{index}}",

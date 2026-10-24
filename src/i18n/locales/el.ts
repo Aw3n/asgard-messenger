@@ -920,6 +920,8 @@ export default {
       "lightbox.retry": "Δοκιμή ξανά",
       "chat.playAudio": "Αναπαραγωγή",
       "chat.pauseAudio": "Παύση",
+      "chat.playVideo": "Αναπαραγωγή βίντεο",
+      "chat.pauseVideo": "Παύση βίντεο",
       "chat.audioPosition": "Θέση αναπαραγωγής",
       "lightbox.thumbnails": "Μικρογραφίες",
       "lightbox.thumbnail": "Φωτογραφία {{index}}",

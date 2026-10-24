@@ -932,6 +932,8 @@ export default {
       "lightbox.retry": "Zkusit znovu",
       "chat.playAudio": "Přehrát",
       "chat.pauseAudio": "Pozastavit",
+      "chat.playVideo": "Přehrát video",
+      "chat.pauseVideo": "Pozastavit video",
       "chat.audioPosition": "Pozice přehrávání",
       "lightbox.thumbnails": "Miniatury",
       "lightbox.thumbnail": "Fotografie {{index}}",

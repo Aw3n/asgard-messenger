@@ -956,6 +956,8 @@ export default {
       "lightbox.retry": "Bain triail eile as",
       "chat.playAudio": "Seinn",
       "chat.pauseAudio": "Sos",
+      "chat.playVideo": "Seinn an fhíseán",
+      "chat.pauseVideo": "Cuir an fhíseán ar sos",
       "chat.audioPosition": "Suíomh seinn",
       "lightbox.thumbnails": "Mionsamhlacha",
       "lightbox.thumbnail": "Grianghraf {{index}}",

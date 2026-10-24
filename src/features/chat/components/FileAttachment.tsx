@@ -759,14 +759,34 @@ const VideoAttachment: React.FC<{
   const { t } = useTranslation()
   // MEDIA SETTINGS: native controls, autoplay and default mute for videos.
   // Note: browsers only honor autoplay when the video starts muted — with
-  // muteByDefault off the user simply presses play (controls are shown).
+  // muteByDefault off the user simply presses play.
   const mediaSettings = useUIStore((s) => s.settings.media)
+  // Sans la barre native, le bouton central est le seul geste de lecture. Il
+  // faut donc le garder même quand l'autoplay est actif : un navigateur refuse
+  // la lecture d'une piste non muette, et une pause ne se reprend pas autrement.
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const hideControls = !mediaSettings.showVideoControls
+  const togglePlayback = (): void => {
+    const el = videoRef.current
+    if (!el) return
+    // L'état vient de l'élément (événements play/pause), pas de `paused` : il
+    // pilote déjà l'étiquette du bouton et reste juste sous jsdom.
+    if (playing) {
+      el.pause()
+    } else {
+      el.play().catch(() => setPlaying(false))
+    }
+  }
   // Le classement « video » suit le conteneur, pas les codecs : un .avi ou un
   // .wmv reçu intact reste indécodable pour Chromium. Sans repli, la bulle
   // affichait un lecteur cassé ; la carte fichier propose alors de l'ouvrir
   // avec le lecteur du système (le clic passe par l'URL locale).
   const [undecodable, setUndecodable] = useState(false)
-  useEffect(() => { setUndecodable(false) }, [attachment.localUrl])
+  useEffect(() => {
+    setUndecodable(false)
+    setPlaying(false)
+  }, [attachment.localUrl])
   if (undecodable || !fileService.isLiveUrl(attachment.localUrl)) {
     // Lecteur vidéo jamais monté sur une URL morte (message restauré après un
     // redémarrage) : on garde la vignette « charger », l'effet de guérison du
@@ -800,6 +820,7 @@ const VideoAttachment: React.FC<{
   return (
     <div className="rounded-xl overflow-hidden max-w-[320px] group relative">
       <video
+        ref={videoRef}
         src={attachment.localUrl}
         // MEDIA SETTINGS: controls / autoplay / default mute
         controls={mediaSettings.showVideoControls}
@@ -807,9 +828,38 @@ const VideoAttachment: React.FC<{
         muted={mediaSettings.muteByDefault}
         className="max-w-full rounded-xl"
         style={{ maxHeight: '240px' }}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
         onError={() => setUndecodable(true)}
         onContextMenu={(e) => e.preventDefault()}
       />
+      {hideControls && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={togglePlayback}
+            aria-label={playing ? t('chat.pauseVideo') : t('chat.playVideo')}
+            title={playing ? t('chat.pauseVideo') : t('chat.playVideo')}
+            className={cn(
+              'pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full',
+              'bg-black/55 text-white shadow-lg backdrop-blur-sm transition-opacity',
+              'hover:bg-black/70 focus-visible:opacity-100',
+              playing && 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            )}
+          >
+            {playing ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M6 5h4v14H6zM14 5h4v14h-4z"/>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5" aria-hidden="true">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
       {progress !== null && progress < 100 && (
         <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/40">
           <ProgressBar progress={progress} />

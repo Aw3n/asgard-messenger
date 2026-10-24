@@ -932,6 +932,8 @@ export default {
       "lightbox.retry": "Încearcă din nou",
       "chat.playAudio": "Redă",
       "chat.pauseAudio": "Pauză",
+      "chat.playVideo": "Redă videoclipul",
+      "chat.pauseVideo": "Pune videoclipul pe pauză",
       "chat.audioPosition": "Poziția redării",
       "lightbox.thumbnails": "Miniaturi",
       "lightbox.thumbnail": "Fotografia {{index}}",

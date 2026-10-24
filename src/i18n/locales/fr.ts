@@ -931,6 +931,8 @@ export default {
       "lightbox.retry": "Réessayer",
       "chat.playAudio": "Écouter",
       "chat.pauseAudio": "Pause",
+      "chat.playVideo": "Lire la vidéo",
+      "chat.pauseVideo": "Mettre la vidéo en pause",
       "chat.audioPosition": "Position de lecture",
       "lightbox.thumbnails": "Vignettes",
       "lightbox.thumbnail": "Photo {{index}}",

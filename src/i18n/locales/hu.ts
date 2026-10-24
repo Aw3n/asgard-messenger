@@ -920,6 +920,8 @@ export default {
       "lightbox.retry": "Újrapróbálkozás",
       "chat.playAudio": "Lejátszás",
       "chat.pauseAudio": "Szünet",
+      "chat.playVideo": "Videó lejátszása",
+      "chat.pauseVideo": "Videó szüneteltetése",
       "chat.audioPosition": "Lejátszási pozíció",
       "lightbox.thumbnails": "Bélyegképek",
       "lightbox.thumbnail": "{{index}}. fotó",
