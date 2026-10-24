@@ -219,7 +219,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const cancelEdit = useCallback(() => {
     onCancelEdit?.()
     setComposerContent('')
-    setPendingFiles([])
+    // Les pièces jointes déjà choisies appartiennent au fil, pas au message
+    // édité : les jeter ici les perdait sans trace, alors que valider une
+    // édition les garde pour l'envoi suivant.
     textareaRef.current?.focus()
   }, [onCancelEdit, setComposerContent])
 

@@ -9,6 +9,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MessageInput } from '@/features/chat/components/MessageInput'
 import { useConversationStore } from '@/stores/conversationStore'
+import type { Message } from '@/types'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
@@ -22,6 +23,16 @@ const revokeObjectURL = vi.fn((url: string) => { revoked.push(url) })
 Object.assign(URL, { createObjectURL, revokeObjectURL })
 
 const image = new File(['contenu'], 'photo.png', { type: 'image/png' })
+
+const editTarget: Message = {
+  id: 'message-1',
+  conversationId: 'fil-pj',
+  senderId: 'a'.repeat(64),
+  type: 'text',
+  content: 'texte original',
+  timestamp: 1_700_000_000_000,
+  status: 'sent',
+}
 
 const upload = (file: File) => {
   const input = document.querySelector('input[type="file"]')
@@ -66,6 +77,30 @@ describe('vignettes des pièces jointes en attente', () => {
 
     view.unmount()
     expect(revoked).toContain(src)
+  })
+
+  it('garde les pièces jointes en attente quand une édition est annulée', () => {
+    const onCancelEdit = vi.fn()
+    const { rerender } = render(
+      <MessageInput
+        conversationId="fil-pj"
+        editingMessage={editTarget}
+        onSend={vi.fn()}
+        onEditSubmit={vi.fn()}
+        onCancelEdit={onCancelEdit}
+      />,
+    )
+    upload(image)
+    expect(screen.getByAltText('photo.png')).toBeInTheDocument()
+
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Escape' })
+    expect(onCancelEdit).toHaveBeenCalledOnce()
+
+    // Le parent referme l'édition ; sans texte, seule la pièce jointe peut
+    // encore rendre l'envoi possible.
+    rerender(<MessageInput conversationId="fil-pj" onSend={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'messageInput.send' })).toBeEnabled()
+    expect(revoked).toEqual([])
   })
 
   it('garde une URL vivante sous StrictMode', () => {
