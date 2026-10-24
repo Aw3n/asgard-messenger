@@ -311,6 +311,8 @@ const EmptyTrashConfirm: React.FC<{ count: number; onClose: () => void; onConfir
 }) => {
   const { t } = useTranslation()
   const dialogRef = useDialogBehavior(onClose)
+  // La touche réglée renvoie à la corbeille : le bouton qui fait ce geste le dit.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
 
   return (
     <motion.div
@@ -341,6 +343,8 @@ const EmptyTrashConfirm: React.FC<{ count: number; onClose: () => void; onConfir
         <div className="flex gap-3 justify-end">
           <button
             onClick={onClose}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
             className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
           >
             {t('common.cancel')}

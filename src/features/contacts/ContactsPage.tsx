@@ -14,6 +14,7 @@ import { formatLastSeen } from '@/utils/time'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { PRESENCE_CHOICES, presenceMeta, fromNetworkStatus, isLivePresence } from '@/utils/presence'
 import { chatService } from '@/services/ChatService'
 import { ContactDetailView } from './components/ContactDetailView'
@@ -409,6 +410,9 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const dialogRef = useDialogBehavior(onClose)
+  // Ce dialogue n'a pas de croix : son « Annuler » est le geste que la touche
+  // réglée fait, donc c'est lui qui la nomme.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
   const publicKeyFieldId = React.useId()
 
   // UX COPY/PASTE : un lien d'invitation complet (asgard://invite/<key>?name=)
@@ -556,7 +560,15 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
 
         <div className="flex gap-3 mt-6">
-          <Button variant="ghost" fullWidth onClick={onClose}>{t('common.cancel')}</Button>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={onClose}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+          >
+            {t('common.cancel')}
+          </Button>
           <Button fullWidth onClick={handleAdd} loading={isAdding}>{t('contacts.addContact')}</Button>
         </div>
       </motion.div>

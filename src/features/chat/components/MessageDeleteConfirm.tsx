@@ -12,6 +12,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import {
   DELETE_MODE_LABEL_KEYS,
   DELETE_MODE_WARNING_KEYS,
@@ -27,6 +28,8 @@ interface MessageDeleteConfirmProps {
 export const MessageDeleteConfirm: React.FC<MessageDeleteConfirmProps> = ({ mode, onCancel, onConfirm }) => {
   const { t } = useTranslation()
   const dialogRef = useDialogBehavior<HTMLDivElement>(onCancel)
+  // « Annuler » et la touche réglée renvoient au même endroit : le bouton la nomme.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
   const titleId = React.useId()
   const warningId = React.useId()
 
@@ -57,6 +60,8 @@ export const MessageDeleteConfirm: React.FC<MessageDeleteConfirmProps> = ({ mode
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
             className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
           >
             {t('common.cancel')}

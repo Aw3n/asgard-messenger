@@ -5,6 +5,7 @@ import { groupService } from '@/services/GroupService'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { useTranslation } from 'react-i18next'
 
 interface CreateGroupModalProps {
@@ -23,6 +24,9 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
   const [isCreating, setIsCreating] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
   const dialogRef = useDialogBehavior(onClose)
+  // La touche réglée referme ce dialogue comme celui des autres : le bouton qui
+  // fait le même geste le dit.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
   const descriptionId = React.useId()
 
   const handleCreate = async () => {
@@ -122,7 +126,13 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
         </div>
 
         <div className="flex gap-3 mt-6">
-          <Button variant="ghost" fullWidth onClick={onClose}>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={onClose}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+          >
             {t('common.cancel')}
           </Button>
           <Button fullWidth onClick={handleCreate} disabled={!name.trim()} loading={isCreating}>

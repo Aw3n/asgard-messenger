@@ -8,6 +8,7 @@ import { channelPermissionsFor, normalizeChannelName } from '@/utils/groupPermis
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import type { ChannelType, GroupChannel, MemberRole } from '@/types'
 
 const CHANNEL_TYPES: ChannelType[] = ['text', 'announcement', 'readonly']
@@ -49,6 +50,8 @@ export const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ groupId,
   const [isCreating, setIsCreating] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
   const dialogRef = useDialogBehavior(onClose)
+  // La touche réglée referme ce dialogue : son « Annuler » fait le même geste.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
 
   // Référence stable : un sélecteur qui rend un tableau neuf à chaque rendu
   // ferait relire le composant par n'importe quel changement du store.
@@ -147,7 +150,13 @@ export const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ groupId,
         </div>
 
         <div className="flex gap-3 mt-6">
-          <Button variant="ghost" fullWidth onClick={onClose}>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={onClose}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+          >
             {t('common.cancel')}
           </Button>
           <Button fullWidth onClick={handleCreate} disabled={!name.trim()} loading={isCreating}>

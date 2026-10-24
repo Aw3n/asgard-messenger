@@ -141,8 +141,10 @@ const AddContactModal: React.FC<{
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
   const [error, setError] = useState('')
   const navigate = useNavigate()
-  // La croix ferme ce que la touche réglée ferme : elle doit la nommer.
+  // La croix ferme ce que la touche réglée ferme : elle doit la nommer. Le
+  // bouton « Annuler » du pied fait exactement le même geste.
   const closeGesture = useGestureHint('closeModal', t('common.close'))
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
 
   const getContact = useContactStore((s) => s.getContact)
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
@@ -304,6 +306,8 @@ const AddContactModal: React.FC<{
       <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-asgard-border bg-asgard-surface-alt">
         <button
           onClick={onClose}
+          title={cancelGesture.title}
+          aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
           className="btn-ghost px-4 py-2 text-sm rounded-lg"
         >
           {t('common.cancel')}
