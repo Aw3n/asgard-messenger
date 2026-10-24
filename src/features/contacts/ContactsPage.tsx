@@ -452,7 +452,12 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     try {
       const text = await navigator.clipboard.readText()
       const parsed = parseInviteInput(text)
-      if (!parsed) return
+      // Un contenu qui n'est ni une clé ni un lien d'invitation était ignoré
+      // en silence : le bouton semblait n'avoir rien fait, sans dire pourquoi.
+      if (!parsed) {
+        setError(t('contacts.error.invalidPublicKey'))
+        return
+      }
       setPublicKey(parsed.publicKey)
       if (parsed.name) setDisplayName(parsed.name)
       setError('')
