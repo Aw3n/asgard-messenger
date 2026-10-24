@@ -186,7 +186,7 @@ describe('pipette de surface dans l’éditeur de thème', () => {
   it('peint dès qu’on la bouge à l’écran', async () => {
     render(<ThemeSelector />)
     fireEvent.click(screen.getByRole('switch', { name: 'settings.customColors' }))
-    fireEvent.click(screen.getByRole('button', { name: /coloreditor/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'settings.showColorEditor' }))
 
     const swatch = await pipette()
     expect(swatch.value).toBe('#252630')
@@ -195,6 +195,20 @@ describe('pipette de surface dans l’éditeur de thème', () => {
     await waitFor(() => expect(customTheme().surfaceColor).toBe('#8a2be2'))
     expect(readVar('dark', 'surface')).toBe(hexToCssRgb('#8a2be2'))
     expect(readVar('light', 'surface')).toBe(hexToCssRgb(invertColorForLight('#8a2be2')))
+  })
+})
+
+describe('bascule de l’éditeur de couleurs', () => {
+  /** Le bouton composait « Afficher » + le titre rabaissé en minuscules, ce qui
+   *  casse les langues où le nom garde sa majuscule. Il porte maintenant deux
+   *  libellés entiers. */
+  it('annonce le libellé entier des deux états', async () => {
+    render(<ThemeSelector />)
+    fireEvent.click(screen.getByRole('switch', { name: 'settings.customColors' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.showColorEditor' }))
+
+    expect(await screen.findByRole('button', { name: 'settings.hideColorEditor' })).toBeInTheDocument()
   })
 })
 

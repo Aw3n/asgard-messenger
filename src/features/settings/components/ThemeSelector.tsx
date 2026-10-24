@@ -272,7 +272,7 @@ export const ThemeSelector: React.FC = () => {
                 : "M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"
               }/>
             </svg>
-             {showCustomEditor ? t('common.hide') : t('common.show')} {t('settings.colorEditor').toLowerCase()}
+             {t(showCustomEditor ? 'settings.hideColorEditor' : 'settings.showColorEditor')}
           </button>
         )}
       </div>

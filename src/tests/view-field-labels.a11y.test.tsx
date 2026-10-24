@@ -123,7 +123,7 @@ describe('thème personnalisé', () => {
       customTheme: { ...useUIStore.getState().settings.customTheme, enabled: true },
     })
     render(<ThemeSelector />)
-    fireEvent.click(screen.getByRole('button', { name: /settings\.colorEditor/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'settings.showColorEditor' }))
     await screen.findByLabelText(/^settings\.borderRadius/)
   }
 

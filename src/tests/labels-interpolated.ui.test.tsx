@@ -96,7 +96,7 @@ describe('libellés interpolés', () => {
     render(<DownloadHistory />)
 
     expect(screen.getByText('Taille totale : 1.5 KB')).toBeInTheDocument()
-    expect(screen.getByText(/1 téléchargement · 1\.5 KB · 1 aujourd'hui/)).toBeInTheDocument()
+    expect(screen.getByText(/1 téléchargement · 1\.5 KB · Aujourd'hui \(1 téléchargement\)/)).toBeInTheDocument()
     expect(screen.queryByText(/1 Fichiers/)).not.toBeInTheDocument()
   })
 

@@ -6,6 +6,7 @@ import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { getCurrentLanguage } from '@/i18n/config'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface DownloadHistoryEntry {
   id: string
@@ -25,6 +26,9 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
   const { t } = useTranslation()
   const [history, setHistory] = useState<DownloadHistoryEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  // Vider l'historique est irréversible : le bouton ouvre le dialogue commun,
+  // la liste ne disparaît qu'après l'acquiescement.
+  const [confirmClear, setConfirmClear] = useState(false)
   // La croix ne fait que redire ce que la touche réglée fait déjà : ce
   // panneau-là l'ignorait encore, il la reçoit comme les autres dialogues.
   const dialogRef = useDialogBehavior(onClose)
@@ -55,6 +59,7 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
   }
 
   const handleClear = () => {
+    setConfirmClear(false)
     fileService.clearDownloadHistory()
     loadData()
   }
@@ -141,14 +146,14 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
           <div>
             <h2 className="text-lg font-semibold text-asgard-text-primary">{t('settings.downloadHistory')}</h2>
             <p className="text-xs text-asgard-text-muted">
-              {t('settings.totalDownloads', { count: stats.total })} · {formatBytes(stats.totalSize)} · {stats.recentCount} {t('chat.today').toLowerCase()}
+              {t('settings.totalDownloads', { count: stats.total })} · {formatBytes(stats.totalSize)} · {t('chat.today')} ({t('settings.totalDownloads', { count: stats.recentCount })})
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {history.length > 0 && (
             <button
-              onClick={handleClear}
+              onClick={() => setConfirmClear(true)}
               className="px-3 py-1.5 text-xs text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
             >
               {t('calls.clearHistory')}
@@ -288,6 +293,16 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
             <span>{t('settings.totalSize', { size: formatBytes(stats.totalSize) })}</span>
           </div>
         </div>
+      )}
+
+      {confirmClear && (
+        <ConfirmDialog
+          title="calls.clearHistory"
+          warning="settings.clearDownloadHistoryWarning"
+          confirmLabel="calls.clearHistory"
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={handleClear}
+        />
       )}
     </div>
   )
