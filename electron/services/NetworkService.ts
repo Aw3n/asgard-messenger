@@ -145,6 +145,9 @@ export class NetworkService extends EventEmitter {
   private lastSeenAt: number | undefined
   // CONNECTIVITY: Network status monitoring
   private isOnline = true
+  // Une suspension demandée par l'utilisateur survit à une coupure réseau
+  // passagère : handleNetworkChange ne la défait pas dans son dos.
+  private suspendedByUser = false
   private lastNetworkChange = 0
   private reconnectAttempts: Map<string, number> = new Map() // peerId -> attempt count
   private static readonly MAX_RECONNECT_ATTEMPTS = 5
@@ -1153,15 +1156,25 @@ export class NetworkService extends EventEmitter {
   async suspend(): Promise<void> {
     if (!this.swarm) return
     await (this.swarm as unknown as { suspend: () => Promise<void> }).suspend()
+    this.suspendedByUser = true
     console.log('[NetworkService] Swarm suspended')
   }
 
   /**
-   * Resume a suspended swarm, reannouncing to DHT and reconnecting to peers.
+   * Resume a suspended swarm, reannouncing and re-publishing presence.
+   *
+   * Pendant une suspension longue, les enregistrements DHT (profil, statut)
+   * expirent : sans republication l'app se reconnecte mais reste introuvable
+   * par les contacts qui la cherchent par le DHT.
    */
   async resume(): Promise<void> {
     if (!this.swarm) return
     await (this.swarm as unknown as { resume: () => Promise<void> }).resume()
+    this.suspendedByUser = false
+    this.reannounceTopics()
+    if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
+    this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
+    this.flush().catch(() => {})
     console.log('[NetworkService] Swarm resumed')
   }
 
@@ -1736,93 +1749,6 @@ export class NetworkService extends EventEmitter {
     if (peer?.socket?.setKeepAlive) {
       peer.socket.setKeepAlive(ms)
     }
-  }
-
-  /**
-   * Suspend the swarm for power management.
-   * OPTIMIZATION: Uses Hyperswarm suspend() to pause networking.
-   * Useful when app is backgrounded or device is idle.
-   */
-  async suspendSwarm(): Promise<boolean> {
-    if (!this.swarm) return false
-
-    const suspendFn = (this.swarm as unknown as { suspend?: (opts?: { log?: () => void }) => Promise<void> }).suspend
-
-    if (typeof suspendFn === 'function') {
-      try {
-        await suspendFn.call(this.swarm)
-        console.log('[NetworkService] Swarm suspended')
-        return true
-      } catch (err) {
-        console.error('[NetworkService] Failed to suspend swarm:', err)
-        return false
-      }
-    }
-
-    return false
-  }
-
-  /**
-   * Resume a suspended swarm.
-   * OPTIMIZATION: Uses Hyperswarm resume() to restore networking.
-   * Useful when app returns to foreground.
-   */
-  async resumeSwarm(): Promise<boolean> {
-    if (!this.swarm) return false
-
-    const resumeFn = (this.swarm as unknown as { resume?: (opts?: { log?: () => void }) => Promise<void> }).resume
-
-    if (typeof resumeFn === 'function') {
-      try {
-        await resumeFn.call(this.swarm)
-        console.log('[NetworkService] Swarm resumed')
-
-        // CONNECTIVITY: After resume, re-announce all topics to refresh DHT entries.
-        // During suspend, DHT records may have expired or been garbage-collected.
-        // Without re-announce, peers cannot discover us after waking from sleep.
-        this.reannounceTopics()
-
-        // CONNECTIVITY: Re-publish profile and status to DHT.
-        // The previous DHT records may be stale after suspend.
-        if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
-        this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
-
-        // CONNECTIVITY: Flush to ensure DHT entries are fully propagated.
-        // Critical for cross-border connections where peers need to discover
-        // us through the DHT before they can connect.
-        this.flush().catch(() => {})
-
-        return true
-      } catch (err) {
-        console.error('[NetworkService] Failed to resume swarm:', err)
-        return false
-      }
-    }
-
-    return false
-  }
-
-  /**
-   * Wait for all pending DHT announces to complete.
-   * OPTIMIZATION: Uses Hyperswarm flush() to ensure all announces are processed.
-   * Useful before app shutdown or critical operations.
-   */
-  async flushSwarm(): Promise<boolean> {
-    if (!this.swarm) return false
-
-    const flushFn = (this.swarm as unknown as { flush?: () => Promise<void> }).flush
-
-    if (typeof flushFn === 'function') {
-      try {
-        await flushFn.call(this.swarm)
-        return true
-      } catch (err) {
-        console.error('[NetworkService] Failed to flush swarm:', err)
-        return false
-      }
-    }
-
-    return false
   }
 
   /**
@@ -3020,9 +2946,13 @@ export class NetworkService extends EventEmitter {
       // Clear reconnect attempts when going offline
       this.reconnectAttempts.clear()
     } else if (!wasOnline && online) {
+      if (this.suspendedByUser) {
+        console.log('[NetworkService] Network online — swarm kept suspended by user request')
+        return
+      }
       console.log('[NetworkService] Network online — triggering reconnection')
       // Resume swarm and reannounce when coming back online
-      this.resumeSwarm().catch(() => {})
+      this.resume().catch(() => {})
       this.refreshServer()
     }
   }

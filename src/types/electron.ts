@@ -76,9 +76,6 @@ export interface AsgardElectronAPI {
     setFirewall: (firewallFn: (remotePublicKey: string, remoteHandshakePayload: unknown) => boolean) => Promise<boolean>
     getServerAddress: () => Promise<{ host: string; port: number; publicKey: string } | null>
     refreshServer: () => Promise<boolean>
-    suspendSwarm: () => Promise<boolean>
-    resumeSwarm: () => Promise<boolean>
-    flushSwarm: () => Promise<boolean>
     dhtLookup: (topicHex: string) => Promise<Array<{ publicKey: string; nodes: Array<{ host: string; port: number }> }>>
     dhtAnnounce: (topicHex: string) => Promise<boolean>
     dhtUnannounce: (topicHex: string) => Promise<boolean>

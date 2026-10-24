@@ -600,21 +600,6 @@ class P2PService extends EventEmitter {
   }
 
   /**
-   * PERFORMANCE: Suspend the swarm to save battery when app is in background.
-   * Disconnects all peers and stops discovery.
-   */
-  async suspendSwarm(): Promise<void> {
-    await window.asgard.network.suspend()
-  }
-
-  /**
-   * Resume a suspended swarm, reannouncing to DHT and reconnecting to peers.
-   */
-  async resumeSwarm(): Promise<void> {
-    await window.asgard.network.resume()
-  }
-
-  /**
    * PERFORMANCE: Wait for all pending DHT announces and peer connections.
    */
   async flush(): Promise<void> {

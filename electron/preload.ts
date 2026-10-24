@@ -85,9 +85,6 @@ export interface AsgardAPI {
     setFirewall: (firewallFn: (remotePublicKey: string, remoteHandshakePayload: unknown) => boolean) => Promise<boolean>
     getServerAddress: () => Promise<{ host: string; port: number; publicKey: string } | null>
     refreshServer: () => Promise<boolean>
-    suspendSwarm: () => Promise<boolean>
-    resumeSwarm: () => Promise<boolean>
-    flushSwarm: () => Promise<boolean>
     dhtLookup: (topicHex: string) => Promise<Array<{ publicKey: string; nodes: Array<{ host: string; port: number }> }>>
     dhtAnnounce: (topicHex: string) => Promise<boolean>
     dhtUnannounce: (topicHex: string) => Promise<boolean>
@@ -346,9 +343,6 @@ contextBridge.exposeInMainWorld('asgard', {
       ipcRenderer.invoke('network:setFirewall', firewallFn),
     getServerAddress: () => ipcRenderer.invoke('network:getServerAddress'),
     refreshServer: () => ipcRenderer.invoke('network:refreshServer'),
-    suspendSwarm: () => ipcRenderer.invoke('network:suspendSwarm'),
-    resumeSwarm: () => ipcRenderer.invoke('network:resumeSwarm'),
-    flushSwarm: () => ipcRenderer.invoke('network:flushSwarm'),
     dhtLookup: (topicHex: string) => ipcRenderer.invoke('network:dhtLookup', topicHex),
     dhtAnnounce: (topicHex: string) => ipcRenderer.invoke('network:dhtAnnounce', topicHex),
     dhtUnannounce: (topicHex: string) => ipcRenderer.invoke('network:dhtUnannounce', topicHex),

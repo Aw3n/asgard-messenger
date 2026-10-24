@@ -603,19 +603,6 @@ function setupNetworkHandlers(win: BrowserWindow): void {
     return networkService.refreshServer()
   })
 
-  // OPTIMIZATION: Hyperswarm power management and flush
-  ipcMain.handle('network:suspendSwarm', async () => {
-    return await networkService.suspendSwarm()
-  })
-
-  ipcMain.handle('network:resumeSwarm', async () => {
-    return await networkService.resumeSwarm()
-  })
-
-  ipcMain.handle('network:flushSwarm', async () => {
-    return await networkService.flushSwarm()
-  })
-
   // OPTIMIZATION: HyperDHT direct operations
   ipcMain.handle('network:dhtLookup', async (_event, topicHex: string) => {
     const topic = Buffer.from(topicHex, 'hex')
