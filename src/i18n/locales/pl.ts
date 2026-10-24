@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Przytnij i zapisz",
       "toast.dismiss": "Zamknij",
       "calls.refreshServer": "Odśwież połączenie z serwerem",
+      "calls.refreshServerFailed": "Nie udało się odświeżyć połączenia z serwerem",
+      "calls.serverRefreshed": "Połączenie z serwerem odświeżone",
       "calls.noContactsFound": "Nie znaleziono kontaktów",
       "calls.startCallHint": "Rozpocznij połączenie z listy kontaktów",
       "messageInput.cancelReply": "Anuluj odpowiedź",

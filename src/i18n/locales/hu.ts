@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Vágás és mentés",
       "toast.dismiss": "Bezárás",
       "calls.refreshServer": "Szerverkapcsolat frissítése",
+      "calls.refreshServerFailed": "Nem sikerült frissíteni a szerverkapcsolatot",
+      "calls.serverRefreshed": "A szerverkapcsolat frissítve",
       "calls.noContactsFound": "Nem találhatók névjegyek",
       "calls.startCallHint": "Indítson hívást a névjegyzékből",
       "messageInput.cancelReply": "Válasz megszakítása",

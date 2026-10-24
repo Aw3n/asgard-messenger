@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Gearr agus sábháil",
       "toast.dismiss": "Dún",
       "calls.refreshServer": "Athnuaigh nasc an fhreastalaí",
+      "calls.refreshServerFailed": "Níorbh fhéidir nasc an fhreastalaí a nuashonrú",
+      "calls.serverRefreshed": "Nasc an fhreastalaí nuashonraithe",
       "calls.noContactsFound": "Níor aimsíodh aon teagmhálacha",
       "calls.startCallHint": "Tosaigh glao ó liosta na dteagmhálacha",
       "messageInput.cancelReply": "Cealaigh freagra",

@@ -602,6 +602,8 @@ export default {
       "avatar.cropSave": "Ritaglia e salva",
       "toast.dismiss": "Chiudi",
       "calls.refreshServer": "Aggiorna connessione al server",
+      "calls.refreshServerFailed": "Impossibile aggiornare la connessione al server",
+      "calls.serverRefreshed": "Connessione al server aggiornata",
       "calls.noContactsFound": "Nessun contatto trovato",
       "calls.startCallHint": "Avvia una chiamata dalla lista contatti",
       "messageInput.cancelReply": "Annulla risposta",

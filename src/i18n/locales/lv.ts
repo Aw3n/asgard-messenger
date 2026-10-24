@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Apgriezt un saglabāt",
       "toast.dismiss": "Aizvērt",
       "calls.refreshServer": "Atjaunot servera savienojumu",
+      "calls.refreshServerFailed": "Nevarēja atjaunināt servera savienojumu",
+      "calls.serverRefreshed": "Servera savienojums atjaunināts",
       "calls.noContactsFound": "Kontakti nav atrasti",
       "calls.startCallHint": "Sāciet zvanu no kontaktu saraksta",
       "messageInput.cancelReply": "Atcelt atbildi",

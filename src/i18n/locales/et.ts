@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Kärbi ja salvesta",
       "toast.dismiss": "Sulge",
       "calls.refreshServer": "Värskenda serveriühendust",
+      "calls.refreshServerFailed": "Serveriühenduse värskendamine ebaõnnestus",
+      "calls.serverRefreshed": "Serveriühendus värskendatud",
       "calls.noContactsFound": "Kontakte ei leitud",
       "calls.startCallHint": "Alusta kõne kontaktide loetelust",
       "messageInput.cancelReply": "Tühista vastus",

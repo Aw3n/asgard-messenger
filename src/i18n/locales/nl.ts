@@ -602,6 +602,8 @@ export default {
       "avatar.cropSave": "Bijsnijden en opslaan",
       "toast.dismiss": "Sluiten",
       "calls.refreshServer": "Serververbinding vernieuwen",
+      "calls.refreshServerFailed": "Serververbinding kon niet worden vernieuwd",
+      "calls.serverRefreshed": "Serververbinding vernieuwd",
       "calls.noContactsFound": "Geen contacten gevonden",
       "calls.startCallHint": "Start een gesprek vanuit de contactenlijst",
       "messageInput.cancelReply": "Antwoord annuleren",

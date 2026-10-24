@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Obreži in shrani",
       "toast.dismiss": "Zapri",
       "calls.refreshServer": "Osveži povezavo s strežnikom",
+      "calls.refreshServerFailed": "Povezave s strežnikom ni bilo mogoče osvežiti",
+      "calls.serverRefreshed": "Povezava s strežnikom osvežena",
       "calls.noContactsFound": "Stikov ni bilo mogoče najti",
       "calls.startCallHint": "Začnite klic s seznama stikov",
       "messageInput.cancelReply": "Prekliči odgovor",

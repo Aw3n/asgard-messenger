@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Aqta' u żżomm",
       "toast.dismiss": "Agħlaq",
       "calls.refreshServer": "Aġġorna l-konnessjoni tas-server",
+      "calls.refreshServerFailed": "Ma setgħetx tiġi aġġornata l-konnessjoni mas-server",
+      "calls.serverRefreshed": "Il-konnessjoni mas-server ġiet aġġornata",
       "calls.noContactsFound": "Ma nstabu l-ebda kuntatti",
       "calls.startCallHint": "Ibda sejħa mil-lista tal-kuntatti",
       "messageInput.cancelReply": "Ikkanċella r-risposta",

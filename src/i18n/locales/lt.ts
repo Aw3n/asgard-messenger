@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Apkirpti ir išsaugoti",
       "toast.dismiss": "Uždaryti",
       "calls.refreshServer": "Atnaujinti serverio ryšį",
+      "calls.refreshServerFailed": "Nepavyko atnaujinti serverio ryšio",
+      "calls.serverRefreshed": "Serverio ryšys atnaujintas",
       "calls.noContactsFound": "Kontaktų nerasta",
       "calls.startCallHint": "Pradėkite skambutį iš kontaktų sąrašo",
       "messageInput.cancelReply": "Atšaukti atsakymą",

@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Изрязване и запазване",
       "toast.dismiss": "Затваряне",
       "calls.refreshServer": "Обновяване на връзката със сървъра",
+      "calls.refreshServerFailed": "Връзката със сървъра не можа да бъде обновена",
+      "calls.serverRefreshed": "Връзката със сървъра е обновена",
       "calls.noContactsFound": "Няма намерени контакти",
       "calls.startCallHint": "Започнете обаждане от списъка с контакти",
       "messageInput.cancelReply": "Отказ на отговора",

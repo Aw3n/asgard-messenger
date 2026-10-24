@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Περικοπή και αποθήκευση",
       "toast.dismiss": "Κλείσιμο",
       "calls.refreshServer": "Ανανέωση σύνδεσης διακομιστή",
+      "calls.refreshServerFailed": "Δεν ήταν δυνατή η ενημέρωση της σύνδεσης με τον διακομιστή",
+      "calls.serverRefreshed": "Η σύνδεση με τον διακομιστή ενημερώθηκε",
       "calls.noContactsFound": "Δεν βρέθηκαν επαφές",
       "calls.startCallHint": "Ξεκινήστε μια κλήση από τη λίστα επαφών",
       "messageInput.cancelReply": "Ακύρωση απάντησης",

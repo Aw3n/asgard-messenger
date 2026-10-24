@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Rajaa ja tallenna",
       "toast.dismiss": "Sulje",
       "calls.refreshServer": "Päivitä palvelinyhteys",
+      "calls.refreshServerFailed": "Palvelinyhteyden päivittäminen epäonnistui",
+      "calls.serverRefreshed": "Palvelinyhteys päivitetty",
       "calls.noContactsFound": "Yhteystietoja ei löytynyt",
       "calls.startCallHint": "Aloita puhelu yhteystietoluettelosta",
       "messageInput.cancelReply": "Peruuta vastaus",

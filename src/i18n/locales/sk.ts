@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Orezať a uložiť",
       "toast.dismiss": "Zavrieť",
       "calls.refreshServer": "Obnoviť pripojenie k serveru",
+      "calls.refreshServerFailed": "Pripojenie k serveru sa nepodarilo obnoviť",
+      "calls.serverRefreshed": "Pripojenie k serveru obnovené",
       "calls.noContactsFound": "Kontakty neboli nájdené",
       "calls.startCallHint": "Spustite hovor zo zoznamu kontaktov",
       "messageInput.cancelReply": "Zrušiť odpoveď",

@@ -565,6 +565,8 @@ export default {
       "avatar.cropSave": "Обрізати та зберегти",
       "toast.dismiss": "Закрити",
       "calls.refreshServer": "Оновити з'єднання з сервером",
+      "calls.refreshServerFailed": "Не вдалося оновити з'єднання з сервером",
+      "calls.serverRefreshed": "З'єднання з сервером оновлено",
       "calls.noContactsFound": "Контактів не знайдено",
       "calls.startCallHint": "Почніть дзвінок зі списку контактів",
       "messageInput.cancelReply": "Скасувати відповідь",

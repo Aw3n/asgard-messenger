@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Decupează și salvează",
       "toast.dismiss": "Închide",
       "calls.refreshServer": "Actualizează conexiunea la server",
+      "calls.refreshServerFailed": "Conexiunea la server nu a putut fi actualizată",
+      "calls.serverRefreshed": "Conexiunea la server a fost actualizată",
       "calls.noContactsFound": "Nu s-au găsit contacte",
       "calls.startCallHint": "Începe un apel din lista de contacte",
       "messageInput.cancelReply": "Anulează răspunsul",

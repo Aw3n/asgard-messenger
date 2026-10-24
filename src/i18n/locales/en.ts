@@ -593,6 +593,8 @@ export default {
       "avatar.cropSave": "Crop & Save",
       "toast.dismiss": "Dismiss",
       "calls.refreshServer": "Refresh server connection",
+      "calls.refreshServerFailed": "Could not refresh the server connection",
+      "calls.serverRefreshed": "Server connection refreshed",
       "calls.noContactsFound": "No contacts found",
       "calls.startCallHint": "Start a call from the contacts list",
       "messageInput.cancelReply": "Cancel reply",

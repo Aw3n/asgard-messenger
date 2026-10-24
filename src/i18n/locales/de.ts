@@ -602,6 +602,8 @@ export default {
       "avatar.cropSave": "Zuschneiden & speichern",
       "toast.dismiss": "Schließen",
       "calls.refreshServer": "Serververbindung aktualisieren",
+      "calls.refreshServerFailed": "Serververbindung konnte nicht aktualisiert werden",
+      "calls.serverRefreshed": "Serververbindung aktualisiert",
       "calls.noContactsFound": "Keine Kontakte gefunden",
       "calls.startCallHint": "Starten Sie einen Anruf aus der Kontaktliste",
       "messageInput.cancelReply": "Antwort abbrechen",

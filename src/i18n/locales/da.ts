@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Beskær og gem",
       "toast.dismiss": "Luk",
       "calls.refreshServer": "Opdater serverforbindelse",
+      "calls.refreshServerFailed": "Serverforbindelsen kunne ikke opdateres",
+      "calls.serverRefreshed": "Serverforbindelsen er opdateret",
       "calls.noContactsFound": "Ingen kontakter fundet",
       "calls.startCallHint": "Start et opkald fra kontaktlisten",
       "messageInput.cancelReply": "Annuller svar",

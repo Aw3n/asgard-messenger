@@ -8,6 +8,7 @@ import { formatPublicKey } from '@/utils/id'
 import { PageTransition } from '@/components/ui/PageTransition'
 import type { CallRecord, CallType } from '@/stores/callStore'
 import { useTranslation } from 'react-i18next'
+import { useUIStore } from '@/stores/uiStore'
 import { getCurrentLanguage } from '@/i18n/config'
 
 /** Grouped call history entry: latest call per contact + count */
@@ -70,6 +71,7 @@ export const CallsPage: React.FC = () => {
   // INTEGRATION: Corestore group activity
   const [activeGroupTopics, setActiveGroupTopics] = useState<string[]>([])
   const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
 
   // Nombre de CONTACTS réellement connectés (clé Ed25519 identifiée, dédupliquée).
   // Les connexions swarm brutes peuvent inclure des pairs non identifiés ou des
@@ -171,10 +173,15 @@ export const CallsPage: React.FC = () => {
   // INTEGRATION: Helper function to refresh server (reconnection)
   const handleRefreshServer = async () => {
     try {
-      await window.asgard.network.refreshServer()
-      console.log('[CallsPage] Server refreshed')
+      const refreshed = await window.asgard.network.refreshServer()
+      if (!refreshed) {
+        addToast({ type: 'error', title: t('calls.refreshServerFailed') })
+        return
+      }
+      addToast({ type: 'success', title: t('calls.serverRefreshed'), duration: 2000 })
     } catch (err) {
       console.error('[CallsPage] Failed to refresh server:', err)
+      addToast({ type: 'error', title: t('calls.refreshServerFailed') })
     }
   }
 
@@ -222,6 +229,7 @@ export const CallsPage: React.FC = () => {
                 onClick={handleRefreshServer}
                 className="text-xs text-asgard-text-muted hover:text-asgard-glacier transition-colors"
                 title={t('calls.refreshServer')}
+                aria-label={t('calls.refreshServer')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>

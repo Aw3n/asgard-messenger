@@ -584,6 +584,8 @@ export default {
       "avatar.cropSave": "Beskär och spara",
       "toast.dismiss": "Stäng",
       "calls.refreshServer": "Uppdatera serveranslutning",
+      "calls.refreshServerFailed": "Serveranslutningen kunde inte uppdateras",
+      "calls.serverRefreshed": "Serveranslutningen uppdaterades",
       "calls.noContactsFound": "Inga kontakter hittades",
       "calls.startCallHint": "Starta ett samtal från kontaktlistan",
       "messageInput.cancelReply": "Avbryt svar",
