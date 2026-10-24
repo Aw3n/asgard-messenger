@@ -2,7 +2,7 @@
  * FavoritesManager — manage favorite files with search, filter, and statistics.
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useId, useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
@@ -39,6 +39,7 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
   const dialogRef = useDialogBehavior(onClose)
   const closeGesture = useGestureHint('closeModal', t('common.close'))
 
@@ -78,11 +79,17 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
     loadFavorites()
   }
 
+  // `confirm()` natif gelait le fil, ignorait la touche de fermeture réglée et
+  // sortait du thème : la demande devient un dialogue rendu, qui n'efface rien
+  // avant l'acquiescement.
   const handleClearAll = () => {
-    if (confirm(t('settings.clearFavoritesConfirm'))) {
-      fileService.clearFavorites()
-      loadFavorites()
-    }
+    setShowClearConfirm(true)
+  }
+
+  const confirmClearAll = () => {
+    fileService.clearFavorites()
+    loadFavorites()
+    setShowClearConfirm(false)
   }
 
   const handleSelectItem = (blobKey: string) => {
@@ -128,7 +135,7 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         ref={dialogRef}
@@ -305,6 +312,73 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
               {t('common.done')}
             </button>
           </div>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {showClearConfirm && (
+          <ClearFavoritesConfirm
+            onCancel={() => setShowClearConfirm(false)}
+            onConfirm={confirmClearAll}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
+
+/**
+ * ClearFavoritesConfirm — « Tout effacer » demande d'abord : le clic n'efface
+ * rien tant que le dialogue n'a pas reçu son acquiescement. La touche réglée le
+ * referme sans rien effacer, et le bouton qui fait le même geste l'annonce.
+ */
+function ClearFavoritesConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+  const { t } = useTranslation()
+  const dialogRef = useDialogBehavior<HTMLDivElement>(onCancel)
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
+  const titleId = useId()
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <motion.div
+        ref={dialogRef}
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="mica-card border border-[var(--border-primary)] rounded-2xl p-6 max-w-sm mx-4 focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id={titleId} className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+          {t('settings.clearAll')}
+        </h3>
+        <p className="text-sm text-[var(--text-secondary)] mb-4">
+          {t('settings.clearFavoritesConfirm')}
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+            className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors rounded-lg"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+          >
+            {t('settings.clearAll')}
+          </button>
         </div>
       </motion.div>
     </motion.div>

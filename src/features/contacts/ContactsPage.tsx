@@ -68,6 +68,7 @@ export const ContactsPage: React.FC = () => {
   // jour dès qu'elle change ailleurs.
   const identity = useIdentityStore((s) => s.identity)
   const setProfileStatus = useIdentityStore((s) => s.setStatus)
+  const addToast = useUIStore((s) => s.addToast)
   const userStatus: UserStatus = identity?.profile.status ?? 'online'
 
   const handleStatusChange = (newStatus: UserStatus) => {
@@ -201,16 +202,25 @@ export const ContactsPage: React.FC = () => {
                       }
                     }
                     console.log('[ContactsPage] Restored', restored, 'contacts from Hyperbee')
-                    alert(t('contacts.reloadedFromStorage', {
-                      total: storedContacts.length,
-                      restored,
-                    }))
+                    addToast({
+                      type: 'success',
+                      title: t('contacts.reloadedFromStorage', {
+                        total: storedContacts.length,
+                        restored,
+                      }),
+                      duration: 5000,
+                    })
                   } else {
-                    alert(t('contacts.error.noContactsFound'))
+                    addToast({ type: 'warning', title: t('contacts.error.noContactsFound'), duration: 4000 })
                   }
                 } catch (err) {
                   console.error('[ContactsPage] Failed to reload contacts:', err)
-                  alert(t('contacts.error.failedToReload') + ': ' + err)
+                  addToast({
+                    type: 'error',
+                    title: t('contacts.error.failedToReload'),
+                    message: String(err),
+                    duration: 6000,
+                  })
                 }
               }}
               icon={
