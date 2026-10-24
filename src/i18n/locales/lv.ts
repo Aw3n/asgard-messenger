@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Konts pievienots",
       "contacts.contactVerified": "Konts verificēts",
       "contacts.copyPublicKey": "Kopēt publisko atslēgu",
+      "contacts.qrFailed": "QR kodu neizdevās ģenerēt — nokopējiet atslēgu zemāk.",
       "contacts.dhtName": "DHT vārds",
       "contacts.dhtProfile": "DHT profils",
       "contacts.enterPublicKey": "Ievadiet publisko atslēgu",

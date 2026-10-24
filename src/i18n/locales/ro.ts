@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Contact adăugat",
       "contacts.contactVerified": "Contact verificat",
       "contacts.copyPublicKey": "Copiază cheia publică",
+      "contacts.qrFailed": "Codul QR nu a putut fi generat — copiați cheia de mai jos.",
       "contacts.dhtName": "Nume DHT",
       "contacts.dhtProfile": "Profil DHT",
       "contacts.enterPublicKey": "Introdu o cheie publică",

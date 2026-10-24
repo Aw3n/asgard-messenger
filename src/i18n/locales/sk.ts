@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Kontakt pridaný",
       "contacts.contactVerified": "Kontakt overený",
       "contacts.copyPublicKey": "Kopírovať verejný kľúč",
+      "contacts.qrFailed": "QR kód sa nepodarilo vygenerovať — skopírujte kľúč nižšie.",
       "contacts.dhtName": "DHT názov",
       "contacts.dhtProfile": "DHT profil",
       "contacts.enterPublicKey": "Zadajte verejný kľúč",

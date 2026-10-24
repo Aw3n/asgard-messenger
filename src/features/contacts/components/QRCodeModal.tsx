@@ -28,6 +28,9 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [mode, setMode] = useState<'show' | 'scan'>('show')
   const [pasteKey, setPasteKey] = useState('')
+  // Une génération ratée laissait un carré vide : impossible de distinguer une
+  // clé refusée d'un simple échec du générateur.
+  const [qrFailed, setQrFailed] = useState(false)
   const navigate = useNavigate()
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
   const dialogRef = useDialogBehavior(onClose)
@@ -50,8 +53,10 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
             light: '#0A0A0F',
           },
         })
+        setQrFailed(false)
       } catch (err) {
         console.error('QR generation failed:', err)
+        setQrFailed(true)
       }
     }
 
@@ -166,6 +171,11 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
               <p className="text-xs text-asgard-text-muted mt-1 font-mono">
                 {identity?.keyPair.publicKey ? formatPublicKey(identity.keyPair.publicKey) : t('contacts.noIdentity')}
               </p>
+              {qrFailed && (
+                <p className="mt-3 text-xs text-yellow-400 text-center" role="status">
+                  {t('contacts.qrFailed')}
+                </p>
+              )}
             </div>
             <button
               onClick={handleCopyKey}

@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Kontakt tillagd",
       "contacts.contactVerified": "Kontakt verifierad",
       "contacts.copyPublicKey": "Kopiera offentlig nyckel",
+      "contacts.qrFailed": "QR-koden kunde inte skapas – kopiera nyckeln nedan.",
       "contacts.dhtName": "DHT-namn",
       "contacts.dhtProfile": "DHT-profil",
       "contacts.enterPublicKey": "Ange en offentlig nyckel",

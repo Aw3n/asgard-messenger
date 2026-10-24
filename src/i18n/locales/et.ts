@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Kontakt lisatud",
       "contacts.contactVerified": "Kontakt kinnitatud",
       "contacts.copyPublicKey": "Kopeeri avalik võti",
+      "contacts.qrFailed": "QR-koodi loomine ebaõnnestus — kopeeri võti allpool.",
       "contacts.dhtName": "DHT nimi",
       "contacts.dhtProfile": "DHT profiil",
       "contacts.enterPublicKey": "Sisestage avalik võti",

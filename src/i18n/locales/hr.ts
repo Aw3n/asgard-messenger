@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Kontakt dodan",
       "contacts.contactVerified": "Kontakt potvrđen",
       "contacts.copyPublicKey": "Kopiraj javni ključ",
+      "contacts.qrFailed": "QR kod nije moguće generirati — kopirajte ključ u nastavku.",
       "contacts.dhtName": "DHT ime",
       "contacts.dhtProfile": "DHT profil",
       "contacts.enterPublicKey": "Unesite javni ključ",

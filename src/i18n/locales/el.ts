@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Η επαφή προστέθηκε",
       "contacts.contactVerified": "Η επαφή επαληθεύτηκε",
       "contacts.copyPublicKey": "Αντιγραφή δημόσιου κλειδιού",
+      "contacts.qrFailed": "Δεν ήταν δυνατή η δημιουργία του κωδικού QR — αντιγράψτε το κλειδί παρακάτω.",
       "contacts.dhtName": "Όνομα DHT",
       "contacts.dhtProfile": "Προφίλ DHT",
       "contacts.enterPublicKey": "Εισαγάγετε δημόσιο κλειδί",

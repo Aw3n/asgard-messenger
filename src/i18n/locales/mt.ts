@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Kuntatt miżjud",
       "contacts.contactVerified": "Kuntatt verifikat",
       "contacts.copyPublicKey": "Kopja l-xavetta pubblika",
+      "contacts.qrFailed": "Il-kodi QR ma nistax jiġi ġġenerat — ikkopja ċ-ċavetta hawn taħt.",
       "contacts.dhtName": "Isem DHT",
       "contacts.dhtProfile": "Profil DHT",
       "contacts.enterPublicKey": "Daħħal xavetta pubblika",

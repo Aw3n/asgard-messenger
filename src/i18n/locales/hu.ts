@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Kapcsolat hozzáadva",
       "contacts.contactVerified": "Kapcsolat ellenőrizve",
       "contacts.copyPublicKey": "Nyilvános kulcs másolása",
+      "contacts.qrFailed": "A QR-kódot nem sikerült létrehozni – másolja ki az alábbi kulcsot.",
       "contacts.dhtName": "DHT név",
       "contacts.dhtProfile": "DHT profil",
       "contacts.enterPublicKey": "Adjon meg egy nyilvános kulcsot",

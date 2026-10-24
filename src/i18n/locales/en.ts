@@ -331,6 +331,7 @@ export default {
       "contacts.verified": "Verified",
       "contacts.publicKey": "Public Key",
       "contacts.copyPublicKey": "Copy public key",
+      "contacts.qrFailed": "Could not generate the QR code — copy the key below.",
       "contacts.fetching": "Fetching…",
       "contacts.dhtProfile": "DHT Profile",
       "contacts.dhtName": "DHT Name",

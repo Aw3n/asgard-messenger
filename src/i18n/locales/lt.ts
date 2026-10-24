@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Kontaktas pridėtas",
       "contacts.contactVerified": "Kontaktas patvirtintas",
       "contacts.copyPublicKey": "Kopijuoti viešąjį raktą",
+      "contacts.qrFailed": "Nepavyko sukurti QR kodo – nukopijuokite raktą žemiau.",
       "contacts.dhtName": "DHT vardas",
       "contacts.dhtProfile": "DHT profilis",
       "contacts.enterPublicKey": "Įveskite viešąjį raktą",

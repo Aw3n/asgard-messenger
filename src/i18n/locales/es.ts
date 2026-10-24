@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Contacto añadido",
       "contacts.contactVerified": "Contacto verificado",
       "contacts.copyPublicKey": "Copiar clave pública",
+      "contacts.qrFailed": "No se pudo generar el código QR; copia la clave de abajo.",
       "contacts.dhtName": "Nombre DHT",
       "contacts.dhtProfile": "Perfil DHT",
       "contacts.enterPublicKey": "Introduce una clave pública",

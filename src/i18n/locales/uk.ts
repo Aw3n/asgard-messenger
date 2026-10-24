@@ -303,6 +303,7 @@ export default {
       "contacts.verified": "Перевірено",
       "contacts.publicKey": "Публічний ключ",
       "contacts.copyPublicKey": "Копіювати публічний ключ",
+      "contacts.qrFailed": "Не вдалося створити QR-код — скопіюйте ключ нижче.",
       "contacts.fetching": "Отримання…",
       "contacts.dhtProfile": "Профіль DHT",
       "contacts.dhtName": "Ім'я DHT",

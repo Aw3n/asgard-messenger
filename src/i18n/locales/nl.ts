@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Contact toegevoegd",
       "contacts.contactVerified": "Contact geverifieerd",
       "contacts.copyPublicKey": "Openbare sleutel kopiëren",
+      "contacts.qrFailed": "QR-code kon niet worden gegenereerd — kopieer de sleutel hieronder.",
       "contacts.dhtName": "DHT-naam",
       "contacts.dhtProfile": "DHT-profiel",
       "contacts.enterPublicKey": "Voer een openbare sleutel in",

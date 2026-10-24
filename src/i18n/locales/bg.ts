@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Контактът е добавен",
       "contacts.contactVerified": "Контактът е потвърден",
       "contacts.copyPublicKey": "Копиране на публичния ключ",
+      "contacts.qrFailed": "QR кодът не можа да бъде генериран — копирайте ключа по-долу.",
       "contacts.dhtName": "DHT име",
       "contacts.dhtProfile": "DHT профил",
       "contacts.enterPublicKey": "Въведете публичен ключ",

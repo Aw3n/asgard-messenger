@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Yhteystieto lisätty",
       "contacts.contactVerified": "Yhteystieto vahvistettu",
       "contacts.copyPublicKey": "Kopioi julkinen avain",
+      "contacts.qrFailed": "QR-koodin luominen ei onnistunut — kopioi avain alta.",
       "contacts.dhtName": "DHT-nimi",
       "contacts.dhtProfile": "DHT-profiili",
       "contacts.enterPublicKey": "Anna julkinen avain",

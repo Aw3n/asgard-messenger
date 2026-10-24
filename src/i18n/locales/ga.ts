@@ -210,6 +210,7 @@ export default {
       "contacts.contactAdded": "Teagmháil curtha leis",
       "contacts.contactVerified": "Teagmháil deimhnithe",
       "contacts.copyPublicKey": "Cóipeáil an eochair phoiblí",
+      "contacts.qrFailed": "Níorbh fhéidir an cód QR a ghiniúint — cóipeáil an eochair thíos.",
       "contacts.dhtName": "Ainm DHT",
       "contacts.dhtProfile": "Próifíl DHT",
       "contacts.enterPublicKey": "Cuir eochair phoiblí isteach",
