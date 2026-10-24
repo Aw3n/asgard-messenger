@@ -210,6 +210,8 @@ export const ALLOW_SAME = [
   'groups.description',
   // « Image » désigne la même chose dans les deux langues.
   'lightbox.image',
+  // « Photo » s'écrit identiquement en français.
+  'lightbox.thumbnail',
   'messageInput.emoji',
   'nav.contacts',
   'nav.messages',

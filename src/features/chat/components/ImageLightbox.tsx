@@ -964,7 +964,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm text-white/85 font-medium truncate max-w-[38vw]">{current?.alt ?? fileName}</span>
+          <span className="text-sm text-white/85 font-medium truncate max-w-[38vw]">{current?.alt ?? fileName ?? t('lightbox.image')}</span>
           <span
             aria-live="polite"
             aria-atomic="true"
@@ -1052,7 +1052,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               </svg>
             </span>
             <p className="text-sm text-white/85">{t('lightbox.imageUnavailable')}</p>
-            <p className="text-xs text-white/45 truncate max-w-full">{current?.alt ?? fileName}</p>
+            <p className="text-xs text-white/45 truncate max-w-full">{current?.alt ?? fileName ?? t('lightbox.image')}</p>
             <button
               onClick={retrySource}
               className="mt-1 h-8 px-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-xs text-white/85"
@@ -1091,7 +1091,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               key={`${displaySrc}:${attempt}`}
               ref={imgRef}
               src={displaySrc}
-              alt={current?.alt ?? fileName}
+              alt={current?.alt ?? fileName ?? t('lightbox.image')}
               className="pointer-events-auto max-w-full max-h-full object-contain select-none"
               style={{
                 // A plain <img> on purpose: a motion component animating `scale`
@@ -1185,7 +1185,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
                 key={it.id}
                 ref={(el) => { thumbRefs.current[i] = el }}
                 onClick={() => goTo(i)}
-                aria-label={it.alt ?? `${i + 1}`}
+                aria-label={it.alt ?? t('lightbox.thumbnail', { index: i + 1 })}
                 aria-current={i === index}
                 className={`shrink-0 w-11 h-11 rounded-lg overflow-hidden border border-white/15 transition-all duration-150 ${i === index ? 'ring-2 ring-white opacity-100' : 'opacity-55 hover:opacity-90'}`}
               >

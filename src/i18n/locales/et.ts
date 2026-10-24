@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Paus",
       "chat.audioPosition": "Esitamise koht",
       "lightbox.thumbnails": "Pisipildid",
+      "lightbox.thumbnail": "Foto {{index}}",
       "lightbox.swipeHint": "Pühkimine foto vahetamiseks",
       "calls.expandCall": "Laienda kõne",
       "calls.exitVideoFullscreen": "Välju täisekraanilt",

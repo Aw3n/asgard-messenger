@@ -518,3 +518,46 @@ describe('libellés honnêtes de la visionneuse', () => {
     for (const value of names) expect(value.trim().length).toBeGreaterThan(0)
   })
 })
+
+/**
+ * Les vignettes sans alt n'étaient nommées que par leur rang — un lecteur
+ * d'écran annonçait « 1 », « 2 », sans dire de quoi. Une photo sans alt ni nom
+ * laissait aussi le bandeau et l'alternative vides : seul le dialogue portait
+ * un nom.
+ */
+describe('vignettes et photo sans nom', () => {
+  const values = (key: string) =>
+    Array.from(
+      readFileSync(join(process.cwd(), 'src/i18n/translations.ts'), 'utf8')
+        .matchAll(new RegExp(`^      "${key}": "(.*)",$`, 'gm')),
+    ).map((m) => m[1])
+
+  it('nomme chaque vignette sans alt par son rang, dans la langue de l’interface', () => {
+    render(
+      <ImageLightbox
+        items={[item({ id: 'a', alt: undefined }), item({ id: 'b', alt: 'b.png' })]}
+        onClose={vi.fn()}
+      />,
+    )
+    const strip = screen.getByTestId('lightbox-filmstrip')
+
+    expect(
+      within(strip).getByRole('button', { name: String(i18n.t('lightbox.thumbnail', { index: 1 })) }),
+    ).toBeInTheDocument()
+    expect(within(strip).getByRole('button', { name: 'b.png' })).toBeInTheDocument()
+  })
+
+  it('replie la photo sans nom sur le libellé générique, dans le bandeau et dans l’image', () => {
+    render(<ImageLightbox items={[item({ alt: undefined })]} onClose={vi.fn()} />)
+
+    expect(screen.getByAltText(label('lightbox.image'))).toBeInTheDocument()
+    expect(screen.getByText(label('lightbox.image'))).toBeInTheDocument()
+  })
+
+  it('porte la clé de vignette dans les 25 langues, avec son rang', () => {
+    const thumbs = values('lightbox.thumbnail')
+
+    expect(thumbs).toHaveLength(25)
+    for (const value of thumbs) expect(value).toContain('{{index}}')
+  })
+})

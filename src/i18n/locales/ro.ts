@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Pauză",
       "chat.audioPosition": "Poziția redării",
       "lightbox.thumbnails": "Miniaturi",
+      "lightbox.thumbnail": "Fotografia {{index}}",
       "lightbox.swipeHint": "Glisează pentru a schimba fotografia",
       "calls.expandCall": "Extinde apelul",
       "calls.exitVideoFullscreen": "Ieși din ecranul complet",

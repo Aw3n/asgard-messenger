@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Szünet",
       "chat.audioPosition": "Lejátszási pozíció",
       "lightbox.thumbnails": "Bélyegképek",
+      "lightbox.thumbnail": "{{index}}. fotó",
       "lightbox.swipeHint": "Húzza a fotóváltáshoz",
       "calls.expandCall": "Hívás nagyítása",
       "calls.exitVideoFullscreen": "Kilépés a teljes képernyőből",

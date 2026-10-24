@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Pauze",
       "chat.audioPosition": "Atskaņošanas pozīcija",
       "lightbox.thumbnails": "Sīktēli",
+      "lightbox.thumbnail": "Foto {{index}}",
       "lightbox.swipeHint": "Velciet, lai pārslēgtu fotoattēlu",
       "calls.expandCall": "Izvērst zvanu",
       "calls.exitVideoFullscreen": "Iziet no pilnekrāna",

@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Pawża",
       "chat.audioPosition": "Pożizzjoni tar-riproduzzjoni",
       "lightbox.thumbnails": "Miniaturi",
+      "lightbox.thumbnail": "Ritratt {{index}}",
       "lightbox.swipeHint": "Skrollja biex tbiddel ir-ritratt",
       "calls.expandCall": "Kabbar is-sejħa",
       "calls.exitVideoFullscreen": "Oħrog mill-iskrin sħiħ",

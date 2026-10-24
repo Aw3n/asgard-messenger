@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Пауза",
       "chat.audioPosition": "Позиція відтворення",
       "lightbox.thumbnails": "Мініатюри",
+      "lightbox.thumbnail": "Фото {{index}}",
       "lightbox.swipeHint": "Проведіть, щоб змінити фото",
       "calls.expandCall": "Розгорнути виклик",
       "calls.exitVideoFullscreen": "Вийти з повноекранного режиму",

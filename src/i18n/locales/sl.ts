@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Pavza",
       "chat.audioPosition": "Položaj predvajanja",
       "lightbox.thumbnails": "Sličice",
+      "lightbox.thumbnail": "Fotografija {{index}}",
       "lightbox.swipeHint": "Povlecite za zamenjavo fotografije",
       "calls.expandCall": "Razširi klic",
       "calls.exitVideoFullscreen": "Zapri celozaslonski način",

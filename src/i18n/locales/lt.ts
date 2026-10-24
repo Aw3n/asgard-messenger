@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Pauzė",
       "chat.audioPosition": "Atkūrimo pozicija",
       "lightbox.thumbnails": "Miniatiūros",
+      "lightbox.thumbnail": "Nuotrauka {{index}}",
       "lightbox.swipeHint": "Perbraukite, kad pakeistumėte nuotrauką",
       "calls.expandCall": "Išplėsti skambutį",
       "calls.exitVideoFullscreen": "Išeiti iš viso ekrano",

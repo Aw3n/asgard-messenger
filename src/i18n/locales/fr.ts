@@ -880,6 +880,7 @@ export default {
       "chat.pauseAudio": "Pause",
       "chat.audioPosition": "Position de lecture",
       "lightbox.thumbnails": "Vignettes",
+      "lightbox.thumbnail": "Photo {{index}}",
       "lightbox.swipeHint": "Balayez pour changer de photo",
       "calls.expandCall": "Agrandir l'appel",
       "calls.exitVideoFullscreen": "Quitter le plein écran",

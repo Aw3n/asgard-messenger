@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Paus",
       "chat.audioPosition": "Uppspelningsposition",
       "lightbox.thumbnails": "Miniatyrbilder",
+      "lightbox.thumbnail": "Foto {{index}}",
       "lightbox.swipeHint": "Svep för att byta foto",
       "calls.expandCall": "Expandera samtal",
       "calls.exitVideoFullscreen": "Avsluta helskärm",

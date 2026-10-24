@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Pauza",
       "chat.audioPosition": "Pozicija reprodukcije",
       "lightbox.thumbnails": "Minijature",
+      "lightbox.thumbnail": "Fotografija {{index}}",
       "lightbox.swipeHint": "Povucite za promjenu fotografije",
       "calls.expandCall": "Proširi poziv",
       "calls.exitVideoFullscreen": "Izađi iz punog zaslona",

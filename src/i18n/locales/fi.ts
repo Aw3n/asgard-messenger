@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Tauko",
       "chat.audioPosition": "Toistokohta",
       "lightbox.thumbnails": "Pikkukuvat",
+      "lightbox.thumbnail": "Kuva {{index}}",
       "lightbox.swipeHint": "Pyyhkäise vaihtaaksesi kuvaa",
       "calls.expandCall": "Laajenna puhelu",
       "calls.exitVideoFullscreen": "Poistu koko näytöstä",

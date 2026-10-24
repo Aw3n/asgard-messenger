@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Pause",
       "chat.audioPosition": "Afspilningsposition",
       "lightbox.thumbnails": "Miniaturebilleder",
+      "lightbox.thumbnail": "Foto {{index}}",
       "lightbox.swipeHint": "Stryg for at skifte foto",
       "calls.expandCall": "Udvid opkald",
       "calls.exitVideoFullscreen": "Afslut fuld skærm",

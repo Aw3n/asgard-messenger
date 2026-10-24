@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Παύση",
       "chat.audioPosition": "Θέση αναπαραγωγής",
       "lightbox.thumbnails": "Μικρογραφίες",
+      "lightbox.thumbnail": "Φωτογραφία {{index}}",
       "lightbox.swipeHint": "Σύρετε για εναλλαγή φωτογραφίας",
       "calls.expandCall": "Μεγέθυνση κλήσης",
       "calls.exitVideoFullscreen": "Έξοδος από πλήρη οθόνη",

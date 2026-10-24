@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Sos",
       "chat.audioPosition": "Suíomh seinn",
       "lightbox.thumbnails": "Mionsamhlacha",
+      "lightbox.thumbnail": "Grianghraf {{index}}",
       "lightbox.swipeHint": "Sveip chun grianghraf a athrú",
       "calls.expandCall": "Leathnaigh an glao",
       "calls.exitVideoFullscreen": "Fág an scáileán iomlán",

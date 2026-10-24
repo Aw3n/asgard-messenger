@@ -881,6 +881,7 @@ export default {
       "chat.pauseAudio": "Pozastavit",
       "chat.audioPosition": "Pozice přehrávání",
       "lightbox.thumbnails": "Miniatury",
+      "lightbox.thumbnail": "Fotografie {{index}}",
       "lightbox.swipeHint": "Přejeďte pro změnu fotografie",
       "calls.expandCall": "Rozbalit hovor",
       "calls.exitVideoFullscreen": "Ukončit celou obrazovku",
