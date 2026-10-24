@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Prepreči zvočno povratno zvezo",
       "calls.excellent": "Odlično",
       "calls.groupCall": "Skupinski klic",
+      "calls.activeGroupTopics": "Aktivne skupine: {{total}}",
       "calls.inCall": "V klicu",
       "calls.incomingAudioCall": "Dohodni avdio klic",
       "calls.incomingCall": "Dohodni klic",

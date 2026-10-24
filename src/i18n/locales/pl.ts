@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Zapobiegaj sprzężeniu audio",
       "calls.excellent": "Znakomity",
       "calls.groupCall": "Połączenie grupowe",
+      "calls.activeGroupTopics": "Aktywne grupy: {{total}}",
       "calls.inCall": "W połączeniu",
       "calls.incomingAudioCall": "Przychodzące połączenie audio",
       "calls.incomingCall": "Połączenie przychodzące",

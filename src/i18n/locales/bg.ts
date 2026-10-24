@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Предотвратяване на обратна връзка",
       "calls.excellent": "Отлично",
       "calls.groupCall": "Групово обаждане",
+      "calls.activeGroupTopics": "Активни групи: {{total}}",
       "calls.inCall": "В разговор",
       "calls.incomingAudioCall": "Входящо аудио обаждане",
       "calls.incomingCall": "Входящо обаждане",

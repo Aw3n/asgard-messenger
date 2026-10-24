@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Forhindr lydfeedback",
       "calls.excellent": "Fremragende",
       "calls.groupCall": "Gruppeopkald",
+      "calls.activeGroupTopics": "Aktive grupper: {{total}}",
       "calls.inCall": "I opkald",
       "calls.incomingAudioCall": "Indgående lydopkald",
       "calls.incomingCall": "Indgående opkald",

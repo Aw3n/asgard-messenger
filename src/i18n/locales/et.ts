@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Väldi heli tagasisidet",
       "calls.excellent": "Suurepärane",
       "calls.groupCall": "Grupikõne",
+      "calls.activeGroupTopics": "Aktiivsed grupid: {{total}}",
       "calls.inCall": "Kõnes",
       "calls.incomingAudioCall": "Sisenev helikõne",
       "calls.incomingCall": "Sissetulev kõne",

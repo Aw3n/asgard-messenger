@@ -141,6 +141,7 @@ export default {
       "calls.audioCall": "Аудіовиклик",
       "calls.videoCall": "Відеовиклик",
       "calls.groupCall": "Груповий виклик",
+      "calls.activeGroupTopics": "Активні групи: {{total}}",
       "calls.clearHistory": "Очистити історію",
       "calls.call": "Виклик",
       "contacts.title": "Контакти",

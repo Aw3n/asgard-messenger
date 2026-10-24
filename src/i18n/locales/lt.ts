@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Išvengti garso grįžtamojo ryšio",
       "calls.excellent": "Puikiai",
       "calls.groupCall": "Grupės skambutis",
+      "calls.activeGroupTopics": "Aktyvios grupės: {{total}}",
       "calls.inCall": "Pokalbyje",
       "calls.incomingAudioCall": "Įeinantis garso skambutis",
       "calls.incomingCall": "Įeinantis skambutis",

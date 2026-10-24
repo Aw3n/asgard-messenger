@@ -7,11 +7,14 @@
  * à l'écran. Ces tests séparent les trois issues : true, false, exception.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) =>
+      options ? `${key}:${JSON.stringify(options)}` : key,
+  }),
 }))
 
 vi.mock('@/services/CallService', () => ({
@@ -61,6 +64,24 @@ const openPage = async () => {
   // La pastille du serveur n'apparaît qu'une fois l'adresse reçue.
   return screen.findByRole('button', { name: 'calls.refreshServer' })
 }
+
+describe('bandeau des groupes actifs', () => {
+  it('nomme le compte dans la langue au lieu d’un mot anglais', () => {
+    let emit: ((topic: string) => void) | null = null
+    Object.assign(window.asgard.storage, {
+      onGroupActiveEvent: vi.fn((callback: (topic: string) => void) => {
+        emit = callback
+        return () => {}
+      }),
+    })
+
+    render(<CallsPage />)
+    act(() => emit?.('topic-1'))
+
+    expect(screen.getByText('calls.activeGroupTopics:{"total":1}')).toBeInTheDocument()
+    expect(screen.queryByText(/active group/)).toBeNull()
+  })
+})
 
 describe('actualiser la connexion au serveur', () => {
   it('nomme le champ de recherche des appels', async () => {

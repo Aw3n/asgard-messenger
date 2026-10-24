@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Förhindra ljudåterkoppling",
       "calls.excellent": "Utmärkt",
       "calls.groupCall": "Gruppsamtal",
+      "calls.activeGroupTopics": "Aktiva grupper: {{total}}",
       "calls.inCall": "I samtal",
       "calls.incomingAudioCall": "Inkommande ljudsamtal",
       "calls.incomingCall": "Inkommande samtal",

@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Prevenir feedback de áudio",
       "calls.excellent": "Excelente",
       "calls.groupCall": "Chamada de grupo",
+      "calls.activeGroupTopics": "Grupos ativos: {{total}}",
       "calls.inCall": "Em chamada",
       "calls.incomingAudioCall": "Chamada de áudio recebida",
       "calls.incomingCall": "Chamada recebida",

@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Cosc a chur ar athchothú fuaime",
       "calls.excellent": "Den scoth",
       "calls.groupCall": "Glao Grúpa",
+      "calls.activeGroupTopics": "Grúpaí gníomhacha: {{total}}",
       "calls.inCall": "I nglao",
       "calls.incomingAudioCall": "Glao fuaime isteach",
       "calls.incomingCall": "Glao isteach",

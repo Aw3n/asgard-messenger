@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Evita l-eco tal-awdjo",
       "calls.excellent": "Eċċellenti",
       "calls.groupCall": "Sejħa tal-grupp",
+      "calls.activeGroupTopics": "Gruppi attivi: {{total}}",
       "calls.inCall": "F'sejħa",
       "calls.incomingAudioCall": "Awdio sejħa ġejjija",
       "calls.incomingCall": "Sejħa deħlin",

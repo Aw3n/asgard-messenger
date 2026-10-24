@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Estä äänipalaute",
       "calls.excellent": "Erinomainen",
       "calls.groupCall": "Ryhmäpuhelu",
+      "calls.activeGroupTopics": "Aktiiviset ryhmät: {{total}}",
       "calls.inCall": "Puhelussa",
       "calls.incomingAudioCall": "Saapuva äänipuhelu",
       "calls.incomingCall": "Saapuva puhelu",

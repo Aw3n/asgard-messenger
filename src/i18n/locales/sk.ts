@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Zabrániť zvukovej spätnej väzbe",
       "calls.excellent": "Výborné",
       "calls.groupCall": "Skupinový hovor",
+      "calls.activeGroupTopics": "Aktívne skupiny: {{total}}",
       "calls.inCall": "V hovore",
       "calls.incomingAudioCall": "Prichádzajúci audiohovor",
       "calls.incomingCall": "Prichádzajúci hovor",

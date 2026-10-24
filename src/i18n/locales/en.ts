@@ -162,6 +162,7 @@ export default {
       "calls.audioCall": "Audio Call",
       "calls.videoCall": "Video Call",
       "calls.groupCall": "Group Call",
+      "calls.activeGroupTopics": "Active groups: {{total}}",
       "calls.clearHistory": "Clear History",
       "calls.call": "Call",
       "contacts.title": "Contacts",

@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Hangvisszacsatolás megakadályozása",
       "calls.excellent": "Kiváló",
       "calls.groupCall": "Csoportos hívás",
+      "calls.activeGroupTopics": "Aktív csoportok: {{total}}",
       "calls.inCall": "Hívásban",
       "calls.incomingAudioCall": "Bejövő hanghívás",
       "calls.incomingCall": "Bejövő hívás",

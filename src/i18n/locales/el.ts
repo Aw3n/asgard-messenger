@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Αποτροπή ηχούς",
       "calls.excellent": "Άριστο",
       "calls.groupCall": "Ομαδική κλήση",
+      "calls.activeGroupTopics": "Ενεργές ομάδες: {{total}}",
       "calls.inCall": "Σε κλήση",
       "calls.incomingAudioCall": "Εισερχόμενη ηχητική κλήση",
       "calls.incomingCall": "Εισερχόμενη κλήση",

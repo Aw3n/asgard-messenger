@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Previne feedback-ul audio",
       "calls.excellent": "Excelent",
       "calls.groupCall": "Apel de grup",
+      "calls.activeGroupTopics": "Grupuri active: {{total}}",
       "calls.inCall": "În apel",
       "calls.incomingAudioCall": "Apel audio primit",
       "calls.incomingCall": "Apel primit",

@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Novērst audio atgriezenisko saiti",
       "calls.excellent": "Izcili",
       "calls.groupCall": "Grupas zvans",
+      "calls.activeGroupTopics": "Aktīvās grupas: {{total}}",
       "calls.inCall": "Sarunā",
       "calls.incomingAudioCall": "Ienākošais audiozvans",
       "calls.incomingCall": "Ienākošs zvans",

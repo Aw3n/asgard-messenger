@@ -36,6 +36,7 @@ export default {
       "calls.echoCancellationDesc": "Audio-feedback voorkomen",
       "calls.excellent": "Uitstekend",
       "calls.groupCall": "Groepsoproep",
+      "calls.activeGroupTopics": "Actieve groepen: {{total}}",
       "calls.inCall": "In gesprek",
       "calls.incomingAudioCall": "Inkomend audio-oproep",
       "calls.incomingCall": "Inkomende oproep",
