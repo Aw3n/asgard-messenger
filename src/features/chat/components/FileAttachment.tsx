@@ -6,6 +6,8 @@ import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { fileService } from '@/services/FileService'
 import { useMessageStore } from '@/stores/messageStore'
 import { useUIStore } from '@/stores/uiStore'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import type { MessageAttachment } from '@/types'
 import { ImageLightbox, type LightboxItem } from './ImageLightbox'
 
@@ -50,6 +52,68 @@ function toLightboxItem(att: MessageAttachment): LightboxItem {
       return await fileService.downloadFile(att)
     },
   }
+}
+
+/**
+ * DeleteAttachmentConfirm — la croix rouge ne supprime rien toute seule : elle
+ * pose cette demande. Le fond recouvre toute la fenêtre, donc la touche réglée
+ * doit la refermer ici comme dans les autres dialogues, le focus y entrer et en
+ * sortir, et le bouton qui fait le même geste le dire.
+ */
+const DeleteAttachmentConfirm: React.FC<{ onCancel: () => void; onConfirm: () => void }> = ({
+  onCancel,
+  onConfirm,
+}) => {
+  const { t } = useTranslation()
+  const dialogRef = useDialogBehavior<HTMLDivElement>(onCancel)
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
+  const titleId = React.useId()
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onCancel()}
+    >
+      <motion.div
+        ref={dialogRef}
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="mica-card border border-asgard-border rounded-2xl p-6 max-w-sm mx-4 focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id={titleId} className="text-lg font-semibold text-asgard-text-primary mb-2">
+          {t('chat.deleteFileConfirm')}
+        </h3>
+        <p className="text-sm text-asgard-text-secondary mb-4">
+          {t('chat.deleteFileWarning')}
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+            className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+          >
+            {t('common.delete')}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
 }
 
 /**
@@ -330,42 +394,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   ) : null
 
   const deleteConfirmDialog = showDeleteConfirm ? (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={() => setShowDeleteConfirm(false)}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="mica-card border border-asgard-border rounded-2xl p-6 max-w-sm mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-semibold text-asgard-text-primary mb-2">
-          {t('chat.deleteFileConfirm')}
-        </h3>
-        <p className="text-sm text-asgard-text-secondary mb-4">
-          {t('chat.deleteFileWarning')}
-        </p>
-        <div className="flex gap-3 justify-end">
-          <button
-            onClick={() => setShowDeleteConfirm(false)}
-            className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={handleDelete}
-            className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-          >
-            {t('common.delete')}
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+    <DeleteAttachmentConfirm onCancel={() => setShowDeleteConfirm(false)} onConfirm={handleDelete} />
   ) : null
 
   const renderAttachment = () => {

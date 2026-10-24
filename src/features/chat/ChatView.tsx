@@ -37,6 +37,7 @@ import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { useNewerMessages } from '@/hooks/useNewerMessages'
 import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { formatLastSeen } from '@/utils/time'
 import type { Message } from '@/types'
 
@@ -934,6 +935,11 @@ const DeleteConfirmModal: React.FC<{
   onConfirm: () => void
 }> = ({ name, onCancel, onConfirm }) => {
   const { t } = useTranslation()
+  // Le fond sombre recouvre toute la page : la touche réglée doit refermer ce
+  // dialogue-là aussi, en prendre le focus et le rendre à la rangée qui l’a ouvert.
+  const dialogRef = useDialogBehavior<HTMLDivElement>(onCancel)
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
+  const titleId = React.useId()
   return (
   <motion.div
     initial={{ opacity: 0 }}
@@ -943,11 +949,16 @@ const DeleteConfirmModal: React.FC<{
     onClick={onCancel}
   >
     <motion.div
+      ref={dialogRef}
       initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.95, opacity: 0 }}
       transition={{ duration: 0.15 }}
-      className="mica-card border border-asgard-border rounded-2xl p-6 shadow-modal max-w-sm mx-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      tabIndex={-1}
+      className="mica-card border border-asgard-border rounded-2xl p-6 shadow-modal max-w-sm mx-4 focus:outline-none"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center gap-3 mb-4">
@@ -957,7 +968,7 @@ const DeleteConfirmModal: React.FC<{
           </svg>
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-asgard-text-primary">{t('chat.deleteConversation')}</h3>
+          <h3 id={titleId} className="text-sm font-semibold text-asgard-text-primary">{t('chat.deleteConversation')}</h3>
           <p className="text-xs text-asgard-text-muted">{t('chat.cannotUndo')}</p>
         </div>
       </div>
@@ -967,6 +978,8 @@ const DeleteConfirmModal: React.FC<{
       <div className="flex gap-2 justify-end">
         <button
           onClick={onCancel}
+          title={cancelGesture.title}
+          aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
           className="px-4 py-2 text-sm rounded-lg text-asgard-text-secondary hover:bg-asgard-surface-alt transition-colors"
         >
           {t('common.cancel')}
