@@ -253,6 +253,7 @@ export default {
       "contacts.relationPending": "Чакащ",
       "contacts.remove": "Премахни контакт",
       "contacts.removeContact": "Изтриване на контакта",
+      "contacts.removeContactWarning": "„{{name}}“ ще бъде премахнат от двата списъка.",
       "contacts.removed": "Контактът е изтрит",
       "contacts.removedFromFavorites": "Премахнато от любими",
       "contacts.scanQR": "Сканирай QR код",

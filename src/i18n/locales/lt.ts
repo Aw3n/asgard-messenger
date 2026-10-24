@@ -255,6 +255,7 @@ export default {
       "contacts.relationPending": "Laukiama",
       "contacts.remove": "Pašalinti kontaktą",
       "contacts.removeContact": "Pašalinti kontaktą",
+      "contacts.removeContactWarning": "„{{name}}” bus pašalintas iš abiejų sąrašų.",
       "contacts.removed": "Kontaktas pašalintas",
       "contacts.removedFromFavorites": "Pašalinta iš mėgstamų",
       "contacts.scanQR": "Nuskaityti QR kodą",

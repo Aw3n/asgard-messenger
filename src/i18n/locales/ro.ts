@@ -255,6 +255,7 @@ export default {
       "contacts.relationPending": "În așteptare",
       "contacts.remove": "Elimină contactul",
       "contacts.removeContact": "Șterge contactul",
+      "contacts.removeContactWarning": "„{{name}}” va fi eliminat din ambele liste.",
       "contacts.removed": "Contact șters",
       "contacts.removedFromFavorites": "Eliminat din favorite",
       "contacts.scanQR": "Scanează cod QR",

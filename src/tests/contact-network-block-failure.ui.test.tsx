@@ -8,12 +8,14 @@
  * filtrés), mais l'écart est maintenant annoncé — dans les deux sens.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, opts?: { name?: string }) => (opts?.name ? `${key} ${opts.name}` : key),
+  }),
 }))
 
 vi.mock('@/services/ChatService', () => ({
@@ -21,6 +23,7 @@ vi.mock('@/services/ChatService', () => ({
 }))
 
 import { ContactDetailView } from '@/features/contacts/components/ContactDetailView'
+import { chatService } from '@/services/ChatService'
 import { useContactStore } from '@/stores/contactStore'
 import { useUIStore } from '@/stores/uiStore'
 import type { Contact } from '@/types'
@@ -123,5 +126,44 @@ describe('débloquer un contact', () => {
       expect(toast?.type).toBe('error')
     })
     expect(stored()?.relation).toBe('contact')
+  })
+})
+
+describe('retirer un contact', () => {
+  const openConfirm = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'contacts.removeContact' }))
+    return screen.getByRole('dialog', { name: 'contacts.removeContact' })
+  }
+
+  it('demande confirmation en nommant le pair, sans rien retirer avant', () => {
+    view()
+
+    const dialog = openConfirm()
+
+    expect(within(dialog).getByText('contacts.removeContactWarning Camille')).toBeInTheDocument()
+    expect(chatService.removeContact).not.toHaveBeenCalled()
+  })
+
+  it('annuler la confirmation garde le contact', async () => {
+    view()
+    const dialog = openConfirm()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'common.cancel' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(chatService.removeContact).not.toHaveBeenCalled()
+    expect(stored()).toBeDefined()
+  })
+
+  it('confirmer retire le contact des deux listes', async () => {
+    vi.mocked(chatService.removeContact).mockResolvedValueOnce(undefined)
+    view()
+    const dialog = openConfirm()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'contacts.removeContact' }))
+
+    await waitFor(() => expect(chatService.removeContact).toHaveBeenCalledWith(PEER))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(toasts().some((entry) => entry.title === 'contacts.removed')).toBe(true)
   })
 })

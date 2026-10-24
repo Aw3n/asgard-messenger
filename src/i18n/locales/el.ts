@@ -253,6 +253,7 @@ export default {
       "contacts.relationPending": "Σε αναμονή",
       "contacts.remove": "Αφαίρεση επαφής",
       "contacts.removeContact": "Διαγραφή επαφής",
+      "contacts.removeContactWarning": "Η επαφή «{{name}}» θα αφαιρεθεί και από τις δύο λίστες.",
       "contacts.removed": "Η επαφή διαγράφηκε",
       "contacts.removedFromFavorites": "Αφαιρέθηκε από αγαπημένα",
       "contacts.scanQR": "Σάρωση κώδικα QR",

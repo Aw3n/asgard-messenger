@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Icon } from '@/components/ui/Icon'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
@@ -42,6 +43,7 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
   const addToast = useUIStore((s) => s.addToast)
   const [showKey, setShowKey] = useState(false)
   const [showActions, setShowActions] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   // DHT Profile state
   const [dhtProfile, setDhtProfile] = useState<{ displayName: string; avatar?: string; timestamp: number; status?: string; statusMessage?: string } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
@@ -401,12 +403,26 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
             <Button variant="ghost" fullWidth onClick={handleToggleBlock} className={isBlocked ? 'text-green-400' : 'text-orange-400'}>
               {isBlocked ? t('contacts.unblock') : t('contacts.block')}
             </Button>
-            <Button variant="ghost" fullWidth onClick={handleRemove} className="text-red-400">
+            <Button variant="ghost" fullWidth onClick={() => setConfirmRemove(true)} className="text-red-400">
               {t('contacts.removeContact')}
             </Button>
           </div>
         )}
       </div>
+
+      {confirmRemove && (
+        <ConfirmDialog
+          title="contacts.removeContact"
+          warning="contacts.removeContactWarning"
+          confirmLabel="contacts.removeContact"
+          name={contact.displayName}
+          onCancel={() => setConfirmRemove(false)}
+          onConfirm={() => {
+            setConfirmRemove(false)
+            void handleRemove()
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -255,6 +255,7 @@ export default {
       "contacts.relationPending": "Čaká",
       "contacts.remove": "Odstrániť kontakt",
       "contacts.removeContact": "Odstrániť kontakt",
+      "contacts.removeContactWarning": "„{{name}}” bude odstránený z oboch zoznamov.",
       "contacts.removed": "Kontakt odstránený",
       "contacts.removedFromFavorites": "Odstránené z obľúbených",
       "contacts.scanQR": "Skenovať QR kód",

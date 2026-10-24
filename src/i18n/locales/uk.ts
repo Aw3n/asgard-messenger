@@ -327,6 +327,7 @@ export default {
       "contacts.moreActions": "Більше дій…",
       "contacts.hideActions": "Сховати дії",
       "contacts.removeContact": "Видалити контакт",
+      "contacts.removeContactWarning": "«{{name}}» буде видалено з обох списків.",
       "contacts.inviteTitle": "Запросити контакт",
       "contacts.inviteSubtitle": "Поділіться своїм посиланням-запрошенням або публічним ключем, щоб інші могли вас додати.",
       "contacts.inviteLink": "Посилання-запрошення",

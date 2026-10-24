@@ -355,6 +355,7 @@ export default {
       "contacts.moreActions": "More actions…",
       "contacts.hideActions": "Hide actions",
       "contacts.removeContact": "Remove Contact",
+      "contacts.removeContactWarning": "“{{name}}” will be removed from both lists, yours and theirs.",
       "contacts.inviteTitle": "Invite a Contact",
       "contacts.inviteSubtitle": "Share your invite link or public key so others can add you.",
       "contacts.inviteLink": "Invite Link",

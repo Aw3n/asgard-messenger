@@ -253,6 +253,7 @@ export default {
       "contacts.relationPending": "Függőben",
       "contacts.remove": "Névjegy eltávolítása",
       "contacts.removeContact": "Kapcsolat törlése",
+      "contacts.removeContactWarning": "„{{name}}” mindkét listáról el lesz távolítva.",
       "contacts.removed": "Kapcsolat törölve",
       "contacts.removedFromFavorites": "Eltávolítva a kedvencekből",
       "contacts.scanQR": "QR-kód beolvasása",

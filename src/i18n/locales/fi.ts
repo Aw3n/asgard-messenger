@@ -253,6 +253,7 @@ export default {
       "contacts.relationPending": "Odottaa",
       "contacts.remove": "Poista yhteystieto",
       "contacts.removeContact": "Poista yhteystieto",
+      "contacts.removeContactWarning": "“{{name}}” poistetaan molemmista luetteloista.",
       "contacts.removed": "Yhteystieto poistettu",
       "contacts.removedFromFavorites": "Poistettu suosikeista",
       "contacts.scanQR": "Skannaa QR-koodi",

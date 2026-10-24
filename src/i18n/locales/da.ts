@@ -253,6 +253,7 @@ export default {
       "contacts.relationPending": "Afventer",
       "contacts.remove": "Fjern kontakt",
       "contacts.removeContact": "Slet kontakt",
+      "contacts.removeContactWarning": "‘{{name}}’ fjernes fra begge lister.",
       "contacts.removed": "Kontakt slettet",
       "contacts.removedFromFavorites": "Fjernet fra favoritter",
       "contacts.scanQR": "Scan QR-kode",

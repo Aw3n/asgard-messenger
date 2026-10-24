@@ -255,6 +255,7 @@ export default {
       "contacts.relationPending": "En attente",
       "contacts.remove": "Supprimer le contact",
       "contacts.removeContact": "Supprimer le contact",
+      "contacts.removeContactWarning": "« {{name}} » sera retiré de votre liste et de la sienne.",
       "contacts.removed": "Contact supprimé",
       "contacts.removedFromFavorites": "Retiré des favoris",
       "contacts.scanQR": "Scanner un QR Code",

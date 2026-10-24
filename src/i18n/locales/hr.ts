@@ -255,6 +255,7 @@ export default {
       "contacts.relationPending": "Na čekanju",
       "contacts.remove": "Ukloni kontakt",
       "contacts.removeContact": "Ukloni kontakt",
+      "contacts.removeContactWarning": "„{{name}}” uklonit će se s oba popisa.",
       "contacts.removed": "Kontakt uklonjen",
       "contacts.removedFromFavorites": "Uklonjeno iz favorita",
       "contacts.scanQR": "Skeniraj QR kod",

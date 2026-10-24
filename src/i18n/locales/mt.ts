@@ -259,6 +259,7 @@ export default {
       "contacts.relationPending": "Pendenti",
       "contacts.remove": "Neħħi kuntatt",
       "contacts.removeContact": "Ħassar il-kuntatt",
+      "contacts.removeContactWarning": "“{{name}}” se jitneħħa miż-żewġ listi.",
       "contacts.removed": "Kuntatt imħassar",
       "contacts.removedFromFavorites": "Neħħa mill-favoriti",
       "contacts.scanQR": "Skennja kodiċi QR",

@@ -255,6 +255,7 @@ export default {
       "contacts.relationPending": "Gaida",
       "contacts.remove": "Noņemt kontaktu",
       "contacts.removeContact": "Dzēst kontaktu",
+      "contacts.removeContactWarning": "“{{name}}” tiks noņemts no abiem sarakstiem.",
       "contacts.removed": "Konts dzēsts",
       "contacts.removedFromFavorites": "Noņemts no izlases",
       "contacts.scanQR": "Skenēt QR kodu",

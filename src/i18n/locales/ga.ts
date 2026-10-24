@@ -259,6 +259,7 @@ export default {
       "contacts.relationPending": "Ar feitheamh",
       "contacts.remove": "Bain Teagmháil",
       "contacts.removeContact": "Scrios an teagmháil",
+      "contacts.removeContactWarning": "Bainfear “{{name}}” as an dá liosta.",
       "contacts.removed": "Teagmháil scriosta",
       "contacts.removedFromFavorites": "Bainte ó cheanáin",
       "contacts.scanQR": "Scanntáil Cód QR",

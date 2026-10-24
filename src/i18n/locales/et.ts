@@ -253,6 +253,7 @@ export default {
       "contacts.relationPending": "Ootel",
       "contacts.remove": "Eemalda kontakt",
       "contacts.removeContact": "Kustuta kontakt",
+      "contacts.removeContactWarning": "„{{name}}” eemaldatakse mõlemast loendist.",
       "contacts.removed": "Kontakt kustutatud",
       "contacts.removedFromFavorites": "Eemaldatud lemmikutest",
       "contacts.scanQR": "Skaneeri QR-kood",
