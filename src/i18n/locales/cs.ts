@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Vymazat historii",
+      "calls.clearHistoryWarning": "Všechny zaznamenané hovory včetně zmeškaných budou odebrány ze seznamu.",
       "calls.connecting": "Připojování…",
       "calls.decline": "Odmítnout",
       "calls.declinedCall": "Odmítnutý hovor",

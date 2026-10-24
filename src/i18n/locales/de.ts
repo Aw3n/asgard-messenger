@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Verlauf löschen",
+      "calls.clearHistoryWarning": "Alle gespeicherten Anrufe, auch verpasste Anrufe, werden aus der Liste entfernt.",
       "calls.connecting": "Verbinden…",
       "calls.decline": "Ablehnen",
       "calls.declinedCall": "Abgelehnter Anruf",

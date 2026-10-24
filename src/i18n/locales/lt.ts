@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Išvalyti istoriją",
+      "calls.clearHistoryWarning": "Visi įrašyti skambučiai, įskaitant neatsakytus, bus pašalinti iš sąrašo.",
       "calls.connecting": "Jungiamasi…",
       "calls.decline": "Atmesti",
       "calls.declinedCall": "Atmestas skambutis",

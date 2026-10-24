@@ -144,6 +144,7 @@ export default {
       "calls.groupCall": "Груповий виклик",
       "calls.activeGroupTopics": "Активні групи: {{total}}",
       "calls.clearHistory": "Очистити історію",
+      "calls.clearHistoryWarning": "Усі записані дзвінки, зокрема пропущені, буде видалено зі списку.",
       "calls.call": "Виклик",
       "contacts.title": "Контакти",
       "contacts.scanQR": "Сканувати QR-код",

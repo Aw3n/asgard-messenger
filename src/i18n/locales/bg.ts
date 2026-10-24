@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Камера",
       "calls.cameraLoading": "Камера…",
       "calls.clearHistory": "Изчисти историята",
+      "calls.clearHistoryWarning": "Всички записани обаждания, включително пропуснатите, ще бъдат премахнати от списъка.",
       "calls.connecting": "Свързване…",
       "calls.decline": "Откажи",
       "calls.declinedCall": "Отказано обаждане",

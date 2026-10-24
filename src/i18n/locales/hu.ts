@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Előzmények törlése",
+      "calls.clearHistoryWarning": "Minden rögzített hívás, a nem fogadottak is, eltávolításra kerül a listáról.",
       "calls.connecting": "Kapcsolódás…",
       "calls.decline": "Elutasítás",
       "calls.declinedCall": "Elutasított hívás",

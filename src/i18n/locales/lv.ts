@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Notīrīt vēsturi",
+      "calls.clearHistoryWarning": "Visi reģistrētie zvani, tostarp neatbildētie, tiks noņemti no saraksta.",
       "calls.connecting": "Savienojas…",
       "calls.decline": "Noraidīt",
       "calls.declinedCall": "Noraidīts zvans",

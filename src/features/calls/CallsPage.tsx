@@ -10,6 +10,7 @@ import type { CallRecord, CallType } from '@/stores/callStore'
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/stores/uiStore'
 import { getCurrentLanguage } from '@/i18n/config'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 /** Grouped call history entry: latest call per contact + count */
 interface GroupedCallEntry {
@@ -37,6 +38,9 @@ export const CallsPage: React.FC = () => {
   )
   const [search, setSearch] = useState('')
   const [expandedPeer, setExpandedPeer] = useState<string | null>(null)
+  // L'historique est persisté : un clic sur la corbeille ne doit pas l'effacer
+  // sans que l'utilisateur ait vu ce qu'il perd.
+  const [confirmClear, setConfirmClear] = useState(false)
 
   // Group call history by contact (peerId) — shows unique contacts with call count
   const groupedHistory = useMemo<GroupedCallEntry[]>(() => {
@@ -238,7 +242,7 @@ export const CallsPage: React.FC = () => {
             )}
             {history.length > 0 && (
               <button
-                onClick={clearHistory}
+                onClick={() => setConfirmClear(true)}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-red-400/80 hover:text-red-400 hover:bg-red-400/10 border border-red-400/20 hover:border-red-400/40 transition-all"
                 title={t('calls.clearHistory')}
               >
@@ -483,6 +487,19 @@ export const CallsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {confirmClear && (
+        <ConfirmDialog
+          title="calls.clearHistory"
+          warning="calls.clearHistoryWarning"
+          confirmLabel="calls.clearHistory"
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={() => {
+            setConfirmClear(false)
+            clearHistory()
+          }}
+        />
+      )}
     </div>
     </PageTransition>
   )

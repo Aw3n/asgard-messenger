@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Ryd historik",
+      "calls.clearHistoryWarning": "Alle registrerede opkald, også ubesvarede opkald, fjernes fra listen.",
       "calls.connecting": "Forbinder…",
       "calls.decline": "Afvis",
       "calls.declinedCall": "Afslået opkald",

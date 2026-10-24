@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Ceamara",
       "calls.cameraLoading": "Ceamara…",
       "calls.clearHistory": "Glan an stair",
+      "calls.clearHistoryWarning": "Bainfear gach glao taifeadta, lena n-áirítear glaonna caillte, den liosta.",
       "calls.connecting": "Ag nascadh…",
       "calls.decline": "Diúltaigh",
       "calls.declinedCall": "Glao diúltaithe",

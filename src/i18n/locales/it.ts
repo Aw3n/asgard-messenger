@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Camera",
       "calls.cameraLoading": "Camera…",
       "calls.clearHistory": "Cancella cronologia",
+      "calls.clearHistoryWarning": "Tutte le chiamate registrate, comprese quelle perse, verranno rimosse dall'elenco.",
       "calls.connecting": "Connessione…",
       "calls.decline": "Rifiuta",
       "calls.declinedCall": "Chiamata rifiutata",

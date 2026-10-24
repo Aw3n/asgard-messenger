@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('react-i18next', () => ({
@@ -82,6 +82,45 @@ describe('rappel depuis l’historique des appels', () => {
 
     expect(screen.queryByTitle('calls.audioCall')).toBeNull()
     expect(screen.queryByTitle('calls.videoCall')).toBeNull()
+  })
+})
+
+describe('vidage de l’historique', () => {
+  const openConfirm = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'calls.clearHistory' }))
+    return screen.getByRole('dialog', { name: 'calls.clearHistory' })
+  }
+
+  it('demande confirmation et garde la liste avant l’acquiescement', () => {
+    useCallStore.setState({ history: [missedCall] })
+    render(<CallsPage />)
+
+    const dialog = openConfirm()
+
+    expect(within(dialog).getByText('calls.clearHistoryWarning')).toBeInTheDocument()
+    expect(useCallStore.getState().history).toHaveLength(1)
+  })
+
+  it('vide la liste après confirmation', async () => {
+    useCallStore.setState({ history: [missedCall] })
+    render(<CallsPage />)
+    const dialog = openConfirm()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'calls.clearHistory' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'calls.clearHistory' })).toBeNull())
+    expect(useCallStore.getState().history).toHaveLength(0)
+  })
+
+  it('annuler garde la liste', async () => {
+    useCallStore.setState({ history: [missedCall] })
+    render(<CallsPage />)
+    openConfirm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'calls.clearHistory' })).toBeNull())
+    expect(useCallStore.getState().history).toHaveLength(1)
   })
 })
 

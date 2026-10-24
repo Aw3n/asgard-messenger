@@ -165,6 +165,7 @@ export default {
       "calls.groupCall": "Group Call",
       "calls.activeGroupTopics": "Active groups: {{total}}",
       "calls.clearHistory": "Clear History",
+      "calls.clearHistoryWarning": "All recorded calls, including missed calls, will be removed from the list.",
       "calls.call": "Call",
       "contacts.title": "Contacts",
       "contacts.scanQR": "Scan QR Code",

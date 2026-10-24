@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Κάμερα",
       "calls.cameraLoading": "Κάμερα…",
       "calls.clearHistory": "Καθαρισμός ιστορικού",
+      "calls.clearHistoryWarning": "Όλες οι καταγεγραμμένες κλήσεις, συμπεριλαμβανομένων των αναπάντητων, θα αφαιρεθούν από τη λίστα.",
       "calls.connecting": "Σύνδεση…",
       "calls.decline": "Απόρριψη",
       "calls.declinedCall": "Απορριφθείσα κλήση",

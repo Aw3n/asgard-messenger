@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Ħassar il-kronoloġija",
+      "calls.clearHistoryWarning": "Is-sejħiet kollha rreġistrati, inklużi dawk mitlufa, jitneħħew mil-lista.",
       "calls.connecting": "Qed jingħaqad…",
       "calls.decline": "Aċċetta",
       "calls.declinedCall": "Sejħa miċħuda",

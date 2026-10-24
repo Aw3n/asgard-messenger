@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Rensa historik",
+      "calls.clearHistoryWarning": "Alla sparade samtal, även missade samtal, tas bort från listan.",
       "calls.connecting": "Ansluter…",
       "calls.decline": "Avvisa",
       "calls.declinedCall": "Avvisat samtal",

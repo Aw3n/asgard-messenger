@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Tyhjennä historia",
+      "calls.clearHistoryWarning": "Kaikki tallennetut puhelut, myös vastaamattomat, poistetaan luettelosta.",
       "calls.connecting": "Yhdistetään…",
       "calls.decline": "Hylkää",
       "calls.declinedCall": "Hylätty puhelu",

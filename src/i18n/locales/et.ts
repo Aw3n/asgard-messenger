@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kaamera",
       "calls.cameraLoading": "Kaamera…",
       "calls.clearHistory": "Tühjenda ajalugu",
+      "calls.clearHistoryWarning": "Kõik salvestatud kõned, sealhulgas vastamata kõned, eemaldatakse loendist.",
       "calls.connecting": "Ühendan…",
       "calls.decline": "Keeldu",
       "calls.declinedCall": "Tagasi lükatud kõne",

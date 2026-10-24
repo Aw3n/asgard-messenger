@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Wyczyść historię",
+      "calls.clearHistoryWarning": "Wszystkie zapisane połączenia, w tym nieodebrane, zostaną usunięte z listy.",
       "calls.connecting": "Łączenie…",
       "calls.decline": "Odrzuć",
       "calls.declinedCall": "Odrzucone połączenie",

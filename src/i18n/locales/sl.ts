@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Kamera",
       "calls.cameraLoading": "Kamera…",
       "calls.clearHistory": "Počisti zgodovino",
+      "calls.clearHistoryWarning": "Vsi zabeleženi klici, vključno z zgrešenimi, bodo odstranjeni s seznama.",
       "calls.connecting": "Povezovanje…",
       "calls.decline": "Zavrni",
       "calls.declinedCall": "Zavrnjen klic",

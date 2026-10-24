@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Camera",
       "calls.cameraLoading": "Camera…",
       "calls.clearHistory": "Geschiedenis wissen",
+      "calls.clearHistoryWarning": "Alle opgeslagen oproepen, inclusief gemiste oproepen, worden uit de lijst verwijderd.",
       "calls.connecting": "Verbinden…",
       "calls.decline": "Weigeren",
       "calls.declinedCall": "Geweigerde oproep",

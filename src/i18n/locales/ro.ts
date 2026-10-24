@@ -12,6 +12,7 @@ export default {
       "calls.camera": "Cameră",
       "calls.cameraLoading": "Cameră…",
       "calls.clearHistory": "Șterge istoricul",
+      "calls.clearHistoryWarning": "Toate apelurile înregistrate, inclusiv cele pierdute, vor fi eliminate din listă.",
       "calls.connecting": "Se conectează…",
       "calls.decline": "Refuză",
       "calls.declinedCall": "Apel refuzat",
