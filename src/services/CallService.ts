@@ -135,7 +135,9 @@ class CallService {
 
   // Screen share
   private screenTrack: MediaStreamTrack | null = null
-  private originalVideoTrack: MediaStreamTrack | null = null
+  /** La caméra tournait-elle avant le partage ? Une piste stoppée ne se rallume
+   * pas : c'est cette intention qui décide de la réacquérir à la fin. */
+  private cameraWasOnBeforeShare = false
 
   // Peer ID for current call
   private currentPeerId: string | null = null
@@ -1150,6 +1152,11 @@ class CallService {
 
     if (!this.localStream) return
 
+    // Pendant un partage, la piste vidéo du flux local est l'écran : la couper
+    // figerait le partage chez les pairs. L'intention est retenue et appliquée
+    // à la caméra réacquise quand le partage s'arrête.
+    if (this.screenTrack) return
+
     const videoTracks = this.localStream.getVideoTracks()
 
     if (newIsCameraOff) {
@@ -1185,69 +1192,84 @@ class CallService {
    * FIX: Restarts video transport after replacing the track.
    */
   async toggleScreenShare(): Promise<void> {
-    const isSharing = useCallStore.getState().isScreenSharing
-
-    if (!isSharing) {
-      // Start screen share
-      try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: false,
-        })
-        const newTrack = screenStream.getVideoTracks()[0]
-        if (!newTrack) return
-
-        // Save original video track for restoration
-        if (this.localStream) {
-          const existingVideo = this.localStream.getVideoTracks()[0]
-          if (existingVideo) {
-            this.originalVideoTrack = existingVideo
-            existingVideo.stop()
-            this.localStream.removeTrack(existingVideo)
-          }
-          this.localStream.addTrack(newTrack)
-          this.screenTrack = newTrack
-        }
-
-        // Listen for screen share stop (user clicks "Stop sharing")
-        newTrack.onended = () => {
-          this.stopScreenShare()
-        }
-
-        useCallStore.getState().toggleScreenShare()
-
-        // Restart video transport with new track
-        this.restartVideoTransportForCall()
-      } catch {
-        // User cancelled or error
-        useCallStore.getState().toggleScreenShare()
-      }
-    } else {
-      // Stop screen share
-      this.stopScreenShare()
+    if (useCallStore.getState().isScreenSharing) {
+      await this.stopScreenShare()
+      return
     }
+
+    // Sans flux local il n'y a rien à remplacer : prétendre partager n'aurait
+    // aucun effet chez les pairs.
+    if (!this.localStream) return
+
+    let newTrack: MediaStreamTrack | undefined
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      })
+      newTrack = screenStream.getVideoTracks()[0]
+    } catch {
+      // Annulation du sélecteur ou refus : rien n'est partagé, et l'état doit
+      // le dire. Basculer ici en « partage » laissait un bouton actif sans flux.
+      return
+    }
+    if (!newTrack) return
+
+    // La caméra est libérée pendant le partage, mais son intention est gardée :
+    // `stop()` est définitif, la piste ne pourra pas être réattachée ensuite.
+    const existingVideo = this.localStream.getVideoTracks()[0]
+    this.cameraWasOnBeforeShare = !!existingVideo
+      && existingVideo.enabled
+      && !useCallStore.getState().isCameraOff
+    if (existingVideo) {
+      this.localStream.removeTrack(existingVideo)
+      existingVideo.stop()
+    }
+
+    this.localStream.addTrack(newTrack)
+    this.screenTrack = newTrack
+    // Arrêt depuis le sélecteur du système (« Arrêter le partage »).
+    newTrack.onended = () => { void this.stopScreenShare() }
+
+    useCallStore.getState().toggleScreenShare()
+    this.restartVideoTransportForCall()
   }
 
   /**
-   * Stop screen sharing and restore camera track.
+   * Stop screen sharing and restore the camera track.
+   *
+   * La piste caméra d'avant le partage a été stoppée : la remettre ne rendrait
+   * aucune image. On en redemande une au périphérique, et seulement si la
+   * caméra tournait avant le partage.
    */
-  private stopScreenShare(): void {
+  private async stopScreenShare(): Promise<void> {
     if (this.screenTrack) {
+      this.localStream?.removeTrack(this.screenTrack)
       this.screenTrack.stop()
-      if (this.localStream) {
-        this.localStream.removeTrack(this.screenTrack)
-      }
       this.screenTrack = null
     }
 
-    // Restore original camera track
-    if (this.originalVideoTrack && this.localStream) {
-      this.localStream.addTrack(this.originalVideoTrack)
-      this.originalVideoTrack = null
-    }
-
+    const restoreCamera = this.cameraWasOnBeforeShare
+    this.cameraWasOnBeforeShare = false
+    // L'état bascule avant la réacquisition (qui prend le temps d'ouvrir la
+    // caméra) : le bouton ne reste pas allumé et un second appui relance un
+    // partage au lieu de repasser par un arrêt déjà en cours.
     if (useCallStore.getState().isScreenSharing) {
       useCallStore.getState().toggleScreenShare()
+    }
+
+    if (restoreCamera && this.localStream) {
+      try {
+        const constraints = mediaDeviceService.buildCallConstraints('video')
+        const cameraStream = await navigator.mediaDevices.getUserMedia({ video: constraints.video })
+        const cameraTrack = cameraStream.getVideoTracks()[0]
+        if (cameraTrack) {
+          cameraTrack.enabled = !useCallStore.getState().isCameraOff
+          this.localStream.addTrack(cameraTrack)
+        }
+      } catch (err) {
+        console.warn('[CallService] Camera not restored after screen share:', err)
+      }
     }
 
     // Restart video transport
@@ -1297,7 +1319,7 @@ class CallService {
       this.screenTrack.stop()
       this.screenTrack = null
     }
-    this.originalVideoTrack = null
+    this.cameraWasOnBeforeShare = false
   }
 
   /**
