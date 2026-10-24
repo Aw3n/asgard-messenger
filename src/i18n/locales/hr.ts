@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Privatnost i sigurnost",
       "settings.privacySubtitle": "Upravljajte postavkama privatnosti",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Profil nije moguće spremiti",
       "settings.profileSaved": "Profil spremljen",
       "settings.profileSubtitle": "Vaš javni identitet",
       "settings.publicKey": "Vaš javni ključ",

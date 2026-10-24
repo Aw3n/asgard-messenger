@@ -144,17 +144,24 @@ const ProfileSection: React.FC = () => {
   const aboutId = React.useId()
 
   const handleSave = async () => {
-    await updateProfile({ 
+    const saved = await updateProfile({ 
       displayName: name.trim(), 
       about: about.trim() || undefined,
       customStatus: customStatus.trim() || undefined,
     })
-    addToast({ type: 'success', title: t('settings.profileSaved') })
+    addToast({
+      type: saved ? 'success' : 'error',
+      title: saved ? t('settings.profileSaved') : t('settings.profileSaveFailed'),
+    })
   }
 
   // CRITICAL FIX: Status change is instant — no need to click Save
   const handleStatusChange = async (newStatus: UserStatus) => {
-    await storeSetStatus(newStatus)
+    const saved = await storeSetStatus(newStatus)
+    if (!saved) {
+      addToast({ type: 'error', title: t('settings.profileSaveFailed') })
+      return
+    }
     addToast({
       type: 'success',
       title: `${t('settings.status')}: ${t(presenceMeta(newStatus).labelKey)}`,
@@ -177,8 +184,11 @@ const ProfileSection: React.FC = () => {
       try {
         // OPTIMIZATION: Compress to WebP for ~30% smaller P2P transmission
         const compressedDataUrl = await compressAvatarToWebP(file)
-        await updateProfile({ avatar: compressedDataUrl })
-        addToast({ type: 'success', title: t('settings.avatarUpdated') })
+        const saved = await updateProfile({ avatar: compressedDataUrl })
+        addToast({
+          type: saved ? 'success' : 'error',
+          title: saved ? t('settings.avatarUpdated') : t('settings.profileSaveFailed'),
+        })
       } catch {
         addToast({ type: 'error', title: t('settings.uploadFailed'), message: t('settings.couldNotProcess') })
       }
@@ -187,8 +197,11 @@ const ProfileSection: React.FC = () => {
   }
 
   const handleAvatarRemove = async () => {
-    await updateProfile({ avatar: undefined })
-    addToast({ type: 'success', title: t('settings.avatarRemoved') })
+    const saved = await updateProfile({ avatar: undefined })
+    addToast({
+      type: saved ? 'success' : 'error',
+      title: saved ? t('settings.avatarRemoved') : t('settings.profileSaveFailed'),
+    })
   }
 
   const handleCopyPublicKey = async () => {

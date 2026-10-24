@@ -73,6 +73,7 @@ export default {
       "settings.network": "Network",
       "settings.devices": "Devices",
       "settings.storage": "Storage",
+      "settings.profileSaveFailed": "Could not save the profile",
       "settings.profileSaved": "Profile saved",
       "settings.fileTooLarge": "File too large",
       "settings.max10MB": "Max 10MB allowed",

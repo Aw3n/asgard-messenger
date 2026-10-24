@@ -504,6 +504,7 @@ export default {
       "settings.privacy": "Datenschutz & Sicherheit",
       "settings.privacySubtitle": "Steuere deine Datenschutzeinstellungen",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Profil konnte nicht gespeichert werden",
       "settings.profileSaved": "Profil gespeichert",
       "settings.profileSubtitle": "Deine öffentliche Identität",
       "settings.publicKey": "Dein öffentlicher Schlüssel",

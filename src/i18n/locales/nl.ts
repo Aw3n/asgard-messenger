@@ -504,6 +504,7 @@ export default {
       "settings.privacy": "Privacy en beveiliging",
       "settings.privacySubtitle": "Beheer uw privacy-instellingen",
       "settings.profile": "Profiel",
+      "settings.profileSaveFailed": "Profiel kon niet worden opgeslagen",
       "settings.profileSaved": "Profiel opgeslagen",
       "settings.profileSubtitle": "Uw openbare identiteit",
       "settings.publicKey": "Uw openbare sleutel",

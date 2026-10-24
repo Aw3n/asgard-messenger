@@ -67,6 +67,7 @@ export default {
       "settings.network": "Мережа",
       "settings.devices": "Пристрої",
       "settings.storage": "Сховище",
+      "settings.profileSaveFailed": "Не вдалося зберегти профіль",
       "settings.profileSaved": "Профіль збережено",
       "settings.fileTooLarge": "Файл завеликий",
       "settings.max10MB": "Максимум 10 МБ",

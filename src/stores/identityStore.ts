@@ -13,8 +13,8 @@ interface IdentityState {
   // Actions
   createIdentity: () => Promise<void>
   loadIdentity: () => Promise<void>
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>
-  setStatus: (status: UserStatus) => Promise<void>
+  updateProfile: (updates: Partial<UserProfile>) => Promise<boolean>
+  setStatus: (status: UserStatus) => Promise<boolean>
   reset: () => void
 }
 
@@ -108,9 +108,9 @@ export const useIdentityStore = create<IdentityState>()(
         }
       },
 
-      updateProfile: async (updates) => {
+      updateProfile: async (updates): Promise<boolean> => {
         const { identity } = get()
-        if (!identity) return
+        if (!identity) return false
 
         const updatedProfile: UserProfile = {
           ...identity.profile,
@@ -125,6 +125,7 @@ export const useIdentityStore = create<IdentityState>()(
         set({ identity: updatedIdentity })
 
         // Persist to electron
+        let saved = true
         try {
           await window.asgard.identity.save({
             publicKey: identity.keyPair.publicKey,
@@ -138,6 +139,7 @@ export const useIdentityStore = create<IdentityState>()(
             },
           })
         } catch (err) {
+          saved = false
           console.error('[IdentityStore] Failed to save profile:', err)
         }
 
@@ -172,21 +174,12 @@ export const useIdentityStore = create<IdentityState>()(
             console.error('[IdentityStore] Failed to publish status:', err)
           }
         }
+
+        return saved
       },
 
       setStatus: async (status) => {
-        // Update Zustand state immediately for instant UI feedback
-        const { identity } = get()
-        if (!identity) return
-        const updatedProfile: UserProfile = {
-          ...identity.profile,
-          status,
-          updatedAt: Date.now(),
-        }
-        set({ identity: { ...identity, profile: updatedProfile } })
-
-        // Persist + broadcast in background
-        get().updateProfile({ status }).catch(console.error)
+        return get().updateProfile({ status })
       },
 
       reset: () => {

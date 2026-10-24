@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Integritet och säkerhet",
       "settings.privacySubtitle": "Styr dina integritetsinställningar",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Profilen kunde inte sparas",
       "settings.profileSaved": "Profil sparad",
       "settings.profileSubtitle": "Din offentliga identitet",
       "settings.publicKey": "Din offentliga nyckel",

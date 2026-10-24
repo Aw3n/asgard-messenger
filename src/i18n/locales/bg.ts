@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Поверителност и сигурност",
       "settings.privacySubtitle": "Контролирайте настройките си за поверителност",
       "settings.profile": "Профил",
+      "settings.profileSaveFailed": "Профилът не можа да бъде запазен",
       "settings.profileSaved": "Профилът е запазен",
       "settings.profileSubtitle": "Вашата публична идентичност",
       "settings.publicKey": "Вашият публичен ключ",

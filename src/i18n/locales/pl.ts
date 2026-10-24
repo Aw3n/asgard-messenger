@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Prywatność i bezpieczeństwo",
       "settings.privacySubtitle": "Kontroluj ustawienia prywatności",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Nie udało się zapisać profilu",
       "settings.profileSaved": "Profil zapisany",
       "settings.profileSubtitle": "Twój publiczny profil tożsamości",
       "settings.publicKey": "Twój klucz publiczny",

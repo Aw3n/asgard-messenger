@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Confidențialitate și securitate",
       "settings.privacySubtitle": "Controlează setările de confidențialitate",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Profilul nu a putut fi salvat",
       "settings.profileSaved": "Profil salvat",
       "settings.profileSubtitle": "Identitatea ta publică",
       "settings.publicKey": "Cheia ta publică",

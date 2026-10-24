@@ -635,6 +635,7 @@ export default {
       "settings.privacy": "Confidentialité et sécurité",
       "settings.privacySubtitle": "Contrôlez vos paramètres de confidentialité",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Impossible d'enregistrer le profil",
       "settings.profileSaved": "Profil sauvegardé",
       "settings.profileSubtitle": "Votre identité publique",
       "settings.publicKey": "Votre clé publique",

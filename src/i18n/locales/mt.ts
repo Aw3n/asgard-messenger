@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Privatezza u sigurtà",
       "settings.privacySubtitle": "Kontrolla s-settijiet tal-privatezza tiegħek",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Ma setgħetx issalva l-profil",
       "settings.profileSaved": "Profil salvat",
       "settings.profileSubtitle": "L-identità pubblika tiegħek",
       "settings.publicKey": "Il-ċavetta pubblika tiegħek",

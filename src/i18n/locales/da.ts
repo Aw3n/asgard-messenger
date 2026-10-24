@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Privatliv og sikkerhed",
       "settings.privacySubtitle": "Styr dine privatlivsindstillinger",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Profilen kunne ikke gemmes",
       "settings.profileSaved": "Profil gemt",
       "settings.profileSubtitle": "Din offentlige identitet",
       "settings.publicKey": "Din offentlige nøgle",

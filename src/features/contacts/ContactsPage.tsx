@@ -79,7 +79,11 @@ export const ContactsPage: React.FC = () => {
     // used to call `network.publishStatus()` on its own — a DHT-only write with
     // no profile change, so the 30 s re-publish loop (which reads the profile)
     // silently reverted it: the menu looked broken.
-    setProfileStatus(newStatus).catch(() => {})
+    void setProfileStatus(newStatus).then((saved) => {
+      if (!saved) {
+        addToast({ type: 'error', title: t('settings.profileSaveFailed') })
+      }
+    })
   }
 
   const { getFilteredContacts, getFavorites, getBlocked, searchQuery, setSearchQuery } =

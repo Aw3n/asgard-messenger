@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Adatvédelem és biztonság",
       "settings.privacySubtitle": "Adatvédelmi beállítások kezelése",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "A profil mentése nem sikerült",
       "settings.profileSaved": "Profil mentve",
       "settings.profileSubtitle": "A nyilvános identitása",
       "settings.publicKey": "A te nyilvános kulcsod",

@@ -51,12 +51,19 @@ export const OnboardingPage: React.FC = () => {
       addToast({ type: 'warning', title: t('onboarding.enterDisplayName') })
       return
     }
-    await updateProfile({ displayName: displayName.trim(), about: about.trim() || undefined })
+    const saved = await updateProfile({ displayName: displayName.trim(), about: about.trim() || undefined })
+    if (!saved) {
+      addToast({ type: 'error', title: t('settings.profileSaveFailed') })
+      return
+    }
     setStep('done')
   }
 
   const handleAvatarChange = async (avatar: string) => {
-    await updateProfile({ avatar })
+    const saved = await updateProfile({ avatar })
+    if (!saved) {
+      addToast({ type: 'error', title: t('settings.profileSaveFailed') })
+    }
   }
 
   const handleFinish = () => {

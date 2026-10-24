@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Soukromí a zabezpečení",
       "settings.privacySubtitle": "Řízení nastavení soukromí",
       "settings.profile": "Profil",
+      "settings.profileSaveFailed": "Profil se nepodařilo uložit",
       "settings.profileSaved": "Profil uložen",
       "settings.profileSubtitle": "Vaše veřejná identita",
       "settings.publicKey": "Váš veřejný klíč",

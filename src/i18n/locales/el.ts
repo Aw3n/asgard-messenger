@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Απορρήτου και ασφάλεια",
       "settings.privacySubtitle": "Ελέγξτε τις ρυθμίσεις απορρήτου σας",
       "settings.profile": "Προφίλ",
+      "settings.profileSaveFailed": "Δεν ήταν δυνατή η αποθήκευση του προφίλ",
       "settings.profileSaved": "Το προφίλ αποθηκεύτηκε",
       "settings.profileSubtitle": "Η δημόσια ταυτότητά σας",
       "settings.publicKey": "Το δημόσιο κλειδί σας",

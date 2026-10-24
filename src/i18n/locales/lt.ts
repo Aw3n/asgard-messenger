@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Privatumas ir saugumas",
       "settings.privacySubtitle": "Valdykite savo privatumo nustatymus",
       "settings.profile": "Profilis",
+      "settings.profileSaveFailed": "Nepavyko išsaugoti profilio",
       "settings.profileSaved": "Profilis išsaugotas",
       "settings.profileSubtitle": "Jūsų viešasis identitetas",
       "settings.publicKey": "Tavo viešasis raktas",

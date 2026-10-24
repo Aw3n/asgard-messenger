@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Privātums un drošība",
       "settings.privacySubtitle": "Kontrolē savus privātuma iestatījumus",
       "settings.profile": "Profils",
+      "settings.profileSaveFailed": "Profila saglabāšana neizdevās",
       "settings.profileSaved": "Profils saglabāts",
       "settings.profileSubtitle": "Jūsu publiskā identitāte",
       "settings.publicKey": "Tava publiskā atslēga",

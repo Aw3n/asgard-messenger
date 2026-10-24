@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Príobháideacht agus Slándáil",
       "settings.privacySubtitle": "Rialaigh do chuid socruithe príobháideachta",
       "settings.profile": "Próifíl",
+      "settings.profileSaveFailed": "Níorbh fhéidir an próifíl a shábháil",
       "settings.profileSaved": "Próifíl sábháilte",
       "settings.profileSubtitle": "D'aitheantas poiblí",
       "settings.publicKey": "D'Eochair Phoiblí",

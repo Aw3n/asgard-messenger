@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Yksityisyys ja turvallisuus",
       "settings.privacySubtitle": "Hallitse yksityisyysasetuksiasi",
       "settings.profile": "Profiili",
+      "settings.profileSaveFailed": "Profiilin tallentaminen epäonnistui",
       "settings.profileSaved": "Profiili tallennettu",
       "settings.profileSubtitle": "Julkinen henkilöllisyytesi",
       "settings.publicKey": "Julkinen avaimesi",

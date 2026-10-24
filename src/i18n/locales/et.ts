@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Privaatsus ja turvalisus",
       "settings.privacySubtitle": "Hallake oma privaatsussätteid",
       "settings.profile": "Profiil",
+      "settings.profileSaveFailed": "Profiili salvestamine ebaõnnestus",
       "settings.profileSaved": "Profil salvestatud",
       "settings.profileSubtitle": "Teie avalik identiteet",
       "settings.publicKey": "Teie avalik võti",

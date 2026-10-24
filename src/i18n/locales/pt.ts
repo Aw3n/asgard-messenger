@@ -486,6 +486,7 @@ export default {
       "settings.privacy": "Privacidade e segurança",
       "settings.privacySubtitle": "Controle as suas definições de privacidade",
       "settings.profile": "Perfil",
+      "settings.profileSaveFailed": "Não foi possível guardar o perfil",
       "settings.profileSaved": "Perfil guardado",
       "settings.profileSubtitle": "A sua identidade pública",
       "settings.publicKey": "A sua chave pública",
