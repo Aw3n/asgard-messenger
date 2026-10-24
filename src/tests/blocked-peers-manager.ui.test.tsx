@@ -7,7 +7,7 @@
  * deux chemins, et vérifient que le bouton Réessayer recharge vraiment.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
@@ -38,6 +38,15 @@ afterEach(() => {
 })
 
 describe('lire la liste des pairs bloqués', () => {
+  it('annonce le chargement au lecteur d’écran', () => {
+    network().getBlockedPeers.mockReturnValueOnce(new Promise(() => {}))
+    render(<BlockedPeersManager />)
+
+    const status = screen.getByRole('status')
+    expect(status).toHaveTextContent('common.loading')
+    expect(status.closest('[aria-busy="true"]')).not.toBeNull()
+  })
+
   it('dit l’échec au lieu de prétendre qu’aucun pair n’est bloqué', async () => {
     network().getBlockedPeers.mockRejectedValueOnce(new Error('Hyperbee fermé'))
     render(<BlockedPeersManager />)
@@ -74,6 +83,28 @@ describe('débloquer un pair', () => {
       expect(toast?.type).toBe('error')
     })
     expect(screen.getByRole('button', { name: 'contacts.unblock' })).toBeInTheDocument()
+  })
+
+  it('désactive le bouton pendant le déblocage et n’appelle le réseau qu’une fois', async () => {
+    network().getBlockedPeers.mockResolvedValue([PEER])
+    let release: () => void = () => {}
+    network().blockPeer.mockImplementationOnce(
+      () => new Promise<void>((resolve) => { release = resolve })
+    )
+    render(<BlockedPeersManager />)
+
+    const button = await screen.findByRole('button', { name: 'contacts.unblock' })
+    fireEvent.click(button)
+    fireEvent.click(button)
+
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-busy', 'true')
+    expect(network().blockPeer).toHaveBeenCalledTimes(1)
+
+    await act(async () => { release() })
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'contacts.unblock' })).toBeNull()
+    })
   })
 
   it('un succès retire la rangée', async () => {
