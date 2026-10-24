@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Historiaa ei voitu ladata",
       "chat.pinnedMessages": "Kiinnitetyt viestit",
       "search.moreResults": "Lisää tuloksia ei näytetä — tarkenna hakua.",
+      "search.incomplete": "Osittainen haku: joitakin keskusteluja ei voitu hakea.",
       "groups.muteMember": "Mykistä jäsen",
       "groups.unmuteMember": "Poista jäsenen mykistys",
       "groups.memberMuted": "Jäsen mykistetty",

@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Níorbh fhéidir an stair a lódáil",
       "chat.pinnedMessages": "Teachtaireachtaí pionnáilte",
       "search.moreResults": "Níl torthaí eile á dtaispeáint — déan cuardach níos cruinne.",
+      "search.incomplete": "Cuardach páirteach: níorbh fhéidir roinnt comhráite a chuardach.",
       "groups.muteMember": "Balbhaigh ball",
       "groups.unmuteMember": "Bain balbhacht den bhall",
       "groups.memberMuted": "Tá an ball balbhaithe",

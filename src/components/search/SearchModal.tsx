@@ -38,7 +38,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
   // elle doit lire la combinaison réglée, pas « ESC » en dur — effacée, elle
   // disparaît plutôt que d'annoncer une frappe muette.
   const closeGesture = useGestureHint('closeModal', t('search.placeholder'))
-  const { results, contactResults, messageResults, groupResults, isSearching, truncated } = useSearch(query)
+  const { results, contactResults, messageResults, groupResults, isSearching, truncated, storageIncomplete } = useSearch(query)
   // Le plafond est par type : n'annoncer la coupure que pour l'onglet affiché.
   const tabTruncated =
     activeTab === 'contacts'
@@ -326,6 +326,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             {query.trim() && filteredResults.length > 0 && tabTruncated && (
               <p className="px-3 py-2 text-xxs text-asgard-text-muted" role="status">
                 {t('search.moreResults')}
+              </p>
+            )}
+
+            {query.trim() && !isSearching && storageIncomplete && (
+              <p className="px-3 py-2 text-xxs text-asgard-text-muted" role="status">
+                {t('search.incomplete')}
               </p>
             )}
           </div>

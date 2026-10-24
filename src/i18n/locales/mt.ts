@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "L-istorja ma setgħetx titgħabba",
       "chat.pinnedMessages": "Messaġġi mwaqqa'",
       "search.moreResults": "Aktar riżultati ma jurux — irfina t-tiftix.",
+      "search.incomplete": "Tiftixa parzjali: xi djalogi ma setgħux jiġu mfittxija.",
       "groups.muteMember": "Ġibed il-membru",
       "groups.unmuteMember": "Neħħi l-ġibed mill-membru",
       "groups.memberMuted": "Il-membru inġibed",

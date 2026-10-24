@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Историята не можа да се зареди",
       "chat.pinnedMessages": "Закачени съобщения",
       "search.moreResults": "Други резултати не се показват — стеснете търсенето.",
+      "search.incomplete": "Частично търсене: някои разговори не можаха да бъдат претърсени.",
       "groups.muteMember": "Заглуши член",
       "groups.unmuteMember": "Махни заглушаването на член",
       "groups.memberMuted": "Членът е заглушен",

@@ -121,6 +121,32 @@ describe('useSearch', () => {
     const ids = result.current.messageResults.map((r) => r.message?.id)
     expect(ids).toEqual(['m1', 'm2'])
     expect(new Set(ids).size).toBe(ids.length)
+    expect(result.current.storageIncomplete).toBe(false)
+  })
+
+  it('marque la recherche partielle quand la lecture d’une conversation échoue', async () => {
+    useConversationStore.setState({
+      conversations: {
+        [CONV_ID]: conversation,
+        'conv-2': { ...conversation, id: 'conv-2', participantId: 'peer-2' },
+      },
+    })
+    searchMessages.mockImplementation((id: string) =>
+      id === 'conv-2'
+        ? Promise.reject(new Error('lecture impossible'))
+        : Promise.resolve([makeMessage('m2', 'bonjour depuis Hyperbee')])
+    )
+
+    const { result } = renderHook(() => useSearch('bonjour'))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300)
+    })
+
+    // La conversation lisible rend toujours ses résultats ; l'autre est signalée
+    // au lieu de disparaître comme si elle n'avait rien trouvé.
+    expect(result.current.messageResults.map((r) => r.message?.id)).toContain('m2')
+    expect(result.current.storageIncomplete).toBe(true)
   })
 
   it('annule la requête obsolète quand la saisie change avant le debounce', async () => {

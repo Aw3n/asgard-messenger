@@ -942,6 +942,7 @@ export default {
       "chat.historyLoadFailed": "Impossible de charger l’historique",
       "chat.pinnedMessages": "Messages épinglés",
       "search.moreResults": "D’autres résultats ne sont pas affichés — affinez la recherche.",
+      "search.incomplete": "Recherche partielle : certaines conversations n’ont pas pu être interrogées.",
       "groups.muteMember": "Mettre le membre en sourdine",
       "groups.unmuteMember": "Rétablir le membre",
       "groups.memberMuted": "Membre mis en sourdine",

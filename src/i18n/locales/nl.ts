@@ -942,6 +942,7 @@ export default {
       "chat.historyLoadFailed": "Geschiedenis kon niet worden geladen",
       "chat.pinnedMessages": "Vastgezette berichten",
       "search.moreResults": "Andere resultaten worden niet weergegeven — verfijn de zoekopdracht.",
+      "search.incomplete": "Gedeeltelijke zoekopdracht: sommige gesprekken konden niet worden doorzocht.",
       "groups.muteMember": "Lid dempen",
       "groups.unmuteMember": "Dempen van lid opheffen",
       "groups.memberMuted": "Lid gedempt",

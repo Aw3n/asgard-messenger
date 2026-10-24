@@ -952,6 +952,7 @@ export default {
       "chat.historyLoadFailed": "History could not be loaded",
       "chat.pinnedMessages": "Pinned messages",
       "search.moreResults": "Other results are not shown — refine your search.",
+      "search.incomplete": "Partial search: some conversations could not be searched.",
       "groups.muteMember": "Mute member",
       "groups.unmuteMember": "Unmute member",
       "groups.memberMuted": "Member muted",

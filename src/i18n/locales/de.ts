@@ -942,6 +942,7 @@ export default {
       "chat.historyLoadFailed": "Verlauf konnte nicht geladen werden",
       "chat.pinnedMessages": "Angeheftete Nachrichten",
       "search.moreResults": "Weitere Ergebnisse werden nicht angezeigt — verfeinern Sie die Suche.",
+      "search.incomplete": "Teilweise Suche: Einige Unterhaltungen konnten nicht durchsucht werden.",
       "groups.muteMember": "Mitglied stummschalten",
       "groups.unmuteMember": "Stummschaltung des Mitglieds aufheben",
       "groups.memberMuted": "Mitglied stummgeschaltet",

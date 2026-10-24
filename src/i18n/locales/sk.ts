@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Históriu sa nepodarilo načítať",
       "chat.pinnedMessages": "Pripnuté správy",
       "search.moreResults": "Ďalšie výsledky sa nezobrazujú — spresnite vyhľadávanie.",
+      "search.incomplete": "Čiastočné vyhľadávanie: niektoré konverzácie sa nepodarilo prehľadať.",
       "groups.muteMember": "Stlmiť člena",
       "groups.unmuteMember": "Zrušiť stlmenie člena",
       "groups.memberMuted": "Člen stlmený",

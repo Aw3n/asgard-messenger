@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Το ιστορικό δεν μπόρεσε να φορτωθεί",
       "chat.pinnedMessages": "Καρφιτσωμένα μηνύματα",
       "search.moreResults": "Δεν εμφανίζονται άλλα αποτελέσματα — βελτιώστε την αναζήτηση.",
+      "search.incomplete": "Μερική αναζήτηση: ορισμένες συνομιλίες δεν ήταν δυνατό να ερευνηθούν.",
       "groups.muteMember": "Σίγαση μέλους",
       "groups.unmuteMember": "Άρση σίγασης μέλους",
       "groups.memberMuted": "Μέλος σε σίγαση",

@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Az előzmények nem tölthetők be",
       "chat.pinnedMessages": "Kitűzött üzenetek",
       "search.moreResults": "További eredmények nem jelennek meg — pontosítsa a keresést.",
+      "search.incomplete": "Részleges keresés: néhány beszélgetést nem sikerült átkutatni.",
       "groups.muteMember": "Tag némítása",
       "groups.unmuteMember": "Tag némításának feloldása",
       "groups.memberMuted": "Tag lenémítva",

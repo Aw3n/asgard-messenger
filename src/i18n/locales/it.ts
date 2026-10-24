@@ -942,6 +942,7 @@ export default {
       "chat.historyLoadFailed": "Impossibile caricare la cronologia",
       "chat.pinnedMessages": "Messaggi fissati",
       "search.moreResults": "Altri risultati non sono visualizzati — affina la ricerca.",
+      "search.incomplete": "Ricerca parziale: alcune conversazioni non sono state cercate.",
       "groups.muteMember": "Silenzia membro",
       "groups.unmuteMember": "Riattiva membro",
       "groups.memberMuted": "Membro silenziato",

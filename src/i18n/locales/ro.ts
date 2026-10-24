@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Istoricul nu a putut fi încărcat",
       "chat.pinnedMessages": "Mesaje fixate",
       "search.moreResults": "Alte rezultate nu sunt afișate — rafinați căutarea.",
+      "search.incomplete": "Căutare parțială: unele conversații nu au putut fi căutate.",
       "groups.muteMember": "Pune membrul în tăcere",
       "groups.unmuteMember": "Scoate membrul din tăcere",
       "groups.memberMuted": "Membrul este în tăcere",

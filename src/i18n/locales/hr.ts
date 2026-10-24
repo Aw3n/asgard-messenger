@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Povijest se nije mogla učitati",
       "chat.pinnedMessages": "Zakačene poruke",
       "search.moreResults": "Još rezultata nije prikazano — pojasnite pretragu.",
+      "search.incomplete": "Djelomično pretraživanje: neke razgovore nije bilo moguće pretražiti.",
       "groups.muteMember": "Utišaj člana",
       "groups.unmuteMember": "Ukini utišavanje člana",
       "groups.memberMuted": "Član utišan",

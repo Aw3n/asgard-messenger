@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Istorijos nepavyko įkelti",
       "chat.pinnedMessages": "Prisegtos žinutės",
       "search.moreResults": "Daugiau rezultatų nerodoma — patikslinkite paiešką.",
+      "search.incomplete": "Dalinė paieška: kai kurių pokalbių nepavyko ieškoti.",
       "groups.muteMember": "Nutildyti narą",
       "groups.unmuteMember": "Atšaukti nario nutildymą",
       "groups.memberMuted": "Narys nutildytas",

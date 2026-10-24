@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Zgodovine ni bilo mogoče naložiti",
       "chat.pinnedMessages": "Pripeta sporočila",
       "search.moreResults": "Več rezultatov ni prikazanih — zožite iskanje.",
+      "search.incomplete": "Delno iskanje: nekaterih pogovorov ni bilo mogoče preiskati.",
       "groups.muteMember": "Utišaj člana",
       "groups.unmuteMember": "Odstrani utišanje člana",
       "groups.memberMuted": "Član utišan",

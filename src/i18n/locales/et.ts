@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Ajalugu ei saanud laadida",
       "chat.pinnedMessages": "Kinnitatud sõnumid",
       "search.moreResults": "Rohkem tulemusi ei kuvata — täpsusta otsingut.",
+      "search.incomplete": "Osaline otsing: mõnda vestlust ei saanud otsida.",
       "groups.muteMember": "Summuta liige",
       "groups.unmuteMember": "Lõpeta liikme summutamine",
       "groups.memberMuted": "Liige on summutatud",

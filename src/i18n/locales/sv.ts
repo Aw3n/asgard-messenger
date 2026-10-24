@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Historiken kunde inte laddas",
       "chat.pinnedMessages": "Nålade meddelanden",
       "search.moreResults": "Fler resultat visas inte — förfina sökningen.",
+      "search.incomplete": "Delvis sökning: vissa konversationer kunde inte sökas igenom.",
       "groups.muteMember": "Tysta medlem",
       "groups.unmuteMember": "Aktivera medlem igen",
       "groups.memberMuted": "Medlem tystad",

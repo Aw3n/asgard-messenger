@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Vēsturi nevarēja ielādēt",
       "chat.pinnedMessages": "Piesprausti ziņojumi",
       "search.moreResults": "Vairāk rezultātu netiek rādīti — precizējiet meklēšanu.",
+      "search.incomplete": "Daļēja meklēšana: dažas sarunas nevarēja meklēt.",
       "groups.muteMember": "Apklusināt dalībnieku",
       "groups.unmuteMember": "Atcelt dalībnieka apklusināšanu",
       "groups.memberMuted": "Dalībnieks apklusināts",

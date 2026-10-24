@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Nie udało się załadować historii",
       "chat.pinnedMessages": "Przypięte wiadomości",
       "search.moreResults": "Inne wyniki nie są wyświetlane — zawęź wyszukiwanie.",
+      "search.incomplete": "Częściowe wyszukiwanie: nie udało się przeszukać niektórych rozmów.",
       "groups.muteMember": "Wycisz członka",
       "groups.unmuteMember": "Wyłącz wyciszenie członka",
       "groups.memberMuted": "Członek wyciszony",

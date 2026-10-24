@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Історію не вдалося завантажити",
       "chat.pinnedMessages": "Закріплені повідомлення",
       "search.moreResults": "Інші результати не показані — уточніть пошук.",
+      "search.incomplete": "Частковий пошук: деякі розмови не вдалося переглянути.",
       "groups.muteMember": "Заглушити учасника",
       "groups.unmuteMember": "Зняти заглушення з учасника",
       "groups.memberMuted": "Учасника заглушено",

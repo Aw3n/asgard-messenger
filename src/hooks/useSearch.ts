@@ -80,6 +80,9 @@ export function useSearch(query: string) {
   // La recherche Hyperbee est un IPC par conversation : pendant ce temps la
   // modale ne doit pas annoncer « aucun résultat » comme si elle avait fini.
   const [isSearching, setIsSearching] = useState(false)
+  // Une conversation dont l'IPC échoue ne doit pas disparaître en silence : ses
+  // anciens messages resteraient introuvables sans que la liste le laisse voir.
+  const [storageIncomplete, setStorageIncomplete] = useState(false)
 
   // Identité stable des conversations : évite de relancer la recherche à
   // chaque mise à jour d'aperçu ou de compteur non lu. Les canaux de groupe
@@ -94,6 +97,7 @@ export function useSearch(query: string) {
     if (!q || !window.asgard?.storage?.searchMessages) {
       setStorageMessages([])
       setIsSearching(false)
+      setStorageIncomplete(false)
       return
     }
 
@@ -111,6 +115,7 @@ export function useSearch(query: string) {
     if (targets.length === 0) {
       setStorageMessages([])
       setIsSearching(false)
+      setStorageIncomplete(false)
       return
     }
     let cancelled = false
@@ -124,27 +129,31 @@ export function useSearch(query: string) {
             q,
             STORAGE_RESULTS_PER_CONVERSATION
           )) as unknown as Message[]
-          return matches.map((message) => ({
-            message,
-            groupId: target.groupId,
-            channelId: target.channelId,
-            sourceLabel: target.sourceLabel,
-          }))
+          return {
+            matches: matches.map((message) => ({
+              message,
+              groupId: target.groupId,
+              channelId: target.channelId,
+              sourceLabel: target.sourceLabel,
+            })),
+            failed: false,
+          }
         } catch {
-          return []
+          return { matches: [] as StoredMatch[], failed: true }
         }
       })
 
-      void Promise.all(searchPromises).then((results) => {
+      void Promise.all(searchPromises).then((outcomes) => {
         if (cancelled) return
         const byKey = new Map<string, StoredMatch>()
-        for (const matches of results) {
+        for (const { matches } of outcomes) {
           for (const match of matches) {
             const key = `${match.channelId ?? match.message.conversationId}:${match.message.id}`
             if (!byKey.has(key)) byKey.set(key, match)
           }
         }
         setStorageMessages(Array.from(byKey.values()))
+        setStorageIncomplete(outcomes.some((outcome) => outcome.failed))
         setIsSearching(false)
       })
     }, STORAGE_SEARCH_DEBOUNCE_MS)
@@ -255,5 +264,5 @@ export function useSearch(query: string) {
   const messageResults = useMemo(() => results.filter((r) => r.type === 'message'), [results])
   const groupResults = useMemo(() => results.filter((r) => r.type === 'group'), [results])
 
-  return { results, contactResults, messageResults, groupResults, isSearching, truncated }
+  return { results, contactResults, messageResults, groupResults, isSearching, truncated, storageIncomplete }
 }

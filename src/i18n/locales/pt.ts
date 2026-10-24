@@ -943,6 +943,7 @@ export default {
       "chat.historyLoadFailed": "Não foi possível carregar o histórico",
       "chat.pinnedMessages": "Mensagens fixadas",
       "search.moreResults": "Há mais resultados não exibidos — refine a pesquisa.",
+      "search.incomplete": "Pesquisa parcial: não foi possível pesquisar algumas conversas.",
       "groups.muteMember": "Silenciar membro",
       "groups.unmuteMember": "Reativar membro",
       "groups.memberMuted": "Membro silenciado",
