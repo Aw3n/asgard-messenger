@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Kustuta jäädavalt",
       "chat.deleteMessageConfirm": "Kustuta sõnum?",
       "chat.deleteForEveryoneWarning": "Sõnum kaob teilt ja teistelt, asemele tuleb „Sõnum kustutatud“. Seda ei saa tagasi võtta.",
+      "chat.deleteForEveryoneFailed": "Kustutatud ainult siin: kontaktile ei teatatud",
       "chat.deletePermanentlyWarning": "Sõnum kaob teilt ja teistelt, jälgideta. Seda ei saa tagasi võtta.",
       "chat.deleteForMeWarning": "Sõnum kaob ainult sellelt seadmelt; teistel säilib. Seda ei saa tagasi võtta.",
       "chat.deleteWarning": "Kõik sõnumid ja failid teie vestlusest {{name}}-ga kustutatakse jäädavalt.",

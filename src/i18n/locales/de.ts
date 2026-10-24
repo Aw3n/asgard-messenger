@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Dauerhaft löschen",
       "chat.deleteMessageConfirm": "Nachricht löschen?",
       "chat.deleteForEveryoneWarning": "Die Nachricht verschwindet für dich und für alle anderen, ersetzt durch „Nachricht gelöscht“. Das lässt sich nicht rückgängig machen.",
+      "chat.deleteForEveryoneFailed": "Nur hier gelöscht: Der Kontakt wurde nicht benachrichtigt",
       "chat.deletePermanentlyWarning": "Die Nachricht verschwindet für dich und für alle anderen, ohne Spur. Das lässt sich nicht rückgängig machen.",
       "chat.deleteForMeWarning": "Die Nachricht verschwindet nur von diesem Gerät; alle anderen behalten sie. Das lässt sich nicht rückgängig machen.",
       "chat.deleteWarning": "Alle Nachrichten und Dateien aus Ihrer Unterhaltung mit {{name}} werden dauerhaft gelöscht.",

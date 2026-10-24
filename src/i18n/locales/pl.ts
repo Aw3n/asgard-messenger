@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Usuń trwale",
       "chat.deleteMessageConfirm": "Usunąć wiadomość?",
       "chat.deleteForEveryoneWarning": "Wiadomość zniknie u ciebie i u pozostałych, zastąpiona „Wiadomość usunięta”. To nieodwracalne.",
+      "chat.deleteForEveryoneFailed": "Usunięto tylko tutaj: kontakt nie został powiadomiony",
       "chat.deletePermanentlyWarning": "Wiadomość zniknie u ciebie i u pozostałych, bez śladu. To nieodwracalne.",
       "chat.deleteForMeWarning": "Wiadomość zniknie tylko z tego urządzenia; pozostali ją zachowają. To nieodwracalne.",
       "chat.deleteWarning": "Wszystkie wiadomości i pliki z rozmowy z {{name}} zostaną trwale usunięte.",

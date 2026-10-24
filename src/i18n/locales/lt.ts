@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Ištrinti visam laikui",
       "chat.deleteMessageConfirm": "Ištrinti pranešimą?",
       "chat.deleteForEveryoneWarning": "Pranešimas dings jums ir kitiems, vietoje jo – „Pranešimas ištrintas“. Grąžinti nebegalima.",
+      "chat.deleteForEveryoneFailed": "Ištrinta tik čia: kontaktas nebuvo informuotas",
       "chat.deletePermanentlyWarning": "Pranešimas dings jums ir kitiems, be pėdų. Grąžinti nebegalima.",
       "chat.deleteForMeWarning": "Pranešimas dings tik iš šio įrenginio; kiti jį matys toliau. Grąžinti nebegalima.",
       "chat.deleteWarning": "Visi pranešimai ir failai iš jūsų pokalbio su {{name}} bus visam laikui pašalinti.",

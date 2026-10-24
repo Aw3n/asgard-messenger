@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Definitief verwijderen",
       "chat.deleteMessageConfirm": "Bericht verwijderen?",
       "chat.deleteForEveryoneWarning": "Het bericht verdwijnt voor jou en voor de anderen, vervangen door “Bericht verwijderd”. Dit is niet ongedaan te maken.",
+      "chat.deleteForEveryoneFailed": "Alleen hier verwijderd: de contactpersoon is niet verwittigd",
       "chat.deletePermanentlyWarning": "Het bericht verdwijnt voor jou en voor de anderen, zonder spoor. Dit is niet ongedaan te maken.",
       "chat.deleteForMeWarning": "Het bericht verdwijnt alleen van dit apparaat; de anderen houden het. Dit is niet ongedaan te maken.",
       "chat.deleteWarning": "Alle berichten en bestanden van uw gesprek met {{name}} worden permanent verwijderd.",

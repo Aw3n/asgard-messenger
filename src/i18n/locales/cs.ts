@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Trvale smazat",
       "chat.deleteMessageConfirm": "Smazat zprávu?",
       "chat.deleteForEveryoneWarning": "Zpráva zmizne vám i ostatním, nahradí ji „Zpráva smazána“. Nedá se to vrátit.",
+      "chat.deleteForEveryoneFailed": "Smazáno pouze zde: kontakt nebyl informován",
       "chat.deletePermanentlyWarning": "Zpráva zmizne vám i ostatním bez stopy. Nedá se to vrátit.",
       "chat.deleteForMeWarning": "Zpráva zmizne jen z tohoto zařízení; ostatní si ji nechají. Nedá se to vrátit.",
       "chat.deleteWarning": "Všechny zprávy a soubory z konverzace s {{name}} budou trvale smazány.",

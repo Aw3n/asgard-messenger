@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Trajno izbriši",
       "chat.deleteMessageConfirm": "Izbrisati poruku?",
       "chat.deleteForEveryoneWarning": "Poruka nestaje za vas i za druge, zamijenjena „Poruka izbrisana“. Ovo se ne može poništiti.",
+      "chat.deleteForEveryoneFailed": "Izbrisano samo ovdje: kontakt nije obaviješten",
       "chat.deletePermanentlyWarning": "Poruka nestaje za vas i za druge, bez tragova. Ovo se ne može poništiti.",
       "chat.deleteForMeWarning": "Poruka nestaje samo s ovog uređaja; drugi je zadržavaju. Ovo se ne može poništiti.",
       "chat.deleteWarning": "Sve poruke i datoteke iz vašeg razgovora s {{name}} bit će trajno izbrisane.",

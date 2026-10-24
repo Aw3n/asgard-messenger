@@ -263,6 +263,7 @@ export default {
       "chat.deletePermanently": "Видалити остаточно",
       "chat.deleteMessageConfirm": "Видалити повідомлення?",
       "chat.deleteForEveryoneWarning": "Повідомлення зникне у вас та в інших, на його місці лишиться «Повідомлення видалено». Це не можна скасувати.",
+      "chat.deleteForEveryoneFailed": "Видалено лише тут: контакт не було повідомлено",
       "chat.deletePermanentlyWarning": "Повідомлення зникне у вас та в інших без сліду. Це не можна скасувати.",
       "chat.deleteForMeWarning": "Повідомлення зникне лише з цього пристрою; інші його збережуть. Це не можна скасувати.",
       "chat.more": "Більше",

@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Végleges törlés",
       "chat.deleteMessageConfirm": "Törli az üzenetet?",
       "chat.deleteForEveryoneWarning": "Az üzenet eltűnik önnek és a többieknek, „Üzenet törölve” felirat helyettesíti. Ez nem vonható vissza.",
+      "chat.deleteForEveryoneFailed": "Csak itt törölve: a névjegyet nem értesítettük",
       "chat.deletePermanentlyWarning": "Az üzenet eltűnik önnek és a többieknek, nyomtalanul. Ez nem vonható vissza.",
       "chat.deleteForMeWarning": "Az üzenet csak erről az eszközről tűnik el; a többiek megőrzik. Ez nem vonható vissza.",
       "chat.deleteWarning": "A(z) {{name}} nevű partnerrel folytatott beszélgetés összes üzenete és fájlja véglegesen törlődik.",

@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Ta bort permanent",
       "chat.deleteMessageConfirm": "Ta bort meddelandet?",
       "chat.deleteForEveryoneWarning": "Meddelandet försvinner för dig och för de andra, ersatt med “Meddelande borttaget”. Det går inte att ångra.",
+      "chat.deleteForEveryoneFailed": "Borttaget bara här: kontakten meddelades inte",
       "chat.deletePermanentlyWarning": "Meddelandet försvinner för dig och för de andra, utan spår. Det går inte att ångra.",
       "chat.deleteForMeWarning": "Meddelandet försvinner bara från den här enheten; de andra behåller det. Det går inte att ångra.",
       "chat.deleteWarning": "Alla meddelanden och filer från din konversation med {{name}} kommer att raderas permanent.",

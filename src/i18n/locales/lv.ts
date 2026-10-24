@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Dzēst neatgriezeniski",
       "chat.deleteMessageConfirm": "Dzēst ziņojumu?",
       "chat.deleteForEveryoneWarning": "Ziņojums pazudīs no jums un no pārējiem, vietā «Ziņojums dzēsts». To nevar atsaukt.",
+      "chat.deleteForEveryoneFailed": "Dzēsts tikai šeit: kontaktpersona netika informēta",
       "chat.deletePermanentlyWarning": "Ziņojums pazudīs no jums un no pārējiem bez pēdām. To nevar atsaukt.",
       "chat.deleteForMeWarning": "Ziņojums pazudīs tikai no šīs ierīces; pārējie to saglabās. To nevar atsaukt.",
       "chat.deleteWarning": "Visi ziņojumi un faili no sarunas ar {{name}} tiks neatgriezeniski dzēsti.",

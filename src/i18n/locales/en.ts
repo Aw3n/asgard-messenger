@@ -291,6 +291,7 @@ export default {
       "chat.deletePermanently": "Delete permanently",
       "chat.deleteMessageConfirm": "Delete this message?",
       "chat.deleteForEveryoneWarning": "It disappears for you and for everyone else, replaced by “Message deleted”. This can’t be undone.",
+      "chat.deleteForEveryoneFailed": "Deleted here only: the contact was not notified",
       "chat.deletePermanentlyWarning": "It disappears for you and for everyone else, leaving no trace. This can’t be undone.",
       "chat.deleteForMeWarning": "It disappears from this device only; everyone else keeps it. This can’t be undone.",
       "chat.more": "More",

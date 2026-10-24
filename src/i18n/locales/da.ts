@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Slet permanent",
       "chat.deleteMessageConfirm": "Slet beskeden?",
       "chat.deleteForEveryoneWarning": "Beskeden forsvinder for dig og for de andre, erstattet af “Besked slettet”. Det kan ikke fortrydes.",
+      "chat.deleteForEveryoneFailed": "Kun slettet her: kontakten blev ikke underrettet",
       "chat.deletePermanentlyWarning": "Beskeden forsvinder for dig og for de andre, uden spor. Det kan ikke fortrydes.",
       "chat.deleteForMeWarning": "Beskeden forsvinder kun fra denne enhed; de andre beholder den. Det kan ikke fortrydes.",
       "chat.deleteWarning": "Alle beskeder og filer fra din samtale med {{name}} vil blive slettet permanent.",

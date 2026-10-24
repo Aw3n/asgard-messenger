@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Șterge permanent",
       "chat.deleteMessageConfirm": "Ștergeți mesajul?",
       "chat.deleteForEveryoneWarning": "Mesajul dispare pentru dvs. și pentru ceilalți, înlocuit cu „Mesaj șters”. Acțiunea este ireversibilă.",
+      "chat.deleteForEveryoneFailed": "Șters doar aici: contactul nu a fost anunțat",
       "chat.deletePermanentlyWarning": "Mesajul dispare pentru dvs. și pentru ceilalți, fără urmă. Acțiunea este ireversibilă.",
       "chat.deleteForMeWarning": "Mesajul dispare doar de pe acest dispozitiv; ceilalți îl păstrează. Acțiunea este ireversibilă.",
       "chat.deleteWarning": "Toate mesajele și fișierele din conversația cu {{name}} vor fi șterse definitiv.",

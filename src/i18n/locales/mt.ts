@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Ħassar permanentement",
       "chat.deleteMessageConfirm": "Ħassar il-messaġġ?",
       "chat.deleteForEveryoneWarning": "Il-messaġġ jisparixxi għalik u għall-oħrajn, u jibqa’ “Messaġġ mħassar”. Ma tistax terġa’ lura.",
+      "chat.deleteForEveryoneFailed": "Imħassar biss hawn: il-kuntatt ma ġiex mgħarraf",
       "chat.deletePermanentlyWarning": "Il-messaġġ jisparixxi għalik u għall-oħrajn mingħajr ebda sinjal. Ma tistax terġa’ lura.",
       "chat.deleteForMeWarning": "Il-messaġġ jisparixxi minn din l-apparat biss; l-oħrajn iżommuh. Ma tistax terġa’ lura.",
       "chat.deleteWarning": "Il-messaġġi u l-fajls kollha mill-konversazzjoni tiegħek ma' {{name}} jitħassru b'mod permanenti.",

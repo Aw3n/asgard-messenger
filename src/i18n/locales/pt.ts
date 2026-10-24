@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Eliminar permanentemente",
       "chat.deleteMessageConfirm": "Eliminar a mensagem?",
       "chat.deleteForEveryoneWarning": "A mensagem desaparecerá para si e para os outros, substituída por «Mensagem eliminada». Não é possível desfazer.",
+      "chat.deleteForEveryoneFailed": "Eliminado apenas aqui: o contacto não foi avisado",
       "chat.deletePermanentlyWarning": "A mensagem desaparecerá para si e para os outros, sem deixar rasto. Não é possível desfazer.",
       "chat.deleteForMeWarning": "A mensagem desaparecerá apenas deste dispositivo; os outros continuam a vê-la. Não é possível desfazer.",
       "chat.deleteWarning": "Todas as mensagens e ficheiros da sua conversação com {{name}} serão eliminados permanentemente.",

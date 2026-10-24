@@ -302,6 +302,8 @@ export const ChatView: React.FC = () => {
       chatService.deleteMessage(message.id, dataId, conversation.participantId).catch((err) => {
         console.error('[ChatView] deleteMessage failed:', err)
         try { window.asgard.debugLog('[ChatView] deleteMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+        // La copie locale est déjà retirée ; seul le contact n'a pas reçu l'avis.
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.deleteForEveryoneFailed') })
       })
       return
     }

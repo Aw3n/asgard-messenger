@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Elimina definitivamente",
       "chat.deleteMessageConfirm": "Eliminare il messaggio?",
       "chat.deleteForEveryoneWarning": "Il messaggio sparirà per te e per gli altri, sostituito da “Messaggio eliminato”. Non potrà essere annullato.",
+      "chat.deleteForEveryoneFailed": "Eliminato solo qui: il contatto non è stato avvisato",
       "chat.deletePermanentlyWarning": "Il messaggio sparirà per te e per gli altri, senza lasciare traccia. Non potrà essere annullato.",
       "chat.deleteForMeWarning": "Il messaggio sparirà solo da questo dispositivo; gli altri lo manterranno. Non potrà essere annullato.",
       "chat.deleteWarning": "Tutti i messaggi e i file dalla tua conversazione con {{name}} verranno eliminati definitivamente.",

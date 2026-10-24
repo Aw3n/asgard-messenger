@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Odstrániť natrvalo",
       "chat.deleteMessageConfirm": "Odstrániť správu?",
       "chat.deleteForEveryoneWarning": "Správa zmizne vám aj ostatným, nahradí ju „Správa odstránená“. Nedá sa to vrátiť.",
+      "chat.deleteForEveryoneFailed": "Odstránené len tu: kontakt nebol upozornený",
       "chat.deletePermanentlyWarning": "Správa zmizne vám aj ostatným bez stopy. Nedá sa to vrátiť.",
       "chat.deleteForMeWarning": "Správa zmizne len z tohto zariadenia; ostatní si ju nechajú. Nedá sa to vrátiť.",
       "chat.deleteWarning": "Všetky správy a súbory z vašej konverzácie s {{name}} budú natrvalo odstránené.",

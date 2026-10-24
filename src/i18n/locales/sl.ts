@@ -88,6 +88,7 @@ export default {
       "chat.deletePermanently": "Trajno izbriši",
       "chat.deleteMessageConfirm": "Izbriši sporočilo?",
       "chat.deleteForEveryoneWarning": "Sporočilo izgine za vas in za druge, nadomesti ga „Sporočilo izbrisano“. Tega ni mogoče razveljaviti.",
+      "chat.deleteForEveryoneFailed": "Izbrisano samo tukaj: stik ni bil obveščen",
       "chat.deletePermanentlyWarning": "Sporočilo izgine za vas in za druge brez sledu. Tega ni mogoče razveljaviti.",
       "chat.deleteForMeWarning": "Sporočilo izgine samo iz te naprave; drugi ga obdržijo. Tega ni mogoče razveljaviti.",
       "chat.deleteWarning": "Vsa sporočila in datoteke iz pogovora z {{name}} bodo trajno izbrisana.",
