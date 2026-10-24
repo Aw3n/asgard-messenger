@@ -522,6 +522,7 @@ export default {
       "settings.removeConfirm": "Изтриване на този връстник?",
       "settings.removeFromFavorites": "Премахни от любими",
       "settings.removeSelected": "Премахни избраните",
+      "settings.removeSelectedWarning": "Избраните файлове ще бъдат премахнати от любими. Те остават в разговорите.",
       "settings.resetAllData": "Нулиране на всички данни",
       "settings.resetAllDataWarning": "Идентичността, контактите, групите и съобщенията ще бъдат изтрити за постоянно. След това рестартирайте Asgard.",
       "settings.restore": "Възстановяване",

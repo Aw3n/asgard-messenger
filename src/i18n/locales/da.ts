@@ -522,6 +522,7 @@ export default {
       "settings.removeConfirm": "Slet denne peer?",
       "settings.removeFromFavorites": "Fjern fra favoritter",
       "settings.removeSelected": "Fjern valgte",
+      "settings.removeSelectedWarning": "De valgte filer fjernes fra favoritter. De bliver i samtalerne.",
       "settings.resetAllData": "Nulstil alle data",
       "settings.resetAllDataWarning": "Identitet, kontakter, grupper og beskeder slettes permanent. Genstart Asgard bagefter.",
       "settings.restore": "Gendan",

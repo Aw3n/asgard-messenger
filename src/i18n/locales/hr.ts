@@ -527,6 +527,7 @@ export default {
       "settings.removeConfirm": "Ukloni ovog peera?",
       "settings.removeFromFavorites": "Ukloni iz omiljenih",
       "settings.removeSelected": "Ukloni odabrano",
+      "settings.removeSelectedWarning": "Odabrane datoteke bit će uklonjene iz favorita. Ostaju u razgovorima.",
       "settings.resetAllData": "Poništi sve podatke",
       "settings.resetAllDataWarning": "Identitet, kontakti, grupe i poruke bit će trajno izbrisani. Ponovno pokrenite Asgard odmah nakon toga.",
       "settings.restore": "Vrati",

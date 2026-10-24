@@ -527,6 +527,7 @@ export default {
       "settings.removeConfirm": "Remover este par?",
       "settings.removeFromFavorites": "Remover dos favoritos",
       "settings.removeSelected": "Remover selecionados",
+      "settings.removeSelectedWarning": "Os ficheiros selecionados serão removidos dos favoritos. Permanecem nas conversas.",
       "settings.resetAllData": "Repor todos os dados",
       "settings.resetAllDataWarning": "A identidade, os contactos, os grupos e as mensagens serão apagados definitivamente. Reinicie o Asgard logo depois.",
       "settings.restore": "Restaurar",

@@ -690,6 +690,7 @@ export default {
       "settings.removeConfirm": "Supprimer ce pair ?",
       "settings.removeFromFavorites": "Retirer des favoris",
       "settings.removeSelected": "Supprimer la sélection",
+      "settings.removeSelectedWarning": "Les fichiers sélectionnés seront retirés des favoris. Ils restent dans les conversations.",
       "settings.resetAllData": "Réinitialiser toutes les données",
       "settings.resetAllDataWarning": "L'identité, les contacts, les groupes et les messages seront définitivement effacés. Redémarrez Asgard juste après.",
       "settings.restore": "Restaurer",

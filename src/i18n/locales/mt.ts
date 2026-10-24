@@ -537,6 +537,7 @@ export default {
       "settings.removeConfirm": "Neħħi dan il-peer?",
       "settings.removeFromFavorites": "Neħħi mill-favoriti",
       "settings.removeSelected": "Neħħi l-għażla",
+      "settings.removeSelectedWarning": "Il-fajls magħżula jitneħħew mill-favoriti. Jibqgħu fil-konversazzjonijiet.",
       "settings.resetAllData": "Irrisettja d-dejta kollha",
       "settings.resetAllDataWarning": "L-identità, il-kuntatti, il-gruppi u l-messaġġi se jitħassru b'mod permanenti. Erġa' ibda Asgard subgħajh.",
       "settings.restore": "Irrestawra",

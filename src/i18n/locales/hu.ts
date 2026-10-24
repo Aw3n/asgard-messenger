@@ -522,6 +522,7 @@ export default {
       "settings.removeConfirm": "Eltávolítod ezt a peer-t?",
       "settings.removeFromFavorites": "Eltávolítás a kedvencekből",
       "settings.removeSelected": "Kijelöltek eltávolítása",
+      "settings.removeSelectedWarning": "A kiválasztott fájlok eltávolításra kerülnek a kedvencek közül. A beszélgetésekben megmaradnak.",
       "settings.resetAllData": "Minden adat visszaállítása",
       "settings.resetAllDataWarning": "A személyazonosság, a névjegyek, a csoportok és az üzenetek véglegesen törlődnek. Ezután indítsd újra az Asgardot.",
       "settings.restore": "Visszaállítás",

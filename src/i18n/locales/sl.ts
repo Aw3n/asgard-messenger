@@ -532,6 +532,7 @@ export default {
       "settings.removeConfirm": "Odstrani tega vrstnika?",
       "settings.removeFromFavorites": "Odstrani iz priljubljenih",
       "settings.removeSelected": "Odstrani izbrane",
+      "settings.removeSelectedWarning": "Izbrane datoteke bodo odstranjene iz priljubljenih. Ostanejo v pogovorih.",
       "settings.resetAllData": "Ponastavi vse podatke",
       "settings.resetAllDataWarning": "Identiteta, stiki, skupine in sporočila bodo trajno izbrisani. Nato znova zaženite Asgard.",
       "settings.restore": "Obnovi",

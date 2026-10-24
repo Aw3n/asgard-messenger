@@ -528,6 +528,7 @@ export default {
       "settings.removeConfirm": "Pašalinti šį bendraamžį?",
       "settings.removeFromFavorites": "Pašalinti iš mėgstamų",
       "settings.removeSelected": "Pašalinti pasirinktus",
+      "settings.removeSelectedWarning": "Pasirinkti failai bus pašalinti iš parankinių. Jie lieka pokalbiuose.",
       "settings.resetAllData": "Atkurti visus duomenis",
       "settings.resetAllDataWarning": "Tapatybė, kontaktai, grupės ir žinutės bus visam laikui ištrinti. Po to iš naujo paleiskite „Asgard“.",
       "settings.restore": "Atkurti",

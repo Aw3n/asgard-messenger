@@ -527,6 +527,7 @@ export default {
       "settings.removeConfirm": "Odstranit tohoto peera?",
       "settings.removeFromFavorites": "Odebrat z oblíbených",
       "settings.removeSelected": "Odstranit vybrané",
+      "settings.removeSelectedWarning": "Vybrané soubory budou odebrány z oblíbených. Zůstanou v konverzacích.",
       "settings.resetAllData": "Obnovit všechna data",
       "settings.resetAllDataWarning": "Identita, kontakty, skupiny a zprávy budou trvale smazány. Poté znovu spusťte Asgard.",
       "settings.restore": "Obnovit",

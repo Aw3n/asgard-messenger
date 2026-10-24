@@ -540,6 +540,7 @@ export default {
       "settings.removeConfirm": "Diesen Peer entfernen?",
       "settings.removeFromFavorites": "Aus Favoriten entfernen",
       "settings.removeSelected": "Ausgewählte entfernen",
+      "settings.removeSelectedWarning": "Die ausgewählten Dateien werden aus den Favoriten entfernt. Sie bleiben in den Unterhaltungen.",
       "settings.resetAllData": "Alle Daten zurücksetzen",
       "settings.resetAllDataWarning": "Identität, Kontakte, Gruppen und Nachrichten werden endgültig gelöscht. Starte Asgard danach neu.",
       "settings.restore": "Wiederherstellen",

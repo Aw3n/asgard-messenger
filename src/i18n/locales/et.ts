@@ -522,6 +522,7 @@ export default {
       "settings.removeConfirm": "Kustuta see sõlm?",
       "settings.removeFromFavorites": "Eemalda lemmikutest",
       "settings.removeSelected": "Eemalda valitud",
+      "settings.removeSelectedWarning": "Valitud failid eemaldatakse lemmikutest. Need jäävad vestlustesse.",
       "settings.resetAllData": "Lähtesta kõik andmed",
       "settings.resetAllDataWarning": "Identiteet, kontaktid, grupid ja sõnumid kustutatakse jäädavalt. Taaskäivitage Asgard kohe pärast seda.",
       "settings.restore": "Taasta",

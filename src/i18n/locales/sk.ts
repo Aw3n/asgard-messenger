@@ -527,6 +527,7 @@ export default {
       "settings.removeConfirm": "Odstrániť tento uzol?",
       "settings.removeFromFavorites": "Odstrániť z obľúbených",
       "settings.removeSelected": "Odstrániť vybraté",
+      "settings.removeSelectedWarning": "Vybrané súbory sa odstránia z obľúbených. Zostanú v konverzáciách.",
       "settings.resetAllData": "Obnoviť všetky údaje",
       "settings.resetAllDataWarning": "Identita, kontakty, skupiny a správy budú natrvalo vymazané. Potom znova spustite Asgard.",
       "settings.restore": "Obnoviť",

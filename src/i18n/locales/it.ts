@@ -545,6 +545,7 @@ export default {
       "settings.removeConfirm": "Rimuovere questo peer?",
       "settings.removeFromFavorites": "Rimuovi dai preferiti",
       "settings.removeSelected": "Rimuovi selezionati",
+      "settings.removeSelectedWarning": "I file selezionati verranno rimossi dai preferiti. Restano nelle conversazioni.",
       "settings.resetAllData": "Reimposta tutti i dati",
       "settings.resetAllDataWarning": "Identità, contatti, gruppi e messaggi verranno eliminati definitivamente. Riavvia Asgard subito dopo.",
       "settings.restore": "Ripristina",

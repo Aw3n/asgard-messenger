@@ -530,6 +530,7 @@ export default {
       "settings.removeConfirm": "Usunąć ten węzeł?",
       "settings.removeFromFavorites": "Usuń z ulubionych",
       "settings.removeSelected": "Usuń wybrane",
+      "settings.removeSelectedWarning": "Wybrane pliki zostaną usunięte z ulubionych. Pozostaną w rozmowach.",
       "settings.resetAllData": "Zresetuj wszystkie dane",
       "settings.resetAllDataWarning": "Tożsamość, kontakty, grupy i wiadomości zostaną trwale usunięte. Następnie uruchom Asgard ponownie.",
       "settings.restore": "Przywróć",

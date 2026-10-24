@@ -10,6 +10,7 @@ import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { getCurrentLanguage } from '@/i18n/config'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 // Icons
 const XIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -43,12 +44,22 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
   const [filterType, setFilterType] = useState<string>('all')
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  // Le retrait en lot est irréversible dans ce panneau : il passe par le
+  // dialogue commun au lieu d'effacer au premier clic.
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
   const dialogRef = useDialogBehavior(onClose)
   const closeGesture = useGestureHint('closeModal', t('common.close'))
 
   useEffect(() => {
     loadFavorites()
   }, [])
+
+  // Une sélection survit au filtre : le bouton restait offert pour des lignes
+  // devenues invisibles, et les effaçait. Changer la recherche ou le type
+  // repart donc d'une sélection vide.
+  useEffect(() => {
+    setSelectedItems(new Set())
+  }, [filterType, searchQuery])
 
   const loadFavorites = () => {
     setFavorites(fileService.getFavorites())
@@ -129,10 +140,15 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
   }
 
   const handleRemoveSelected = () => {
+    setShowRemoveConfirm(true)
+  }
+
+  const confirmRemoveSelected = () => {
     for (const blobKey of selectedItems) {
       fileService.removeFavorite(blobKey)
     }
     setSelectedItems(new Set())
+    setShowRemoveConfirm(false)
     loadFavorites()
   }
 
@@ -384,6 +400,16 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
           />
         )}
       </AnimatePresence>
+
+      {showRemoveConfirm && (
+        <ConfirmDialog
+          title="settings.removeSelected"
+          warning="settings.removeSelectedWarning"
+          confirmLabel="settings.removeSelected"
+          onCancel={() => setShowRemoveConfirm(false)}
+          onConfirm={confirmRemoveSelected}
+        />
+      )}
     </motion.div>
   )
 }

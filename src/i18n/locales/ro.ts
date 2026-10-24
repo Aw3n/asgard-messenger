@@ -527,6 +527,7 @@ export default {
       "settings.removeConfirm": "Ștergi acest peer?",
       "settings.removeFromFavorites": "Elimină din favorite",
       "settings.removeSelected": "Elimină selecția",
+      "settings.removeSelectedWarning": "Fișierele selectate vor fi eliminate din favorite. Ele rămân în conversații.",
       "settings.resetAllData": "Resetează toate datele",
       "settings.resetAllDataWarning": "Identitatea, contactele, grupurile și mesajele vor fi șterse definitiv. Repornește Asgard imediat după.",
       "settings.restore": "Restaurează",

@@ -522,6 +522,7 @@ export default {
       "settings.removeConfirm": "Poista tämä vertainen?",
       "settings.removeFromFavorites": "Poista suosikeista",
       "settings.removeSelected": "Poista valitut",
+      "settings.removeSelectedWarning": "Valitut tiedostot poistetaan suosikeista. Ne jäävät keskusteluihin.",
       "settings.resetAllData": "Palauta kaikki tiedot",
       "settings.resetAllDataWarning": "Henkilöllisyys, yhteystiedot, ryhmät ja viestit poistetaan pysyvästi. Käynnistä Asgard sen jälkeen uudelleen.",
       "settings.restore": "Palauta",

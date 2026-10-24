@@ -544,6 +544,7 @@ export default {
       "settings.noFavoritesMatch": "Немає збігів в обраному",
       "settings.removeFromFavorites": "Вилучити з обраного",
       "settings.removeSelected": "Видалити обрані",
+      "settings.removeSelectedWarning": "Вибрані файли буде вилучено з обраного. Вони залишаться в розмовах.",
       "settings.resetAllData": "Скинути всі дані",
       "settings.resetAllDataWarning": "Ідентичність, контакти, групи та повідомлення буде остаточно видалено. Після цього перезапустіть Asgard.",
       "settings.revoke": "Відкликати",

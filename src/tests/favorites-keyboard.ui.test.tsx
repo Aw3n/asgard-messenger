@@ -5,7 +5,7 @@
  * Entrée/Espace, et les boutons qu'elle contient gardent leurs propres gestes.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { FavoritesManager } from '@/features/settings/components/FavoritesManager'
 import { fileService } from '@/services/FileService'
 
@@ -60,5 +60,66 @@ describe('favoris au clavier', () => {
 
     fireEvent.keyDown(row, { key: ' ' })
     expect(row).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
+describe('retrait de la sélection', () => {
+  const selectPhoto = () => {
+    fireEvent.keyDown(screen.getByRole('button', { name: 'photo.png' }), { key: 'Enter' })
+  }
+  const bulkTrigger = () => screen.getByRole('button', { name: 'settings.removeSelected' })
+
+  it('demande confirmation et ne retire rien avant l’acquiescement', () => {
+    render(<FavoritesManager onClose={() => {}} />)
+    selectPhoto()
+
+    fireEvent.click(bulkTrigger())
+
+    const dialog = screen.getByRole('dialog', { name: 'settings.removeSelected' })
+    expect(within(dialog).getByText('settings.removeSelectedWarning')).toBeInTheDocument()
+    expect(fileService.getFavorites()).toHaveLength(2)
+  })
+
+  it('retire uniquement les favoris sélectionnés après confirmation', async () => {
+    render(<FavoritesManager onClose={() => {}} />)
+    selectPhoto()
+    fireEvent.click(bulkTrigger())
+
+    const dialog = screen.getByRole('dialog', { name: 'settings.removeSelected' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'settings.removeSelected' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'settings.removeSelected' })).toBeNull(),
+    )
+    expect(fileService.getFavorites().map((favorite) => favorite.blobKey)).toEqual(['blob-doc'])
+    expect(screen.getByText('note.txt')).toBeInTheDocument()
+    expect(screen.queryByText('photo.png')).toBeNull()
+  })
+
+  it('annuler garde les favoris', async () => {
+    render(<FavoritesManager onClose={() => {}} />)
+    selectPhoto()
+    fireEvent.click(bulkTrigger())
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'settings.removeSelected' })).toBeNull(),
+    )
+    expect(fileService.getFavorites()).toHaveLength(2)
+  })
+
+  /** Une sélection masquée par la recherche était encore effaçable : le bouton
+   *  restait offert pour une ligne que l'utilisateur ne voyait plus. */
+  it('abandonne les sélections devenues invisibles quand la recherche change', () => {
+    render(<FavoritesManager onClose={() => {}} />)
+    selectPhoto()
+
+    fireEvent.change(screen.getByLabelText('settings.searchFavorites'), {
+      target: { value: 'note' },
+    })
+
+    expect(screen.queryByRole('button', { name: 'settings.removeSelected' })).toBeNull()
+    expect(fileService.getFavorites()).toHaveLength(2)
   })
 })

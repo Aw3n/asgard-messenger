@@ -537,6 +537,7 @@ export default {
       "settings.removeConfirm": "Scrios an piaraí seo?",
       "settings.removeFromFavorites": "Bain ó na ceanáin",
       "settings.removeSelected": "Bain na cinn roghnaithe",
+      "settings.removeSelectedWarning": "Bainfear na comhaid roghnaithe de na ceanáin. Fanfaidh siad sna comhráití.",
       "settings.resetAllData": "Athshocraigh na sonraí go léir",
       "settings.resetAllDataWarning": "Scriosfar an chéannacht, na teagmhálacha, na grúpaí agus na teachtaireachtaí go buan. Atosaigh Asgard díreach ina dhiaidh sin.",
       "settings.restore": "Athshláin",

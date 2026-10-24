@@ -522,6 +522,7 @@ export default {
       "settings.removeConfirm": "Διαγραφή αυτού του peer;",
       "settings.removeFromFavorites": "Αφαίρεση από αγαπημένα",
       "settings.removeSelected": "Αφαίρεση επιλεγμένων",
+      "settings.removeSelectedWarning": "Τα επιλεγμένα αρχεία θα αφαιρεθούν από τα αγαπημένα. Παραμένουν στις συνομιλίες.",
       "settings.resetAllData": "Επαναφορά όλων των δεδομένων",
       "settings.resetAllDataWarning": "Η ταυτότητα, οι επαφές, οι ομάδες και τα μηνύματα θα διαγραφούν οριστικά. Επανεκκινήστε το Asgard αμέσως μετά.",
       "settings.restore": "Επαναφορά",

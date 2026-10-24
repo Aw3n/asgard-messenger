@@ -522,6 +522,7 @@ export default {
       "settings.removeConfirm": "Ta bort denna peer?",
       "settings.removeFromFavorites": "Ta bort från favoriter",
       "settings.removeSelected": "Ta bort markerade",
+      "settings.removeSelectedWarning": "De valda filerna tas bort från favoriter. De finns kvar i konversationerna.",
       "settings.resetAllData": "Återställ alla data",
       "settings.resetAllDataWarning": "Identitet, kontakter, grupper och meddelanden raderas permanent. Starta om Asgard direkt efteråt.",
       "settings.restore": "Återställ",

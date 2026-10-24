@@ -566,6 +566,7 @@ export default {
       "settings.noFavoritesMatch": "No favorites match",
       "settings.removeFromFavorites": "Remove from favorites",
       "settings.removeSelected": "Remove selected",
+      "settings.removeSelectedWarning": "The selected files will be removed from favorites. They remain in the conversations.",
       "settings.resetAllData": "Reset all data",
       "settings.resetAllDataWarning": "Your identity, contacts, groups and messages will be permanently erased. Restart Asgard right after.",
       "settings.revoke": "Revoke",

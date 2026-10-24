@@ -527,6 +527,7 @@ export default {
       "settings.removeConfirm": "Dzēst šo dalībnieku?",
       "settings.removeFromFavorites": "Noņemt no izlases",
       "settings.removeSelected": "Noņemt atlasītos",
+      "settings.removeSelectedWarning": "Atlasītās datnes tiks noņemtas no izlases. Tās paliek sarunās.",
       "settings.resetAllData": "Atiestatīt visus datus",
       "settings.resetAllDataWarning": "Identitāte, kontakti, grupas un ziņojumi tiks neatgriezeniski dzēsti. Pēc tam restartējiet Asgard.",
       "settings.restore": "Atjaunot",
