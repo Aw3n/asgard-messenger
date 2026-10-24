@@ -800,6 +800,7 @@ export const ChatView: React.FC = () => {
               } catch (err) {
                 console.error('[ChatView] deleteConversation failed:', err)
                 try { window.asgard.debugLog('[ChatView] deleteConversation failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+                useUIStore.getState().addToast({ type: 'error', title: t('chat.deleteConversationFailed') })
               }
             }}
           />

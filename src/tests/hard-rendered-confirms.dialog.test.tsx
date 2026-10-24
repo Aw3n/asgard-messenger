@@ -280,3 +280,25 @@ describe.each(surfaces)('$label', (surface) => {
     await waitFor(() => expect(surface.erased()).toBe(true))
   })
 })
+
+describe('échec de la suppression depuis le fil', () => {
+  it('annonce l’échec au lieu de refermer en silence', async () => {
+    vi.mocked(chatService.deleteConversation).mockRejectedValueOnce(new Error('journal verrouillé'))
+    useUIStore.setState({ toasts: [] })
+    render(
+      <MemoryRouter initialEntries={[{ pathname: `/conversations/${CONVERSATION_ID}` }]}>
+        <Routes>
+          <Route path="/conversations/:conversationId" element={<ChatView />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'chat.deleteConversation' }))
+    const dialog = screen.getByRole('dialog', { name: 'chat.deleteConversation' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'chat.deletePermanently' }))
+
+    await waitFor(() => {
+      expect(useUIStore.getState().toasts.map((toast) => toast.title)).toEqual(['chat.deleteConversationFailed'])
+    })
+  })
+})

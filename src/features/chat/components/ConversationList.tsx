@@ -6,6 +6,7 @@ import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { useNetworkStore } from '@/stores/networkStore'
+import { useUIStore } from '@/stores/uiStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { chatService } from '@/services/ChatService'
@@ -128,8 +129,9 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     } catch (err) {
       console.error('[ConversationList] deleteConversation failed:', err)
       try { window.asgard.debugLog('[ConversationList] deleteConversation failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+      useUIStore.getState().addToast({ type: 'error', title: t('chat.deleteConversationFailed') })
     }
-  }, [navigate])
+  }, [navigate, t])
 
   const handleClearConversation = useCallback(async (conv: Conversation) => {
     setContextMenu(null)
@@ -138,8 +140,9 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     } catch (err) {
       console.error('[ConversationList] clearConversation failed:', err)
       try { window.asgard.debugLog('[ConversationList] clearConversation failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+      useUIStore.getState().addToast({ type: 'error', title: t('chat.clearConversationFailed') })
     }
-  }, [])
+  }, [t])
 
   const renderConversation = useCallback(
     (_: number, conv: Conversation) => {
