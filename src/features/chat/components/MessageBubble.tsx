@@ -342,6 +342,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               <button
                 key={emoji}
                 onClick={() => onReaction?.(message, emoji)}
+                aria-label={t('chat.reactWith', { emoji })}
+                title={t('chat.reactWith', { emoji })}
                 className="w-7 h-7 flex items-center justify-center text-base rounded-lg hover:bg-asgard-border transition-colors"
               >
                 {emoji}
@@ -475,23 +477,26 @@ const ContextMenuItem: React.FC<{
 
 function MessageStatusIcon({ status, onRetry }: { status: Message['status']; onRetry?: () => void }) {
   const { t } = useTranslation()
+  // Les accusés sont des dessins seuls : sans nom, un lecteur d'écran les
+  // traverse sans dire si le message est parti, arrivé ou lu.
+  const statusLabel = (key: string) => ({ role: 'img' as const, 'aria-label': t(key), title: t(key) })
   if (status === 'sending') {
     return (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-white/40 animate-spin-slow">
+      <svg {...statusLabel('chat.statusSending')} width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-white/40 animate-spin-slow">
         <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeDasharray="28" strokeDashoffset="10"/>
       </svg>
     )
   }
   if (status === 'sent') {
     return (
-      <svg width="14" height="12" viewBox="0 0 18 12" fill="none" className="text-white/50">
+      <svg {...statusLabel('chat.statusSent')} width="14" height="12" viewBox="0 0 18 12" fill="none" className="text-white/50">
         <path d="M1 6L5 10L12 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     )
   }
   if (status === 'delivered') {
     return (
-      <svg width="18" height="12" viewBox="0 0 24 12" fill="none" className="text-white/50">
+      <svg {...statusLabel('chat.statusDelivered')} width="18" height="12" viewBox="0 0 24 12" fill="none" className="text-white/50">
         <path d="M1 6L5 10L12 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
         <path d="M9 6L13 10L20 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
@@ -499,7 +504,7 @@ function MessageStatusIcon({ status, onRetry }: { status: Message['status']; onR
   }
   if (status === 'read') {
     return (
-      <svg width="18" height="12" viewBox="0 0 24 12" fill="none" className="text-asgard-glacier">
+      <svg {...statusLabel('chat.statusRead')} width="18" height="12" viewBox="0 0 24 12" fill="none" className="text-asgard-glacier">
         <path d="M1 6L5 10L12 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
         <path d="M9 6L13 10L20 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
