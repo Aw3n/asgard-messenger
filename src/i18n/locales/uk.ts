@@ -450,7 +450,7 @@ export default {
       "groups.memberCount": "{{count}} учасник",
       "groups.memberRemoveFailed": "Не вдалося видалити учасника",
       "groups.memberRemoved": "Учасника видалено",
-      "groups.messageChannel": "Канал повідомлень",
+      "groups.messageChannel": "Канал повідомлень: {{channelName}}",
       "groups.onlineMembers": "{{count}} онлайн",
       "groups.ownerLeaveMessage": "Ви власник цієї групи. Передайте права власника або видаліть групу, щоб покинути її.",
       "groups.roleUpdateFailed": "Не вдалося оновити роль",
@@ -519,7 +519,7 @@ export default {
       "settings.total": "Всього",
       "settings.totalDownloads": "{{count}} завантаження",
       "settings.totalDownloads_plural": "{{count}} завантажень",
-      "settings.totalSize": "Загальний розмір",
+      "settings.totalSize": "Загальний розмір: {{size}}",
       "settings.totalTransfers": "{{count}} передача",
       "settings.totalTransfers_plural": "{{count}} передач",
       "settings.transferFailed": "Передачу не виконано",
@@ -538,7 +538,7 @@ export default {
       "settings.trashItemsCount_plural": "{{count}} елементів",
       "settings.uploading": "Завантаження у мережу",
       "settings.videos": "Відео",
-      "settings.views": "Перегляди",
+      "settings.views": "Перегляди: {{used}} / {{total}}",
 
       // ─── Added for UI localization ───
       "titlebar.appName": "Asgard",

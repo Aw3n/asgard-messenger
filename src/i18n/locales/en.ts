@@ -478,7 +478,7 @@ export default {
       "groups.memberCount": "{{count}} member",
       "groups.memberRemoveFailed": "Failed to remove member",
       "groups.memberRemoved": "Member removed",
-      "groups.messageChannel": "Message channel",
+      "groups.messageChannel": "Message channel: {{channelName}}",
       "groups.onlineMembers": "{{count}} online",
       "groups.ownerLeaveMessage": "You own this group. Transfer ownership or delete the group to leave.",
       "groups.roleUpdateFailed": "Failed to update role",
@@ -547,7 +547,7 @@ export default {
       "settings.total": "Total",
       "settings.totalDownloads": "{{count}} download",
       "settings.totalDownloads_plural": "{{count}} downloads",
-      "settings.totalSize": "Total size",
+      "settings.totalSize": "Total size: {{size}}",
       "settings.totalTransfers": "{{count}} transfer",
       "settings.totalTransfers_plural": "{{count}} transfers",
       "settings.transferFailed": "Transfer failed",
@@ -566,7 +566,7 @@ export default {
       "settings.trashItemsCount_plural": "{{count}} items",
       "settings.uploading": "Uploading",
       "settings.videos": "Videos",
-      "settings.views": "Views",
+      "settings.views": "Views: {{used}} / {{total}}",
 
       // ─── Added for UI localization ───
       "titlebar.appName": "Asgard",
