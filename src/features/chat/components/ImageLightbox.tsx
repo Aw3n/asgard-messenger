@@ -118,6 +118,14 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   // La croix et la touche rendent la page au chat : la touche est celle du
   // réglage, relue à la frappe, et le bouton la nomme.
   const closeGesture = useGestureHint('closeModal', t('lightbox.close'))
+  /**
+   * Le conseil de glisser promettait « Échap » en dur : une fois la touche
+   * re-réglée, il annonçait un geste qui ne fermait plus rien. Il nomme
+   * maintenant la combinaison réellement lue, et se tait quand elle est éteinte.
+   */
+  const panHint = closeGesture.shown
+    ? `${t('lightbox.dragToPan')} · ${t('lightbox.closeHint', { shortcut: closeGesture.shown })}`
+    : t('lightbox.dragToPan')
   const gallery = items.length > 1 ? items : null
 
   const [index, setIndex] = useState(() => Math.min(Math.max(startIndex, 0), Math.max(items.length - 1, 0)))
@@ -860,7 +868,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = fileName || current?.alt || 'image'
+      a.download = fileName || current?.alt || t('lightbox.image')
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -868,7 +876,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     } catch (err) {
       console.error('[ImageLightbox] Download failed:', err)
     }
-  }, [displaySrc, fileName, current])
+  }, [displaySrc, fileName, current, t])
 
   /**
    * Une URL acceptée par le DOM peut quand même ne rendre aucun pixel : une
@@ -919,6 +927,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   }, [clampView, clampScale])
 
   const zoomPercentage = Math.round(view.scale * 100)
+  const fullscreenLabel = isFullscreen ? t('lightbox.exitFullscreen') : t('lightbox.fullscreen')
   const toolBtn = 'h-8 min-w-8 px-1.5 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs text-white/85'
   /** Fermeture au doigt : le fond s'éclaircit à mesure que la photo descend. */
   const dismissDy = dismiss?.dy ?? 0
@@ -931,7 +940,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       ref={rootRef}
       role="dialog"
       aria-modal="true"
-      aria-label={current?.alt || fileName || 'image'}
+      aria-label={current?.alt || fileName || t('lightbox.image')}
       tabIndex={-1}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -987,7 +996,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
           </button>
           <div className="w-px h-6 bg-white/20 mx-1" />
-          <button onClick={() => void toggleFullscreen()} className={toolBtn} title={isFullscreen ? t('lightbox.exitFullscreen') : t('lightbox.fullscreen')} aria-label={t('lightbox.fullscreen')}>
+          <button onClick={() => void toggleFullscreen()} className={toolBtn} title={fullscreenLabel} aria-label={fullscreenLabel}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
               {isFullscreen
                 ? <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
@@ -1199,7 +1208,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
             </p>
           ) : (
             <p className="text-xs text-white/45">
-              {isZoomed ? t('lightbox.dragToPan') : gallery ? t('lightbox.swipeHint') : t('lightbox.scrollZoom')}
+              {isZoomed ? panHint : gallery ? t('lightbox.swipeHint') : t('lightbox.scrollZoom')}
             </p>
           )}
         </div>

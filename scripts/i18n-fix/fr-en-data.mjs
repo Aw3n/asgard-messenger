@@ -208,6 +208,8 @@ export const ALLOW_SAME = [
   'contacts.title',
   'groups.admins',
   'groups.description',
+  // « Image » désigne la même chose dans les deux langues.
+  'lightbox.image',
   'messageInput.emoji',
   'nav.contacts',
   'nav.messages',

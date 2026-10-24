@@ -18,8 +18,11 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act, within, cleanup } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import i18n from '@/i18n/config'
 import { useUIStore } from '@/stores/uiStore'
+import { formatCombo } from '@/utils/shortcuts'
 import { ImageLightbox, type LightboxItem } from '@/features/chat/components/ImageLightbox'
 
 /**
@@ -416,5 +419,102 @@ describe('fermeture réglée de la visionneuse', () => {
     // La croix reste le geste sûr : c'est elle qui referme sans touche réglée.
     fireEvent.click(closeKey())
     expect(again).toHaveBeenCalledOnce()
+  })
+})
+
+/**
+ * Trois libellés mentaient encore : le dialogue sans alt ni nom tombait sur le
+ * mot anglais « image » ; la bascule plein écran gardait « Plein écran » une
+ * fois en plein écran ; et le conseil de glisser promettait « Échap » en dur,
+ * alors que la touche de fermeture se règle.
+ */
+describe('libellés honnêtes de la visionneuse', () => {
+  const comboBaseline = { ...useUIStore.getState().settings.keyboardShortcuts }
+  const bind = (combo: string) => {
+    const current = useUIStore.getState().settings.keyboardShortcuts
+    act(() => {
+      useUIStore.getState().updateSettings({ keyboardShortcuts: { ...current, closeModal: combo } })
+    })
+  }
+
+  afterEach(() => {
+    cleanup()
+    document.body.style.overflow = ''
+    act(() => {
+      useUIStore.getState().updateSettings({ keyboardShortcuts: { ...comboBaseline } })
+    })
+  })
+
+  it('nomme le dialogue avec un mot traduit quand la photo n’a ni alt ni nom', () => {
+    render(<ImageLightbox items={[item({ alt: undefined })]} onClose={vi.fn()} />)
+
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(label('lightbox.image'))
+    expect(label('lightbox.image')).not.toBe('image')
+  })
+
+  it('nomme le bouton plein écran d’après l’état qu’il produit', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    const enter = screen.getByRole('button', { name: label('lightbox.fullscreen') })
+    expect(enter.getAttribute('title')).toBe(label('lightbox.fullscreen'))
+
+    const dialog = screen.getByRole('dialog')
+    const descriptor = Object.getOwnPropertyDescriptor(document, 'fullscreenElement')
+    try {
+      Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => dialog })
+      act(() => {
+        document.dispatchEvent(new Event('fullscreenchange'))
+      })
+
+      const exit = screen.getByRole('button', { name: label('lightbox.exitFullscreen') })
+      expect(exit.getAttribute('title')).toBe(label('lightbox.exitFullscreen'))
+      expect(screen.queryByRole('button', { name: label('lightbox.fullscreen') })).toBeNull()
+    } finally {
+      if (descriptor) Object.defineProperty(document, 'fullscreenElement', descriptor)
+      else Reflect.deleteProperty(document, 'fullscreenElement')
+    }
+  })
+
+  const panHint = (shortcut: string) =>
+    `${label('lightbox.dragToPan')} · ${String(i18n.t('lightbox.closeHint', { shortcut }))}`
+
+  it('nomme la touche réglée dans le conseil de glisser, sans jamais promettre Échap', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    act(() => {
+      fireEvent.wheel(stageOf(), { deltaY: -120, clientX: 10, clientY: 10 })
+    })
+
+    const configured = formatCombo(useUIStore.getState().settings.keyboardShortcuts.closeModal) as string
+    expect(screen.getByText(panHint(configured))).toBeInTheDocument()
+
+    bind('Ctrl+Shift+X')
+    expect(screen.getByText(panHint('Ctrl + Shift + X'))).toBeInTheDocument()
+    expect(screen.queryByText(panHint('Échap'))).toBeNull()
+  })
+
+  it('se tait sur la fermeture quand le geste est éteint', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    act(() => {
+      fireEvent.wheel(stageOf(), { deltaY: -120, clientX: 10, clientY: 10 })
+    })
+
+    bind('')
+    expect(screen.getByText(label('lightbox.dragToPan'))).toBeInTheDocument()
+  })
+
+  it('ne grave aucune touche dans les 25 langues', () => {
+    const catalog = readFileSync(join(process.cwd(), 'src/i18n/translations.ts'), 'utf8')
+    const values = (key: string) =>
+      Array.from(catalog.matchAll(new RegExp(`^      "${key}": "(.*)",$`, 'gm'))).map((m) => m[1])
+
+    const drags = values('lightbox.dragToPan')
+    const hints = values('lightbox.closeHint')
+    const names = values('lightbox.image')
+
+    expect(drags).toHaveLength(25)
+    expect(hints).toHaveLength(25)
+    expect(names).toHaveLength(25)
+    for (const value of drags) expect(value).not.toMatch(/esc|échap/i)
+    for (const value of hints) expect(value).toContain('{{shortcut}}')
+    for (const value of names) expect(value.trim().length).toBeGreaterThan(0)
   })
 })
