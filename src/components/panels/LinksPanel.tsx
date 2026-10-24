@@ -9,6 +9,25 @@ import type { Message } from '@/types'
 /** Référence stable pour une conversation encore vide (évite un rendu par lecture). */
 const NO_MESSAGES: Message[] = []
 
+/**
+ * Une URL collée dans une phrase traîne la ponctuation qui la suit : ouverte
+ * telle quelle, elle donnerait une page inexistante. Les fermants ne sont
+ * retirés que s'ils sont orphelins — ceux qui appartiennent au chemin (titres
+ * Wikipédia) restent.
+ */
+const trimUrlEnd = (raw: string): string => {
+  let url = raw.replace(/[.,;:!?]+$/, '')
+  for (const [open, close] of [['(', ')'], ['[', ']'], ['{', '}']] as const) {
+    while (url.endsWith(close)) {
+      const opens = url.split(open).length - 1
+      const closes = url.split(close).length - 1
+      if (closes <= opens) break
+      url = url.slice(0, -1)
+    }
+  }
+  return url.replace(/["'`]+$/, '')
+}
+
 /** Extract URLs from messages, most recent first, deduplicated. */
 const collectLinks = (messages: Message[]) => {
   const urlRegex = /https?:\/\/[^\s<]+/g
@@ -18,8 +37,9 @@ const collectLinks = (messages: Message[]) => {
     if (msg.deleted) continue
     const matches = msg.content.match(urlRegex)
     if (matches) {
-      for (const url of matches) {
-        links.push({ url, timestamp: msg.timestamp, senderId: msg.senderId })
+      for (const match of matches) {
+        const url = trimUrlEnd(match)
+        if (url) links.push({ url, timestamp: msg.timestamp, senderId: msg.senderId })
       }
     }
   }

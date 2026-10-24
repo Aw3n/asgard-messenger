@@ -79,4 +79,54 @@ describe('panneaux Fichiers et Liens', () => {
 
     expect(screen.getAllByText('example.com')).toHaveLength(1)
   })
+
+  it('retire la ponctuation qui suit un lien', () => {
+    render(<LinksPanel />)
+    act(() => {
+      useMessageStore.setState({
+        messages: {
+          'conv-1': [
+            message({ id: 'm1', content: 'voir (https://example.com/page), puis "https://example.com/autre".' }),
+          ],
+        },
+      })
+    })
+
+    const hrefs = screen.getAllByRole('link').map((link) => link.getAttribute('href'))
+    expect(hrefs).toContain('https://example.com/page')
+    expect(hrefs).toContain('https://example.com/autre')
+  })
+
+  it('garde une parenthèse fermante qui appartient au lien', () => {
+    render(<LinksPanel />)
+    act(() => {
+      useMessageStore.setState({
+        messages: {
+          'conv-1': [message({ content: 'https://en.wikipedia.org/wiki/Foo_(bar)' })],
+        },
+      })
+    })
+
+    expect(screen.getByRole('link').getAttribute('href')).toBe(
+      'https://en.wikipedia.org/wiki/Foo_(bar)',
+    )
+  })
+
+  it('déduplique un lien répété avec une ponctuation différente', () => {
+    render(<LinksPanel />)
+    act(() => {
+      useMessageStore.setState({
+        messages: {
+          'conv-1': [
+            message({ id: 'm1', content: 'https://example.com/page.', timestamp: 2 }),
+            message({ id: 'm2', content: 'https://example.com/page', timestamp: 3 }),
+          ],
+        },
+      })
+    })
+
+    const links = screen.getAllByRole('link')
+    expect(links).toHaveLength(1)
+    expect(links[0].getAttribute('href')).toBe('https://example.com/page')
+  })
 })
