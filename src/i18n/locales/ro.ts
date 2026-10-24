@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Glisează pentru a schimba fotografia",
       "calls.expandCall": "Extinde apelul",
       "calls.exitVideoFullscreen": "Ieși din ecranul complet",
+      "calls.expandPeerVideo": "Mărește videoclipul lui {{name}}",
       "calls.missedCallBody": "Apel pierdut de la {{name}}",
       "calls.callBack": "Sună înapoi",
       "chat.messageQueued": "În coadă — se va trimite când contactul va fi din nou online.",

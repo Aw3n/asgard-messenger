@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Плъзнете за смяна на снимката",
       "calls.expandCall": "Разгъване на разговора",
       "calls.exitVideoFullscreen": "Изход от цял екран",
+      "calls.expandPeerVideo": "Увеличи видеото на {{name}}",
       "calls.missedCallBody": "Пропуснато обаждане от {{name}}",
       "calls.callBack": "Обратно обаждане",
       "chat.messageQueued": "В опашка — ще се изпрати, когато контактът отново е онлайн.",

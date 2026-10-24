@@ -881,6 +881,7 @@ export default {
       "lightbox.swipeHint": "Wischen zum Wechseln des Fotos",
       "calls.expandCall": "Anruf vergrößern",
       "calls.exitVideoFullscreen": "Vollbild beenden",
+      "calls.expandPeerVideo": "Video von {{name}} vergrößern",
       "calls.missedCallBody": "Verpasster Anruf von {{name}}",
       "calls.callBack": "Zurückrufen",
       "chat.messageQueued": "In Warteschlange – wird gesendet, sobald der Kontakt wieder online ist.",

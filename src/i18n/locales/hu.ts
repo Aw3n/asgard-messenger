@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Húzza a fotóváltáshoz",
       "calls.expandCall": "Hívás nagyítása",
       "calls.exitVideoFullscreen": "Kilépés a teljes képernyőből",
+      "calls.expandPeerVideo": "{{name}} videójának nagyítása",
       "calls.missedCallBody": "Nem fogadott hívás: {{name}}",
       "calls.callBack": "Visszahívás",
       "chat.messageQueued": "Várólistán — elküldésre kerül, amikor a kapcsolat újra online lesz.",

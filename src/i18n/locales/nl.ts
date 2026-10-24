@@ -881,6 +881,7 @@ export default {
       "lightbox.swipeHint": "Veeg om van foto te wisselen",
       "calls.expandCall": "Oproep vergroten",
       "calls.exitVideoFullscreen": "Volledig scherm verlaten",
+      "calls.expandPeerVideo": "Video van {{name}} vergroten",
       "calls.missedCallBody": "Gemiste oproep van {{name}}",
       "calls.callBack": "Terugbellen",
       "chat.messageQueued": "In wachtrij — wordt verzonden zodra het contact weer online is.",

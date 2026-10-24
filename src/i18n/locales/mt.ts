@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Skrollja biex tbiddel ir-ritratt",
       "calls.expandCall": "Kabbar is-sejħa",
       "calls.exitVideoFullscreen": "Oħrog mill-iskrin sħiħ",
+      "calls.expandPeerVideo": "Kabbars il-video ta' {{name}}",
       "calls.missedCallBody": "Sejħa mitlufa minn {{name}}",
       "calls.callBack": "Ċempel lura",
       "chat.messageQueued": "Fil-kju — tintbagħat meta l-kuntatt jerġa' jkun online.",

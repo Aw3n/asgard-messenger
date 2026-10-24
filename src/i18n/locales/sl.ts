@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Povlecite za zamenjavo fotografije",
       "calls.expandCall": "Razširi klic",
       "calls.exitVideoFullscreen": "Zapri celozaslonski način",
+      "calls.expandPeerVideo": "Povečaj videoposnetek uporabnika {{name}}",
       "calls.missedCallBody": "Zgrešen klic od {{name}}",
       "calls.callBack": "Pokliči nazaj",
       "chat.messageQueued": "V čakalni vrsti — poslano bo, ko bo stik spet na spletu.",

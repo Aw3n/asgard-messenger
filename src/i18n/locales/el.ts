@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Σύρετε για εναλλαγή φωτογραφίας",
       "calls.expandCall": "Μεγέθυνση κλήσης",
       "calls.exitVideoFullscreen": "Έξοδος από πλήρη οθόνη",
+      "calls.expandPeerVideo": "Μεγέθυνση του βίντεο του {{name}}",
       "calls.missedCallBody": "Αναπάντητη κλήση από {{name}}",
       "calls.callBack": "Επανάκληση",
       "chat.messageQueued": "Σε αναμονή — θα σταλεί όταν η επαφή επανέλθει σε σύνδεση.",

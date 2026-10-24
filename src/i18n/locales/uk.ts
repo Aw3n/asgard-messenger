@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Проведіть, щоб змінити фото",
       "calls.expandCall": "Розгорнути виклик",
       "calls.exitVideoFullscreen": "Вийти з повноекранного режиму",
+      "calls.expandPeerVideo": "Збільшити відео {{name}}",
       "calls.missedCallBody": "Пропущений виклик від {{name}}",
       "calls.callBack": "Передзвонити",
       "chat.messageQueued": "У черзі — надішлеться, коли контакт знову буде онлайн.",

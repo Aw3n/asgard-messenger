@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Stryg for at skifte foto",
       "calls.expandCall": "Udvid opkald",
       "calls.exitVideoFullscreen": "Afslut fuld skærm",
+      "calls.expandPeerVideo": "Forstør videoen for {{name}}",
       "calls.missedCallBody": "Ubesvaret opkald fra {{name}}",
       "calls.callBack": "Ring tilbage",
       "chat.messageQueued": "I kø — sendes, når kontakten er online igen.",

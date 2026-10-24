@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Perbraukite, kad pakeistumėte nuotrauką",
       "calls.expandCall": "Išplėsti skambutį",
       "calls.exitVideoFullscreen": "Išeiti iš viso ekrano",
+      "calls.expandPeerVideo": "Padidinti {{name}} vaizdo įrašą",
       "calls.missedCallBody": "Praleistas skambutis nuo {{name}}",
       "calls.callBack": "Perskambinti",
       "chat.messageQueued": "Eilėje — bus išsiųsta, kai kontaktas vėl bus prisijungęs.",

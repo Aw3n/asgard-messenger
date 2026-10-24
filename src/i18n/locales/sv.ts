@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Svep för att byta foto",
       "calls.expandCall": "Expandera samtal",
       "calls.exitVideoFullscreen": "Avsluta helskärm",
+      "calls.expandPeerVideo": "Förstora videon för {{name}}",
       "calls.missedCallBody": "Missat samtal från {{name}}",
       "calls.callBack": "Ring tillbaka",
       "chat.messageQueued": "I kö — skickas när kontakten är online igen.",

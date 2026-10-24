@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Pyyhkäise vaihtaaksesi kuvaa",
       "calls.expandCall": "Laajenna puhelu",
       "calls.exitVideoFullscreen": "Poistu koko näytöstä",
+      "calls.expandPeerVideo": "Suurenna käyttäjän {{name}} video",
       "calls.missedCallBody": "Vastaamaton puhelu: {{name}}",
       "calls.callBack": "Soita takaisin",
       "chat.messageQueued": "Jonossa — lähetetään, kun yhteyshenkilö on taas paikalla.",

@@ -9,6 +9,8 @@ import { useGroupStore } from '@/stores/groupStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { callService } from '@/services/CallService'
 import { cryptoService } from '@/services/CryptoService'
+import { isCloseKeypress } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { CallControls } from './CallControls'
 import { cn } from '@/utils/cn'
 
@@ -43,8 +45,13 @@ const PeerVideoTile: React.FC<{
   onClick?: () => void
   /** La tuile occupe tout son parent (vue plein écran d'un pair) */
   fill?: boolean
-}> = ({ peerId, name, avatar, onClick, fill }) => {
-  const containerRef = useRef<HTMLDivElement>(null)
+  /** Nom accessible de l'action d'agrandissement (la grille seule en a une). */
+  label?: string
+  /** Le parent retient l'élément pour lui rendre le focus à la sortie. */
+  innerRef?: (el: HTMLDivElement | null) => void
+}> = ({ peerId, name, avatar, onClick, fill, label, innerRef }) => {
+  // `T | null` rend le `current` assignable : le ref combiné sert aussi au parent.
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const [hasVideo, setHasVideo] = useState(false)
 
   useEffect(() => {
@@ -79,8 +86,23 @@ const PeerVideoTile: React.FC<{
 
   return (
     <div
+      ref={(el) => {
+        containerRef.current = el
+        innerRef?.(el)
+      }}
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
+      // En grille, la tuile est une commande : elle porte role=button depuis
+      // toujours mais n'était ni focusable ni activable sans souris. En plein
+      // écran elle redevient une simple surface (clic pour sortir) : le bouton
+      // nommé reste le chemin clavier, pour ne pas doubler la même commande.
+      role={onClick && !fill ? 'button' : undefined}
+      tabIndex={onClick && !fill ? 0 : undefined}
+      aria-label={onClick && !fill ? label : undefined}
+      onKeyDown={onClick && !fill ? (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return
+        e.preventDefault()
+        onClick()
+      } : undefined}
       style={{
         position: fill ? 'absolute' : 'relative',
         inset: fill ? 0 : undefined,
@@ -163,6 +185,12 @@ export const CallView: React.FC = () => {
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const peerAudioRef = useRef<HTMLAudioElement>(null)
   const peerCanvasContainerRef = useRef<HTMLDivElement>(null)
+  const exitFullscreenRef = useRef<HTMLButtonElement>(null)
+  // La tuile cliquée est démontée par l'ouverture : sa référence permet de lui
+  // rendre le focus quand on revient à la grille.
+  const gridTileRefs = useRef(new Map<string, HTMLDivElement>())
+  const previousFullscreenRef = useRef<string | null>(null)
+  const exitFullscreenGesture = useGestureHint('closeModal', t('calls.exitVideoFullscreen'))
 
   // PERFECT QUALITY GROUP: grid tiles for group video calls. Group media is
   // decoded into per-peer canvases (CallService.peerVideoState) — the 1:1
@@ -211,13 +239,32 @@ export const CallView: React.FC = () => {
 
   const onMiniPointerUp = useCallback(() => { miniDrag.current = null }, [])
 
-  // Le plein écran d'un pair se quitte aussi au clavier (Échap).
+  // Le plein écran d'un pair se quitte à la touche réglée, comme les dialogues.
   useEffect(() => {
     if (!peerVideoFullscreenId) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPeerVideoFullscreenId(null) }
+    const onKey = (e: KeyboardEvent) => {
+      if (!isCloseKeypress(e)) return
+      e.preventDefault()
+      setPeerVideoFullscreenId(null)
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [peerVideoFullscreenId, setPeerVideoFullscreenId])
+
+  // L'ouverture démonte la tuile cliquée : le focus retomberait sur <body>.
+  // Il va donc au bouton de sortie, puis revient à la tuile en revenant.
+  useEffect(() => {
+    if (peerVideoFullscreenId) {
+      previousFullscreenRef.current = peerVideoFullscreenId
+      exitFullscreenRef.current?.focus()
+      return
+    }
+    const previous = previousFullscreenRef.current
+    if (!previous) return
+    previousFullscreenRef.current = null
+    const tile = gridTileRefs.current.get(previous)
+    if (tile?.isConnected) tile.focus()
+  }, [peerVideoFullscreenId])
 
   /**
    * Le bouton « Chat » réduit l'appel et ouvre la conversation — il n'arrêtait
@@ -531,13 +578,18 @@ export const CallView: React.FC = () => {
               peerId={tile.peerId}
               name={tile.name}
               avatar={tile.avatar}
+              label={t('calls.expandPeerVideo', { name: tile.name })}
+              innerRef={(el) => {
+                if (el) gridTileRefs.current.set(tile.peerId, el)
+                else gridTileRefs.current.delete(tile.peerId)
+              }}
               onClick={() => setPeerVideoFullscreenId(tile.peerId)}
             />
           ))}
         </div>
       )}
 
-      {/* ── LAYER: Pair en plein écran (clic sur une tuile, Échap pour revenir) ── */}
+      {/* ── LAYER: Pair en plein écran (clic sur une tuile, touche réglée pour revenir) ── */}
       {isGroupVideoGrid && fullscreenPeer && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#000' }}>
           <PeerVideoTile
@@ -548,9 +600,11 @@ export const CallView: React.FC = () => {
             onClick={() => setPeerVideoFullscreenId(null)}
           />
           <button
+            ref={exitFullscreenRef}
             onClick={() => setPeerVideoFullscreenId(null)}
             aria-label={t('calls.exitVideoFullscreen')}
-            title={`${t('calls.exitVideoFullscreen')} · Esc`}
+            title={exitFullscreenGesture.title}
+            aria-keyshortcuts={exitFullscreenGesture.ariaKeyShortcuts}
             style={{
               position: 'absolute', top: '64px', right: '16px', zIndex: 7,
               display: 'flex', alignItems: 'center', gap: '6px',

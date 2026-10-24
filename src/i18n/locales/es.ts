@@ -881,6 +881,7 @@ export default {
       "lightbox.swipeHint": "Desliza para cambiar de foto",
       "calls.expandCall": "Ampliar llamada",
       "calls.exitVideoFullscreen": "Salir de pantalla completa",
+      "calls.expandPeerVideo": "Ampliar el vídeo de {{name}}",
       "calls.missedCallBody": "Llamada perdida de {{name}}",
       "calls.callBack": "Devolver llamada",
       "chat.messageQueued": "En cola: se enviará cuando el contacto vuelva a estar en línea.",

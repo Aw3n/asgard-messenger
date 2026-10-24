@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Pühkimine foto vahetamiseks",
       "calls.expandCall": "Laienda kõne",
       "calls.exitVideoFullscreen": "Välju täisekraanilt",
+      "calls.expandPeerVideo": "Suurenda kasutaja {{name}} videot",
       "calls.missedCallBody": "Vastamata kõne: {{name}}",
       "calls.callBack": "Helista tagasi",
       "chat.messageQueued": "Järjekorras — saadetakse, kui kontakt on jälle võrgus.",

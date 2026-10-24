@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Velciet, lai pārslēgtu fotoattēlu",
       "calls.expandCall": "Izvērst zvanu",
       "calls.exitVideoFullscreen": "Iziet no pilnekrāna",
+      "calls.expandPeerVideo": "Palielināt lietotāja {{name}} video",
       "calls.missedCallBody": "Neatbildēts zvans no {{name}}",
       "calls.callBack": "Zvanīt atpakaļ",
       "chat.messageQueued": "Rindā — tiks nosūtīts, kad kontakts būs atkal tiešsaistē.",

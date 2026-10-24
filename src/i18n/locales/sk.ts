@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Potiahnutím zmeníte fotografiu",
       "calls.expandCall": "Rozbaliť hovor",
       "calls.exitVideoFullscreen": "Ukončiť celú obrazovku",
+      "calls.expandPeerVideo": "Zväčšiť video používateľa {{name}}",
       "calls.missedCallBody": "Zmeškaný hovor od {{name}}",
       "calls.callBack": "Zavolať späť",
       "chat.messageQueued": "V poradí — odošle sa, keď bude kontakt opäť online.",

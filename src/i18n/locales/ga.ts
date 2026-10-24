@@ -882,6 +882,7 @@ export default {
       "lightbox.swipeHint": "Sveip chun grianghraf a athrú",
       "calls.expandCall": "Leathnaigh an glao",
       "calls.exitVideoFullscreen": "Fág an scáileán iomlán",
+      "calls.expandPeerVideo": "Méadaigh físeán {{name}}",
       "calls.missedCallBody": "Glao caillte ó {{name}}",
       "calls.callBack": "Cuir glao ar ais",
       "chat.messageQueued": "Sa scuaine — seolfar nuair a bheidh an teagmhálaí ar líne arís.",
