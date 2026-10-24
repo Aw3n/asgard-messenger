@@ -172,7 +172,12 @@ const AddContactModal: React.FC<{
     try {
       const text = await navigator.clipboard.readText()
       const parsed = parseInviteInput(text)
-      if (!parsed) return
+      // Même règle que la page Contacts : un contenu qui n'est ni une clé ni un
+      // lien d'invitation ne doit pas laisser le bouton sans effet visible.
+      if (!parsed) {
+        setError(t('modal.error.invalidPublicKey'))
+        return
+      }
       setPublicKey(parsed.publicKey)
       if (parsed.name) setDisplayName(parsed.name)
       setError('')
