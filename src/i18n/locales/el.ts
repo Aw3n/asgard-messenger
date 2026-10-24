@@ -468,6 +468,7 @@ export default {
       "settings.images": "Εικόνες",
       "settings.language": "Γλώσσα",
       "settings.languageChanged": "Η γλώσσα άλλαξε",
+      "settings.languageChangeFailed": "Η αλλαγή γλώσσας απέτυχε",
       "settings.languageSubtitle": "Επιλέξτε τη γλώσσα διεπαφής",
       "settings.light": "Φωτεινό",
       "settings.linkCopied": "Ο σύνδεσμος αντιγράφηκε",

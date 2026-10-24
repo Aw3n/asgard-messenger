@@ -468,6 +468,7 @@ export default {
       "settings.images": "Bilder",
       "settings.language": "Språk",
       "settings.languageChanged": "Språk ändrat",
+      "settings.languageChangeFailed": "Det gick inte att byta språk",
       "settings.languageSubtitle": "Välj ditt gränssnittsspråk",
       "settings.light": "Ljust",
       "settings.linkCopied": "Länk kopierad",

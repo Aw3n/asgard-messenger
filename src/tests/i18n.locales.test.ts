@@ -30,6 +30,15 @@ describe('catalogues de langue', () => {
     expect(i18n.t(key)).toBe(translations.de.translation[key])
   })
 
+  it('dit qu’une langue inconnue n’a pas été appliquée', async () => {
+    await i18nReady
+    const before = i18n.language
+
+    expect(await changeLanguage('xx')).toBe(false)
+
+    expect(i18n.language).toBe(before)
+  })
+
   /**
    * Une clé nouvelle n'est livrée que rendue dans TOUTES les langues — vérifiée
    * par i18n, pas relue dans la table. Cinq venues corriger du texte codé en

@@ -337,7 +337,12 @@ const LanguageSection: React.FC = () => {
   const addToast = useUIStore((s) => s.addToast)
 
   const handleLanguageChange = async (lang: string) => {
-    await changeLanguage(lang)
+    // Un catalogue qui n'arrive pas laissait pourtant « Langue modifiée » à
+    // l'écran alors que rien n'avait bougé.
+    if (!(await changeLanguage(lang))) {
+      addToast({ type: 'error', title: t('settings.languageChangeFailed') })
+      return
+    }
     setCurrentLang(lang)
     addToast({ type: 'success', title: t('settings.languageChanged'), duration: 2000 })
   }

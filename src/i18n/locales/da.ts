@@ -468,6 +468,7 @@ export default {
       "settings.images": "Billeder",
       "settings.language": "Sprog",
       "settings.languageChanged": "Sprog ændret",
+      "settings.languageChangeFailed": "Sproget kunne ikke ændres",
       "settings.languageSubtitle": "Vælg dit grænsefladesprog",
       "settings.light": "Lys",
       "settings.linkCopied": "Link kopieret",

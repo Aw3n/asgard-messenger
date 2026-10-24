@@ -468,6 +468,7 @@ export default {
       "settings.images": "Imagini",
       "settings.language": "Limba",
       "settings.languageChanged": "Limbă schimbată",
+      "settings.languageChangeFailed": "Limba nu a putut fi schimbată",
       "settings.languageSubtitle": "Alege limba interfeței",
       "settings.light": "Deschis",
       "settings.linkCopied": "Link copiat",

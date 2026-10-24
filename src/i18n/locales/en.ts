@@ -83,6 +83,7 @@ export default {
       "settings.avatarRemoved": "Avatar removed",
       "settings.avatarHint": "JPG, PNG or WebP, max 10MB • Compressed to WebP",
       "settings.languageChanged": "Language changed",
+      "settings.languageChangeFailed": "Could not change language",
       "chat.typeMessage": "Type a message…",
       "chat.noConversation": "Select a conversation to start messaging",
       "chat.noMessages": "No messages yet",

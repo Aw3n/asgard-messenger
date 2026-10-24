@@ -123,23 +123,30 @@ try { window.asgard?.setLanguage?.(savedLang) } catch { /* preload not ready */ 
 
 /**
  * Applique une langue, en chargeant son catalogue s'il n'est pas encore là.
- * La promesse se résout une fois la langue effective : les écrans qui changent
- * de langue n'ont pas à connaître le découpage en chunks.
+ * Renvoie faux quand le catalogue n'a pas pu être chargé : l'écran qui change
+ * de langue ne doit pas annoncer un succès que la langue n'a pas eu.
  */
-export async function changeLanguage(lang: string): Promise<void> {
+export async function changeLanguage(lang: string): Promise<boolean> {
   if (!i18n.hasResourceBundle(lang, 'translation')) {
     try {
-      if (!(await loadLocale(lang))) return
+      if (!(await loadLocale(lang))) return false
     } catch (err) {
       console.error('[i18n] Failed to load locale:', err)
-      return
+      return false
     }
   }
   await i18n.changeLanguage(lang)
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('asgard-language', lang)
   }
-  window.asgard?.setLanguage?.(lang)
+  // Le menu natif du tray suit la langue choisie ; un échec IPC ne doit pas
+  // rejeter en silence (cette promesse n'était jamais attendue).
+  try {
+    await window.asgard?.setLanguage?.(lang)
+  } catch (err) {
+    console.error('[i18n] Failed to sync tray language:', err)
+  }
+  return true
 }
 
 export function getCurrentLanguage(): string {

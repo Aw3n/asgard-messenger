@@ -588,6 +588,7 @@ export default {
       "settings.shortcutsResetAll": "Rétablir tous les gestes",
       "settings.language": "Langue",
       "settings.languageChanged": "Langue modifiée",
+      "settings.languageChangeFailed": "Le changement de langue a échoué",
       "settings.languageSubtitle": "Choisissez la langue de l'interface",
       "settings.largerTouchTargets": "Cibles tactiles plus grandes",
       "settings.largerTouchTargetsDesc": "Rendre les boutons et les éléments interactifs plus faciles à toucher",

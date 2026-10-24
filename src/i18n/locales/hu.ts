@@ -468,6 +468,7 @@ export default {
       "settings.images": "Képek",
       "settings.language": "Nyelv",
       "settings.languageChanged": "Nyelv megváltoztatva",
+      "settings.languageChangeFailed": "A nyelv módosítása nem sikerült",
       "settings.languageSubtitle": "Válassza ki a felület nyelvét",
       "settings.light": "Világos",
       "settings.linkCopied": "Link másolva",

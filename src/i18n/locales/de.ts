@@ -486,6 +486,7 @@ export default {
       "settings.images": "Bilder",
       "settings.language": "Sprache",
       "settings.languageChanged": "Sprache geändert",
+      "settings.languageChangeFailed": "Sprache konnte nicht geändert werden",
       "settings.languageSubtitle": "Wähle deine Oberflächensprache",
       "settings.light": "Hell",
       "settings.linkCopied": "Link kopiert",

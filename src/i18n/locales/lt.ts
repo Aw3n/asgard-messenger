@@ -468,6 +468,7 @@ export default {
       "settings.images": "Vaizdai",
       "settings.language": "Kalba",
       "settings.languageChanged": "Kalba pakeista",
+      "settings.languageChangeFailed": "Kalbos pakeisti nepavyko",
       "settings.languageSubtitle": "Pasirinkite sąsajos kalbą",
       "settings.light": "Šviesus",
       "settings.linkCopied": "Nuoroda nukopijuota",

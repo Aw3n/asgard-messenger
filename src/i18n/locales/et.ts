@@ -468,6 +468,7 @@ export default {
       "settings.images": "Pildid",
       "settings.language": "Keel",
       "settings.languageChanged": "Keel muudetud",
+      "settings.languageChangeFailed": "Keele muutmine ebaõnnestus",
       "settings.languageSubtitle": "Valige kasutajaliidese keel",
       "settings.light": "Hele",
       "settings.linkCopied": "Link kopeeritud",

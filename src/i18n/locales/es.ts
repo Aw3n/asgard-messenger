@@ -486,6 +486,7 @@ export default {
       "settings.images": "Imágenes",
       "settings.language": "Idioma",
       "settings.languageChanged": "Idioma cambiado",
+      "settings.languageChangeFailed": "No se pudo cambiar el idioma",
       "settings.languageSubtitle": "Elige el idioma de la interfaz",
       "settings.light": "Claro",
       "settings.linkCopied": "Enlace copiado",

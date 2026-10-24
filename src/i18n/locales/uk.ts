@@ -77,6 +77,7 @@ export default {
       "settings.avatarRemoved": "Аватар видалено",
       "settings.avatarHint": "JPG, PNG або WebP, макс. 10 МБ • Стискається у WebP",
       "settings.languageChanged": "Мову змінено",
+      "settings.languageChangeFailed": "Не вдалося змінити мову",
       "chat.typeMessage": "Напишіть повідомлення…",
       "chat.noConversation": "Оберіть розмову, щоб почати спілкування",
       "chat.noMessages": "Повідомлень поки немає",

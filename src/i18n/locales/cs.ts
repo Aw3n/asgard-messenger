@@ -468,6 +468,7 @@ export default {
       "settings.images": "Obrázky",
       "settings.language": "Jazyk",
       "settings.languageChanged": "Jazyk změněn",
+      "settings.languageChangeFailed": "Jazyk se nepodařilo změnit",
       "settings.languageSubtitle": "Vyberte si jazyk rozhraní",
       "settings.light": "Světlý",
       "settings.linkCopied": "Odkaz zkopírován",

@@ -468,6 +468,7 @@ export default {
       "settings.images": "Изображения",
       "settings.language": "Език",
       "settings.languageChanged": "Езикът е променен",
+      "settings.languageChangeFailed": "Езикът не можа да бъде променен",
       "settings.languageSubtitle": "Изберете език на интерфейса",
       "settings.light": "Светъл",
       "settings.linkCopied": "Връзката е копирана",

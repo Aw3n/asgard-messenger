@@ -468,6 +468,7 @@ export default {
       "settings.images": "Stampi",
       "settings.language": "Lingwa",
       "settings.languageChanged": "Lingwa mibdula",
+      "settings.languageChangeFailed": "Il-bidla tal-lingwa ma rnexxietx",
       "settings.languageSubtitle": "Agħżel il-lingwa tal-interfaċċi",
       "settings.light": "Dawl",
       "settings.linkCopied": "Link kopjat",

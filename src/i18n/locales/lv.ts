@@ -468,6 +468,7 @@ export default {
       "settings.images": "Attēli",
       "settings.language": "Valoda",
       "settings.languageChanged": "Valoda mainīta",
+      "settings.languageChangeFailed": "Valodas maiņa neizdevās",
       "settings.languageSubtitle": "Izvēlies interfeisa valodu",
       "settings.light": "Gaišs",
       "settings.linkCopied": "Saite nokopēta",

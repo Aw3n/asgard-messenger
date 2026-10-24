@@ -468,6 +468,7 @@ export default {
       "settings.images": "Íomhánna",
       "settings.language": "Teanga",
       "settings.languageChanged": "Teanga athraithe",
+      "settings.languageChangeFailed": "Níorbh fhéidir an teanga a athrú",
       "settings.languageSubtitle": "Roghnaigh do theanga chomhéadain",
       "settings.light": "Geal",
       "settings.linkCopied": "Nasc cóipeáilte",

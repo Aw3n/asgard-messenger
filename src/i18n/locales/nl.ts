@@ -486,6 +486,7 @@ export default {
       "settings.images": "Afbeeldingen",
       "settings.language": "Taal",
       "settings.languageChanged": "Taal gewijzigd",
+      "settings.languageChangeFailed": "De taal wijzigen is mislukt",
       "settings.languageSubtitle": "Kies uw interfacetaal",
       "settings.light": "Licht",
       "settings.linkCopied": "Link gekopieerd",

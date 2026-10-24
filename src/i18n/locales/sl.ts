@@ -468,6 +468,7 @@ export default {
       "settings.images": "Slike",
       "settings.language": "Jezik",
       "settings.languageChanged": "Jezik spremenjen",
+      "settings.languageChangeFailed": "Jezika ni bilo mogoče spremeniti",
       "settings.languageSubtitle": "Izberite jezik vmesnika",
       "settings.light": "Svetla",
       "settings.linkCopied": "Povezava kopirana",

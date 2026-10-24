@@ -468,6 +468,7 @@ export default {
       "settings.images": "Kuvat",
       "settings.language": "Kieli",
       "settings.languageChanged": "Kieli vaihdettu",
+      "settings.languageChangeFailed": "Kielen vaihto epäonnistui",
       "settings.languageSubtitle": "Valitse käyttöliittymän kieli",
       "settings.light": "Vaalea",
       "settings.linkCopied": "Linkki kopioitu",
