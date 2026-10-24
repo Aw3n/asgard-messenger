@@ -313,7 +313,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
     if (!blobKey) return
     const next = !fileService.isFavorite(blobKey)
     if (next) {
-      fileService.addFavorite(blobKey, attachment.name, conversationId ?? '', attachment.mimeType)
+      fileService.addFavorite(blobKey, attachment.name, conversationId ?? '', attachment.mimeType, attachment.size)
     } else {
       fileService.removeFavorite(blobKey)
     }

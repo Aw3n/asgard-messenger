@@ -6,6 +6,7 @@ import { useId, useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { getCurrentLanguage } from '@/i18n/config'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
@@ -15,6 +16,7 @@ const XIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
 const StarIcon = ({ filled = false, size = 16 }: { filled?: boolean; size?: number }) => <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
 const SearchIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 const TrashIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+const SaveIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
 const ImageIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
 const VideoIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
 const MusicIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -26,6 +28,7 @@ interface FavoriteFile {
   fileName: string
   conversationId: string
   mimeType: string
+  fileSize?: number
   addedAt: number
 }
 
@@ -90,6 +93,29 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
     fileService.clearFavorites()
     loadFavorites()
     setShowClearConfirm(false)
+  }
+
+  // Un favori n'était jusqu'ici qu'une ligne à retirer : le panneau nommait des
+  // fichiers sans permettre de les rouvrir. La rangée rend le blob au même
+  // dialogue d'enregistrement que la bulle, succès et échec compris.
+  const handleSaveFavorite = (favorite: FavoriteFile) => {
+    void saveAttachmentToDisk(
+      {
+        blobKey: favorite.blobKey,
+        name: favorite.fileName,
+        mimeType: favorite.mimeType,
+        size: favorite.fileSize,
+      },
+      t,
+      favorite.conversationId || undefined,
+    )
+  }
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
   }
 
   const handleSelectItem = (blobKey: string) => {
@@ -261,9 +287,27 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
                         {favorite.fileName}
                       </p>
                       <p className="text-xs text-[var(--text-secondary)]">
+                        {favorite.fileSize !== undefined && (
+                          <>
+                            {formatBytes(favorite.fileSize)}
+                            <span aria-hidden="true"> · </span>
+                          </>
+                        )}
                         {t('settings.added')} {formatDate(favorite.addedAt)}
                       </p>
                     </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSaveFavorite(favorite)
+                      }}
+                      className="flex-shrink-0 p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                      title={t('chat.saveAs')}
+                      aria-label={t('chat.saveAs')}
+                    >
+                      <SaveIcon />
+                    </button>
 
                     <button
                       onClick={(e) => {

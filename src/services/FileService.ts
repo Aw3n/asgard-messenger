@@ -6013,6 +6013,7 @@ class FileService {
           fileName: entry.fileName,
           conversationId: typeof entry.conversationId === 'string' ? entry.conversationId : '',
           mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : '',
+          fileSize: typeof entry.fileSize === 'number' ? entry.fileSize : undefined,
           addedAt: typeof entry.addedAt === 'number' ? entry.addedAt : Date.now(),
         })
       }
@@ -6022,12 +6023,19 @@ class FileService {
   /**
    * Add a file to favorites.
    */
-  addFavorite(blobKey: string, fileName: string, conversationId: string, mimeType: string): void {
+  addFavorite(
+    blobKey: string,
+    fileName: string,
+    conversationId: string,
+    mimeType: string,
+    fileSize?: number,
+  ): void {
     const favorite: FavoriteFile = {
       blobKey,
       fileName,
       conversationId,
       mimeType,
+      fileSize,
       addedAt: Date.now(),
     }
     this.favorites.set(blobKey, favorite)
@@ -7231,6 +7239,8 @@ interface FavoriteFile {
   fileName: string
   conversationId: string
   mimeType: string
+  /** Taille au moment de l'ajout : le panneau l'affiche sans relire le blob. */
+  fileSize?: number
   addedAt: number
 }
 

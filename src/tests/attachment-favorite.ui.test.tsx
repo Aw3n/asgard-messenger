@@ -54,6 +54,8 @@ describe('favoris depuis la pièce jointe', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'chat.addToFavorites' }))
 
     expect(fileService.isFavorite('blob-fav-ui')).toBe(true)
+    // La taille est relevée à l'ajout : le panneau l'affiche ensuite sans blob.
+    expect(fileService.getFavorites()[0].fileSize).toBe(12)
     expect(useUIStore.getState().toasts[0].title).toBe('chat.addedToFavorites')
 
     // Le panneau et la bulle affichent tous deux le nom : démonter la bulle

@@ -25,17 +25,20 @@ describe('favoris de fichiers', () => {
   it('retient un favori et le relit au démarrage suivant', async () => {
     const { fileService } = await import('@/services/FileService')
 
-    fileService.addFavorite('blob-fav', 'note.txt', 'conv-1', 'text/plain')
+    fileService.addFavorite('blob-fav', 'note.txt', 'conv-1', 'text/plain', 4096)
 
     expect(fileService.isFavorite('blob-fav')).toBe(true)
     expect(fileService.getFavorites()).toEqual([
-      expect.objectContaining({ blobKey: 'blob-fav', fileName: 'note.txt' }),
+      expect.objectContaining({ blobKey: 'blob-fav', fileName: 'note.txt', fileSize: 4096 }),
     ])
     expect(localStorage.getItem(FAVORITES_KEY)).toContain('blob-fav')
 
     vi.resetModules()
     const { fileService: reloaded } = await import('@/services/FileService')
     expect(reloaded.isFavorite('blob-fav')).toBe(true)
+    // La taille traverse le redémarrage : sans elle, le panneau afficherait une
+    // ligne sans poids et transmettrait 0 à l'enregistrement.
+    expect(reloaded.getFavorites()[0].fileSize).toBe(4096)
   })
 
   it('retire un favori du stockage, pas seulement de la mémoire', async () => {
