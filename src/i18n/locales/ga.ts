@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Cur síos (roghnach)",
       "groups.descriptionPlaceholder": "Cén fáth a bhfuil an grúpa seo?",
       "groups.enterGroupName": "Cuir isteach ainm an ghrúpa",
+      "groups.filesSendFailed": "Níorbh fhéidir na comhaid a sheoladh chuig an ngrúpa",
       "groups.general": "Ginearálta",
       "groups.generateInviteKey": "Gin eochair cuiridh",
       "groups.groupCreated": "Grúpa cruthaithe",

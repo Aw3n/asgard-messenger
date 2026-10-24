@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Beschrijving (optioneel)",
       "groups.descriptionPlaceholder": "Waar gaat deze groep over?",
       "groups.enterGroupName": "Voer een groepsnaam in",
+      "groups.filesSendFailed": "Bestanden konden niet naar de groep worden verzonden",
       "groups.general": "Algemeen",
       "groups.generateInviteKey": "Uitnodigingssleutel genereren",
       "groups.groupCreated": "Groep aangemaakt",

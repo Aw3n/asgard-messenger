@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Kuvaus (valinnainen)",
       "groups.descriptionPlaceholder": "Mistä tämä ryhmä kertoo?",
       "groups.enterGroupName": "Anna ryhmän nimi",
+      "groups.filesSendFailed": "Tiedostojen lähettäminen ryhmään epäonnistui",
       "groups.general": "Yleinen",
       "groups.generateInviteKey": "Luo kutsuavain",
       "groups.groupCreated": "Ryhmä luotu",

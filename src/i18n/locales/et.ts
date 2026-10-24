@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Kirjeldus (valikuline)",
       "groups.descriptionPlaceholder": "Millest see grupp räägib?",
       "groups.enterGroupName": "Sisestage rühma nimi",
+      "groups.filesSendFailed": "Faile ei õnnestunud gruppi saata",
       "groups.general": "Üldine",
       "groups.generateInviteKey": "Genereeri kutsevõti",
       "groups.groupCreated": "Grupp loodud",

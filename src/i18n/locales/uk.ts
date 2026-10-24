@@ -451,6 +451,7 @@ export default {
       "groups.createdAt": "Створено",
       "groups.descriptionOptional": "Опис (необов'язково)",
       "groups.enterGroupName": "Введіть назву групи",
+      "groups.filesSendFailed": "Не вдалося надіслати файли до групи",
       "groups.general": "Загальне",
       "groups.groupCreated": "Групу створено",
       "groups.inviteKeyGenerated": "Ключ-запрошення згенеровано",

@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Beskrivelse (valgfri)",
       "groups.descriptionPlaceholder": "Hvad handler denne gruppe om?",
       "groups.enterGroupName": "Indtast et gruppenavn",
+      "groups.filesSendFailed": "Filerne kunne ikke sendes til gruppen",
       "groups.general": "Generelt",
       "groups.generateInviteKey": "Generer invitationsnøgle",
       "groups.groupCreated": "Gruppe oprettet",

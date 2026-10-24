@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Deskrizzjoni (fakoltattiva)",
       "groups.descriptionPlaceholder": "Dwar x'inhi din il-grupp?",
       "groups.enterGroupName": "Daħħal isem tal-grupp",
+      "groups.filesSendFailed": "Ma setgħetx tintbagħat il-fajls lill-grupp",
       "groups.general": "Ġenerali",
       "groups.generateInviteKey": "Ġenera ċavetta tal-invitazzjoni",
       "groups.groupCreated": "Grupp maħluq",

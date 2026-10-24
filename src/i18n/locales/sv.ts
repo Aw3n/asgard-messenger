@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Beskrivning (valfri)",
       "groups.descriptionPlaceholder": "Vad handlar denna grupp om?",
       "groups.enterGroupName": "Ange ett gruppnamn",
+      "groups.filesSendFailed": "Filerna kunde inte skickas till gruppen",
       "groups.general": "Allmänt",
       "groups.generateInviteKey": "Generera inbjudningsnyckel",
       "groups.groupCreated": "Grupp skapad",

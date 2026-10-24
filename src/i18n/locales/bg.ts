@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Описание (незадължително)",
       "groups.descriptionPlaceholder": "За какво е тази група?",
       "groups.enterGroupName": "Въведете име на група",
+      "groups.filesSendFailed": "Файловете не можаха да бъдат изпратени до групата",
       "groups.general": "Общ",
       "groups.generateInviteKey": "Генериране на поканителен ключ",
       "groups.groupCreated": "Групата е създадена",

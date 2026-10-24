@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Περιγραφή (προαιρετικά)",
       "groups.descriptionPlaceholder": "Περί τίνος πρόκειται αυτή η ομάδα;",
       "groups.enterGroupName": "Εισαγάγετε όνομα ομάδας",
+      "groups.filesSendFailed": "Δεν ήταν δυνατή η αποστολή των αρχείων στην ομάδα",
       "groups.general": "Γενικά",
       "groups.generateInviteKey": "Δημιουργία κλειδιού πρόσκλησης",
       "groups.groupCreated": "Η ομάδα δημιουργήθηκε",

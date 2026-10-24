@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Aprašymas (neprivalomas)",
       "groups.descriptionPlaceholder": "Apie ką ši grupė?",
       "groups.enterGroupName": "Įveskite grupės pavadinimą",
+      "groups.filesSendFailed": "Nepavyko išsiųsti failų į grupę",
       "groups.general": "Bendras",
       "groups.generateInviteKey": "Sukurti kvietimo raktą",
       "groups.groupCreated": "Grupė sukurta",

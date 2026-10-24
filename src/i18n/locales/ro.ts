@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Descriere (opțională)",
       "groups.descriptionPlaceholder": "Despre ce este acest grup?",
       "groups.enterGroupName": "Introdu un nume de grup",
+      "groups.filesSendFailed": "Fișierele nu au putut fi trimise în grup",
       "groups.general": "General",
       "groups.generateInviteKey": "Generează cheie invitație",
       "groups.groupCreated": "Grup creat",

@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Popis (nepovinný)",
       "groups.descriptionPlaceholder": "O čom je táto skupina?",
       "groups.enterGroupName": "Zadajte názov skupiny",
+      "groups.filesSendFailed": "Súbory sa nepodarilo odoslať do skupiny",
       "groups.general": "Všeobecné",
       "groups.generateInviteKey": "Generovať pozvánkový kľúč",
       "groups.groupCreated": "Skupina vytvorená",

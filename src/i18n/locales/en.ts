@@ -479,6 +479,7 @@ export default {
       "groups.createdAt": "Created",
       "groups.descriptionOptional": "Description (optional)",
       "groups.enterGroupName": "Enter group name",
+      "groups.filesSendFailed": "Could not send files to the group",
       "groups.general": "General",
       "groups.groupCreated": "Group created",
       "groups.inviteKeyGenerated": "Invite key generated",

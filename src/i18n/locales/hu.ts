@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Leírás (opcionális)",
       "groups.descriptionPlaceholder": "Miről szól ez a csoport?",
       "groups.enterGroupName": "Adjon meg egy csoportnevet",
+      "groups.filesSendFailed": "Nem sikerült a fájlokat a csoportba küldeni",
       "groups.general": "Általános",
       "groups.generateInviteKey": "Meghívó kulcs generálása",
       "groups.groupCreated": "Csoport létrehozva",

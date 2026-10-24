@@ -246,9 +246,10 @@ export const GroupView: React.FC = () => {
         await groupService.sendFilesToGroup(files, activeGroup.id, channelId)
       } catch (err) {
         console.error('[GroupView] Failed to send files to group:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('groups.filesSendFailed') })
       }
     },
-    [activeGroup, channelId]
+    [activeGroup, channelId, t]
   )
 
   // Announce presence when viewing a group

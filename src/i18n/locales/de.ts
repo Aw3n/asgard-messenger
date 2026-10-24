@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Beschreibung (optional)",
       "groups.descriptionPlaceholder": "Worum geht es in dieser Gruppe?",
       "groups.enterGroupName": "Geben Sie einen Gruppennamen ein",
+      "groups.filesSendFailed": "Dateien konnten nicht in die Gruppe gesendet werden",
       "groups.general": "Allgemein",
       "groups.generateInviteKey": "Einladungsschlüssel generieren",
       "groups.groupCreated": "Gruppe erstellt",

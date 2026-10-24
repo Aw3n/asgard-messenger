@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Apraksts (neobligāts)",
       "groups.descriptionPlaceholder": "Par ko ir šī grupa?",
       "groups.enterGroupName": "Ievadiet grupas nosaukumu",
+      "groups.filesSendFailed": "Nevarēja nosūtīt failus uz grupu",
       "groups.general": "Vispārīgi",
       "groups.generateInviteKey": "Ģenerēt ielūguma atslēgu",
       "groups.groupCreated": "Grupa izveidota",

@@ -280,6 +280,7 @@ export default {
       "groups.descriptionOptional": "Opis (neobavezan)",
       "groups.descriptionPlaceholder": "O čemu je ova grupa?",
       "groups.enterGroupName": "Unesite naziv grupe",
+      "groups.filesSendFailed": "Datoteke nije moguće poslati u grupu",
       "groups.general": "Općenito",
       "groups.generateInviteKey": "Generiraj pozivni ključ",
       "groups.groupCreated": "Grupa stvorena",
