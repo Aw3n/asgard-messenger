@@ -91,6 +91,14 @@ describe('champs des modales de contact et de groupe', () => {
     expect(screen.getByLabelText('groups.descriptionOptional')).toBeInstanceOf(HTMLTextAreaElement)
   })
 
+  it('nomme la bascule de visibilité du groupe', () => {
+    render(<CreateGroupModal onClose={() => {}} />)
+
+    const toggle = screen.getByRole('switch')
+    expect(toggle).toHaveAccessibleName('groups.publicGroup')
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+  })
+
   it('nomme le champ de clé du composeur d’ajout de contact', async () => {
     render(
       <MemoryRouter initialEntries={['/contacts']}>

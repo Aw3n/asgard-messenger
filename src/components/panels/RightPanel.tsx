@@ -85,6 +85,7 @@ export const RightPanel: React.FC = () => {
         {/* Close button */}
         <button
           onClick={() => setRightPanelView(rightPanelView)}
+          aria-label={t('common.close')}
           className="px-3 py-3 text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

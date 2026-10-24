@@ -28,6 +28,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
   // fait le même geste le dit.
   const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
   const descriptionId = React.useId()
+  const publicGroupLabelId = React.useId()
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -103,7 +104,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
           {/* Privacy toggle */}
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium text-asgard-text-primary">{t('groups.publicGroup')}</p>
+              <p id={publicGroupLabelId} className="text-sm font-medium text-asgard-text-primary">{t('groups.publicGroup')}</p>
               <p className="text-xs text-asgard-text-muted">
                 {t('groups.publicGroupHint')}
               </p>
@@ -111,6 +112,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
             <button
               role="switch"
               aria-checked={isPublic}
+              aria-labelledby={publicGroupLabelId}
               onClick={() => setIsPublic(!isPublic)}
               className={`relative w-11 h-6 rounded-full transition-colors ${
                 isPublic ? 'bg-asgard-glacier' : 'bg-asgard-surface-alt'
