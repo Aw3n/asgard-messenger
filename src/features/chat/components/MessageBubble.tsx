@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
+import { firstUrlIn } from '@/utils/url'
 import { copyMessageText } from '@/utils/clipboard'
 import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { useMenuGestures } from '@/hooks/useMenuGestures'
@@ -82,9 +83,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   // La souscription est obligatoire : lu en getState(), l'interrupteur restait
   // sans effet sur les bulles déjà montées.
   const linkPreviewsOn = useUIStore((s) => s.settings.privacy.linkPreviews)
-  const linkPreviewUrl = linkPreviewsOn
-    ? message.content?.match(/\bhttps?:\/\/[^\s<>()[\]"']+/)?.[0]?.replace(/[.,;:!?)]+$/, '')
-    : undefined
+  const linkPreviewUrl = linkPreviewsOn ? firstUrlIn(message.content ?? '') : undefined
   const [showActions, setShowActions] = useState(false)
   /**
    * Menu ancré à des coordonnées écran, pas à la bulle : ouvert au clic droit,

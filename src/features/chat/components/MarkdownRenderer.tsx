@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { cn } from '@/utils/cn'
+import { trimUrlEnd, URL_IN_TEXT_RE } from '@/utils/url'
 import { useUIStore } from '@/stores/uiStore'
 
 interface MarkdownRendererProps {
@@ -284,19 +285,14 @@ function applyAutoEmoji(text: string): string {
 }
 
 // CHAT SETTINGS (chat.inlinePreviews): turn bare http(s) URLs into clickable links
-const URL_RE = /\bhttps?:\/\/[^\s<>()[\]"']+/g
-
 function linkifyUrls(text: string): React.ReactNode {
   const parts: React.ReactNode[] = []
   let last = 0
   let key = 0
-  for (const match of text.matchAll(URL_RE)) {
+  for (const match of text.matchAll(URL_IN_TEXT_RE)) {
     const idx = match.index ?? 0
     if (idx > last) parts.push(text.slice(last, idx))
-    // Trim trailing punctuation commonly glued to URLs in prose
-    let url = match[0]
-    const trailing = url.match(/[.,;:!?)]+$/)
-    if (trailing) url = url.slice(0, url.length - trailing[0].length)
+    const url = trimUrlEnd(match[0])
     parts.push(
       <a key={key++} href={url} target="_blank" rel="noopener noreferrer" className="text-asgard-glacier hover:underline break-all">
         {url}

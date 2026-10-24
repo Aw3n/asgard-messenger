@@ -4,29 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { getCurrentLanguage } from '@/i18n/config'
+import { trimUrlEnd } from '@/utils/url'
 import type { Message } from '@/types'
 
 /** Référence stable pour une conversation encore vide (évite un rendu par lecture). */
 const NO_MESSAGES: Message[] = []
-
-/**
- * Une URL collée dans une phrase traîne la ponctuation qui la suit : ouverte
- * telle quelle, elle donnerait une page inexistante. Les fermants ne sont
- * retirés que s'ils sont orphelins — ceux qui appartiennent au chemin (titres
- * Wikipédia) restent.
- */
-const trimUrlEnd = (raw: string): string => {
-  let url = raw.replace(/[.,;:!?]+$/, '')
-  for (const [open, close] of [['(', ')'], ['[', ']'], ['{', '}']] as const) {
-    while (url.endsWith(close)) {
-      const opens = url.split(open).length - 1
-      const closes = url.split(close).length - 1
-      if (closes <= opens) break
-      url = url.slice(0, -1)
-    }
-  }
-  return url.replace(/["'`]+$/, '')
-}
 
 /** Extract URLs from messages, most recent first, deduplicated. */
 const collectLinks = (messages: Message[]) => {
