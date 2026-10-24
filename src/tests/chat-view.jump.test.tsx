@@ -20,7 +20,10 @@ const { scrollToIndexMock, virtuosoProps } = vi.hoisted(() => ({
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, options?: { count?: number }) =>
+      options?.count === undefined ? key : `${key}:${options.count}`,
+  }),
 }))
 
 vi.mock('react-virtuoso', async () => {
@@ -410,6 +413,27 @@ describe('ChatView : panne de lecture de l’historique', () => {
     await waitFor(() => expect(screen.getByText(/chat\.sendToStart/)).toBeInTheDocument())
     expect(toastTitles()).toEqual([])
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('ChatView : retour au bas annoncé', () => {
+  it('nomme le nombre de messages reçus sous la lecture', async () => {
+    renderThread()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-2')).toBeInTheDocument())
+
+    act(() => { (virtuosoProps.atBottomStateChange as (atBottom: boolean) => void)(false) })
+    act(() => {
+      useMessageStore.getState().addMessages(CONVERSATION_ID, [
+        { ...makeMessage('peer-1', 6_000), senderId: PEER },
+      ])
+    })
+
+    // La pastille « 1 » est masquée au lecteur d'écran : c'est le nom
+    // accessible du bouton qui doit porter le compte.
+    const button = await screen.findByRole('button', {
+      name: 'chat.scrollToLatest, nav.unreadCount:1',
+    })
+    expect(button).toHaveAttribute('title', 'chat.scrollToLatest')
   })
 })
 

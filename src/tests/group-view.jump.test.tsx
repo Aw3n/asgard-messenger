@@ -15,7 +15,10 @@ const { scrollToIndexMock, virtuosoProps } = vi.hoisted(() => ({
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, options?: { count?: number }) =>
+      options?.count === undefined ? key : `${key}:${options.count}`,
+  }),
 }))
 
 vi.mock('react-virtuoso', async () => {
@@ -102,6 +105,7 @@ class IntersectionObserverStub {  observe() {}
 vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
 
 const ME = 'a'.repeat(64)
+const PEER = 'b'.repeat(64)
 const GROUP_ID = 'group-1'
 const CHANNEL_ID = 'chan-1'
 
@@ -344,6 +348,32 @@ describe('GroupView : panne de lecture du canal', () => {
     await waitFor(() => expect(screen.getByText('groups.welcomeToChannel')).toBeInTheDocument())
     expect(toastTitles()).toEqual([])
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('GroupView : retour au bas annoncé', () => {
+  it('nomme le nombre de messages reçus sous la lecture', async () => {
+    // jsdom rend `document.hasFocus()` faux : sans ce stub le canal se croit
+    // masqué, ne charge rien et n'rend aucune rangée.
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true)
+    useGroupStore.setState({ groupViewVisible: true })
+
+    renderChannel()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-2')).toBeInTheDocument())
+
+    act(() => { (virtuosoProps.atBottomStateChange as (atBottom: boolean) => void)(false) })
+    act(() => {
+      useMessageStore.getState().addMessages(CHANNEL_ID, [
+        { ...makeMessage('peer-1', 6_000), senderId: PEER },
+      ])
+    })
+
+    // La pastille « 1 » est masquée au lecteur d'écran : c'est le nom
+    // accessible du bouton qui doit porter le compte.
+    const button = await screen.findByRole('button', {
+      name: 'chat.scrollToLatest, nav.unreadCount:1',
+    })
+    expect(button).toHaveAttribute('title', 'chat.scrollToLatest')
   })
 })
 

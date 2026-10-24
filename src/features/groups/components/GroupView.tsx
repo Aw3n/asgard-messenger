@@ -614,7 +614,13 @@ export const GroupView: React.FC = () => {
           {!atBottom && messages.length > 0 && (
             <button
               type="button"
-              aria-label={t('chat.scrollToLatest')}
+              // La pastille est masquée au lecteur d'écran : sans ce compteur,
+              // il annonce le bouton sans dire combien de messages attendent.
+              aria-label={
+                newBelowCount > 0
+                  ? `${t('chat.scrollToLatest')}, ${t('nav.unreadCount', { count: newBelowCount })}`
+                  : t('chat.scrollToLatest')
+              }
               title={t('chat.scrollToLatest')}
               onClick={() => {
                 virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
