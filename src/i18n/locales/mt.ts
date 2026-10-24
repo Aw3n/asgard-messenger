@@ -1061,5 +1061,6 @@ export default {
       "settings.downloadFolderChoose": "Agħżel fowlier…",
       "settings.downloadFolderReset": "Lura għall-fowlier predefinit",
       "search.clearQuery": "Neħħi l-ftixa",
+      "chat.mutedConversation": "Konversazzjoni msikkta",
     }
 }

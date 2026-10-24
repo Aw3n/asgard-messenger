@@ -1037,5 +1037,6 @@ export default {
       "settings.downloadFolderChoose": "Escolher pasta…",
       "settings.downloadFolderReset": "Voltar à pasta predefinida",
       "search.clearQuery": "Limpar pesquisa",
+      "chat.mutedConversation": "Conversa silenciada",
     }
 }

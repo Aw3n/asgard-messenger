@@ -88,21 +88,33 @@ export const GroupItem: React.FC<GroupItemProps> = ({
               width="11" height="11" viewBox="0 0 24 24" fill="currentColor"
               className="text-asgard-text-muted flex-shrink-0 ml-2"
               data-testid="group-muted"
-              aria-label={t('chat.muteConversation')}
+              aria-hidden="true"
             >
               <path d="M20 18.69L7.84 6.14 5.27 3.49 4 4.76l2.8 2.8v.01c-.52.99-.8 2.16-.8 3.42v5l-2 2v1h13.73l2 2L21 19.72l-1-1.03zM12 22c1.11 0 2-.89 2-2h-4c0 1.11.89 2 2 2zm6-7.32V11c0-3.08-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68c-.15.03-.29.08-.42.12-.1.03-.2.07-.3.11h-.01c-.01 0-.01 0-.02.01-.23.09-.46.2-.68.31 0 0-.01 0-.01.01L18 14.68z" />
             </svg>
           )}
           {totalUnread > 0 && !muted && (
-            <span className="ml-2 min-w-5 h-5 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0">
+            <span
+              aria-hidden="true"
+              className="ml-2 min-w-5 h-5 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0"
+            >
               {totalUnread > 99 ? '99+' : totalUnread}
             </span>
           )}
           {totalUnread > 0 && muted && (
             <span
+              aria-hidden="true"
               className="ml-2 w-2 h-2 rounded-full bg-asgard-text-muted flex-shrink-0"
               data-testid="group-unread-muted"
             />
+          )}
+          {/* L'icône et la pastille sont visuelles : compte et sourdine
+              rejoignent le nom accessible du groupe. */}
+          {totalUnread > 0 && (
+            <span className="sr-only">{t('nav.unreadCount', { count: totalUnread })}</span>
+          )}
+          {muted && (
+            <span className="sr-only">{t('chat.mutedConversation')}</span>
           )}
         </div>
         <p className={cn('text-xs truncate', someoneTyping ? 'text-asgard-glacier/90' : 'text-asgard-text-muted')}>

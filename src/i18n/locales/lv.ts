@@ -1037,5 +1037,6 @@ export default {
       "settings.downloadFolderChoose": "Izvēlēties mapi…",
       "settings.downloadFolderReset": "Atgriezties noklusējuma mapē",
       "search.clearQuery": "Notīrīt meklēšanu",
+      "chat.mutedConversation": "Ierunāta saruna",
     }
 }

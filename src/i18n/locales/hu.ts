@@ -1025,5 +1025,6 @@ export default {
       "settings.downloadFolderChoose": "Mappa kiválasztása…",
       "settings.downloadFolderReset": "Vissza az alapértelmezett mappára",
       "search.clearQuery": "Keresés törlése",
+      "chat.mutedConversation": "Némított beszélgetés",
     }
 }

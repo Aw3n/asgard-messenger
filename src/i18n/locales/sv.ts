@@ -1025,5 +1025,6 @@ export default {
       "settings.downloadFolderChoose": "Välj mapp…",
       "settings.downloadFolderReset": "Tillbaka till standardmappen",
       "search.clearQuery": "Rensa sökningen",
+      "chat.mutedConversation": "Tystad konversation",
     }
 }

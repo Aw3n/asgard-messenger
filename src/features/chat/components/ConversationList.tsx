@@ -553,12 +553,23 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 
           {/* Unread badge */}
           {conv.unreadCount > 0 && !conv.muted && (
-            <span className="ml-2 min-w-5 h-5 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0">
+            <span
+              aria-hidden="true"
+              className="ml-2 min-w-5 h-5 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0"
+            >
               {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
             </span>
           )}
           {conv.unreadCount > 0 && conv.muted && (
-            <span className="ml-2 w-2 h-2 rounded-full bg-asgard-text-muted flex-shrink-0" />
+            <span aria-hidden="true" className="ml-2 w-2 h-2 rounded-full bg-asgard-text-muted flex-shrink-0" />
+          )}
+          {/* La pastille est aria-hidden : son compte et la sourdine doivent
+              être dits dans le nom du bouton, sinon la ligne semble muette. */}
+          {conv.unreadCount > 0 && (
+            <span className="sr-only">{t('nav.unreadCount', { count: conv.unreadCount })}</span>
+          )}
+          {conv.muted && (
+            <span className="sr-only">{t('chat.mutedConversation')}</span>
           )}
         </div>
       </div>

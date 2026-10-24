@@ -1049,5 +1049,6 @@ export default {
       "settings.downloadFolderChoose": "Izberi mapo…",
       "settings.downloadFolderReset": "Vrni se v privzeto mapo",
       "search.clearQuery": "Počisti iskanje",
+      "chat.mutedConversation": "Utišan pogovor",
     }
 }

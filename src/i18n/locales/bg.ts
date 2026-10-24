@@ -1025,5 +1025,6 @@ export default {
       "settings.downloadFolderChoose": "Изберете папка…",
       "settings.downloadFolderReset": "Връщане в папката по подразбиране",
       "search.clearQuery": "Изчистване на търсенето",
+      "chat.mutedConversation": "Заглушен разговор",
     }
 }

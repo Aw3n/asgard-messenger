@@ -1025,5 +1025,6 @@ export default {
       "settings.downloadFolderChoose": "Επιλογή φακέλου…",
       "settings.downloadFolderReset": "Επιστροφή στον προεπιλεγμένο φάκελο",
       "search.clearQuery": "Διαγραφή αναζήτησης",
+      "chat.mutedConversation": "Σε σίγαση συνομιλία",
     }
 }

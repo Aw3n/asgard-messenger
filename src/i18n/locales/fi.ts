@@ -1025,5 +1025,6 @@ export default {
       "settings.downloadFolderChoose": "Valitse kansio…",
       "settings.downloadFolderReset": "Palaa oletuskansioon",
       "search.clearQuery": "Tyhjennä haku",
+      "chat.mutedConversation": "Mykistetty keskustelu",
     }
 }

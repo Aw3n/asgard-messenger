@@ -1037,5 +1037,6 @@ export default {
       "settings.downloadFolderChoose": "Vybrat složku…",
       "settings.downloadFolderReset": "Vrátit se do výchozí složky",
       "search.clearQuery": "Vymazat hledání",
+      "chat.mutedConversation": "Ztišená konverzace",
     }
 }

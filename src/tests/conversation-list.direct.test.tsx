@@ -15,8 +15,11 @@ import type { Contact, Conversation, Group } from '@/types'
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
   useTranslation: () => ({
-    t: (key: string, options?: Record<string, unknown>) =>
-      typeof options?.text === 'string' ? `${key} ${options.text}` : key,
+    t: (key: string, options?: Record<string, unknown>) => {
+      if (typeof options?.text === 'string') return `${key} ${options.text}`
+      if (typeof options?.count === 'number') return `${key}:${options.count}`
+      return key
+    },
   }),
 }))
 
@@ -239,6 +242,24 @@ describe('liste des conversations', () => {
     )
     expect(screen.queryByText('chat.draft brouillon local')).toBeNull()
     expect(screen.getByText('chat.startConversation')).toBeInTheDocument()
+  })
+
+  it('annonce les non-lus et la sourdine dans le nom de la ligne', () => {
+    useConversationStore.setState({
+      conversations: { [direct.id]: { ...direct, unreadCount: 3, muted: true } },
+    })
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    // La pastille vive et le point de sourdine sont aria-hidden : sans ces
+    // textes, la ligne ne disait ni combien de messages attendaient ni qu'elle
+    // était muette.
+    const row = screen.getByRole('button', { name: /Bob/ })
+    expect(row).toHaveAccessibleName(/nav\.unreadCount:3/)
+    expect(row).toHaveAccessibleName(/chat\.mutedConversation/)
   })
 
   it('marque toutes les conversations comme lues', () => {

@@ -1025,5 +1025,6 @@ export default {
       "settings.downloadFolderChoose": "Vali kaust…",
       "settings.downloadFolderReset": "Naase vaikenekausta juurde",
       "search.clearQuery": "Tühjenda otsing",
+      "chat.mutedConversation": "Vaigistatud vestlus",
     }
 }

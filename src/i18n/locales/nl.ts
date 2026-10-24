@@ -1024,5 +1024,6 @@ export default {
       "settings.downloadFolderChoose": "Map kiezen…",
       "settings.downloadFolderReset": "Terug naar de standaardmap",
       "search.clearQuery": "Zoekopdracht wissen",
+      "chat.mutedConversation": "Gesprek gedempt",
     }
 }

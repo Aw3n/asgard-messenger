@@ -1038,5 +1038,6 @@ export default {
       "settings.downloadFolderChoose": "Pasirinkti aplanką…",
       "settings.downloadFolderReset": "Grįžti į numatytąjį aplanką",
       "search.clearQuery": "Išvalyti paiešką",
+      "chat.mutedConversation": "Nutildytas pokalbis",
     }
 }

@@ -1036,5 +1036,6 @@ export default {
       "settings.downloadFolderChoose": "Scegli una cartella…",
       "settings.downloadFolderReset": "Torna alla cartella predefinita",
       "search.clearQuery": "Cancella ricerca",
+      "chat.mutedConversation": "Conversazione silenziata",
     }
 }

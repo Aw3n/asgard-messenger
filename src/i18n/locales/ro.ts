@@ -1037,5 +1037,6 @@ export default {
       "settings.downloadFolderChoose": "Alege un folder…",
       "settings.downloadFolderReset": "Înapoi la folderul implicit",
       "search.clearQuery": "Șterge căutarea",
+      "chat.mutedConversation": "Conversație fără sunet",
     }
 }

@@ -381,9 +381,15 @@ const ChannelItem: React.FC<ChannelItemProps> = ({
         </>
       )}
       {channel.unreadCount > 0 && (
-        <span className="min-w-4 h-4 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0">
+        <span
+          aria-hidden="true"
+          className="min-w-4 h-4 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0"
+        >
           {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
         </span>
+      )}
+      {channel.unreadCount > 0 && (
+        <span className="sr-only">{t('nav.unreadCount', { count: channel.unreadCount })}</span>
       )}
     </motion.button>
   )

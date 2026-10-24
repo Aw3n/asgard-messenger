@@ -1061,5 +1061,6 @@ export default {
       "settings.downloadFolderChoose": "Roghnaigh fillteán…",
       "settings.downloadFolderReset": "Fill ar an bhfillteán réamhshocraithe",
       "search.clearQuery": "Glanch an cuardach",
+      "chat.mutedConversation": "Comhrá balbhaithe",
     }
 }

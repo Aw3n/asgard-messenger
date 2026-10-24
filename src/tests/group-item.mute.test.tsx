@@ -14,7 +14,10 @@ import type { Group } from '@/types'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, options?: { count?: number }) =>
+      options?.count === undefined ? key : `${key}:${options.count}`,
+  }),
 }))
 
 vi.mock('@/components/ui/Avatar', () => ({
@@ -71,11 +74,18 @@ describe('sourdine dans la liste des groupes', () => {
 
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.queryByTestId('group-muted')).toBeNull()
+    // La pastille est visuelle : le nom accessible doit porter le compte.
+    const row = screen.getByRole('button', { name: /Équipe/ })
+    expect(row).toHaveAccessibleName(/nav\.unreadCount:3/)
+    expect(row).not.toHaveAccessibleName(/chat\.mutedConversation/)
 
     act(() => seedConversation(true))
 
     expect(screen.getByTestId('group-muted')).toBeInTheDocument()
     expect(screen.getByTestId('group-unread-muted')).toBeInTheDocument()
     expect(screen.queryByText('3')).toBeNull()
+    // Le point muet est lui aussi aria-hidden : la sourdine doit être dite.
+    expect(row).toHaveAccessibleName(/nav\.unreadCount:3/)
+    expect(row).toHaveAccessibleName(/chat\.mutedConversation/)
   })
 })

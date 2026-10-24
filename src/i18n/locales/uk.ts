@@ -1037,5 +1037,6 @@ export default {
       "settings.downloadFolderChoose": "Вибрати теку…",
       "settings.downloadFolderReset": "Повернутися до типової теки",
       "search.clearQuery": "Очистити пошук",
+      "chat.mutedConversation": "Розмова без звуку",
     }
 }
