@@ -74,6 +74,19 @@ function view(relation: Contact['relation'] = 'contact') {
   fireEvent.click(screen.getByRole('button', { name: 'contacts.moreActions' }))
 }
 
+describe('relation affichée', () => {
+  it.each([
+    ['contact', 'contacts.relationContact'],
+    ['favorite', 'contacts.relationFavorite'],
+    ['blocked', 'contacts.relationBlocked'],
+    ['pending', 'contacts.relationPending'],
+  ] as const)('traduit la relation « %s » au lieu d’afficher son jeton', (relation, key) => {
+    view(relation)
+
+    expect(screen.getByText(key)).toBeInTheDocument()
+  })
+})
+
 describe('bloquer un contact', () => {
   it('un blocage réussi ne signale aucune panne réseau', async () => {
     view()

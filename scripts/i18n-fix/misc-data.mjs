@@ -456,6 +456,8 @@ export const SAME = {
     'settings.trashItemsCount_plural', 'settings.totalDownloads',
     'settings.totalDownloads_plural', 'settings.chatDensity_compact',
     'settings.firewall', 'settings.peers', 'settings.camera',
+    // « Contact » est le mot néerlandais de la relation.
+    'contacts.relationContact',
   ],
   de: [
     'calls.openChat', 'chat.links', 'panels.links', 'common.admin',
@@ -567,5 +569,7 @@ export const SAME = {
     'settings.peer', 'settings.status', 'settings.total',
     'settings.totalTransfers', 'settings.transferStatus',
     'settings.chatDensity_compact', 'settings.firewall',
+    // « Contact » est aussi le mot roumain de la relation.
+    'contacts.relationContact',
   ],
 }

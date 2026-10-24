@@ -22,6 +22,14 @@ interface ContactDetailViewProps {
   onClose?: () => void
 }
 
+/** La relation est un jeton interne : l'écran doit dire le mot de la langue. */
+const RELATION_LABEL = {
+  contact: 'contacts.relationContact',
+  favorite: 'contacts.relationFavorite',
+  blocked: 'contacts.relationBlocked',
+  pending: 'contacts.relationPending',
+} as const satisfies Record<Contact['relation'], string>
+
 /**
  * ContactDetailView — full profile view for a contact.
  * Shows avatar, name, public key, status, and action buttons.
@@ -279,7 +287,7 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider">{t('common.relation')}</span>
-          <span className="text-sm text-asgard-text-secondary capitalize">{contact.relation}</span>
+          <span className="text-sm text-asgard-text-secondary">{t(RELATION_LABEL[contact.relation])}</span>
         </div>
       </div>
 

@@ -205,6 +205,8 @@ export const ALLOW_SAME = [
   'common.invisible',
   'common.note',
   'common.relation',
+  // « Contact » s'écrit identiquement en français, en néerlandais et en roumain.
+  'contacts.relationContact',
   'contacts.title',
   'groups.admins',
   'groups.description',
