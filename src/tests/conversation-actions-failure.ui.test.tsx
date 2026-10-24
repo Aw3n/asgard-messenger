@@ -103,6 +103,9 @@ const openMenuItem = (label: string) => {
   fireEvent.click(screen.getByText(label))
 }
 
+/** La suppression passe par son dialogue : acquiescer déclenche l'appel. */
+const confirmDelete = () => fireEvent.click(screen.getByText('chat.deletePermanently'))
+
 const errorToasts = () =>
   useUIStore.getState().toasts.filter((toast) => toast.type === 'error')
 
@@ -116,6 +119,7 @@ describe('échec de suppression ou d’effacement', () => {
     )
 
     openMenuItem('chat.deleteConversation')
+    confirmDelete()
 
     await waitFor(() => {
       expect(errorToasts().map((toast) => toast.title)).toEqual(['chat.deleteConversationFailed'])
@@ -147,6 +151,7 @@ describe('échec de suppression ou d’effacement', () => {
     )
 
     openMenuItem('chat.deleteConversation')
+    confirmDelete()
     await waitFor(() => expect(deleteConversation).toHaveBeenCalledWith(direct.id))
 
     openMenuItem('chat.clearMessages')

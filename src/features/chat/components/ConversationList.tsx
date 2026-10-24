@@ -10,6 +10,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { chatService } from '@/services/ChatService'
+import { ConversationDeleteConfirm } from './ConversationDeleteConfirm'
 import { formatConversationTime } from '@/utils/time'
 import { cn } from '@/utils/cn'
 import { MUTE_DURATIONS } from '@/utils/mute'
@@ -70,6 +71,15 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     y: number
     fromKeyboard?: boolean
   } | null>(null)
+  // Supprimer efface messages et fichiers : la rangée demande d'abord, comme
+  // l'en-tête du fil, au lieu d'agir sur un clic de menu.
+  const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null)
+  // Même repli que la rangée : le nom connu, sinon la clé tronquée.
+  const deleteTargetName = deleteTarget
+    ? deleteTarget.participantId
+      ? contacts[deleteTarget.participantId]?.displayName ?? deleteTarget.participantId.slice(0, 16)
+      : deleteTarget.id.slice(0, 16)
+    : ''
   const menuRef = useRef<HTMLDivElement>(null)
   const menuTriggerRef = useRef<HTMLElement | null>(null)
 
@@ -122,7 +132,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
   }, [markAllConversationsRead])
 
   const handleDeleteConversation = useCallback(async (conv: Conversation) => {
-    setContextMenu(null)
     try {
       await chatService.deleteConversation(conv.id)
       navigate('/conversations')
@@ -390,10 +399,27 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                 </svg>
               }
-              onClick={() => handleDeleteConversation(contextMenu.conv)}
+              onClick={() => {
+                setDeleteTarget(contextMenu.conv)
+                setContextMenu(null)
+              }}
               danger
             />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <ConversationDeleteConfirm
+            name={deleteTargetName}
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={() => {
+              const target = deleteTarget
+              setDeleteTarget(null)
+              if (target) void handleDeleteConversation(target)
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
