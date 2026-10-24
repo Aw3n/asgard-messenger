@@ -575,6 +575,7 @@ export const GroupView: React.FC = () => {
                     message={message}
                     isOwn={message.senderId === identity?.keyPair.publicKey}
                     senderName={getMemberName(activeGroup, message.senderId)}
+                    senderNameFor={(id) => getMemberName(activeGroup, id)}
                     showSender
                     highlighted={message.id === highlightedMessageId}
                     onReply={handleReply}
@@ -633,6 +634,7 @@ export const GroupView: React.FC = () => {
         <MessageInput
           conversationId={channelId}
           replyTo={replyTo}
+          replyToName={replyTo ? getMemberName(activeGroup, replyTo.senderId) : undefined}
           editingMessage={editingMessage}
           onSend={handleSend}
           onEditSubmit={handleEditSubmit}

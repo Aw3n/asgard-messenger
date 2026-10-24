@@ -158,6 +158,14 @@ export const ChatView: React.FC = () => {
   // neuf à chaque rendu, ce qui relance la vue sans raison.
   const pinnedMessages = useMemo(() => messages.filter((message) => message.pinned), [messages])
   const contact = conversation?.participantId ? contacts[conversation.participantId] : undefined
+  // Un fil 1:1 n'a que deux auteurs : une citation n'a pas à montrer une clé
+  // publique tronquée quand le nom est connu. Sans nom, la clé reste le repli.
+  const senderNameFor = (publicKey: string): string | undefined => {
+    const name = publicKey === identity?.keyPair.publicKey
+      ? identity?.profile.displayName
+      : contact?.displayName
+    return name || undefined
+  }
   const typingUsers = dataId ? getTypingUsers(dataId) : []
 
   // BROADCAST MODE: Check if user is read-only (not the broadcaster)
@@ -689,6 +697,7 @@ export const ChatView: React.FC = () => {
                   message={message}
                   isOwn={message.senderId === identity?.keyPair.publicKey}
                   senderName={contact?.displayName}
+                  senderNameFor={senderNameFor}
                   highlighted={message.id === highlightedMessageId}
                   // CHAT SETTINGS (collapseMessages): group consecutive messages from
                   // the same sender within 5 minutes — only the last one shows its
@@ -772,6 +781,7 @@ export const ChatView: React.FC = () => {
       <MessageInput
         conversationId={conversationId}
         replyTo={replyTo}
+        replyToName={replyTo ? senderNameFor(replyTo.senderId) : undefined}
         editingMessage={editingMessage}
         onSend={handleSend}
         onEditSubmit={handleEditSubmit}

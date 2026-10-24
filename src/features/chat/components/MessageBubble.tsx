@@ -39,6 +39,8 @@ interface MessageBubbleProps {
   onReaction?: (message: Message, emoji: string) => void
   onForward?: (message: Message) => void
   onPin?: (message: Message) => void
+  /** Nom de l'auteur d'une citation : la vue sait qui se cache derrière la clé. */
+  senderNameFor?: (publicKey: string) => string | undefined
 }
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
@@ -61,6 +63,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onReaction,
   onForward,
   onPin,
+  senderNameFor,
 }) => {
   const { t } = useTranslation()
   // CHAT SETTINGS: timestamps, seconds, read status ticks and density
@@ -217,7 +220,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             'mb-1 px-3 py-1.5 rounded-lg border-l-2 border-asgard-glacier/50 bg-black/20 max-w-full',
           )}>
             <p className="text-xs text-asgard-glacier font-medium mb-0.5">
-              {message.replyTo.senderId?.slice(0, 8) ?? '???'}…
+              {/* Le nom vient de la vue ; sans lui, la clé tronquée reste le
+                  seul repère honnête plutôt qu'un « inconnu » inventé. */}
+              {message.replyTo.senderId
+                ? senderNameFor?.(message.replyTo.senderId) ?? `${message.replyTo.senderId.slice(0, 8)}…`
+                : '???'}
             </p>
             <p className="text-xs text-asgard-text-muted truncate">{message.replyTo.content ?? ''}</p>
           </div>

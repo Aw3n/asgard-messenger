@@ -12,6 +12,8 @@ import type { Message } from '@/types'
 interface MessageInputProps {
   conversationId: string
   replyTo?: Message
+  /** Nom de l'auteur du message cité, résolu par la vue qui sait qui il est. */
+  replyToName?: string
   /** Message en cours de modification : le composer passe en mode édition. */
   editingMessage?: Message
   onSend: (content: string, type?: 'text') => void
@@ -83,6 +85,7 @@ const PendingFileChip: React.FC<{ file: File; onRemove: () => void }> = ({ file,
 export const MessageInput: React.FC<MessageInputProps> = ({
   conversationId,
   replyTo,
+  replyToName,
   editingMessage,
   onSend,
   onEditSubmit,
@@ -484,7 +487,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             <div className="flex items-center gap-3 px-4 py-2 border-l-2 border-asgard-glacier mx-3 mt-2 bg-asgard-border/30 rounded-lg">
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-asgard-glacier mb-0.5">
-                  {t('messageInput.replyingTo')} {replyTo.senderId.slice(0, 8)}…
+                  {t('messageInput.replyingTo')}{' '}
+                  {replyToName ?? `${replyTo.senderId.slice(0, 8)}…`}
                 </p>
                 <p className="text-xs text-asgard-text-muted truncate">
                   {replyTo.deleted ? t('messageInput.messageDeleted') : replyTo.content}
