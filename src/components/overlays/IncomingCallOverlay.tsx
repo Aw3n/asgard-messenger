@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCallStore } from '@/stores/callStore'
 import { useUIStore } from '@/stores/uiStore'
@@ -24,6 +24,15 @@ export const IncomingCallOverlay: React.FC = () => {
   const acceptGesture = useGestureHint('acceptCall', t('calls.answer'))
   const declineGesture = useGestureHint('declineCall', t('calls.decline'))
 
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const ringing = !!incomingCall
+  const callKindLabel = incomingCall
+    ? incomingCall.type === 'video'
+      ? t('calls.incomingVideoCall')
+      : t('calls.incomingAudioCall')
+    : ''
+
   const handleAccept = useCallback(async () => {
     await callService.acceptCall()
   }, [])
@@ -31,6 +40,53 @@ export const IncomingCallOverlay: React.FC = () => {
   const handleReject = useCallback(async () => {
     await callService.rejectCall()
   }, [])
+
+  /**
+   * La sonnerie couvre l'application : c'est un dialogue à part entière.
+   * Le focus entre dans la fenêtre — sur elle, pas sur « Répondre », pour
+   * qu'une touche Entrée restée dans le composeur ne décroche pas — et
+   * revient là où l'utilisateur écrivait quand l'appel cesse.
+   */
+  useEffect(() => {
+    if (!ringing) return
+    const active = document.activeElement
+    const alreadyInside = active instanceof HTMLElement && !!overlayRef.current?.contains(active)
+    if (!alreadyInside) {
+      previousFocusRef.current = active instanceof HTMLElement ? active : null
+    }
+    const timer = setTimeout(() => overlayRef.current?.focus(), 0)
+    return () => {
+      clearTimeout(timer)
+      const previous = previousFocusRef.current
+      previousFocusRef.current = null
+      if (previous?.isConnected) previous.focus()
+    }
+  }, [ringing])
+
+  // Tab ne sort pas de la sonnerie : sinon le curseur repart dans le rail ou
+  // le composeur, derrière une fenêtre que l'on ne peut plus atteindre à la
+  // souris.
+  const trapTab = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return
+    const root = overlayRef.current
+    if (!root) return
+    const focusables = Array.from(
+      root.querySelectorAll<HTMLElement>('button:not([disabled])'),
+    )
+    if (focusables.length === 0) return
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    if (document.activeElement === root) {
+      e.preventDefault()
+      ;(e.shiftKey ? last : first).focus()
+    } else if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
 
   /**
    * Répondre et refuser se règlent à l'écran « Raccourcis ». La frappe est
@@ -59,10 +115,16 @@ export const IncomingCallOverlay: React.FC = () => {
     <AnimatePresence>
       {incomingCall && (
         <motion.div
+          ref={overlayRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${callKindLabel} — ${incomingCall.peerName}`}
+          tabIndex={-1}
+          onKeyDown={trapTab}
           className="fixed inset-0 z-[100] flex items-center justify-center"
           style={{ background: 'linear-gradient(180deg, #06060c 0%, #0a0a16 40%, #080812 100%)' }}
         >

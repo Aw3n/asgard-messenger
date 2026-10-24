@@ -9,7 +9,7 @@
  * touche d'aujourd'hui.
  */
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { IncomingCallOverlay } from '@/components/overlays/IncomingCallOverlay'
@@ -163,6 +163,65 @@ describe('frappes reconnues', () => {
     press('d', { ctrlKey: true, shiftKey: true })
     expect(accepted).not.toHaveBeenCalled()
     expect(rejected).not.toHaveBeenCalled()
+  })
+})
+
+describe('fenêtre d’appel entrant annoncée et tenue au clavier', () => {
+  it('se nomme comme un dialogue, avec le type d’appel et l’appelant', () => {
+    expect(
+      screen.getByRole('dialog', { name: 'calls.incomingAudioCall — Bob' }),
+    ).toBeInTheDocument()
+  })
+
+  it('suit le type d’appel quand il change', () => {
+    act(() => {
+      useCallStore.setState({ incomingCall: { ...ring(), type: 'video', peerName: 'Alice' } })
+    })
+    expect(
+      screen.getByRole('dialog', { name: 'calls.incomingVideoCall — Alice' }),
+    ).toBeInTheDocument()
+  })
+
+  it('entre dans la fenêtre sans décrocher', async () => {
+    const dialog = screen.getByRole('dialog')
+    await waitFor(() => expect(document.activeElement).toBe(dialog))
+    expect(accepted).not.toHaveBeenCalled()
+  })
+
+  it('garde Tab et Maj+Tab dans la fenêtre', async () => {
+    const dialog = screen.getByRole('dialog')
+    await waitFor(() => expect(document.activeElement).toBe(dialog))
+
+    fireEvent.keyDown(dialog, { key: 'Tab' })
+    expect(document.activeElement).toBe(decline())
+
+    fireEvent.keyDown(decline(), { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(answer())
+
+    fireEvent.keyDown(answer(), { key: 'Tab' })
+    expect(document.activeElement).toBe(decline())
+  })
+
+  it('ramène le focus là où l’utilisateur écrivait quand l’appel cesse', async () => {
+    cleanup()
+    act(() => {
+      useCallStore.setState({ incomingCall: null })
+    })
+    const composer = document.createElement('input')
+    document.body.appendChild(composer)
+    composer.focus()
+
+    act(() => {
+      useCallStore.setState({ incomingCall: ring() })
+    })
+    render(<IncomingCallOverlay />)
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('dialog')))
+
+    act(() => {
+      useCallStore.setState({ incomingCall: null })
+    })
+    expect(document.activeElement).toBe(composer)
+    composer.remove()
   })
 })
 
