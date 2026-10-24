@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Ezt a műveletet nem lehet visszavonni",
       "chat.clearConversationFailed": "Az üzenetek törlése nem sikerült",
       "chat.clearMessages": "Üzenetek törlése",
+      "chat.clearWarning": "A(z) {{name}} nevű partnerrel folytatott beszélgetés összes üzenete törlődik. A beszélgetés megmarad a listán.",
       "chat.conversationInfo": "Beszélgetés adatai",
       "chat.copyText": "Szöveg másolása",
       "chat.ctrlEnterToSave": "Ctrl+Enter a mentéshez",

@@ -6,7 +6,7 @@
  * échec d'un succès silencieux.
  */
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Contact, Conversation } from '@/types'
@@ -106,6 +106,11 @@ const openMenuItem = (label: string) => {
 /** La suppression passe par son dialogue : acquiescer déclenche l'appel. */
 const confirmDelete = () => fireEvent.click(screen.getByText('chat.deletePermanently'))
 
+/** L'effacement passe aussi par un dialogue : le bouton porte le même libellé que l'entrée. */
+const confirmClear = () => fireEvent.click(
+  within(screen.getByRole('dialog')).getByRole('button', { name: 'chat.clearMessages' }),
+)
+
 const errorToasts = () =>
   useUIStore.getState().toasts.filter((toast) => toast.type === 'error')
 
@@ -135,6 +140,7 @@ describe('échec de suppression ou d’effacement', () => {
     )
 
     openMenuItem('chat.clearMessages')
+    confirmClear()
 
     await waitFor(() => {
       expect(errorToasts().map((toast) => toast.title)).toEqual(['chat.clearConversationFailed'])
@@ -155,6 +161,7 @@ describe('échec de suppression ou d’effacement', () => {
     await waitFor(() => expect(deleteConversation).toHaveBeenCalledWith(direct.id))
 
     openMenuItem('chat.clearMessages')
+    confirmClear()
     await waitFor(() => expect(clearConversation).toHaveBeenCalledWith(direct.id))
 
     expect(errorToasts()).toHaveLength(0)

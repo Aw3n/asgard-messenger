@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Denne handling kan ikke fortrydes",
       "chat.clearConversationFailed": "Kunne ikke rydde beskederne",
       "chat.clearMessages": "Ryd beskeder",
+      "chat.clearWarning": "Alle beskeder i din samtale med {{name}} ryddes. Samtalen bliver i din liste.",
       "chat.conversationInfo": "Samtaleinfo",
       "chat.copyText": "Kopiér tekst",
       "chat.ctrlEnterToSave": "Ctrl+Enter for at gemme",

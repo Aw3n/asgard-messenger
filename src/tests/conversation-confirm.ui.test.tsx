@@ -1,10 +1,10 @@
 /**
- * Supprimer une conversation depuis la liste demande d'abord.
+ * Supprimer ou effacer une conversation depuis la liste demande d'abord.
  *
- * Le menu de la rangée appelait `chatService.deleteConversation` au premier clic,
- * alors que le même bouton dans l'en-tête du fil ouvrait un dialogue. La rangée
- * nomme maintenant son interlocuteur dans l'avertissement, et rien ne part avant
- * l'acquiescement : ni « Annuler », ni la touche de fermeture réglée.
+ * Le menu de la rangée appelait le service au premier clic, alors que le même
+ * bouton dans l'en-tête du fil ouvrait un dialogue. La rangée nomme maintenant
+ * son interlocuteur dans l'avertissement, et rien ne part avant l'acquiescement :
+ * ni « Annuler », ni la touche de fermeture réglée.
  */
 import React from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -67,6 +67,7 @@ const contact: Contact = {
 }
 
 let deleteMock: MockInstance<typeof chatService.deleteConversation>
+let clearMock: MockInstance<typeof chatService.clearConversation>
 
 const renderList = () => render(
   <MemoryRouter>
@@ -91,11 +92,13 @@ beforeEach(() => {
   useGroupStore.setState({ groups: {} })
   useNetworkStore.setState({ typingUsers: {} })
   deleteMock = vi.spyOn(chatService, 'deleteConversation').mockResolvedValue(undefined)
+  clearMock = vi.spyOn(chatService, 'clearConversation').mockResolvedValue(undefined)
 })
 
 afterEach(() => {
   cleanup()
   deleteMock.mockRestore()
+  clearMock.mockRestore()
 })
 
 describe('suppression depuis la liste', () => {
@@ -135,5 +138,35 @@ describe('suppression depuis la liste', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(deleteMock).not.toHaveBeenCalled()
+  })
+})
+
+/** Ouvre le menu de la rangée puis l'entrée d'effacement. */
+const askClear = () => {
+  fireEvent.contextMenu(screen.getByRole('button', { name: /Bob/ }))
+  fireEvent.click(screen.getByText('chat.clearMessages'))
+}
+
+describe('effacement des messages depuis la liste', () => {
+  it('ouvre un dialogue nommé et n’efface rien avant l’acquiescement', async () => {
+    renderList()
+    askClear()
+
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveAccessibleName('chat.clearMessages')
+    expect(within(dialog).getByText('chat.clearWarning Bob')).toBeInTheDocument()
+    expect(clearMock).not.toHaveBeenCalled()
+  })
+
+  it('efface après confirmation, sans supprimer la conversation', async () => {
+    renderList()
+    askClear()
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'chat.clearMessages' }))
+
+    await waitFor(() => expect(clearMock).toHaveBeenCalledWith('conv-direct'))
+    expect(deleteMock).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })

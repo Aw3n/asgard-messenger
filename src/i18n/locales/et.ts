@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Seda toimingut ei saa tagasi võtta",
       "chat.clearConversationFailed": "Sõnumite tühjendamine ebaõnnestus",
       "chat.clearMessages": "Kustuta sõnumid",
+      "chat.clearWarning": "Kõik sõnumid vestlusest kasutajaga {{name}} kustutatakse. Vestlus jääb teie loendisse.",
       "chat.conversationInfo": "Vestluse teave",
       "chat.copyText": "Kopeeri tekst",
       "chat.ctrlEnterToSave": "Ctrl+Enter salvestamiseks",

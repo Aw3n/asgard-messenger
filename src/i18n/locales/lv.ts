@@ -75,6 +75,7 @@ export default {
       "chat.cannotUndo": "Šo darbību nevar atsaukt",
       "chat.clearConversationFailed": "Neizdevās notīrīt ziņojumus",
       "chat.clearMessages": "Notīrīt ziņas",
+      "chat.clearWarning": "Visi ziņojumi sarunā ar {{name}} tiks dzēsti. Saruna paliks jūsu sarakstā.",
       "chat.conversationInfo": "Sarunas informācija",
       "chat.copyText": "Kopēt tekstu",
       "chat.ctrlEnterToSave": "Ctrl+Enter, lai saglabātu",

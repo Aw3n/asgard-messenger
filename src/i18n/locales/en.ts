@@ -265,6 +265,7 @@ export default {
       "chat.newConversation": "New conversation",
       "chat.clearConversationFailed": "Could not clear the messages",
       "chat.clearMessages": "Clear messages",
+      "chat.clearWarning": "All messages in your conversation with {{name}} will be cleared. The conversation stays in your list.",
       "chat.noConversationsFound": "No conversations found",
       "chat.noConversationsYet": "No conversations yet",
       "chat.addContactToStart": "Add a contact to start messaging",

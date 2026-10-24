@@ -75,6 +75,7 @@ export default {
       "chat.cannotUndo": "Šio veiksmo negalima atšaukti",
       "chat.clearConversationFailed": "Nepavyko išvalyti pranešimų",
       "chat.clearMessages": "Išvalyti žinutes",
+      "chat.clearWarning": "Visi pranešimai iš pokalbio su {{name}} bus išvalyti. Pokalbis liks jūsų sąraše.",
       "chat.conversationInfo": "Pokalbio informacija",
       "chat.copyText": "Kopijuoti tekstą",
       "chat.ctrlEnterToSave": "Ctrl+Enter, kad išsaugotumėte",

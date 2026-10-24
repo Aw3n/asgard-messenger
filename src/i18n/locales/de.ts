@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Diese Aktion kann nicht rückgängig gemacht werden",
       "chat.clearConversationFailed": "Nachrichten konnten nicht gelöscht werden",
       "chat.clearMessages": "Nachrichten löschen",
+      "chat.clearWarning": "Alle Nachrichten Ihrer Unterhaltung mit {{name}} werden gelöscht. Die Unterhaltung bleibt in Ihrer Liste.",
       "chat.conversationInfo": "Unterhaltungsinfo",
       "chat.copyText": "Text kopieren",
       "chat.ctrlEnterToSave": "Ctrl+Enter zum Speichern",

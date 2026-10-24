@@ -75,6 +75,7 @@ export default {
       "chat.cannotUndo": "Tuto akci nelze vrátit zpět",
       "chat.clearConversationFailed": "Zprávy se nepodařilo vymazat",
       "chat.clearMessages": "Vymazat zprávy",
+      "chat.clearWarning": "Všechny zprávy z konverzace s {{name}} budou vymazány. Konverzace zůstane ve vašem seznamu.",
       "chat.conversationInfo": "Informace o konverzaci",
       "chat.copyText": "Kopírovat text",
       "chat.ctrlEnterToSave": "Ctrl+Enter pro uložení",

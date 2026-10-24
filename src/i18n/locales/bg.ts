@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Това действие не може да бъде отменено",
       "chat.clearConversationFailed": "Съобщенията не можаха да бъдат изчистени",
       "chat.clearMessages": "Изчистване на съобщенията",
+      "chat.clearWarning": "Всички съобщения във вашия разговор с {{name}} ще бъдат изчистени. Разговорът остава в списъка ви.",
       "chat.conversationInfo": "Информация за разговора",
       "chat.copyText": "Копирай текста",
       "chat.ctrlEnterToSave": "Ctrl+Enter за запазване",

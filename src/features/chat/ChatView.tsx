@@ -14,7 +14,7 @@ import { MessageInput } from './components/MessageInput'
 import { PendingContactBanner } from './components/PendingContactBanner'
 import { ForwardModal } from './components/ForwardModal'
 import { MessageDeleteConfirm } from './components/MessageDeleteConfirm'
-import { ConversationDeleteConfirm } from './components/ConversationDeleteConfirm'
+import { ConversationConfirm } from './components/ConversationConfirm'
 import { ActiveTransfersWidget } from './components/ActiveTransfersWidget'
 import { Avatar } from '@/components/ui/Avatar'
 import { MuteButton } from '@/components/ui/MuteButton'
@@ -802,7 +802,8 @@ export const ChatView: React.FC = () => {
       {/* Delete conversation confirmation modal */}
       <AnimatePresence>
         {showDeleteConfirm && (
-          <ConversationDeleteConfirm
+          <ConversationConfirm
+            variant="delete"
             name={displayName}
             onCancel={() => setShowDeleteConfirm(false)}
             onConfirm={async () => {

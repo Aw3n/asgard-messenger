@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Deze actie kan niet ongedaan worden gemaakt",
       "chat.clearConversationFailed": "Berichten wissen mislukt",
       "chat.clearMessages": "Berichten wissen",
+      "chat.clearWarning": "Alle berichten van uw gesprek met {{name}} worden gewist. Het gesprek blijft in uw lijst staan.",
       "chat.conversationInfo": "Gespreksinformatie",
       "chat.copyText": "Tekst kopiëren",
       "chat.ctrlEnterToSave": "Ctrl+Enter om op te slaan",

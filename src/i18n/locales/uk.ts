@@ -241,6 +241,7 @@ export default {
       "chat.newConversation": "Нова розмова",
       "chat.clearConversationFailed": "Не вдалося очистити повідомлення",
       "chat.clearMessages": "Очистити повідомлення",
+      "chat.clearWarning": "Усі повідомлення з вашої розмови з {{name}} буде очищено. Розмова залишиться у вашому списку.",
       "chat.noConversationsFound": "Розмов не знайдено",
       "chat.noConversationsYet": "Розмов поки немає",
       "chat.addContactToStart": "Додайте контакт, щоб почати спілкування",

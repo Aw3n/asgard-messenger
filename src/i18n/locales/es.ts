@@ -75,6 +75,7 @@ export default {
       "chat.cannotUndo": "Esta acción no se puede deshacer",
       "chat.clearConversationFailed": "No se pudieron borrar los mensajes",
       "chat.clearMessages": "Borrar mensajes",
+      "chat.clearWarning": "Todos los mensajes de tu conversación con {{name}} se borrarán. La conversación permanecerá en tu lista.",
       "chat.conversationInfo": "Info de conversación",
       "chat.copyText": "Copiar texto",
       "chat.ctrlEnterToSave": "Ctrl+Intro para guardar",

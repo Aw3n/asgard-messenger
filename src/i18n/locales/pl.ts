@@ -75,6 +75,7 @@ export default {
       "chat.cannotUndo": "Tej czynności nie można cofnąć",
       "chat.clearConversationFailed": "Nie udało się wyczyścić wiadomości",
       "chat.clearMessages": "Wyczyść wiadomości",
+      "chat.clearWarning": "Wszystkie wiadomości z rozmowy z {{name}} zostaną wyczyszczone. Rozmowa pozostanie na Twojej liście.",
       "chat.conversationInfo": "Informacje o rozmowie",
       "chat.copyText": "Kopiuj tekst",
       "chat.ctrlEnterToSave": "Ctrl+Enter, aby zapisać",

@@ -1,9 +1,10 @@
 /**
- * ConversationDeleteConfirm — le dialogue qui sépare la demande de l'effacement.
+ * ConversationConfirm — le dialogue qui sépare la demande de l'effacement.
  *
- * Supprimer une conversation efface ses messages et ses fichiers : la rangée de
- * la liste et l'en-tête du fil ouvrent donc le même dialogue, avec le même nom
- * et la même touche de fermeture réglée. Le focus revient au déclencheur.
+ * Supprimer une conversation efface ses messages et ses fichiers ; effacer les
+ * messages vide le fil sans retirer la conversation. Les deux passent par ce
+ * dialogue, avec le nom de l'interlocuteur et la touche de fermeture réglée.
+ * Le focus revient au déclencheur.
  */
 import React from 'react'
 import { motion } from 'framer-motion'
@@ -11,13 +12,34 @@ import { useTranslation } from 'react-i18next'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
 
-interface ConversationDeleteConfirmProps {
+export type ConversationConfirmVariant = 'delete' | 'clear'
+
+const LABELS: Record<ConversationConfirmVariant, {
+  title: string
+  warning: string
+  confirm: string
+}> = {
+  delete: {
+    title: 'chat.deleteConversation',
+    warning: 'chat.deleteWarning',
+    confirm: 'chat.deletePermanently',
+  },
+  clear: {
+    title: 'chat.clearMessages',
+    warning: 'chat.clearWarning',
+    confirm: 'chat.clearMessages',
+  },
+}
+
+interface ConversationConfirmProps {
+  variant: ConversationConfirmVariant
   name: string
   onCancel: () => void
   onConfirm: () => void
 }
 
-export const ConversationDeleteConfirm: React.FC<ConversationDeleteConfirmProps> = ({
+export const ConversationConfirm: React.FC<ConversationConfirmProps> = ({
+  variant,
   name,
   onCancel,
   onConfirm,
@@ -27,6 +49,7 @@ export const ConversationDeleteConfirm: React.FC<ConversationDeleteConfirmProps>
   const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
   const titleId = React.useId()
   const warningId = React.useId()
+  const labels = LABELS[variant]
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -56,12 +79,12 @@ export const ConversationDeleteConfirm: React.FC<ConversationDeleteConfirmProps>
             </svg>
           </div>
           <div>
-            <h3 id={titleId} className="text-sm font-semibold text-asgard-text-primary">{t('chat.deleteConversation')}</h3>
+            <h3 id={titleId} className="text-sm font-semibold text-asgard-text-primary">{t(labels.title)}</h3>
             <p className="text-xs text-asgard-text-muted">{t('chat.cannotUndo')}</p>
           </div>
         </div>
         <p id={warningId} className="text-sm text-asgard-text-secondary mb-5">
-          {t('chat.deleteWarning', { name })}
+          {t(labels.warning, { name })}
         </p>
         <div className="flex gap-2 justify-end">
           <button
@@ -76,7 +99,7 @@ export const ConversationDeleteConfirm: React.FC<ConversationDeleteConfirmProps>
             onClick={onConfirm}
             className="px-4 py-2 text-sm rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors font-medium"
           >
-            {t('chat.deletePermanently')}
+            {t(labels.confirm)}
           </button>
         </div>
       </motion.div>

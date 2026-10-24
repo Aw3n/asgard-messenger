@@ -75,6 +75,7 @@ export default {
       "chat.cannotUndo": "Cette action est irréversible",
       "chat.clearConversationFailed": "Impossible d'effacer les messages",
       "chat.clearMessages": "Effacer les messages",
+      "chat.clearWarning": "Tous les messages de votre conversation avec {{name}} seront effacés. La conversation restera dans votre liste.",
       "chat.conversationInfo": "Informations sur la conversation",
       "chat.copyText": "Copier le texte",
       "chat.ctrlEnterToSave": "Ctrl+Entrée pour enregistrer",

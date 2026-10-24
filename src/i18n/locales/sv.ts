@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Denna åtgärd kan inte ångras",
       "chat.clearConversationFailed": "Det gick inte att rensa meddelandena",
       "chat.clearMessages": "Rensa meddelanden",
+      "chat.clearWarning": "Alla meddelanden i din konversation med {{name}} raderas. Konversationen finns kvar i din lista.",
       "chat.conversationInfo": "Konversationsinfo",
       "chat.copyText": "Kopiera text",
       "chat.ctrlEnterToSave": "Ctrl+Enter för att spara",

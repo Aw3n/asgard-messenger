@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Tätä toimintoa ei voi perua",
       "chat.clearConversationFailed": "Viestien tyhjentäminen epäonnistui",
       "chat.clearMessages": "Tyhjennä viestit",
+      "chat.clearWarning": "Kaikki viestit keskustelustasi käyttäjän {{name}} kanssa tyhjennetään. Keskustelu jää luetteloosi.",
       "chat.conversationInfo": "Keskustelun tiedot",
       "chat.copyText": "Kopioi teksti",
       "chat.ctrlEnterToSave": "Ctrl+Enter tallentaaksesi",

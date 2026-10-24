@@ -77,6 +77,7 @@ export default {
       "chat.cannotUndo": "Din l-azzjoni ma tistax tiġi mwaqqfa",
       "chat.clearConversationFailed": "Ma rnexxielux tnaddaf il-messaġġi",
       "chat.clearMessages": "Ħassar il-messaġġi",
+      "chat.clearWarning": "Il-messaġġi kollha fil-konversazzjoni tiegħek ma’ {{name}} jitħassru. Il-konversazzjoni tibqa’ fil-lista tiegħek.",
       "chat.conversationInfo": "Informazzjoni tal-konverżazzjoni",
       "chat.copyText": "Ikkopja test",
       "chat.ctrlEnterToSave": "Ctrl+Enter biex tissejvja",

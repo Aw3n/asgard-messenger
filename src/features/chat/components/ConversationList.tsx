@@ -10,7 +10,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { chatService } from '@/services/ChatService'
-import { ConversationDeleteConfirm } from './ConversationDeleteConfirm'
+import { ConversationConfirm, type ConversationConfirmVariant } from './ConversationConfirm'
 import { formatConversationTime } from '@/utils/time'
 import { cn } from '@/utils/cn'
 import { MUTE_DURATIONS } from '@/utils/mute'
@@ -71,14 +71,18 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     y: number
     fromKeyboard?: boolean
   } | null>(null)
-  // Supprimer efface messages et fichiers : la rangée demande d'abord, comme
-  // l'en-tête du fil, au lieu d'agir sur un clic de menu.
-  const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null)
+  // Supprimer efface messages et fichiers, effacer vide le fil : la rangée
+  // demande d'abord, comme l'en-tête du fil, au lieu d'agir sur un clic de menu.
+  const [pendingAction, setPendingAction] = useState<{
+    conv: Conversation
+    kind: ConversationConfirmVariant
+  } | null>(null)
   // Même repli que la rangée : le nom connu, sinon la clé tronquée.
-  const deleteTargetName = deleteTarget
-    ? deleteTarget.participantId
-      ? contacts[deleteTarget.participantId]?.displayName ?? deleteTarget.participantId.slice(0, 16)
-      : deleteTarget.id.slice(0, 16)
+  const pendingName = pendingAction
+    ? pendingAction.conv.participantId
+      ? contacts[pendingAction.conv.participantId]?.displayName
+        ?? pendingAction.conv.participantId.slice(0, 16)
+      : pendingAction.conv.id.slice(0, 16)
     : ''
   const menuRef = useRef<HTMLDivElement>(null)
   const menuTriggerRef = useRef<HTMLElement | null>(null)
@@ -143,7 +147,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
   }, [navigate, t])
 
   const handleClearConversation = useCallback(async (conv: Conversation) => {
-    setContextMenu(null)
     try {
       await chatService.clearConversation(conv.id)
     } catch (err) {
@@ -389,7 +392,10 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                 </svg>
               }
-              onClick={() => handleClearConversation(contextMenu.conv)}
+              onClick={() => {
+                setPendingAction({ conv: contextMenu.conv, kind: 'clear' })
+                setContextMenu(null)
+              }}
             />
             <div className="h-px bg-asgard-border my-0.5" />
             <ContextMenuItem
@@ -400,7 +406,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
                 </svg>
               }
               onClick={() => {
-                setDeleteTarget(contextMenu.conv)
+                setPendingAction({ conv: contextMenu.conv, kind: 'delete' })
                 setContextMenu(null)
               }}
               danger
@@ -410,14 +416,16 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
       </AnimatePresence>
 
       <AnimatePresence>
-        {deleteTarget && (
-          <ConversationDeleteConfirm
-            name={deleteTargetName}
-            onCancel={() => setDeleteTarget(null)}
+        {pendingAction && (
+          <ConversationConfirm
+            variant={pendingAction.kind}
+            name={pendingName}
+            onCancel={() => setPendingAction(null)}
             onConfirm={() => {
-              const target = deleteTarget
-              setDeleteTarget(null)
-              if (target) void handleDeleteConversation(target)
+              const action = pendingAction
+              setPendingAction(null)
+              if (action.kind === 'delete') void handleDeleteConversation(action.conv)
+              else void handleClearConversation(action.conv)
             }}
           />
         )}

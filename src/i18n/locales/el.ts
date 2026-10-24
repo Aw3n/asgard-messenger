@@ -74,6 +74,7 @@ export default {
       "chat.cannotUndo": "Αυτή η ενέργεια δεν μπορεί να αναιρεθεί",
       "chat.clearConversationFailed": "Αδυναμία εκκαθάρισης των μηνυμάτων",
       "chat.clearMessages": "Εκκαθάριση μηνυμάτων",
+      "chat.clearWarning": "Όλα τα μηνύματα της συνομιλίας σας με {{name}} θα διαγραφούν. Η συνομιλία παραμένει στη λίστα σας.",
       "chat.conversationInfo": "Πληροφορίες συνομιλίας",
       "chat.copyText": "Αντιγραφή κειμένου",
       "chat.ctrlEnterToSave": "Ctrl+Enter για αποθήκευση",

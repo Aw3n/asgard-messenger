@@ -77,6 +77,7 @@ export default {
       "chat.cannotUndo": "Ní féidir an gníomh seo a chur ar ceal",
       "chat.clearConversationFailed": "Níorbh fhéidir na teachtaireachtaí a ghlanadh",
       "chat.clearMessages": "Glan teachtaireachtaí",
+      "chat.clearWarning": "Scriosfar gach teachtaireacht ó do chomhrá le {{name}}. Fanfaidh an comhrá ar do liosta.",
       "chat.conversationInfo": "Eolas an Chomhrá",
       "chat.copyText": "Cóipeáil Téacs",
       "chat.ctrlEnterToSave": "Ctrl+Enter a shábháil",

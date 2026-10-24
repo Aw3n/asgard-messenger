@@ -75,6 +75,7 @@ export default {
       "chat.cannotUndo": "Questa azione non può essere annullata",
       "chat.clearConversationFailed": "Impossibile cancellare i messaggi",
       "chat.clearMessages": "Cancella messaggi",
+      "chat.clearWarning": "Tutti i messaggi della tua conversazione con {{name}} verranno cancellati. La conversazione resterà nel tuo elenco.",
       "chat.conversationInfo": "Info conversazione",
       "chat.copyText": "Copia testo",
       "chat.ctrlEnterToSave": "Ctrl+Invio per salvare",

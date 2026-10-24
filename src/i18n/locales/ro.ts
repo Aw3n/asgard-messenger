@@ -75,6 +75,7 @@ export default {
       "chat.cannotUndo": "Această acțiune nu poate fi anulată",
       "chat.clearConversationFailed": "Mesajele nu au putut fi golite",
       "chat.clearMessages": "Șterge mesajele",
+      "chat.clearWarning": "Toate mesajele din conversația cu {{name}} vor fi șterse. Conversația rămâne în lista dvs.",
       "chat.conversationInfo": "Informații conversație",
       "chat.copyText": "Copiază textul",
       "chat.ctrlEnterToSave": "Ctrl+Enter pentru salvare",

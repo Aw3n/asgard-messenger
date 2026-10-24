@@ -76,6 +76,7 @@ export default {
       "chat.cannotUndo": "Tega dejanja ni mogoče razveljaviti",
       "chat.clearConversationFailed": "Sporočil ni bilo mogoče počistiti",
       "chat.clearMessages": "Počisti sporočila",
+      "chat.clearWarning": "Vsa sporočila v pogovoru z {{name}} bodo izbrisana. Pogovor bo ostal na vašem seznamu.",
       "chat.conversationInfo": "Informacije o pogovoru",
       "chat.copyText": "Kopiraj besedilo",
       "chat.ctrlEnterToSave": "Ctrl+Enter za shranjevanje",
