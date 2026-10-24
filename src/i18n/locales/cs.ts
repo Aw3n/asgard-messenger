@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Zablokovat tohoto peera?",
       "settings.blockPeer": "Zablokovat tohoto peera",
       "settings.blockedPeers": "Blokovaní peerové",
+      "settings.blockedPeersLoadFailed": "Blokované peery se nepodařilo načíst",
+      "settings.blockedPeersUnblockFailed": "Tento peer se nepodařilo odblokovat",
       "settings.borderColor": "Barva ohraničení",
       "settings.borderRadius": "Poloměr zaoblení",
       "settings.changePhoto": "Změnit fotku",

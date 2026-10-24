@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Estä tämä vertainen?",
       "settings.blockPeer": "Estä tämä vertainen",
       "settings.blockedPeers": "Estetyt vertaiset",
+      "settings.blockedPeersLoadFailed": "Estettyjen vertaisten lataaminen epäonnistui",
+      "settings.blockedPeersUnblockFailed": "Tämän vertaisen eston poistaminen epäonnistui",
       "settings.borderColor": "Reunaväri",
       "settings.borderRadius": "Kulmasäde",
       "settings.changePhoto": "Vaihda kuva",

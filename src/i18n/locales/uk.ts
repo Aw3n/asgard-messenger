@@ -373,6 +373,8 @@ export default {
       "groups.memberJoined": "приєднався до групи",
       "groups.memberLeft": "покинув групу",
       "settings.blockedPeers": "Заблоковані піри",
+      "settings.blockedPeersLoadFailed": "Не вдалося завантажити заблокованих учасників",
+      "settings.blockedPeersUnblockFailed": "Не вдалося розблокувати цього учасника",
       "settings.noBlockedPeers": "Немає заблокованих пірів",
       "settings.blockPeer": "Заблокувати пір",
       "settings.peerUnblocked": "Пір розблоковано",

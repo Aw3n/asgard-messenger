@@ -425,6 +425,8 @@ export default {
       "settings.blockConfirm": "Diesen Peer blockieren?",
       "settings.blockPeer": "Diesen Peer blockieren",
       "settings.blockedPeers": "Blockierte Peers",
+      "settings.blockedPeersLoadFailed": "Blockierte Peers konnten nicht geladen werden",
+      "settings.blockedPeersUnblockFailed": "Dieser Peer konnte nicht entblockt werden",
       "settings.borderColor": "Rahmenfarbe",
       "settings.borderRadius": "Eckenradius",
       "settings.changePhoto": "Foto ändern",

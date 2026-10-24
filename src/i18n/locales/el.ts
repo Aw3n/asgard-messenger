@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Αποκλεισμός αυτού του peer;",
       "settings.blockPeer": "Αποκλεισμός αυτού του peer",
       "settings.blockedPeers": "Αποκλεισμένοι peers",
+      "settings.blockedPeersLoadFailed": "Δεν ήταν δυνατή η φόρτωση των αποκλεισμένων ομότιμων",
+      "settings.blockedPeersUnblockFailed": "Δεν ήταν δυνατή η κατάργηση του αποκλεισμού αυτού του ομότιμου",
       "settings.borderColor": "Χρώμα περιγράμματος",
       "settings.borderRadius": "Ακτίνα γωνίας",
       "settings.changePhoto": "Αλλαγή φωτογραφίας",

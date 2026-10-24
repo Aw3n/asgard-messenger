@@ -443,6 +443,8 @@ export default {
       "settings.blockConfirm": "Bloquer ce pair ?",
       "settings.blockPeer": "Bloquer ce pair",
       "settings.blockedPeers": "Pairs bloqués",
+      "settings.blockedPeersLoadFailed": "Impossible de charger les pairs bloqués",
+      "settings.blockedPeersUnblockFailed": "Impossible de débloquer ce pair",
       "settings.borderColor": "Couleur de bordure",
       "settings.borderRadius": "Arrondi des coins",
       "settings.builtWith": "Construit avec : Electron, React, TypeScript, Hyperswarm",

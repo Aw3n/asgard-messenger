@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Blockera denna peer?",
       "settings.blockPeer": "Blockera denna peer",
       "settings.blockedPeers": "Blockerade peers",
+      "settings.blockedPeersLoadFailed": "Blockerade peers kunde inte laddas",
+      "settings.blockedPeersUnblockFailed": "Det gick inte att häva blockeringen av denna peer",
       "settings.borderColor": "Kantfärg",
       "settings.borderRadius": "Hörnradie",
       "settings.changePhoto": "Byt bild",

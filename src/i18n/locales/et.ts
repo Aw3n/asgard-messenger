@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Blokeeri see sõlm?",
       "settings.blockPeer": "Blokeeri see sõlm",
       "settings.blockedPeers": "Blokeeritud sõlmed",
+      "settings.blockedPeersLoadFailed": "Blokeeritud partnerite laadimine ebaõnnestus",
+      "settings.blockedPeersUnblockFailed": "Selle partneri blokeeringu eemaldamine ebaõnnestus",
       "settings.borderColor": "Äärisvärv",
       "settings.borderRadius": "Nurga raadius",
       "settings.changePhoto": "Vaheta foto",

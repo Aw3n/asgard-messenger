@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Letiltod ezt a peer-t?",
       "settings.blockPeer": "Peer letiltása",
       "settings.blockedPeers": "Letiltott peer-ek",
+      "settings.blockedPeersLoadFailed": "Nem sikerült betölteni a letiltott partnereket",
+      "settings.blockedPeersUnblockFailed": "Nem sikerült feloldani ennek a partnernek a letiltását",
       "settings.borderColor": "Szegélyszín",
       "settings.borderRadius": "Sarokkerekítés",
       "settings.changePhoto": "Fotó módosítása",

@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Blochează acest peer?",
       "settings.blockPeer": "Blochează acest peer",
       "settings.blockedPeers": "Peer-uri blocate",
+      "settings.blockedPeersLoadFailed": "Peerii blocați nu au putut fi încărcați",
+      "settings.blockedPeersUnblockFailed": "Acest peer nu a putut fi deblocat",
       "settings.borderColor": "Culoare contur",
       "settings.borderRadius": "Raza colțurilor",
       "settings.changePhoto": "Schimbă fotografia",

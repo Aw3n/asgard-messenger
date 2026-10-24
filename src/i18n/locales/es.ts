@@ -425,6 +425,8 @@ export default {
       "settings.blockConfirm": "¿Bloquear este par?",
       "settings.blockPeer": "Bloquear este par",
       "settings.blockedPeers": "Pares bloqueados",
+      "settings.blockedPeersLoadFailed": "No se pudieron cargar los pares bloqueados",
+      "settings.blockedPeersUnblockFailed": "No se pudo desbloquear este par",
       "settings.borderColor": "Color de borde",
       "settings.borderRadius": "Radio de esquina",
       "settings.changePhoto": "Cambiar foto",

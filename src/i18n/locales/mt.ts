@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Imblokka dan il-peer?",
       "settings.blockPeer": "Imblokka dan il-peer",
       "settings.blockedPeers": "Peer imblukkati",
+      "settings.blockedPeersLoadFailed": "Ma setgħetx tgħabbi l-peers imblukkati",
+      "settings.blockedPeersUnblockFailed": "Ma setgħetx tħoll il-blokk ta' dan il-peer",
       "settings.borderColor": "Kulur tal-konfini",
       "settings.borderRadius": "Raġġu tal-kantunieri",
       "settings.changePhoto": "Ibdel ir-ritratt",

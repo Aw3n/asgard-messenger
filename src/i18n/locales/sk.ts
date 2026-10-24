@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Zablokovať tento uzol?",
       "settings.blockPeer": "Zablokovať tento uzol",
       "settings.blockedPeers": "Blokované uzly",
+      "settings.blockedPeersLoadFailed": "Blokovaných peerov sa nepodarilo načítať",
+      "settings.blockedPeersUnblockFailed": "Tohoto peera sa nepodarilo odblokovať",
       "settings.borderColor": "Farba okraja",
       "settings.borderRadius": "Polomer okraja",
       "settings.changePhoto": "Zmeniť fotografiu",

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/cn'
 import { useTranslation } from 'react-i18next'
 import { useContactStore } from '@/stores/contactStore'
+import { useUIStore } from '@/stores/uiStore'
 
 /**
  * BlockedPeersManager — manage blocked/banned peers.
@@ -12,18 +13,25 @@ export const BlockedPeersManager: React.FC<{ onClose?: () => void }> = ({ onClos
   const { t } = useTranslation()
   const [blockedPeers, setBlockedPeers] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const contacts = useContactStore((s) => s.contacts)
+  const addToast = useUIStore((s) => s.addToast)
 
   useEffect(() => {
     loadBlockedPeers()
   }, [])
 
   const loadBlockedPeers = async () => {
+    setLoading(true)
+    setLoadFailed(false)
     try {
       const peers = await window.asgard.network.getBlockedPeers()
       setBlockedPeers(peers)
     } catch (err) {
       console.error('[BlockedPeersManager] Failed to load blocked peers:', err)
+      // Sans cet état, la liste vide se lisait « aucun pair bloqué » : une
+      // lecture ratée devenait une affirmation fausse.
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -48,6 +56,7 @@ export const BlockedPeersManager: React.FC<{ onClose?: () => void }> = ({ onClos
       }
     } catch (err) {
       console.error('[BlockedPeersManager] Failed to unblock peer:', err)
+      addToast({ type: 'error', title: t('settings.blockedPeersUnblockFailed') })
     }
   }
 
@@ -90,6 +99,16 @@ export const BlockedPeersManager: React.FC<{ onClose?: () => void }> = ({ onClos
       {loading ? (
         <div className="flex items-center justify-center py-8">
           <div className="w-5 h-5 border-2 border-asgard-glacier border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : loadFailed ? (
+        <div className="text-center py-6 space-y-2">
+          <p className="text-sm text-red-400">{t('settings.blockedPeersLoadFailed')}</p>
+          <button
+            onClick={loadBlockedPeers}
+            className="text-xs text-asgard-glacier hover:underline"
+          >
+            {t('common.retry')}
+          </button>
         </div>
       ) : blockedPeers.length === 0 ? (
         <p className="text-sm text-asgard-text-muted text-center py-6">

@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Блокиране на този връстник?",
       "settings.blockPeer": "Блокирай този връстник",
       "settings.blockedPeers": "Блокирани връстници",
+      "settings.blockedPeersLoadFailed": "Блокираните партньори не можаха да бъдат заредени",
+      "settings.blockedPeersUnblockFailed": "Този партньор не можа да бъде отблокиран",
       "settings.borderColor": "Цвят на рамката",
       "settings.borderRadius": "Радиус на ъгълите",
       "settings.changePhoto": "Смяна на снимка",

@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Blokiraj ovog peera?",
       "settings.blockPeer": "Blokiraj ovog peera",
       "settings.blockedPeers": "Blokirani peerovi",
+      "settings.blockedPeersLoadFailed": "Nije moguće učitati blokirane partnere",
+      "settings.blockedPeersUnblockFailed": "Nije moguće odblokirati ovog partnera",
       "settings.borderColor": "Boja ruba",
       "settings.borderRadius": "Radijus ruba",
       "settings.changePhoto": "Promijeni sliku",

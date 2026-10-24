@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Bloker denne peer?",
       "settings.blockPeer": "Bloker denne peer",
       "settings.blockedPeers": "Blokerede peers",
+      "settings.blockedPeersLoadFailed": "Blokerede peers kunne ikke indlæses",
+      "settings.blockedPeersUnblockFailed": "Denne peer kunne ikke fjernes fra blokeringen",
       "settings.borderColor": "Kantfarve",
       "settings.borderRadius": "Hjørneradius",
       "settings.changePhoto": "Skift billede",

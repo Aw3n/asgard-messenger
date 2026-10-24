@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Bac an piaraí seo?",
       "settings.blockPeer": "Bac an piaraí seo",
       "settings.blockedPeers": "Piaraí blocáilte",
+      "settings.blockedPeersLoadFailed": "Níorbh fhéidir na piaraí blocáilte a lódáil",
+      "settings.blockedPeersUnblockFailed": "Níorbh fhéidir an piara seo a dhíblocáil",
       "settings.borderColor": "Dath na teorann",
       "settings.borderRadius": "Ga na himper",
       "settings.changePhoto": "Athraigh an Grianghraf",

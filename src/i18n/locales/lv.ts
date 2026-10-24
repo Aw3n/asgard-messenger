@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Bloķēt šo dalībnieku?",
       "settings.blockPeer": "Bloķēt šo dalībnieku",
       "settings.blockedPeers": "Bloķēti dalībnieki",
+      "settings.blockedPeersLoadFailed": "Nevarēja ielādēt bloķētos vienaudžus",
+      "settings.blockedPeersUnblockFailed": "Nevarēja atbloķēt šo vienaudzi",
       "settings.borderColor": "Malas krāsa",
       "settings.borderRadius": "Stūru rādiuss",
       "settings.changePhoto": "Mainīt foto",

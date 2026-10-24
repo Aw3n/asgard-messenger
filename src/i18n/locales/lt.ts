@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Užblokuoti šį bendraamžį?",
       "settings.blockPeer": "Užblokuoti šį bendraamžį",
       "settings.blockedPeers": "Užblokuoti bendraamžiai",
+      "settings.blockedPeersLoadFailed": "Nepavyko įkelti užblokuotų bendraamžių",
+      "settings.blockedPeersUnblockFailed": "Nepavyko atblokuoti šio bendraamžio",
       "settings.borderColor": "Rėmelio spalva",
       "settings.borderRadius": "Kampų spindulys",
       "settings.changePhoto": "Keisti nuotrauką",

@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Zablokować ten węzeł?",
       "settings.blockPeer": "Zablokuj ten węzeł",
       "settings.blockedPeers": "Zablokowane węzły",
+      "settings.blockedPeersLoadFailed": "Nie udało się wczytać zablokowanych peerów",
+      "settings.blockedPeersUnblockFailed": "Nie udało się odblokować tego peera",
       "settings.borderColor": "Kolor obramowania",
       "settings.borderRadius": "Promień zaokrąglenia",
       "settings.changePhoto": "Zmień zdjęcie",

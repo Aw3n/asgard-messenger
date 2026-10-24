@@ -407,6 +407,8 @@ export default {
       "settings.blockConfirm": "Blokiraj tega vrstnika?",
       "settings.blockPeer": "Blokiraj tega vrstnika",
       "settings.blockedPeers": "Blokirani vrstniki",
+      "settings.blockedPeersLoadFailed": "Blokiranih sopotnikov ni bilo mogoče naložiti",
+      "settings.blockedPeersUnblockFailed": "Tega sopotnika ni bilo mogoče odblokirati",
       "settings.borderColor": "Barva obrobe",
       "settings.borderRadius": "Polmer robov",
       "settings.changePhoto": "Spremeni fotografijo",

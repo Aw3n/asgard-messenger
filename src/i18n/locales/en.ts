@@ -401,6 +401,8 @@ export default {
       "groups.memberJoined": "joined the group",
       "groups.memberLeft": "left the group",
       "settings.blockedPeers": "Blocked peers",
+      "settings.blockedPeersLoadFailed": "Could not load blocked peers",
+      "settings.blockedPeersUnblockFailed": "Could not unblock this peer",
       "settings.noBlockedPeers": "No blocked peers",
       "settings.blockPeer": "Block peer",
       "settings.peerUnblocked": "Peer unblocked",

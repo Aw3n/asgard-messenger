@@ -425,6 +425,8 @@ export default {
       "settings.blockConfirm": "Bloccare questo peer?",
       "settings.blockPeer": "Blocca questo peer",
       "settings.blockedPeers": "Peer bloccati",
+      "settings.blockedPeersLoadFailed": "Impossibile caricare i peer bloccati",
+      "settings.blockedPeersUnblockFailed": "Impossibile sbloccare questo peer",
       "settings.borderColor": "Colore bordo",
       "settings.borderRadius": "Raggio bordo",
       "settings.changePhoto": "Cambia foto",
