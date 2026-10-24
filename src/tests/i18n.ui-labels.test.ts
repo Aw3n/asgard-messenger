@@ -93,7 +93,7 @@ describe('rendu i18next des libellés corrigés', () => {
 })
 
 /**
- * Les six libellés de comptage passent par le pluriel d'i18next.
+ * Les libellés de comptage passent par le pluriel d'i18next.
  *
  * Le catalogue a longtemps porté des clés `*_plural` héritées d'i18next v19 :
  * v26 ne lit que `_one`/`_two`/`_few`/`_many`/`_other`, donc l'écran affichait
@@ -104,11 +104,17 @@ describe('rendu i18next des libellés corrigés', () => {
  */
 const COUNTED_KEYS = [
   'calls.participantCount',
+  'chat.transfersActive',
+  'groups.memberCount',
+  'groups.peopleTyping',
   'settings.failedTransfers',
   'settings.selectedCount',
   'settings.totalDownloads',
   'settings.totalTransfers',
   'settings.trashItemsCount',
+  'time.daysAgo',
+  'time.hoursAgo',
+  'time.minutesAgo',
 ]
 
 describe('pluriels du catalogue', () => {
@@ -118,6 +124,10 @@ describe('pluriels du catalogue', () => {
     expect(i18n.t('calls.participantCount', { count: 3 })).toBe('3 participants')
     // zéro est singulier en français
     expect(i18n.t('calls.participantCount', { count: 0 })).toBe('0 participant')
+    expect(i18n.t('groups.memberCount', { count: 1 })).toBe('1 membre')
+    expect(i18n.t('groups.memberCount', { count: 3 })).toBe('3 membres')
+    // « Il y a 1 jours » était la forme rendue avant ce lot
+    expect(i18n.t('time.daysAgo', { count: 1 })).toBe('Il y a 1 jour')
   })
 
   it('garde `common.members` comme un titre statique', async () => {
