@@ -139,8 +139,8 @@ const ownMessage = (): Message => ({
 
 const toasts = () => useUIStore.getState().toasts
 
-/** Ouvre le fil, demande « supprimer pour tous » et acquiesce. */
-const confirmForEveryone = async () => {
+/** Ouvre le fil, demande le mode de suppression et acquiesce. */
+const confirmDelete = async (mode: 'forEveryone' | 'permanently', confirmLabel: string) => {
   render(
     <MemoryRouter initialEntries={[`/conversations/${CONVERSATION_ID}`]}>
       <Routes>
@@ -149,9 +149,9 @@ const confirmForEveryone = async () => {
     </MemoryRouter>,
   )
 
-  fireEvent.click(await screen.findByRole('button', { name: 'delete-forEveryone' }))
+  fireEvent.click(await screen.findByRole('button', { name: `delete-${mode}` }))
   const dialog = await screen.findByRole('dialog', { name: 'chat.deleteMessageConfirm' })
-  fireEvent.click(within(dialog).getByRole('button', { name: 'chat.deleteForEveryone' }))
+  fireEvent.click(within(dialog).getByRole('button', { name: confirmLabel }))
 }
 
 beforeEach(() => {
@@ -187,7 +187,7 @@ afterEach(() => {
 describe('supprimer un message pour tous en 1:1', () => {
   it('un avis au contact raté se dit, sans prétendre au succès', async () => {
     vi.mocked(chatService.deleteMessage).mockRejectedValueOnce(new Error('pair injoignable'))
-    await confirmForEveryone()
+    await confirmDelete('forEveryone', 'chat.deleteForEveryone')
 
     await waitFor(() => {
       const toast = toasts().find((entry) => entry.title === 'chat.deleteForEveryoneFailed')
@@ -198,9 +198,20 @@ describe('supprimer un message pour tous en 1:1', () => {
 
   it('une suppression acceptée reste silencieuse', async () => {
     vi.mocked(chatService.deleteMessage).mockResolvedValueOnce(undefined)
-    await confirmForEveryone()
+    await confirmDelete('forEveryone', 'chat.deleteForEveryone')
 
     await waitFor(() => expect(chatService.deleteMessage).toHaveBeenCalledTimes(1))
     expect(toasts().some((entry) => entry.title === 'chat.deleteForEveryoneFailed')).toBe(false)
+  })
+
+  it('la suppression définitive prévient aussi quand l’avis au contact échoue', async () => {
+    vi.mocked(chatService.deleteMessagePermanently).mockRejectedValueOnce(new Error('pair injoignable'))
+    await confirmDelete('permanently', 'chat.deletePermanently')
+
+    await waitFor(() => {
+      const toast = toasts().find((entry) => entry.title === 'chat.deleteForEveryoneFailed')
+      expect(toast?.type).toBe('error')
+    })
+    expect(chatService.deleteMessagePermanently).toHaveBeenCalledWith('m1', CONVERSATION_ID, PEER)
   })
 })

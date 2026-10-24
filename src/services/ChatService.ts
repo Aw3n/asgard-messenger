@@ -1136,7 +1136,9 @@ class ChatService {
     useMessageStore.getState().deleteMessagePermanently(messageId, conversationId)
     storageService.deleteMessage(conversationId, messageId).catch(console.error)
     if (peerId) {
-      await p2pService.sendMessage(peerId, 'chat:delete', { messageId, conversationId }).catch(() => {})
+      // L'avis au pair doit pouvoir échouer : la copie locale est déjà partie,
+      // mais le contact garderait la sienne sans que personne ne l'apprenne.
+      await p2pService.sendMessage(peerId, 'chat:delete', { messageId, conversationId })
     }
   }
 

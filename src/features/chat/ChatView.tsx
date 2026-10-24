@@ -311,6 +311,7 @@ export const ChatView: React.FC = () => {
     chatService.deleteMessagePermanently(message.id, dataId, conversation?.participantId ?? undefined).catch((err) => {
       console.error('[ChatView] deleteMessagePermanently failed:', err)
       try { window.asgard.debugLog('[ChatView] deleteMessagePermanently failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+      useUIStore.getState().addToast({ type: 'error', title: t('chat.deleteForEveryoneFailed') })
     })
   })
 
