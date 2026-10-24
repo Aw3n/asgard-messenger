@@ -369,14 +369,24 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   } | null>(null)
   const attachmentRef = useRef<HTMLDivElement>(null)
 
+  // Le favori peut être retiré depuis les réglages pendant que la bulle reste
+  // montée : relire le service à chaque ouverture évite d'afficher « Retirer
+  // des favoris » pour un fichier qui n'en est plus un — et de faire l'inverse
+  // du geste annoncé.
+  const syncFavoriteFromService = () => {
+    setIsFavorite(attachment.blobKey ? fileService.isFavorite(attachment.blobKey) : false)
+  }
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    syncFavoriteFromService()
     setContextMenu({ x: e.clientX, y: e.clientY })
   }
 
   const openContextMenuFromKeyboard = () => {
     const rect = attachmentRef.current?.getBoundingClientRect()
+    syncFavoriteFromService()
     setContextMenu({
       x: (rect?.left ?? 0) + 16,
       y: (rect?.top ?? 0) + 16,

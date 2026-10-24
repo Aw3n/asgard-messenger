@@ -75,6 +75,22 @@ describe('favoris depuis la pièce jointe', () => {
     expect(useUIStore.getState().toasts.at(-1)?.title).toBe('chat.removedFromFavorites')
   })
 
+  it('relit l’état du favori à chaque ouverture du menu', () => {
+    render(
+      <FileAttachment attachment={attachment()} isOwn={false} messageId="m-1" conversationId="conv-1" />,
+    )
+
+    // Ajouté ailleurs (panneau des réglages) après le montage de la bulle.
+    fileService.addFavorite('blob-fav-ui', 'note.txt', 'conv-1', 'text/plain')
+    openMenu()
+    expect(screen.getByRole('menuitem', { name: 'chat.removeFromFavorites' })).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fileService.removeFavorite('blob-fav-ui')
+    openMenu()
+    expect(screen.getByRole('menuitem', { name: 'chat.addToFavorites' })).toBeInTheDocument()
+  })
+
   it('n’offre pas les favoris pour une pièce sans blob', () => {
     render(
       <FileAttachment
