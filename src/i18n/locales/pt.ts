@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Todos os membros podem agora publicar mensagens.",
       "groups.broadcastModeEnabled": "Modo de transmissão ativado",
       "groups.broadcastModeEnabledMessage": "Apenas os administradores podem agora publicar mensagens.",
+      "groups.broadcastModeFailed": "Não foi possível alterar o modo de transmissão",
       "groups.broadcastModeHint": "Apenas administradores podem publicar mensagens",
       "groups.channelIntro": "Este é o início do canal <0>#{{channelName}}</0> no grupo <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Escolhe um grupo da lista, ou cria um novo para começar a colaborar.",

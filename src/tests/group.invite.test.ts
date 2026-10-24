@@ -155,6 +155,17 @@ describe('instantané d’invitation', () => {
     expect(group!.channels[0].pinnedMessageIds).toBeUndefined()
   })
 
+  it('transporte le mode diffusion pour que l’invité sache qu’il ne publie pas', () => {
+    const payload = buildGroupInvitePayload(
+      { ...fixtureGroup(), broadcastMode: true },
+      { publicKey: A, displayName: 'Alice' },
+    )
+    const group = groupFromInvite(payload, { publicKey: B, displayName: 'Bob' })
+
+    expect(payload.broadcastMode).toBe(true)
+    expect(group!.broadcastMode).toBe(true)
+  })
+
   it('ne laisse pas un instantané fabriquer un second propriétaire ni promouvoir le rejoint', () => {
     const payload = buildGroupInvitePayload(fixtureGroup(), { publicKey: A, displayName: 'Alice' })
     const members = (payload.members as Array<Record<string, unknown>>).map((m) =>

@@ -454,6 +454,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Усі учасники тепер можуть писати повідомлення.",
       "groups.broadcastModeEnabled": "Режим трансляції увімкнено",
       "groups.broadcastModeEnabledMessage": "Лише адміністратори можуть писати повідомлення.",
+      "groups.broadcastModeFailed": "Не вдалося змінити режим трансляції",
       "groups.copyInviteKey": "Копіювати ключ-запрошення",
       "groups.createGroupFailed": "Не вдалося створити групу",
       "groups.createdAt": "Створено",

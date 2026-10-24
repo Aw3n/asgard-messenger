@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Všetci členovia môžu teraz publikovať správy.",
       "groups.broadcastModeEnabled": "Režim vysielania zapnutý",
       "groups.broadcastModeEnabledMessage": "Iba administrátori môžu teraz publikovať správy.",
+      "groups.broadcastModeFailed": "Režim vysielania sa nepodarilo zmeniť",
       "groups.broadcastModeHint": "Správy môžu publikovať iba administrátori",
       "groups.channelIntro": "Toto je začiatok kanála <0>#{{channelName}}</0> v skupine <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Vyberte si skupinu zo zoznamu alebo vytvorte novú na spoluprácu.",

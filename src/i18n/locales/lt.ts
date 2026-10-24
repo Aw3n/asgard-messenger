@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Dabar visi nariai gali skelbti pranešimus.",
       "groups.broadcastModeEnabled": "Transliacijos režimas įjungtas",
       "groups.broadcastModeEnabledMessage": "Dabar tik administratoriai gali skelbti pranešimus.",
+      "groups.broadcastModeFailed": "Nepavyko pakeisti transliacijos režimo",
       "groups.broadcastModeHint": "Tik administratoriai gali skelbti pranešimus",
       "groups.channelIntro": "Tai yra kanalo <0>#{{channelName}}</0> pradžia grupėje <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Pasirinkite grupę iš sąrašo arba sukurkite naują, kad pradėtumėte bendradarbiauti.",

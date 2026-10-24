@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Kaikki jäsenet voivat nyt julkaista viestejä.",
       "groups.broadcastModeEnabled": "Lähetystila käytössä",
       "groups.broadcastModeEnabledMessage": "Vain ylläpitäjät voivat nyt julkaista viestejä.",
+      "groups.broadcastModeFailed": "Lähetystilaa ei voitu muuttaa",
       "groups.broadcastModeHint": "Vain ylläpitäjät voivat julkaista viestejä",
       "groups.channelIntro": "Tämä on kanavan <0>#{{channelName}}</0> alku ryhmässä <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Valitse ryhmä luettelosta tai luo uusi aloittaaksesi yhteistyön.",

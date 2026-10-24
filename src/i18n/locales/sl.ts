@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Vsi člani lahko zdaj objavljajo sporočila.",
       "groups.broadcastModeEnabled": "Način oddajanja omogočen",
       "groups.broadcastModeEnabledMessage": "Samo skrbniki lahko zdaj objavljajo sporočila.",
+      "groups.broadcastModeFailed": "Načina oddajanja ni bilo mogoče spremeniti",
       "groups.broadcastModeHint": "Samo skrbniki lahko objavljajo sporočila.",
       "groups.channelIntro": "To je začetek kanala <0>#{{channelName}}</0> v skupini <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Izberite skupino s seznama ali ustvarite novo za sodelovanje.",

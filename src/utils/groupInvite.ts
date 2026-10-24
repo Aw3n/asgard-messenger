@@ -55,6 +55,9 @@ export function buildGroupInvitePayload(group: Group, inviter: InviteRecipient):
     isPublic: group.isPublic,
     maxMembers: group.maxMembers,
     activeChannelId: group.activeChannelId,
+    // Le mode diffusion décide qui publie : un invité doit le connaître dès son
+    // arrivée, sinon son composeur resterait ouvert jusqu'à la prochaine bascule.
+    broadcastMode: group.broadcastMode === true,
     kickedMembers: (group.kickedMembers ?? []).slice(-MAX_KICKED),
     members: group.members.map((member) => ({
       publicKey: member.publicKey,
@@ -218,6 +221,7 @@ export function groupFromInvite(
     isPublic: payload.isPublic === true,
     maxMembers,
     inviteKey: asString(payload.inviteKey, 256),
+    broadcastMode: payload.broadcastMode === true,
     ...(kickedMembers.length > 0 ? { kickedMembers } : {}),
   }
 }

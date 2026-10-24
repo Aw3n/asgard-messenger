@@ -42,6 +42,11 @@ export function canPostInChannel(group: Group, channelId: string, publicKey: str
   const member = group.members.find((m) => m.publicKey === publicKey)
   if (!member || member.canPost === false) return false
 
+  // Mode diffusion : le groupe ferme la publication à tous sauf au propriétaire
+  // et aux administrateurs. Le canal garde son mot à dire — un canal en lecture
+  // seule reste fermé aux admins aussi.
+  if (group.broadcastMode && member.role !== 'owner' && member.role !== 'admin') return false
+
   const channel = group.channels.find((c) => c.id === channelId)
   if (!channel) return false
 

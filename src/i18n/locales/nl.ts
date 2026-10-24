@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Alle leden kunnen nu berichten plaatsen.",
       "groups.broadcastModeEnabled": "Uitzendmodus ingeschakeld",
       "groups.broadcastModeEnabledMessage": "Alleen beheerders kunnen nu berichten plaatsen.",
+      "groups.broadcastModeFailed": "Kan de uitzendmodus niet wijzigen",
       "groups.broadcastModeHint": "Alleen beheerders kunnen berichten plaatsen",
       "groups.channelIntro": "Dit is het begin van het kanaal <0>#{{channelName}}</0> in de groep <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Kies een groep uit de lijst, of maak een nieuwe aan om samen te werken.",

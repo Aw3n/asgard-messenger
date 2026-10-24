@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Most már minden tag közzétehet üzeneteket.",
       "groups.broadcastModeEnabled": "Közvetítési mód bekapcsolva",
       "groups.broadcastModeEnabledMessage": "Most már csak az adminisztrátorok tehetnek közzé üzeneteket.",
+      "groups.broadcastModeFailed": "A közvetítési módot nem sikerült módosítani",
       "groups.broadcastModeHint": "Csak az adminisztrátorok tehetnek közzé üzeneteket",
       "groups.channelIntro": "Ez a <0>#{{channelName}}</0> csatorna kezdete a <1>{{groupName}}</1> csoportban.",
       "groups.chooseGroup": "Válasszon egy csoportot a listából, vagy hozzon létre egy újat az együttműködéshez.",

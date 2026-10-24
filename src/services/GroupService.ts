@@ -743,6 +743,38 @@ class GroupService {
   }
 
   /**
+   * Ouvre ou ferme la publication du groupe aux seuls admins (admin only).
+   *
+   * Le mode appartient au groupe, pas à l'écran de celui qui le règle : il est
+   * annoncé aux membres avant d'être appliqué ici, pour qu'un échec de diffusion
+   * ne laisse pas l'administrateur croire que le groupe entier est fermé.
+   */
+  async setBroadcastMode(groupId: string, enabled: boolean): Promise<void> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) throw new Error('No identity')
+
+    const store = useGroupStore.getState()
+    if (!store.isAdmin(groupId, identity.keyPair.publicKey)) {
+      throw new Error('Insufficient permissions')
+    }
+
+    const group = store.getGroup(groupId)
+    if (!group) throw new Error('Group not found')
+    if ((group.broadcastMode === true) === enabled) return
+
+    const memberKeys = this.getGroupMemberKeys(groupId)
+    if (memberKeys.length > 0) {
+      await p2pService.broadcastToPeers(memberKeys, 'group:update', {
+        action: 'group:broadcast',
+        groupId,
+        enabled,
+      })
+    }
+
+    store.updateGroup(groupId, { broadcastMode: enabled })
+  }
+
+  /**
    * Send a message to a group channel.
    * OPTIMIZATION: Only sends to group members instead of broadcasting to all peers.
    * Supports @mentions for notifying specific members.
@@ -1794,6 +1826,15 @@ class GroupService {
         const channelId = boundedKey(payload.channelId)
         if (!channelId) return
         store.removeChannel(groupId, channelId)
+        break
+      }
+
+      case 'group:broadcast': {
+        // Le mode diffusion ferme la parole de tout le groupe : seul un admin
+        // peut l'ouvrir ou le refermer, et seulement par un booléen explicite.
+        if (!isAdmin) return
+        if (typeof payload.enabled !== 'boolean') return
+        store.updateGroup(groupId, { broadcastMode: payload.enabled })
         break
       }
     }

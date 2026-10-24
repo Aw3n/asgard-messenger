@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Alle medlemmer kan nu skrive beskeder.",
       "groups.broadcastModeEnabled": "Broadcast-tilstand aktiveret",
       "groups.broadcastModeEnabledMessage": "Kun administratorer kan nu skrive beskeder.",
+      "groups.broadcastModeFailed": "Broadcast-tilstanden kunne ikke ændres",
       "groups.broadcastModeHint": "Kun administratorer kan offentliggøre beskeder",
       "groups.channelIntro": "Dette er starten på kanalen <0>#{{channelName}}</0> i gruppen <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Vælg en gruppe på listen, eller opret en ny for at begynde at samarbejde.",

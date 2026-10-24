@@ -1099,3 +1099,87 @@ describe('indicateur de frappe de groupe', () => {
     )
   })
 })
+
+/**
+ * Le mode diffusion vivait dans le conversationStore : écrit par l'écran des
+ * réglages, lu par le fil 1:1 et par aucun chemin de groupe. La bascule ne
+ * fermait donc la parole chez personne. L'état appartient au groupe, voyage
+ * dans `group:update` et dans l'invitation, et `canPostInChannel` le fait
+ * respecter à l'envoi comme à la réception.
+ */
+describe('mode diffusion', () => {
+  const textOf = (id: string, sender: string, content: string): Record<string, unknown> => ({
+    groupId,
+    channelId,
+    message: { id, senderId: sender, content, type: 'text', timestamp: Date.now(), status: 'sent' },
+  })
+
+  const enable = (from = A) =>
+    dispatch('handleGroupUpdate', { action: 'group:broadcast', groupId, enabled: true }, from)
+
+  it('applique la bascule d’un administrateur', () => {
+    enable()
+
+    expect(group().broadcastMode).toBe(true)
+  })
+
+  it('ignore la bascule venue d’un simple membre ou sans booléen', () => {
+    enable(C)
+    expect(group().broadcastMode).toBeUndefined()
+
+    dispatch('handleGroupUpdate', { action: 'group:broadcast', groupId, enabled: 'oui' }, B)
+    expect(group().broadcastMode).toBeUndefined()
+  })
+
+  it('écarte le message d’un membre quand le groupe est en diffusion', () => {
+    enable()
+
+    dispatch('handleGroupMessage', textOf('m-diff-member', C, 'hors diffusion'), C, 'group:message')
+    expect(useMessageStore.getState().getMessage('m-diff-member', channelId)).toBeUndefined()
+
+    dispatch('handleGroupMessage', textOf('m-diff-admin', B, 'annonce'), B, 'group:message')
+    expect(useMessageStore.getState().getMessage('m-diff-admin', channelId)?.content).toBe('annonce')
+  })
+
+  it('refuse l’envoi local d’un membre et accepte celui du propriétaire', async () => {
+    enable()
+    useIdentityStore.setState((state) => ({
+      identity: { ...state.identity!, keyPair: { ...state.identity!.keyPair, publicKey: C } },
+    }))
+
+    await expect(groupService.sendGroupMessage(groupId, channelId, 'je force la main')).rejects.toThrow()
+    expect(p2pService.broadcastToPeers).not.toHaveBeenCalled()
+
+    useIdentityStore.setState((state) => ({
+      identity: { ...state.identity!, keyPair: { ...state.identity!.keyPair, publicKey: A } },
+    }))
+    await groupService.sendGroupMessage(groupId, channelId, 'consigne')
+    const sent = vi.mocked(p2pService.broadcastToPeers).mock.calls
+      .find(([, type]) => type === 'group:message')
+    expect(sent).toBeDefined()
+  })
+
+  it('annonce la bascule aux membres avant de l’appliquer, et la refuse à un membre', async () => {
+    const broadcast = vi.mocked(p2pService.broadcastToPeers)
+
+    await groupService.setBroadcastMode(groupId, true)
+    expect(broadcast).toHaveBeenCalledWith(
+      expect.any(Array),
+      'group:update',
+      expect.objectContaining({ action: 'group:broadcast', groupId, enabled: true }),
+    )
+    expect(group().broadcastMode).toBe(true)
+
+    // Rien à annoncer quand l'état demandé est déjà celui du groupe.
+    broadcast.mockClear()
+    await groupService.setBroadcastMode(groupId, true)
+    expect(broadcast).not.toHaveBeenCalled()
+
+    useIdentityStore.setState((state) => ({
+      identity: { ...state.identity!, keyPair: { ...state.identity!.keyPair, publicKey: C } },
+    }))
+    await expect(groupService.setBroadcastMode(groupId, false)).rejects.toThrow()
+    expect(group().broadcastMode).toBe(true)
+    expect(broadcast).not.toHaveBeenCalled()
+  })
+})

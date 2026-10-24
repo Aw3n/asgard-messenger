@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Όλα τα μέλη μπορούν πλέον να δημοσιεύσουν μηνύματα.",
       "groups.broadcastModeEnabled": "Η λειτουργία εκπομπής ενεργοποιήθηκε",
       "groups.broadcastModeEnabledMessage": "Μόνο οι διαχειριστές μπορούν πλέον να δημοσιεύσουν μηνύματα.",
+      "groups.broadcastModeFailed": "Αδυναμία αλλαγής της λειτουργίας εκπομπής",
       "groups.broadcastModeHint": "Μόνο οι διαχειριστές μπορούν να δημοσιεύσουν μηνύματα",
       "groups.channelIntro": "Αυτή είναι η αρχή του καναλιού <0>#{{channelName}}</0> στην ομάδα <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Επιλέξτε μια ομάδα από τη λίστα ή δημιουργήστε μια νέα για να ξεκινήσετε συνεργασία.",

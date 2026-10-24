@@ -148,6 +148,10 @@ export const GroupView: React.FC = () => {
   // certains rôles : le composeur se ferme, le service refuse l'envoi de toute
   // façon. La phrase diffère parce que la raison diffère.
   const isMuted = currentMember?.canPost === false
+  // Mode diffusion : le groupe n'ouvre la publication qu'au propriétaire et aux
+  // admins. Le dire évite de laisser croire à un canal fermé par ses rôles.
+  const broadcastBlocked = activeGroup?.broadcastMode === true
+    && currentMember?.role !== 'owner' && currentMember?.role !== 'admin'
   const canPostHere = !!activeGroup && !!channelId
     && canPostInChannel(activeGroup, channelId, identity?.keyPair.publicKey ?? '')
 
@@ -638,7 +642,9 @@ export const GroupView: React.FC = () => {
           onCancelReply={() => setReplyTo(undefined)}
           disabled={!canPostHere}
           placeholder={!canPostHere
-            ? (isMuted ? t('groups.mutedInGroup') : t('groups.cannotPostInChannel'))
+            ? (isMuted
+                ? t('groups.mutedInGroup')
+                : broadcastBlocked ? t('groups.broadcastModeHint') : t('groups.cannotPostInChannel'))
             : t('groups.messageChannel', { channelName: activeChannel?.name ?? t('groups.general') })}
         />
       </div>

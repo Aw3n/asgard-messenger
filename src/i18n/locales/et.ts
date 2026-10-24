@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Kõik liikmed saavad nüüd sõnumeid postitada.",
       "groups.broadcastModeEnabled": "Edastusrežiim sisse lülitatud",
       "groups.broadcastModeEnabledMessage": "Ainult administraatorid saavad nüüd sõnumeid postitada.",
+      "groups.broadcastModeFailed": "Edastusrežiimi ei saanud muuta",
       "groups.broadcastModeHint": "Ainult administraatorid saavad sõnumeid avaldada",
       "groups.channelIntro": "See on kanali <0>#{{channelName}}</0> algus rühmas <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Valige loendist grupp või looge koostöö alustamiseks uus.",

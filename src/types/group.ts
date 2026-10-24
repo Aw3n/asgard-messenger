@@ -102,6 +102,12 @@ export interface Group {
   /** Group invite link / key */
   inviteKey?: string
   /**
+   * Mode diffusion : seuls le propriétaire et les administrateurs publient.
+   * L'état appartient au groupe — il voyage dans `group:update` et dans
+   * l'invitation — sinon la bascule ne fermait la parole que chez son auteur.
+   */
+  broadcastMode?: boolean
+  /**
    * Members removed by an admin. A join notice or a stale invite must not
    * resurrect them, otherwise a kicked peer simply re-announces itself.
    */

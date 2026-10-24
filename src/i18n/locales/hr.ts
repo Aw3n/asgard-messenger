@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Svi članovi sada mogu objavljivati poruke.",
       "groups.broadcastModeEnabled": "Način emitiranja uključen",
       "groups.broadcastModeEnabledMessage": "Samo administratori sada mogu objavljivati poruke.",
+      "groups.broadcastModeFailed": "Način emitiranja nije moguće promijeniti",
       "groups.broadcastModeHint": "Samo administratori mogu objavljivati poruke",
       "groups.channelIntro": "Ovo je početak kanala <0>#{{channelName}}</0> u grupi <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Odaberite grupu s popisa ili stvorite novu za suradnju.",

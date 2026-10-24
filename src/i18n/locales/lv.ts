@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Visi dalībnieki tagad var publicēt ziņojumus.",
       "groups.broadcastModeEnabled": "Pārraides režīms ieslēgts",
       "groups.broadcastModeEnabledMessage": "Tagad tikai administratori var publicēt ziņojumus.",
+      "groups.broadcastModeFailed": "Nevarēja mainīt pārraides režīmu",
       "groups.broadcastModeHint": "Tikai administratori var publicēt ziņojumus",
       "groups.channelIntro": "Šī ir kanāla <0>#{{channelName}}</0> sākums grupā <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Izvēlieties grupu no saraksta vai izveidojiet jaunu, lai sāktu sadarboties.",

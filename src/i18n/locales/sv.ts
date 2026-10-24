@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Alla medlemmar kan nu publicera meddelanden.",
       "groups.broadcastModeEnabled": "Sändningsläge påslaget",
       "groups.broadcastModeEnabledMessage": "Endast administratörer kan nu publicera meddelanden.",
+      "groups.broadcastModeFailed": "Det gick inte att ändra sändningsläget",
       "groups.broadcastModeHint": "Endast administratörer kan publicera meddelanden",
       "groups.channelIntro": "Detta är början på kanalen <0>#{{channelName}}</0> i gruppen <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Välj en grupp från listan, eller skapa en ny för att börja samarbeta.",

@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Il-membri kollha jistgħu jippubblikaw messaġġi issa.",
       "groups.broadcastModeEnabled": "Modalità tax-xandir mixgħula",
       "groups.broadcastModeEnabledMessage": "Bissol l-amministraturi jistgħu jippubblikaw messaġġi issa.",
+      "groups.broadcastModeFailed": "Ma setgħetx tinbidel il-modalità tax-xandir",
       "groups.broadcastModeHint": "Bissol amministraturi jistgħu jippubblikaw messaġġi",
       "groups.channelIntro": "Din hija l-bidu tal-kanal <0>#{{channelName}}</0> fil-grupp <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Agħżel grupp mill-lista, jew oħloq wieħed ġdid biex tibda taħdem flimkien.",

@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Is féidir le gach ball teachtaireachtaí a fhoilsiú anois.",
       "groups.broadcastModeEnabled": "Mód craolta cumasaithe",
       "groups.broadcastModeEnabledMessage": "Ní féidir ach riarthóirí teachtaireachtaí a fhoilsiú anois.",
+      "groups.broadcastModeFailed": "Níorbh fhéidir an mód craolta a athrú",
       "groups.broadcastModeHint": "Ní féidir ach riarthóirí teachtaireachtaí a fhoilsiú",
       "groups.channelIntro": "Is é seo tús an chainéal <0>#{{channelName}}</0> sa ghrúpa <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Roghnaigh grúpa ón liosta, nó cruthaigh ceann nua chun comhoibriú a thosú.",

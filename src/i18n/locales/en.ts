@@ -482,6 +482,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "All members can now post messages.",
       "groups.broadcastModeEnabled": "Broadcast mode enabled",
       "groups.broadcastModeEnabledMessage": "Only admins can now post messages.",
+      "groups.broadcastModeFailed": "Couldn’t change broadcast mode",
       "groups.copyInviteKey": "Copy invite key",
       "groups.createGroupFailed": "Failed to create group",
       "groups.createdAt": "Created",

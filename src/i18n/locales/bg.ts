@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Всички членове вече могат да публикуват съобщения.",
       "groups.broadcastModeEnabled": "Режимът на излъчване е включен",
       "groups.broadcastModeEnabledMessage": "Само администраторите вече могат да публикуват съобщения.",
+      "groups.broadcastModeFailed": "Режимът на излъчване не можа да бъде променен",
       "groups.broadcastModeHint": "Само администраторите могат да публикуват съобщения",
       "groups.channelIntro": "Това е началото на канала <0>#{{channelName}}</0> в групата <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Изберете група от списъка или създайте нова, за да започнете съвместна работа.",

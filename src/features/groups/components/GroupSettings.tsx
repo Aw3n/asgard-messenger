@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useGroupStore } from '@/stores/groupStore'
-import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
@@ -361,28 +360,30 @@ const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
 
 const BroadcastToggle: React.FC<{ groupId: string }> = ({ groupId }) => {
   const { t } = useTranslation()
-  const identity = useIdentityStore((s) => s.identity)
-  const conversation = useConversationStore((s) => s.getConversation(groupId))
-  const setBroadcastMode = useConversationStore((s) => s.setBroadcastMode)
+  const group = useGroupStore((s) => s.getGroup(groupId))
   const addToast = useUIStore((s) => s.addToast)
+  const [busy, setBusy] = useState(false)
 
-  const isBroadcast = conversation?.broadcastMode ?? false
+  const isBroadcast = group?.broadcastMode === true
 
-  const handleToggle = () => {
-    if (!identity) return
+  const handleToggle = async () => {
+    if (busy) return
     const newMode = !isBroadcast
-    setBroadcastMode(
-      groupId,
-      newMode,
-      newMode ? identity.keyPair.publicKey : undefined
-    )
-    addToast({
-      type: 'success',
-      title: newMode ? t('groups.broadcastModeEnabled') : t('groups.broadcastModeDisabled'),
-      message: newMode
-        ? t('groups.broadcastModeEnabledMessage')
-        : t('groups.broadcastModeDisabledMessage')
-    })
+    setBusy(true)
+    try {
+      await groupService.setBroadcastMode(groupId, newMode)
+      addToast({
+        type: 'success',
+        title: newMode ? t('groups.broadcastModeEnabled') : t('groups.broadcastModeDisabled'),
+        message: newMode
+          ? t('groups.broadcastModeEnabledMessage')
+          : t('groups.broadcastModeDisabledMessage')
+      })
+    } catch {
+      addToast({ type: 'error', title: t('groups.broadcastModeFailed') })
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -407,7 +408,8 @@ const BroadcastToggle: React.FC<{ groupId: string }> = ({ groupId }) => {
           aria-checked={isBroadcast}
           aria-label={t('groups.broadcastMode')}
           onClick={handleToggle}
-          className={`relative w-12 h-6 rounded-full transition-colors ${
+          disabled={busy}
+          className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-60 ${
             isBroadcast ? 'bg-asgard-nordic' : 'bg-asgard-border'
           }`}
         >

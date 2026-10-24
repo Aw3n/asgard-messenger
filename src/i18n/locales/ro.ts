@@ -272,6 +272,7 @@ export default {
       "groups.broadcastModeDisabledMessage": "Toți membrii pot acum publica mesaje.",
       "groups.broadcastModeEnabled": "Mod broadcast activat",
       "groups.broadcastModeEnabledMessage": "Doar administratorii pot acum publica mesaje.",
+      "groups.broadcastModeFailed": "Modul broadcast nu a putut fi modificat",
       "groups.broadcastModeHint": "Doar administratorii pot publica mesaje",
       "groups.channelIntro": "Acesta este începutul canalului <0>#{{channelName}}</0> în grupul <1>{{groupName}}</1>.",
       "groups.chooseGroup": "Alege un grup din listă sau creează unul nou pentru a începe să colaborezi.",
