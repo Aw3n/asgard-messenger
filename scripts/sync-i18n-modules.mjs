@@ -16,7 +16,9 @@ import path from 'node:path'
 const SOURCE = 'src/i18n/translations.ts'
 const OUT = 'src/i18n/locales'
 
-const lines = fs.readFileSync(SOURCE, 'utf8').split('\n')
+// Un checkout Windows (autocrlf) matérialise le catalogue en CRLF : sans ce
+// retrait, chaque ligne garde un \r final et l'ancre «   fr: { » ne matche plus.
+const lines = fs.readFileSync(SOURCE, 'utf8').replace(/\r\n/g, '\n').split('\n')
 const blocks = {}
 let lang = null
 let body = []
