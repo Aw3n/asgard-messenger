@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Datum sdílení",
       "settings.shareLinks": "Odkazy ke sdílení",
       "settings.shareLinksDescription": "Spravujte aktivní sdílecí odkazy a řiďte jejich expiraci.",
-      "settings.shareLinksExpiry": "Platnost vyprší za {{days}} dní",
+      "settings.shareLinksExpiry": "Tyto odkazy vyprší po 24 hodinách.",
       "settings.showQRCode": "Zobrazit QR kód",
       "settings.status": "Stav",
       "settings.statusUpdated": "Stav se aktualizuje okamžitě",

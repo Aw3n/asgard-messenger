@@ -521,7 +521,7 @@ export default {
       "settings.shareDate": "Freigabedatum",
       "settings.shareLinks": "Freigabelinks",
       "settings.shareLinksDescription": "Verwalten Sie aktive Freigabelinks und steuern Sie deren Ablauf.",
-      "settings.shareLinksExpiry": "Läuft in {{days}} Tagen ab",
+      "settings.shareLinksExpiry": "Diese Links laufen nach 24 Stunden ab.",
       "settings.showQRCode": "QR-Code anzeigen",
       "settings.status": "Status",
       "settings.statusUpdated": "Status wird sofort aktualisiert",

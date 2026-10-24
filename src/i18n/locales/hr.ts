@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Datum dijeljenja",
       "settings.shareLinks": "Dijeljeni linkovi",
       "settings.shareLinksDescription": "Upravljajte aktivnim poveznicama za dijeljenje i nadzirajte njihovo istjecanje.",
-      "settings.shareLinksExpiry": "Istječe za {{days}} dana",
+      "settings.shareLinksExpiry": "Ove poveznice istječu nakon 24 sata.",
       "settings.showQRCode": "Prikaži QR kod",
       "settings.status": "Status",
       "settings.statusUpdated": "Status se ažurira odmah",

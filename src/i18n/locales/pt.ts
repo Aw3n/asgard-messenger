@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Data de partilha",
       "settings.shareLinks": "Links de partilha",
       "settings.shareLinksDescription": "Gira links de partilha ativos e controla a sua expiração.",
-      "settings.shareLinksExpiry": "Expira em {{days}} dias",
+      "settings.shareLinksExpiry": "Estes links expiram após 24 horas.",
       "settings.showQRCode": "Mostrar código QR",
       "settings.status": "Estado",
       "settings.statusUpdated": "O estado é atualizado imediatamente",

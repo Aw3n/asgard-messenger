@@ -664,7 +664,7 @@ export default {
       "settings.shareDate": "Date de partage",
       "settings.shareLinks": "Liens de partage",
       "settings.shareLinksDescription": "Gérez les liens de partage actifs et contrôlez leur expiration.",
-      "settings.shareLinksExpiry": "Expire dans {{days}} jours",
+      "settings.shareLinksExpiry": "Ces liens expirent après 24 heures.",
       "settings.showQRCode": "Afficher le QR Code",
       "settings.showReadStatus": "Afficher l'état de lecture",
       "settings.showReadStatusDesc": "Afficher les accusés de lecture sur les messages envoyés",

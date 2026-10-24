@@ -510,7 +510,7 @@ export default {
       "settings.selectedCount": "{{count}} обрано",
       "settings.selectedCount_plural": "{{count}} обрано",
       "settings.shareLinksDescription": "Керуйте активними посиланнями для поширення та їхнім терміном дії.",
-      "settings.shareLinksExpiry": "Минає через {{days}} дн.",
+      "settings.shareLinksExpiry": "Ці посилання минають через 24 години.",
       "settings.surfaceColor": "Колір поверхні",
       "settings.textPrimaryColor": "Основний колір тексту",
       "settings.textSecondaryColor": "Другорядний колір тексту",

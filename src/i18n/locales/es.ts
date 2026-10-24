@@ -521,7 +521,7 @@ export default {
       "settings.shareDate": "Fecha de compartir",
       "settings.shareLinks": "Enlaces para compartir",
       "settings.shareLinksDescription": "Administra los enlaces de compartir activos y controla su vencimiento.",
-      "settings.shareLinksExpiry": "Expira en {{days}} días",
+      "settings.shareLinksExpiry": "Estos enlaces caducan a las 24 horas.",
       "settings.showQRCode": "Mostrar código QR",
       "settings.status": "Estado",
       "settings.statusUpdated": "El estado se actualiza inmediatamente",

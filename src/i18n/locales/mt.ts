@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Data ta' qsim",
       "settings.shareLinks": "Links ta' qsim",
       "settings.shareLinksDescription": "Immaniġġja l-links attivi tal-qdusija u kkontrolla l-iskadenza tagħhom.",
-      "settings.shareLinksExpiry": "Jiskarżu f'{{days}} ijiem",
+      "settings.shareLinksExpiry": "Dawn il-links jiskadu wara 24 siegħa.",
       "settings.showQRCode": "Uri kodiċi QR",
       "settings.status": "Status",
       "settings.statusUpdated": "L-istatus jiġi aġġornat imedjatament",

@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Bendrinimo data",
       "settings.shareLinks": "Bendrinimo nuorodos",
       "settings.shareLinksDescription": "Valdykite aktyvias bendrinimo nuorodas ir kontroliuokite jų galiojimą.",
-      "settings.shareLinksExpiry": "Baigsis po {{days}} dienų",
+      "settings.shareLinksExpiry": "Šios nuorodos baigsis po 24 valandų.",
       "settings.showQRCode": "Rodyti QR kodą",
       "settings.status": "Būsena",
       "settings.statusUpdated": "Būsena atnaujinama iškart",

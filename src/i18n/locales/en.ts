@@ -538,7 +538,7 @@ export default {
       "settings.selectedCount": "{{count}} selected",
       "settings.selectedCount_plural": "{{count}} selected",
       "settings.shareLinksDescription": "Manage active share links and control their expiration.",
-      "settings.shareLinksExpiry": "Expires in {{days}} days",
+      "settings.shareLinksExpiry": "These links expire after 24 hours.",
       "settings.surfaceColor": "Surface color",
       "settings.textPrimaryColor": "Primary text color",
       "settings.textSecondaryColor": "Secondary text color",

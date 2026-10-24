@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Delingsdato",
       "settings.shareLinks": "Delingslinks",
       "settings.shareLinksDescription": "Administrer aktive delingslinks og styr deres udløb.",
-      "settings.shareLinksExpiry": "Udløber om {{days}} dage",
+      "settings.shareLinksExpiry": "Disse links udløber efter 24 timer.",
       "settings.showQRCode": "Vis QR-kode",
       "settings.status": "Status",
       "settings.statusUpdated": "Status opdateres straks",

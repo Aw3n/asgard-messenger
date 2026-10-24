@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Data udostępnienia",
       "settings.shareLinks": "Linki do udostępniania",
       "settings.shareLinksDescription": "Zarządzaj aktywnymi linkami udostępniania i kontroluj ich wygaśnięcie.",
-      "settings.shareLinksExpiry": "Wygasa za {{days}} dni",
+      "settings.shareLinksExpiry": "Te linki wygasają po 24 godzinach.",
       "settings.showQRCode": "Pokaż kod QR",
       "settings.status": "Status",
       "settings.statusUpdated": "Status aktualizuje się natychmiast",

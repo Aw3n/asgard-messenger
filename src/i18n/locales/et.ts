@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Jagamise kuupäev",
       "settings.shareLinks": "Jagamislingid",
       "settings.shareLinksDescription": "Halda aktiivseid jagamislinke ja nende aegumist.",
-      "settings.shareLinksExpiry": "Aegub {{days}} päeva pärast",
+      "settings.shareLinksExpiry": "Need lingid aeguvad 24 tunni pärast.",
       "settings.showQRCode": "Kuva QR-kood",
       "settings.status": "Olek",
       "settings.statusUpdated": "Olek uueneb koheselt",

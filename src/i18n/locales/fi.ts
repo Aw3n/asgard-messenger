@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Jakopäivä",
       "settings.shareLinks": "Jakolinkit",
       "settings.shareLinksDescription": "Hallinnoi aktiivisia jakolinkkejä ja niiden vanhenemista.",
-      "settings.shareLinksExpiry": "Vanhenee {{days}} päivässä",
+      "settings.shareLinksExpiry": "Nämä linkit vanhenevat 24 tunnin kuluttua.",
       "settings.showQRCode": "Näytä QR-koodi",
       "settings.status": "Tila",
       "settings.statusUpdated": "Tila päivittyy heti",

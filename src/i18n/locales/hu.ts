@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Megosztás dátuma",
       "settings.shareLinks": "Megosztási linkek",
       "settings.shareLinksDescription": "Kezelje az aktív megosztási linkeket és szabályozza lejáratukat.",
-      "settings.shareLinksExpiry": "Lejárat: {{days}} nap",
+      "settings.shareLinksExpiry": "Ezek a hivatkozások 24 óra után lejárnak.",
       "settings.showQRCode": "QR-kód megjelenítése",
       "settings.status": "Állapot",
       "settings.statusUpdated": "Az állapot azonnal frissül",

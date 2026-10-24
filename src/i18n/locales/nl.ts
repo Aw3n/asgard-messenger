@@ -521,7 +521,7 @@ export default {
       "settings.shareDate": "Deeldatum",
       "settings.shareLinks": "Deel-links",
       "settings.shareLinksDescription": "Beheer actieve deellinks en beheer hun vervaldatum.",
-      "settings.shareLinksExpiry": "Verloopt over {{days}} dagen",
+      "settings.shareLinksExpiry": "Deze links verlopen na 24 uur.",
       "settings.showQRCode": "QR-code tonen",
       "settings.status": "Status",
       "settings.statusUpdated": "Status wordt direct bijgewerkt",

@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Дата на споделяне",
       "settings.shareLinks": "Връзки за споделяне",
       "settings.shareLinksDescription": "Управлявайте активните връзки за споделяне и контролирайте тяхното изтичане.",
-      "settings.shareLinksExpiry": "Изтича след {{days}} дни",
+      "settings.shareLinksExpiry": "Тези връзки изтичат след 24 часа.",
       "settings.showQRCode": "Покажи QR код",
       "settings.status": "Статус",
       "settings.statusUpdated": "Статусът се обновява веднага",

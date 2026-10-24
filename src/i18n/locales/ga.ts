@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Dáta comhroinnte",
       "settings.shareLinks": "Naisc comhroichte",
       "settings.shareLinksDescription": "Bainistigh naisc ghníomhacha comhroinne agus smachtaigh a dtréimhse bailíochta.",
-      "settings.shareLinksExpiry": "As dáta i {{days}} lá",
+      "settings.shareLinksExpiry": "Éagann na naisc seo tar éis 24 uair.",
       "settings.showQRCode": "Taispeáin Cód QR",
       "settings.status": "Stádas",
       "settings.statusUpdated": "Nuashonraítear an stádas láithreach",

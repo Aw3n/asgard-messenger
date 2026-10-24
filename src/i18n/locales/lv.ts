@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Kopīgošanas datums",
       "settings.shareLinks": "Kopīgošanas saites",
       "settings.shareLinksDescription": "Pārvaldiet aktīvās kopīgošanas saites un kontrolējiet to derīguma termiņu.",
-      "settings.shareLinksExpiry": "Derīgs vēl {{days}} dienas",
+      "settings.shareLinksExpiry": "Šīs saites beidzas pēc 24 stundām.",
       "settings.showQRCode": "Rādīt QR kodu",
       "settings.status": "Statuss",
       "settings.statusUpdated": "Statuss tiek atjaunots nekavējoties",

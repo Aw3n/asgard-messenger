@@ -74,4 +74,11 @@ describe('libellés interpolés', () => {
 
     expect(screen.getByText('Taille totale : 1.5 KB')).toBeInTheDocument()
   })
+
+  it('le pied de page des partages annonce la durée sans gabarit', () => {
+    render(<ShareLinksManager />)
+
+    expect(screen.getByText('Ces liens expirent après 24 heures.')).toBeInTheDocument()
+    expect(screen.queryByText(/\{\{days\}\}/)).not.toBeInTheDocument()
+  })
 })

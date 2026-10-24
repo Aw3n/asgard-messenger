@@ -521,7 +521,7 @@ export default {
       "settings.shareDate": "Data condivisione",
       "settings.shareLinks": "Link di condivisione",
       "settings.shareLinksDescription": "Gestisci i link di condivisione attivi e controlla la loro scadenza.",
-      "settings.shareLinksExpiry": "Scade tra {{days}} giorni",
+      "settings.shareLinksExpiry": "Questi link scadono dopo 24 ore.",
       "settings.showQRCode": "Mostra codice QR",
       "settings.status": "Stato",
       "settings.statusUpdated": "Lo stato viene aggiornato immediatamente",

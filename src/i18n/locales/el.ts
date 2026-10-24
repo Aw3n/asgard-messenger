@@ -503,7 +503,7 @@ export default {
       "settings.shareDate": "Ημερομηνία κοινής χρήσης",
       "settings.shareLinks": "Σύνδεσμοι κοινής χρήσης",
       "settings.shareLinksDescription": "Διαχειριστείτε ενεργούς συνδέσμους κοινής χρήσης και ελέγξτε τη λήξη τους.",
-      "settings.shareLinksExpiry": "Λήγει σε {{days}} ημέρες",
+      "settings.shareLinksExpiry": "Αυτοί οι σύνδεσμοι λήγουν μετά από 24 ώρες.",
       "settings.showQRCode": "Εμφάνιση κώδικα QR",
       "settings.status": "Κατάσταση",
       "settings.statusUpdated": "Η κατάσταση ενημερώνεται αμέσως",
