@@ -1853,7 +1853,7 @@ const XELIS_ADDRESS = 'xel:fzete660pp676sez3cvfpjmma00xe3q5lz4f8wcm9z5kf2p6guvsq
 const AboutSection: React.FC = () => {
   const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
-  const [appVersion, setAppVersion] = useState('1.0.1')
+  const [appVersion, setAppVersion] = useState<string | null>(null)
 
   useEffect(() => {
     window.asgard?.app?.getVersion?.().then((v: string) => {
@@ -1889,7 +1889,7 @@ return (
               </div>
               <div>
                 <p className="font-semibold text-asgard-text-primary">{t('settings.appName')}</p>
-                <p className="text-sm text-asgard-text-muted">{t('settings.appVersion', { version: appVersion })}</p>
+                <p className="text-sm text-asgard-text-muted">{t('settings.appVersion', { version: appVersion ?? t('common.unknown') })}</p>
               </div>
             </div>
             <p className="text-xs text-asgard-text-muted leading-relaxed mb-4">
