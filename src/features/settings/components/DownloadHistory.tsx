@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { getCurrentLanguage } from '@/i18n/config'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
@@ -63,6 +64,17 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+  }
+
+  /**
+   * Le badge affichait le sous-type MIME brut : pour un document Office, il
+   * imposait à la rangée « VND.OPENPYTHONFOR… ». L'extension du nom est ce que
+   * l'utilisateur reconnaît, et elle est bornée par construction.
+   */
+  const formatTypeBadge = (entry: DownloadHistoryEntry): string => {
+    const extension = entry.fileName.match(/\.([a-z0-9]{1,8})$/i)?.[1]
+    const subtype = entry.mimeType.split('/')[1]?.split(';')[0]
+    return (extension ?? subtype ?? 'file').toUpperCase().slice(0, 12)
   }
 
   const formatDate = (timestamp: number): string => {
@@ -231,9 +243,34 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
                     </div>
                   </div>
 
+                  {/* Re-save: l'entrée garde de quoi retrouver le blob. */}
+                  <button
+                    onClick={() => {
+                      void saveAttachmentToDisk(
+                        {
+                          blobKey: entry.blobKey,
+                          name: entry.fileName,
+                          size: entry.fileSize,
+                          mimeType: entry.mimeType,
+                        },
+                        t,
+                        entry.conversationId,
+                      )
+                    }}
+                    aria-label={t('chat.saveAs')}
+                    title={t('chat.saveAs')}
+                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+
                   {/* MIME type badge */}
-                  <div className="text-xs text-asgard-text-muted bg-asgard-surface-alt px-2 py-1 rounded-md">
-                    {entry.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
+                  <div className="flex-shrink-0 text-xs text-asgard-text-muted bg-asgard-surface-alt px-2 py-1 rounded-md">
+                    {formatTypeBadge(entry)}
                   </div>
                 </motion.div>
               ))}
