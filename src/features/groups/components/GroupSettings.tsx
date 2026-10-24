@@ -7,6 +7,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { groupService } from '@/services/GroupService'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
 import { copyToClipboard } from '@/utils/clipboard'
@@ -254,6 +255,7 @@ const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
   const identity = useIdentityStore((s) => s.identity)
   const members = getMembers(groupId)
   const addToast = useUIStore((s) => s.addToast)
+  const [kickTarget, setKickTarget] = useState<{ publicKey: string; displayName: string } | null>(null)
 
   const handleRoleChange = async (publicKey: string, newRole: MemberRole) => {
     try {
@@ -339,7 +341,7 @@ const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
                   </svg>
                 </button>
                 <button
-                  onClick={() => handleKick(member.publicKey)}
+                  onClick={() => setKickTarget({ publicKey: member.publicKey, displayName: member.displayName })}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
                   aria-label={t('groups.removeMember')}
                 >
@@ -352,6 +354,21 @@ const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
           </div>
         )
       })}
+
+      {kickTarget && (
+        <ConfirmDialog
+          title="groups.removeMember"
+          warning="groups.removeMemberWarning"
+          confirmLabel="groups.removeMember"
+          name={kickTarget.displayName}
+          onCancel={() => setKickTarget(null)}
+          onConfirm={() => {
+            const target = kickTarget
+            setKickTarget(null)
+            void handleKick(target.publicKey)
+          }}
+        />
+      )}
     </div>
   )
 }

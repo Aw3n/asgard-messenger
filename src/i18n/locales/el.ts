@@ -337,6 +337,7 @@ export default {
       "groups.publicGroupHint": "Ο καθένας μπορεί να ανακαλύψει και να συμμετάσχει σε αυτήν την ομάδα",
       "groups.readOnly": "Μόνο για ανάγνωση",
       "groups.removeMember": "Αφαίρεση μέλους",
+      "groups.removeMemberWarning": "Η επαφή «{{name}}» θα αφαιρεθεί από την ομάδα και θα μπορεί να επιστρέψει μόνο με νέα πρόσκληση.",
       "groups.roleUpdateFailed": "Αποτυχία ενημέρωσης ρόλου",
       "groups.roleUpdated": "Ο ρόλος ενημερώθηκε",
       "groups.selectGroup": "Επιλέξτε ομάδα",

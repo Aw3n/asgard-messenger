@@ -178,6 +178,7 @@ export default {
       "groups.inviteMembers": "Запросити учасників",
       "groups.makeAdmin": "Зробити адміністратором",
       "groups.removeMember": "Видалити учасника",
+      "groups.removeMemberWarning": "«{{name}}» буде видалено з групи, і повернутися можна буде лише за новим запрошенням.",
       "onboarding.welcome": "Ласкаво просимо до Asgard",
       "onboarding.welcomeDesc": "Децентралізований P2P-месенджер на базі Pear Runtime",
       "onboarding.createIdentity": "Створіть свою особистість",

@@ -342,6 +342,7 @@ export default {
       "groups.publicGroupHint": "Bet kas gali atrasti ir prisijungti prie šios grupės",
       "groups.readOnly": "Tik skaitymui",
       "groups.removeMember": "Pašalinti narį",
+      "groups.removeMemberWarning": "„{{name}}” bus pašalintas iš grupės ir galės grįžti tik su nauju kvietimu.",
       "groups.roleUpdateFailed": "Vaidmens atnaujinimas nepavyko",
       "groups.roleUpdated": "Vaidmuo atnaujintas",
       "groups.selectGroup": "Pasirinkite grupę",

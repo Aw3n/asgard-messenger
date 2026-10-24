@@ -349,6 +349,7 @@ export default {
       "groups.publicGroupHint": "Kulħadd jista' jiskopri u jingħaqad ma' din il-grupp",
       "groups.readOnly": "Aqra biss",
       "groups.removeMember": "Neħħi membru",
+      "groups.removeMemberWarning": "“{{name}}” se jitneħħa mill-grupp u jista’ jerġa’ lura biss b’stedina ġdida.",
       "groups.roleUpdateFailed": "Aġġornament tar-rwol ma rnexxiex",
       "groups.roleUpdated": "Rwol aġġornat",
       "groups.selectGroup": "Agħżel grupp",

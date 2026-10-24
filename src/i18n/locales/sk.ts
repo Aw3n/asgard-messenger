@@ -341,6 +341,7 @@ export default {
       "groups.publicGroupHint": "Ktokoľvek môže objaviť a pripojiť sa k tejto skupine",
       "groups.readOnly": "Iba na čítanie",
       "groups.removeMember": "Odstrániť člena",
+      "groups.removeMemberWarning": "„{{name}}” bude odstránený zo skupiny a bude sa môcť vrátiť len na základe novej pozvánky.",
       "groups.roleUpdateFailed": "Aktualizácia roly zlyhala",
       "groups.roleUpdated": "Rola aktualizovaná",
       "groups.selectGroup": "Vybrať skupinu",

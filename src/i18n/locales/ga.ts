@@ -349,6 +349,7 @@ export default {
       "groups.publicGroupHint": "Is féidir le duine ar bith an grúpa seo a fháil agus a bheith páirteach ann.",
       "groups.readOnly": "Léamh amháin",
       "groups.removeMember": "Bain Ball",
+      "groups.removeMemberWarning": "Bainfear “{{name}}” as an ngrúpa agus ní féidir filleadh ach le cuireadh nua.",
       "groups.roleUpdateFailed": "Theip ar an ról a nuashonrú",
       "groups.roleUpdated": "Ról nuashonraithe",
       "groups.selectGroup": "Roghnaigh grúpa",

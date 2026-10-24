@@ -345,6 +345,7 @@ export default {
       "groups.publicGroupHint": "Vsakdo lahko odkrije in pridruži tej skupini.",
       "groups.readOnly": "Samo za branje",
       "groups.removeMember": "Odstrani člana",
+      "groups.removeMemberWarning": "»{{name}}« bo odstranjen iz skupine in se bo lahko vrnil le z novim povabilom.",
       "groups.roleUpdateFailed": "Posodobitev vloge ni uspela",
       "groups.roleUpdated": "Vloga posodobljena",
       "groups.selectGroup": "Izberi skupino",

@@ -337,6 +337,7 @@ export default {
       "groups.publicGroupHint": "Bárki felfedezheti és csatlakozhat ehhez a csoporthoz",
       "groups.readOnly": "Csak olvasható",
       "groups.removeMember": "Tag eltávolítása",
+      "groups.removeMemberWarning": "„{{name}}” el lesz távolítva a csoportból, és csak új meghívóval térhet vissza.",
       "groups.roleUpdateFailed": "Szerepkör frissítése sikertelen",
       "groups.roleUpdated": "Szerepkör frissítve",
       "groups.selectGroup": "Válasszon csoportot",

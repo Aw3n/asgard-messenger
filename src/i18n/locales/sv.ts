@@ -337,6 +337,7 @@ export default {
       "groups.publicGroupHint": "Alla kan upptäcka och gå med i denna grupp",
       "groups.readOnly": "Endast läsning",
       "groups.removeMember": "Ta bort medlem",
+      "groups.removeMemberWarning": "”{{name}}” tas bort från gruppen och kan bara återvända efter en ny inbjudan.",
       "groups.roleUpdateFailed": "Det gick inte att uppdatera rollen",
       "groups.roleUpdated": "Roll uppdaterad",
       "groups.selectGroup": "Välj en grupp",

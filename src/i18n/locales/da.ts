@@ -337,6 +337,7 @@ export default {
       "groups.publicGroupHint": "Alle kan opdage og deltage i denne gruppe",
       "groups.readOnly": "Kun læsning",
       "groups.removeMember": "Fjern medlem",
+      "groups.removeMemberWarning": "‘{{name}}’ fjernes fra gruppen og kan kun vende tilbage efter en ny invitation.",
       "groups.roleUpdateFailed": "Rolleopdatering mislykkedes",
       "groups.roleUpdated": "Rolle opdateret",
       "groups.selectGroup": "Vælg en gruppe",

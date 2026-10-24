@@ -199,6 +199,7 @@ export default {
       "groups.inviteMembers": "Invite Members",
       "groups.makeAdmin": "Make Admin",
       "groups.removeMember": "Remove Member",
+      "groups.removeMemberWarning": "“{{name}}” will be removed from the group and can only return with a new invitation.",
       "onboarding.welcome": "Welcome to Asgard",
       "onboarding.welcomeDesc": "Decentralized P2P Messenger powered by Pear Runtime",
       "onboarding.createIdentity": "Create Your Identity",

@@ -9,14 +9,16 @@
  * sourdine comme pour un canal qui n'ouvre l'écriture qu'à certains rôles.
  */
 import React from 'react'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Group, GroupMember } from '@/types'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, opts?: { name?: string }) => (opts?.name ? `${key} ${opts.name}` : key),
+  }),
 }))
 
 // Chaque méthode réclamée par les vues devient un spy partagé : la signature
@@ -184,7 +186,7 @@ describe('réglages de groupe — modération des membres', () => {
 
     // Sans nom, le lecteur d'écran annonçait « liste déroulante, member » sans
     // dire de quel membre ni de quoi il s'agit.
-    const select = screen.getByRole('combobox', { name: 'groups.memberRole' })
+    const select = screen.getByRole('combobox', { name: /groups\.memberRole/ })
     expect(select).toHaveValue('member')
     expect(screen.getAllByRole('combobox')).toHaveLength(1)
   })
@@ -231,6 +233,56 @@ describe('réglages de groupe — modération des membres', () => {
 
     expect(roleLabel('common.moderator')).toBeInTheDocument()
     expect(roleLabel('common.guest')).toBeInTheDocument()
+  })
+})
+
+describe('exclure un membre', () => {
+  const openConfirm = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'groups.removeMember' }))
+    return screen.getByRole('dialog', { name: 'groups.removeMember' })
+  }
+
+  it('demande confirmation en nommant le membre, sans l’exclure avant', () => {
+    render(<GroupSettings onClose={() => {}} />)
+
+    const dialog = openConfirm()
+
+    // L'exclusion est une pierre tombale : l'exclu ne revient qu'invité.
+    expect(within(dialog).getByText('groups.removeMemberWarning Carol')).toBeInTheDocument()
+    expect(groupService.kickMember).not.toHaveBeenCalled()
+  })
+
+  it('annuler la confirmation garde le membre', async () => {
+    render(<GroupSettings onClose={() => {}} />)
+    const dialog = openConfirm()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'common.cancel' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'groups.removeMember' })).toBeNull())
+    expect(groupService.kickMember).not.toHaveBeenCalled()
+  })
+
+  it('confirmer exclut le membre et l’annonce', async () => {
+    render(<GroupSettings onClose={() => {}} />)
+    const dialog = openConfirm()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'groups.removeMember' }))
+
+    await waitFor(() => expect(groupService.kickMember).toHaveBeenCalledWith(GROUP_ID, CAROL))
+    expect(screen.queryByRole('dialog', { name: 'groups.removeMember' })).toBeNull()
+    expect(toastTitles()).toContain('groups.memberRemoved')
+  })
+
+  it('une exclusion refusée le dit au lieu d’un succès', async () => {
+    vi.mocked(groupService.kickMember).mockRejectedValueOnce(new Error('permissions insuffisantes'))
+    render(<GroupSettings onClose={() => {}} />)
+    const dialog = openConfirm()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'groups.removeMember' }))
+
+    await waitFor(() => expect(toastTitles()).toContain('groups.memberRemoveFailed'))
+    expect(useUIStore.getState().toasts.at(-1)?.type).toBe('error')
+    expect(toastTitles()).not.toContain('groups.memberRemoved')
   })
 })
 

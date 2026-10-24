@@ -337,6 +337,7 @@ export default {
       "groups.publicGroupHint": "Igaüks saab selle grupi avastada ja liituda",
       "groups.readOnly": "Ainult lugemiseks",
       "groups.removeMember": "Eemalda liige",
+      "groups.removeMemberWarning": "„{{name}}” eemaldatakse grupist ja saab naasta ainult uue kutsega.",
       "groups.roleUpdateFailed": "Rolli värskendamine ebaõnnestus",
       "groups.roleUpdated": "Roll värskendatud",
       "groups.selectGroup": "Vali grupp",

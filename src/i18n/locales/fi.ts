@@ -337,6 +337,7 @@ export default {
       "groups.publicGroupHint": "Kuka tahansa voi löytää ja liittyä tähän ryhmään",
       "groups.readOnly": "Vain luku",
       "groups.removeMember": "Poista jäsen",
+      "groups.removeMemberWarning": "“{{name}}” poistetaan ryhmästä, ja hän voi palata vain uudella kutsulla.",
       "groups.roleUpdateFailed": "Roolin päivitys epäonnistui",
       "groups.roleUpdated": "Rooli päivitetty",
       "groups.selectGroup": "Valitse ryhmä",

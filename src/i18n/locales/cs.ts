@@ -341,6 +341,7 @@ export default {
       "groups.publicGroupHint": "Kdokoli může objevit a připojit se k této skupině.",
       "groups.readOnly": "Pouze ke čtení",
       "groups.removeMember": "Odstranit člena",
+      "groups.removeMemberWarning": "„{{name}}” bude odebrán ze skupiny a bude se moci vrátit jen na základě nové pozvánky.",
       "groups.roleUpdateFailed": "Aktualizace role selhala",
       "groups.roleUpdated": "Role aktualizována",
       "groups.selectGroup": "Vybrat skupinu",

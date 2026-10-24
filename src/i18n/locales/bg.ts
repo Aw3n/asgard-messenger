@@ -337,6 +337,7 @@ export default {
       "groups.publicGroupHint": "Всеки може да открие и да се присъедини към тази група",
       "groups.readOnly": "Само за четене",
       "groups.removeMember": "Премахни член",
+      "groups.removeMemberWarning": "„{{name}}“ ще бъде премахнат от групата и ще може да се върне само с нова покана.",
       "groups.roleUpdateFailed": "Обновяването на ролята неуспешно",
       "groups.roleUpdated": "Ролята е актуализирана",
       "groups.selectGroup": "Изберете група",

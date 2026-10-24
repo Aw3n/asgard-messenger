@@ -341,6 +341,7 @@ export default {
       "groups.publicGroupHint": "Oricine poate descoperi și se alătura acestui grup",
       "groups.readOnly": "Doar citire",
       "groups.removeMember": "Elimină membrul",
+      "groups.removeMemberWarning": "„{{name}}” va fi eliminat din grup și va putea reveni doar cu o invitație nouă.",
       "groups.roleUpdateFailed": "Actualizarea rolului a eșuat",
       "groups.roleUpdated": "Rol actualizat",
       "groups.selectGroup": "Selectează un grup",

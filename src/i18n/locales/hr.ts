@@ -341,6 +341,7 @@ export default {
       "groups.publicGroupHint": "Svatko može otkriti i pridružiti se ovoj grupi",
       "groups.readOnly": "Samo za čitanje",
       "groups.removeMember": "Ukloni člana",
+      "groups.removeMemberWarning": "„{{name}}” bit će uklonjen iz grupe i može se vratiti samo uz novu pozivnicu.",
       "groups.roleUpdateFailed": "Ažuriranje uloge nije uspjelo",
       "groups.roleUpdated": "Uloga ažurirana",
       "groups.selectGroup": "Odaberi grupu",

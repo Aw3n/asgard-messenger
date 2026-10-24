@@ -341,6 +341,7 @@ export default {
       "groups.publicGroupHint": "Ikviens var atklāt un pievienoties šai grupai",
       "groups.readOnly": "Tikai lasīšanai",
       "groups.removeMember": "Noņemt dalībnieku",
+      "groups.removeMemberWarning": "“{{name}}” tiks noņemts no grupas un varēs atgriezties tikai ar jaunu uzaicinājumu.",
       "groups.roleUpdateFailed": "Lomas atjaunināšana neizdevās",
       "groups.roleUpdated": "Loma atjaunināta",
       "groups.selectGroup": "Izvēlēties grupu",

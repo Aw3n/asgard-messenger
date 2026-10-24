@@ -337,6 +337,7 @@ export default {
       "groups.publicGroupHint": "Iedereen kan deze groep ontdekken en deelnemen",
       "groups.readOnly": "Alleen lezen",
       "groups.removeMember": "Lid verwijderen",
+      "groups.removeMemberWarning": "‘{{name}}’ wordt uit de groep verwijderd en kan alleen na een nieuwe uitnodiging terugkeren.",
       "groups.roleUpdateFailed": "Rol bijwerken mislukt",
       "groups.roleUpdated": "Rol bijgewerkt",
       "groups.selectGroup": "Selecteer een groep",

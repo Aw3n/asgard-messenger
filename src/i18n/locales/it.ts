@@ -341,6 +341,7 @@ export default {
       "groups.publicGroupHint": "Chiunque può scoprire e unirsi a questo gruppo",
       "groups.readOnly": "Sola lettura",
       "groups.removeMember": "Rimuovi membro",
+      "groups.removeMemberWarning": "“{{name}}” verrà rimosso dal gruppo e potrà rientrare solo dopo un nuovo invito.",
       "groups.roleUpdateFailed": "Aggiornamento ruolo fallito",
       "groups.roleUpdated": "Ruolo aggiornato",
       "groups.selectGroup": "Seleziona un gruppo",
