@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react'
+import React, { useMemo, useState, useEffect, useRef, type RefObject } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
@@ -8,6 +8,7 @@ import { useMessageStore } from '@/stores/messageStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { useMenuGestures } from '@/hooks/useMenuGestures'
 import type { MessageAttachment } from '@/types'
 import { ImageLightbox, type LightboxItem } from './ImageLightbox'
 
@@ -334,13 +335,26 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   }
 
   // Context menu state for attachment-level actions
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    fromKeyboard?: boolean
+  } | null>(null)
   const attachmentRef = useRef<HTMLDivElement>(null)
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setContextMenu({ x: e.clientX, y: e.clientY })
+  }
+
+  const openContextMenuFromKeyboard = () => {
+    const rect = attachmentRef.current?.getBoundingClientRect()
+    setContextMenu({
+      x: (rect?.left ?? 0) + 16,
+      y: (rect?.top ?? 0) + 16,
+      fromKeyboard: true,
+    })
   }
 
   const closeContextMenu = () => setContextMenu(null)
@@ -414,8 +428,16 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   return (
     <div
       ref={attachmentRef}
+      tabIndex={-1}
       className="relative inline-block"
       onContextMenu={handleContextMenu}
+      onKeyDown={(e) => {
+        // Menu et Maj+F10 : le menu d'une pièce jointe n'était pas atteignable
+        // sans souris, alors que celui du message qui le porte l'est.
+        if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return
+        e.preventDefault()
+        openContextMenuFromKeyboard()
+      }}
     >
       {deleteButton}
       {renderAttachment()}
@@ -424,6 +446,8 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         <AttachmentContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          fromKeyboard={contextMenu.fromKeyboard}
+          triggerRef={attachmentRef}
           onClose={closeContextMenu}
           onDownload={handleSaveAs}
           canDownload={!!attachment.blobKey}
@@ -483,18 +507,23 @@ const AttachmentContextMenu: React.FC<{
   onDownload: () => void
   canDownload: boolean
   fileName?: string
-}> = ({ x, y, onClose, onDownload, canDownload, fileName }) => {
+  fromKeyboard?: boolean
+  triggerRef: RefObject<HTMLDivElement | null>
+}> = ({ x, y, onClose, onDownload, canDownload, fileName, fromKeyboard, triggerRef }) => {
   const { t } = useTranslation()
-  useEffect(() => {
-    const handler = () => onClose()
-    window.addEventListener('click', handler, { once: true })
-    return () => window.removeEventListener('click', handler)
-  }, [onClose])
+  const menuRef = useRef<HTMLDivElement>(null)
+  // Le menu de la pièce jointe n'avait aucun geste clavier : seule une souris
+  // pouvait le refermer. Il suit désormais la touche réglée, comme les quatre
+  // autres menus, et se parcourt aux flèches.
+  useMenuGestures({ open: true, menuRef, triggerRef, onClose, fromKeyboard })
 
   const label = fileName ? t('chat.downloadNamedFile', { name: fileName }) : t('chat.downloadFile')
 
   return (
     <motion.div
+      ref={menuRef}
+      role="menu"
+      aria-label={label}
       initial={{ opacity: 0, scale: 0.95, y: -4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -505,6 +534,7 @@ const AttachmentContextMenu: React.FC<{
       style={{ left: x, top: y }}
     >
       <button
+        role="menuitem"
         onClick={() => {
           onDownload()
           onClose()

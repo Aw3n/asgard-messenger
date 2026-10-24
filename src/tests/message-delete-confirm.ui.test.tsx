@@ -436,8 +436,8 @@ describe('entrées de suppression du menu', () => {
     )
     openMenu('m1')
 
-    expect(within(row('m1') as HTMLElement).getByRole('button', { name: 'chat.deleteForEveryone' })).toBeInTheDocument()
-    fireEvent.click(within(row('m1') as HTMLElement).getByRole('button', { name: 'chat.deletePermanently' }))
+    expect(within(row('m1') as HTMLElement).getByRole('menuitem', { name: 'chat.deleteForEveryone' })).toBeInTheDocument()
+    fireEvent.click(within(row('m1') as HTMLElement).getByRole('menuitem', { name: 'chat.deletePermanently' }))
 
     // Le mode traverse le menu : la vue n'a pas à deviner ce qui a été cliqué.
     expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }), 'permanently')
@@ -455,10 +455,10 @@ describe('entrées de suppression du menu', () => {
     )
     openMenu('m1')
 
-    expect(within(row('m1') as HTMLElement).getByRole('button', { name: 'chat.deleteForMe' })).toBeInTheDocument()
-    expect(within(row('m1') as HTMLElement).queryByRole('button', { name: 'chat.deletePermanently' })).toBeNull()
+    expect(within(row('m1') as HTMLElement).getByRole('menuitem', { name: 'chat.deleteForMe' })).toBeInTheDocument()
+    expect(within(row('m1') as HTMLElement).queryByRole('menuitem', { name: 'chat.deletePermanently' })).toBeNull()
 
-    fireEvent.click(within(row('m1') as HTMLElement).getByRole('button', { name: 'chat.deleteForMe' }))
+    fireEvent.click(within(row('m1') as HTMLElement).getByRole('menuitem', { name: 'chat.deleteForMe' }))
     expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }), 'forMe')
   })
 
@@ -468,7 +468,7 @@ describe('entrées de suppression du menu', () => {
     openMenu('m1')
 
     for (const mode of MODES) {
-      expect(within(row('m1') as HTMLElement).queryByRole('button', { name: DELETE_MODE_LABEL_KEYS[mode] })).toBeNull()
+      expect(within(row('m1') as HTMLElement).queryByRole('menuitem', { name: DELETE_MODE_LABEL_KEYS[mode] })).toBeNull()
     }
   })
 
@@ -484,7 +484,7 @@ describe('entrées de suppression du menu', () => {
     openMenu('m1')
 
     for (const mode of MODES) {
-      const item = within(row('m1') as HTMLElement).getByRole('button', { name: DELETE_MODE_LABEL_KEYS[mode] })
+      const item = within(row('m1') as HTMLElement).getByRole('menuitem', { name: DELETE_MODE_LABEL_KEYS[mode] })
       expect(item.className).toContain('text-red-400')
     }
   })
@@ -501,7 +501,7 @@ describe('entrées de suppression du menu', () => {
     openMenu('m1')
 
     for (const mode of MODES) {
-      expect(within(row('m1') as HTMLElement).queryByRole('button', { name: DELETE_MODE_LABEL_KEYS[mode] })).toBeNull()
+      expect(within(row('m1') as HTMLElement).queryByRole('menuitem', { name: DELETE_MODE_LABEL_KEYS[mode] })).toBeNull()
     }
   })
 

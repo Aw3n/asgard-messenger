@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 import { copyMessageText } from '@/utils/clipboard'
 import { saveAttachmentToDisk } from '@/utils/attachmentSave'
-import { isCloseKeypress } from '@/hooks/useDialogBehavior'
+import { useMenuGestures } from '@/hooks/useMenuGestures'
 import { DELETE_MODE_LABEL_KEYS, type DeleteMode } from '@/hooks/useDeleteConfirmation'
 import { formatCombo } from '@/utils/shortcuts'
 import { formatMessageTime } from '@/utils/time'
@@ -83,10 +83,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   /**
    * Menu ancré à des coordonnées écran, pas à la bulle : ouvert au clic droit,
    * par le bouton « Plus » (souris et tactile) ou au clavier (Menu / Maj+F10).
-   * `null` = fermé ; sinon il se ferme au clic extérieur, à Échap, au scroll
-   * et au redimensionnement.
+   * `null` = fermé ; sinon il se ferme au clic extérieur, à la touche de
+   * fermeture réglée, au scroll et au redimensionnement.
    */
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    fromKeyboard?: boolean
+  } | null>(null)
   const rowRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -94,7 +98,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   // geste réellement possible derrière.
   const shownDeleteModes = onDelete ? (deleteModes ?? []) : []
 
-  const openContextMenu = (x: number, y: number) => {
+  const openContextMenu = (x: number, y: number, fromKeyboard = false) => {
     // Le menu porte sur la rangée ouverte : le focus y vient, sinon la frappe
     // réglée (Copier, Répondre, Transférer) agirait sur la rangée tenue depuis
     // le dernier Tab pendant que l'utilisateur regarde un autre message.
@@ -108,25 +112,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     setContextMenu({
       x: Math.max(8, Math.min(x, window.innerWidth - 248)),
       y: Math.max(8, Math.min(y, window.innerHeight - 248)),
+      fromKeyboard,
     })
   }
 
+  // Touche réglée, flèches, `Home`/`Fin`/`Tab` et focus rendu à la rangée : le
+  // même geste que sur les menus des trois listes.
+  useMenuGestures({
+    open: !!contextMenu,
+    menuRef,
+    triggerRef: rowRef,
+    onClose: () => setContextMenu(null),
+    fromKeyboard: contextMenu?.fromKeyboard,
+  })
+
+  // Le menu est posé à des coordonnées d'écran : défiler ou redimensionner le
+  // laisserait flottant loin du message qu'il commande.
   useEffect(() => {
     if (!contextMenu) return
-    const onPointerDown = (event: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setContextMenu(null)
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (isCloseKeypress(event)) setContextMenu(null)
-    }
     const close = () => setContextMenu(null)
-    window.addEventListener('pointerdown', onPointerDown, true)
-    window.addEventListener('keydown', onKeyDown)
     window.addEventListener('resize', close)
     window.addEventListener('scroll', close, true)
     return () => {
-      window.removeEventListener('pointerdown', onPointerDown, true)
-      window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('resize', close)
       window.removeEventListener('scroll', close, true)
     }
@@ -157,11 +164,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       tabIndex={0}
       role="group"
       aria-label={t('chat.messageActions')}
+      aria-haspopup="menu"
+      aria-expanded={!!contextMenu}
       onKeyDown={(e) => {
         if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
           e.preventDefault()
           const rect = rowRef.current?.getBoundingClientRect()
-          openContextMenu(rect ? rect.left + 24 : 24, rect ? rect.top + 24 : 24)
+          openContextMenu(rect ? rect.left + 24 : 24, rect ? rect.top + 24 : 24, true)
         }
       }}
       className={cn(
@@ -349,6 +358,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {contextMenu && (
           <motion.div
             ref={menuRef}
+            role="menu"
+            aria-label={t('chat.messageActions')}
             initial={{ opacity: 0, scale: 0.95, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -425,6 +436,7 @@ const ContextMenuItem: React.FC<{
   danger?: boolean
 }> = ({ label, hint, onClick, danger }) => (
   <button
+    role="menuitem"
     onClick={onClick}
     className={cn(
       'w-full flex items-center justify-between gap-4 text-left px-3 py-2 text-sm rounded-lg transition-colors',

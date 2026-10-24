@@ -12,6 +12,7 @@ import { chatService } from '@/services/ChatService'
 import { formatConversationTime } from '@/utils/time'
 import { cn } from '@/utils/cn'
 import { MUTE_DURATIONS } from '@/utils/mute'
+import { useMenuGestures } from '@/hooks/useMenuGestures'
 import type { Conversation } from '@/types'
 import { useTranslation } from 'react-i18next'
 
@@ -85,6 +86,9 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
 
   const handleContextMenu = useCallback((e: React.MouseEvent, conv: Conversation) => {
     e.preventDefault()
+    // La ligne clic-droit est le déclencheur du menu au même titre que celle
+    // ouverte au clavier : c'est elle qui récupère le focus à la fermeture.
+    menuTriggerRef.current = e.currentTarget as HTMLElement
     // Neuf entrées : garder le menu entier dans la fenêtre même ouvert près
     // du bas de la liste.
     setContextMenu({
@@ -162,58 +166,15 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     [activeConversationId, contacts, drafts, typingUsers, handleSelectConversation, handleContextMenu, handleItemKeyDown]
   )
 
-  // Ferme le menu au clic extérieur, gère Échap, flèches et Tab au clavier.
-  React.useEffect(() => {
-    if (!contextMenu) return
-    const clickHandler = () => setContextMenu(null)
-    const keyHandler = (e: KeyboardEvent) => {
-      const menu = menuRef.current
-      if (!menu) return
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        setContextMenu(null)
-        const trigger = menuTriggerRef.current
-        menuTriggerRef.current = null
-        if (trigger?.isConnected) trigger.focus()
-        return
-      }
-      const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
-      if (items.length === 0) return
-      const active = document.activeElement as HTMLButtonElement | null
-      const index = active ? items.indexOf(active) : -1
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        const step = e.key === 'ArrowDown' ? 1 : -1
-        const next = index === -1
-          ? (step === 1 ? 0 : items.length - 1)
-          : (index + step + items.length) % items.length
-        items[next]?.focus()
-      } else if (e.key === 'Home') {
-        e.preventDefault()
-        items[0]?.focus()
-      } else if (e.key === 'End') {
-        e.preventDefault()
-        items[items.length - 1]?.focus()
-      } else if (e.key === 'Tab') {
-        e.preventDefault()
-        if (index === -1) {
-          items[0]?.focus()
-          return
-        }
-        const next = (index + (e.shiftKey ? -1 : 1) + items.length) % items.length
-        items[next]?.focus()
-      }
-    }
-    window.addEventListener('click', clickHandler)
-    window.addEventListener('keydown', keyHandler)
-    if (contextMenu.fromKeyboard) {
-      menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
-    }
-    return () => {
-      window.removeEventListener('click', clickHandler)
-      window.removeEventListener('keydown', keyHandler)
-    }
-  }, [contextMenu])
+  // Fermeture par la touche réglée, flèches, `Home`/`Fin`/`Tab` dans le menu et
+  // focus rendu à la ligne qui l'a ouvert : les trois listes partagent le geste.
+  useMenuGestures({
+    open: !!contextMenu,
+    menuRef,
+    triggerRef: menuTriggerRef,
+    onClose: () => setContextMenu(null),
+    fromKeyboard: contextMenu?.fromKeyboard,
+  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>

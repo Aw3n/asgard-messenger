@@ -337,7 +337,11 @@ describe('garde de source des gestes de message', () => {
 
   it('ne laisse plus le menu du message coder Échap en dur', () => {
     const bubble = source('src/features/chat/components/MessageBubble.tsx')
-    expect(bubble).toContain('isCloseKeypress')
+    const hook = source('src/hooks/useMenuGestures.ts')
+    // La bulle délègue la fermeture au hook partagé, qui lit la touche réglée.
+    expect(bubble).toContain('useMenuGestures')
     expect(bubble).not.toMatch(/=== 'Escape'/)
+    expect(hook).toContain('isCloseKeypress')
+    expect(hook).not.toMatch(/=== 'Escape'/)
   })
 })

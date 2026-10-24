@@ -5,6 +5,7 @@ import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { groupService } from '@/services/GroupService'
 import { cn } from '@/utils/cn'
+import { useMenuGestures } from '@/hooks/useMenuGestures'
 import type { GroupChannel } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { CreateChannelModal } from './CreateChannelModal'
@@ -86,49 +87,15 @@ export const ChannelList: React.FC = () => {
     [],
   )
 
-  // Échap rend le focus à la ligne déclencheuse ; les flèches restent dans
-  // le menu, comme dans la liste des conversations.
-  React.useEffect(() => {
-    if (!contextMenu) return
-    const clickHandler = () => setContextMenu(null)
-    const keyHandler = (e: KeyboardEvent) => {
-      const menu = menuRef.current
-      if (!menu) return
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        setContextMenu(null)
-        const trigger = menuTriggerRef.current
-        menuTriggerRef.current = null
-        if (trigger?.isConnected) trigger.focus()
-        return
-      }
-      if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Tab'].includes(e.key)) return
-      const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
-      if (items.length === 0) return
-      e.preventDefault()
-      if (e.key === 'Home') return void items[0]?.focus()
-      if (e.key === 'End') return void items[items.length - 1]?.focus()
-      if (e.key === 'Tab') {
-        const index = items.indexOf(document.activeElement as HTMLButtonElement)
-        const next = index === -1 ? 0 : (index + (e.shiftKey ? -1 : 1) + items.length) % items.length
-        items[next]?.focus()
-        return
-      }
-      items[0]?.focus()
-    }
-    window.addEventListener('click', clickHandler)
-    window.addEventListener('keydown', keyHandler)
-    return () => {
-      window.removeEventListener('click', clickHandler)
-      window.removeEventListener('keydown', keyHandler)
-    }
-  }, [contextMenu])
-
-  React.useEffect(() => {
-    if (contextMenu?.fromKeyboard) {
-      menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
-    }
-  }, [contextMenu])
+  // La touche réglée referme et rend le focus à la ligne déclencheuse ; les
+  // flèches, `Home`, `Fin` et `Tab` restent dans le menu, comme ailleurs.
+  useMenuGestures({
+    open: !!contextMenu,
+    menuRef,
+    triggerRef: menuTriggerRef,
+    onClose: () => setContextMenu(null),
+    fromKeyboard: contextMenu?.fromKeyboard,
+  })
 
   const toggleChannelRead = React.useCallback(() => {
     if (!contextMenu || !activeGroup) return
