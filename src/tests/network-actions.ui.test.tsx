@@ -99,6 +99,26 @@ describe('vider le DHT', () => {
   })
 })
 
+describe('qualité des pairs', () => {
+  it('une lecture réussie remplit la liste sans signaler de panne', async () => {
+    network().getPeerScores.mockResolvedValueOnce({
+      ['a1b2c3d4e5f6'.repeat(5) + 'abcd']: { latency: 12, score: 90 },
+    })
+    await openNetwork()
+
+    expect(await screen.findByText('settings.peerQuality')).toBeInTheDocument()
+    expect(screen.queryByText('settings.peerScoresUnavailable')).not.toBeInTheDocument()
+  })
+
+  it('une lecture en panne se dit au lieu de faire croire qu’il n’y a aucun pair', async () => {
+    network().getPeerScores.mockRejectedValueOnce(new Error('IPC fermé'))
+    await openNetwork()
+
+    expect(await screen.findByText('settings.peerScoresUnavailable')).toBeInTheDocument()
+    expect(screen.queryByText('settings.peerQuality')).not.toBeInTheDocument()
+  })
+})
+
 describe('suspendre et reprendre', () => {
   it('une suspension réussie bascule le bouton', async () => {
     await openNetwork()

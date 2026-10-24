@@ -802,6 +802,7 @@ export default {
       "settings.onlineStatusDesc": "Dovolite svojim stikom, da vidijo vaše spletno stanje",
       "settings.peerLatency": "Zakasnitev vrstnikov",
       "settings.peerQuality": "Kakovost vrstnikov",
+      "settings.peerScoresUnavailable": "Kakovost vrstnikov ni na voljo",
       "settings.peers": "Vrstniki",
       "settings.readReceipts": "Potrdila o branju",
       "settings.readReceiptsDesc": "Obvestite druge, ko preberete njihova sporočila",

@@ -810,6 +810,7 @@ export default {
       "settings.onlineStatusDesc": "Lubage oma kontaktidel näha teie veebi olekut",
       "settings.peerLatency": "Võrdsete latentsus",
       "settings.peerQuality": "Võrdsete kvaliteet",
+      "settings.peerScoresUnavailable": "Võrdsete kvaliteet pole saadaval",
       "settings.peers": "Võrdsed",
       "settings.readReceipts": "Lugemiskinnitused",
       "settings.readReceiptsDesc": "Teavita teisi, kui olete nende sõnumid lugenud",

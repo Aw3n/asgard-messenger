@@ -802,6 +802,7 @@ export default {
       "settings.onlineStatusDesc": "Позволете на контактите си да виждат вашето онлайн състояние",
       "settings.peerLatency": "Забавяне на пиърите",
       "settings.peerQuality": "Качество на пиърите",
+      "settings.peerScoresUnavailable": "Качеството на пиърите не е достъпно",
       "settings.peers": "Пиъри",
       "settings.readReceipts": "Разписки за прочитане",
       "settings.readReceiptsDesc": "Информирайте другите, когато сте прочели съобщенията им",

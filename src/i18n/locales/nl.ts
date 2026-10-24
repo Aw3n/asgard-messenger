@@ -828,6 +828,7 @@ export default {
       "settings.onlineStatusDesc": "Laat uw contacten uw onlinestatus zien",
       "settings.peerLatency": "Peer-latency",
       "settings.peerQuality": "Peer-kwaliteit",
+      "settings.peerScoresUnavailable": "Peer-kwaliteit niet beschikbaar",
       "settings.peers": "Peers",
       "settings.readReceipts": "Leesbevestigingen",
       "settings.readReceiptsDesc": "Laat anderen weten wanneer u hun berichten heeft gelezen",

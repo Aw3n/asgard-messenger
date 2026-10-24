@@ -810,6 +810,7 @@ export default {
       "settings.onlineStatusDesc": "Engedélyezze névjegyeinek, hogy lássák online állapotát",
       "settings.peerLatency": "Partner késleltetés",
       "settings.peerQuality": "Partner minőség",
+      "settings.peerScoresUnavailable": "A partnerek minősége nem érhető el",
       "settings.peers": "Partnerek",
       "settings.readReceipts": "Olvasási visszaigazolások",
       "settings.readReceiptsDesc": "Értesítse a többieket, amikor elolvasta üzeneteiket",

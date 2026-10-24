@@ -828,6 +828,7 @@ export default {
       "settings.onlineStatusDesc": "Consenti ai tuoi contatti di vedere il tuo stato online",
       "settings.peerLatency": "Latenza peer",
       "settings.peerQuality": "Qualità peer",
+      "settings.peerScoresUnavailable": "Qualità dei peer non disponibile",
       "settings.peers": "Peer",
       "settings.readReceipts": "Conferme di lettura",
       "settings.readReceiptsDesc": "Informa gli altri quando hai letto i loro messaggi",

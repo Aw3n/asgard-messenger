@@ -802,6 +802,7 @@ export default {
       "settings.onlineStatusDesc": "Povoliť kontaktom vidieť váš online stav",
       "settings.peerLatency": "Latencia peerov",
       "settings.peerQuality": "Kvalita peerov",
+      "settings.peerScoresUnavailable": "Kvalita peerov nie je dostupná",
       "settings.peers": "Peery",
       "settings.readReceipts": "Potvrdenia o prečítaní",
       "settings.readReceiptsDesc": "Informovať ostatných, keď prečítate ich správy",

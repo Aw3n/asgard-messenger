@@ -783,6 +783,7 @@ export default {
       "settings.onlineStatusDesc": "Дозволити контактам бачити ваш онлайн статус",
       "settings.peerLatency": "Затримка пірів",
       "settings.peerQuality": "Якість пірів",
+      "settings.peerScoresUnavailable": "Якість пірів недоступна",
       "settings.peers": "Піри",
       "settings.readReceipts": "Підтвердження прочитання",
       "settings.readReceiptsDesc": "Повідомляти інших, коли ви прочитали їхні повідомлення",

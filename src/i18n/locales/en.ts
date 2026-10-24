@@ -811,6 +811,7 @@ export default {
       "settings.onlineStatusDesc": "Let your contacts see your online status",
       "settings.peerLatency": "Peer latency",
       "settings.peerQuality": "Peer quality",
+      "settings.peerScoresUnavailable": "Peer quality unavailable",
       "settings.peers": "Peers",
       "settings.readReceipts": "Read receipts",
       "settings.readReceiptsDesc": "Let others know when you have read their messages",

@@ -810,6 +810,7 @@ export default {
       "settings.onlineStatusDesc": "Anna yhteystietojesi nähdä online-tilasi",
       "settings.peerLatency": "Vertaisten viive",
       "settings.peerQuality": "Vertaisten laatu",
+      "settings.peerScoresUnavailable": "Vertaisten laatu ei ole saatavilla",
       "settings.peers": "Vertaiset",
       "settings.readReceipts": "Lukukuittaukset",
       "settings.readReceiptsDesc": "Ilmoita muille, kun olet lukenut heidän viestinsä",

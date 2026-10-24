@@ -640,6 +640,7 @@ export default {
       "settings.peerLastSeen": "Vu pour la dernière fois",
       "settings.peerLatency": "Latence des pairs",
       "settings.peerQuality": "Qualité des pairs",
+      "settings.peerScoresUnavailable": "Qualité des pairs indisponible",
       "settings.peerUnblocked": "Pair débloqué",
       "settings.peers": "Pairs",
       "settings.privacy": "Confidentialité et sécurité",

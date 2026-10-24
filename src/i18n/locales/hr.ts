@@ -810,6 +810,7 @@ export default {
       "settings.onlineStatusDesc": "Dopustite kontaktima da vide vaš online status",
       "settings.peerLatency": "Latencija vršnjaka",
       "settings.peerQuality": "Kvaliteta vršnjaka",
+      "settings.peerScoresUnavailable": "Kvaliteta vršnjaka nije dostupna",
       "settings.peers": "Vršnjaci",
       "settings.readReceipts": "Potvrde čitanja",
       "settings.readReceiptsDesc": "Obavijestite druge kada pročitate njihove poruke",

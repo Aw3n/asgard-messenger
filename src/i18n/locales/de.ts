@@ -828,6 +828,7 @@ export default {
       "settings.onlineStatusDesc": "Ihren Kontakten Ihren Online-Status anzeigen",
       "settings.peerLatency": "Peer-Latenz",
       "settings.peerQuality": "Peer-Qualität",
+      "settings.peerScoresUnavailable": "Peer-Qualität nicht verfügbar",
       "settings.peers": "Peers",
       "settings.readReceipts": "Lesebestätigungen",
       "settings.readReceiptsDesc": "Andere wissen lassen, wenn Sie ihre Nachrichten gelesen haben",

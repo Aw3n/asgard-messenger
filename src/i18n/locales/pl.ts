@@ -802,6 +802,7 @@ export default {
       "settings.onlineStatusDesc": "Pozwól swoim kontaktom zobaczyć Twój status online",
       "settings.peerLatency": "Opóźnienie peerów",
       "settings.peerQuality": "Jakość peerów",
+      "settings.peerScoresUnavailable": "Jakość peerów niedostępna",
       "settings.peers": "Peery",
       "settings.readReceipts": "Potwierdzenia odczytu",
       "settings.readReceiptsDesc": "Powiadamiaj innych, gdy przeczytasz ich wiadomości",

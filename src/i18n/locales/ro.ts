@@ -802,6 +802,7 @@ export default {
       "settings.onlineStatusDesc": "Permite contactelor tale să vadă starea ta online",
       "settings.peerLatency": "Latența perechilor",
       "settings.peerQuality": "Calitatea perechilor",
+      "settings.peerScoresUnavailable": "Calitatea perechilor nu este disponibilă",
       "settings.peers": "Perechi",
       "settings.readReceipts": "Confirmări de citire",
       "settings.readReceiptsDesc": "Informează ceilalți când le-ai citit mesajele",

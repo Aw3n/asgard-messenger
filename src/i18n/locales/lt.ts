@@ -810,6 +810,7 @@ export default {
       "settings.onlineStatusDesc": "Leiskite savo kontaktams matyti jūsų prisijungimo būseną",
       "settings.peerLatency": "Peerų delsos laikas",
       "settings.peerQuality": "Peerų kokybė",
+      "settings.peerScoresUnavailable": "Bendraamžių kokybė nepasiekiama",
       "settings.peers": "Peerai",
       "settings.readReceipts": "Skaitymo patvirtinimai",
       "settings.readReceiptsDesc": "Informuoti kitus, kai perskaitėte jų žinutes",

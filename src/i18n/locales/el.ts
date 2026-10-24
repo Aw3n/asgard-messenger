@@ -810,6 +810,7 @@ export default {
       "settings.onlineStatusDesc": "Επιτρέψτε στις επαφές σας να βλέπουν την κατάστασή σας online",
       "settings.peerLatency": "Καθυστέρηση κόμβων",
       "settings.peerQuality": "Ποιότητα κόμβων",
+      "settings.peerScoresUnavailable": "Η ποιότητα των κόμβων δεν είναι διαθέσιμη",
       "settings.peers": "Κόμβοι",
       "settings.readReceipts": "Αποδείξεις ανάγνωσης",
       "settings.readReceiptsDesc": "Ενημερώστε τους άλλους όταν διαβάσετε τα μηνύματά τους",

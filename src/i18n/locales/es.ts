@@ -828,6 +828,7 @@ export default {
       "settings.onlineStatusDesc": "Permitir que tus contactos vean tu estado en línea",
       "settings.peerLatency": "Latencia de pares",
       "settings.peerQuality": "Calidad de pares",
+      "settings.peerScoresUnavailable": "Calidad de pares no disponible",
       "settings.peers": "Pares",
       "settings.readReceipts": "Confirmaciones de lectura",
       "settings.readReceiptsDesc": "Informar a otros cuando hayas leído sus mensajes",

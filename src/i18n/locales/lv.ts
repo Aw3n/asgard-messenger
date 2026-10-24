@@ -810,6 +810,7 @@ export default {
       "settings.onlineStatusDesc": "Ļaujiet saviem kontaktiem redzēt jūsu tiešsaistes statusu",
       "settings.peerLatency": "Biedru aizture",
       "settings.peerQuality": "Biedru kvalitāte",
+      "settings.peerScoresUnavailable": "Biedru kvalitāte nav pieejama",
       "settings.peers": "Biedri",
       "settings.readReceipts": "Lasīšanas apstiprinājumi",
       "settings.readReceiptsDesc": "Informēt citus, kad esat izlasījis viņu ziņojumus",

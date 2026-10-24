@@ -979,6 +979,7 @@ const NetworkSection: React.FC = () => {
   const setSwarmSuspended = useNetworkStore((s) => s.setSwarmSuspended)
   const status = useNetworkStore((s) => s.status)
   const [peerScores, setPeerScores] = useState<Record<string, { latency: number; score: number }>>({})
+  const [peerScoresUnavailable, setPeerScoresUnavailable] = useState(false)
   const [firewallStatus, setFirewallStatus] = useState<'configured' | 'needs-admin' | 'not-configured' | 'checking'>('checking')
   const [isConfiguringFirewall, setIsConfiguringFirewall] = useState(false)
 
@@ -1013,7 +1014,14 @@ const NetworkSection: React.FC = () => {
   // Fetch peer scores periodically
   useEffect(() => {
     const fetchScores = () => {
-      window.asgard.network.getPeerScores().then(setPeerScores).catch(() => {})
+      window.asgard.network
+        .getPeerScores()
+        .then((scores) => {
+          setPeerScores(scores)
+          setPeerScoresUnavailable(false)
+        })
+        // Sans cet état, une lecture en panne ressemblait à « aucun pair ».
+        .catch(() => setPeerScoresUnavailable(true))
     }
     fetchScores()
     const interval = setInterval(fetchScores, 10000)
@@ -1152,6 +1160,11 @@ return (
                   ))}
                 </div>
               </div>
+            )}
+            {peerScoresUnavailable && (
+              <p className="mt-3 text-xs text-yellow-400" role="status">
+                {t('settings.peerScoresUnavailable')}
+              </p>
             )}
             {Object.keys(peerScores).length > 0 && (
               <div className="mt-3">

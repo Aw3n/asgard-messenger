@@ -810,6 +810,7 @@ export default {
       "settings.onlineStatusDesc": "Låt dina kontakter se din onlinestatus",
       "settings.peerLatency": "Peer-latens",
       "settings.peerQuality": "Peer-kvalitet",
+      "settings.peerScoresUnavailable": "Peer-kvalitet är inte tillgänglig",
       "settings.peers": "Peers",
       "settings.readReceipts": "Läskvittenser",
       "settings.readReceiptsDesc": "Meddela andra när du har läst deras meddelanden",

@@ -802,6 +802,7 @@ export default {
       "settings.onlineStatusDesc": "Lig do do theagmhálacha do stádas ar líne a fheiceáil",
       "settings.peerLatency": "Moill piaraí",
       "settings.peerQuality": "Cáilíocht piaraí",
+      "settings.peerScoresUnavailable": "Cáilíocht piaraí gan fáil",
       "settings.peers": "Piaraí",
       "settings.readReceipts": "Admhálacha léite",
       "settings.readReceiptsDesc": "Cuir in iúl do dhaoine eile nuair a léann tú a dteachtaireachtaí",

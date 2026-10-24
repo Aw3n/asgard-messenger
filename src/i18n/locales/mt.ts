@@ -802,6 +802,7 @@ export default {
       "settings.onlineStatusDesc": "Ħalli l-kuntatti tiegħek jaraw l-istat online tiegħek",
       "settings.peerLatency": "Latency tal-peers",
       "settings.peerQuality": "Kwalità tal-peers",
+      "settings.peerScoresUnavailable": "Il-kwalità tal-peers mhix disponibbli",
       "settings.peers": "Peers",
       "settings.readReceipts": "Rċevuti tal-qari",
       "settings.readReceiptsDesc": "Informa lill-oħrajn meta taqra l-messaġġi tagħhom",
