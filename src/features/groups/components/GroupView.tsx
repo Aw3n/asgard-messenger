@@ -48,6 +48,9 @@ export const GroupView: React.FC = () => {
   const activeGroup = useGroupStore((s) => s.getActiveGroup())
   const activeChannel = useGroupStore((s) => s.getActiveChannel())
   const groupViewVisible = useGroupStore((s) => s.groupViewVisible)
+  // Même réglage d'accessibilité que le fil 1:1 : les messages de canal
+  // doivent s'annoncer au lecteur d'écran comme ceux d'une conversation.
+  const screenReaderMode = useUIStore((s) => s.settings.accessibility.screenReader)
   const identity = useIdentityStore((s) => s.identity)
   // S'abonner à la table : basculer la sourdine doit réafficher l'icône.
   const groupMuted = useConversationStore((s) =>
@@ -556,46 +559,54 @@ export const GroupView: React.FC = () => {
               />
             )
           ) : (
-            <Virtuoso
-              ref={virtuosoRef}
-              data={messages}
-              firstItemIndex={paginationState.firstItemIndex}
-              startReached={() => { void loadOlderMessages() }}
-              rangeChanged={onRangeChanged}
-              followOutput={(atBottom) => (atBottom && !gapArmed ? 'smooth' : false)}
-              atBottomStateChange={setAtBottom}
-              className="h-full virtual-list"
-              initialTopMostItemIndex={messages.length - 1}
-              itemContent={(_, message) => (
-                <React.Fragment key={message.id}>
-                  {message.id === firstUnreadId && (
-                    <UnreadDivider label={t('chat.newMessages')} />
-                  )}
-                  <MessageBubble
-                    message={message}
-                    isOwn={message.senderId === identity?.keyPair.publicKey}
-                    ownSenderId={identity?.keyPair.publicKey}
-                    senderName={getMemberName(activeGroup, message.senderId)}
-                    senderNameFor={(id) => getMemberName(activeGroup, id)}
-                    showSender
-                    highlighted={message.id === highlightedMessageId}
-                    onReply={handleReply}
-                    onEdit={handleEdit}
-                    onDelete={requestDelete}
-                    deleteModes={['forEveryone', 'forMe']}
-                    onReaction={handleReaction}
-                    onPin={canPin ? handlePin : undefined}
-                    onForward={handleForward}
-                  />
-                </React.Fragment>
-              )}
-              components={{
-                Header: () => <div className="h-4" />,
-                Footer: () => (
-                  <TypingIndicator users={typingUsers.map((u) => u.publicKey)} />
-                ),
-              }}
-            />
+            <div
+              className="h-full"
+              // ACCESSIBILITY SETTINGS: le réglage lecteur d'écran annonce les
+              // nouveaux messages de canal, comme dans le fil 1:1.
+              aria-live={screenReaderMode ? 'polite' : 'off'}
+              aria-relevant="additions"
+            >
+              <Virtuoso
+                ref={virtuosoRef}
+                data={messages}
+                firstItemIndex={paginationState.firstItemIndex}
+                startReached={() => { void loadOlderMessages() }}
+                rangeChanged={onRangeChanged}
+                followOutput={(atBottom) => (atBottom && !gapArmed ? 'smooth' : false)}
+                atBottomStateChange={setAtBottom}
+                className="h-full virtual-list"
+                initialTopMostItemIndex={messages.length - 1}
+                itemContent={(_, message) => (
+                  <React.Fragment key={message.id}>
+                    {message.id === firstUnreadId && (
+                      <UnreadDivider label={t('chat.newMessages')} />
+                    )}
+                    <MessageBubble
+                      message={message}
+                      isOwn={message.senderId === identity?.keyPair.publicKey}
+                      ownSenderId={identity?.keyPair.publicKey}
+                      senderName={getMemberName(activeGroup, message.senderId)}
+                      senderNameFor={(id) => getMemberName(activeGroup, id)}
+                      showSender
+                      highlighted={message.id === highlightedMessageId}
+                      onReply={handleReply}
+                      onEdit={handleEdit}
+                      onDelete={requestDelete}
+                      deleteModes={['forEveryone', 'forMe']}
+                      onReaction={handleReaction}
+                      onPin={canPin ? handlePin : undefined}
+                      onForward={handleForward}
+                    />
+                  </React.Fragment>
+                )}
+                components={{
+                  Header: () => <div className="h-4" />,
+                  Footer: () => (
+                    <TypingIndicator users={typingUsers.map((u) => u.publicKey)} />
+                  ),
+                }}
+              />
+            </div>
           )}
 
           {/* Retour au bas du fil : visible uniquement quand l'utilisateur lit
