@@ -3230,32 +3230,19 @@ class ChatService {
       if (!muted && notifSettings.enabled && !isQuietNow(notifSettings)) {
         const senderName = contact?.displayName ?? msg.from.slice(0, 8)
         const content = correctedMessage.content ?? ''
-        // NOTIFICATION SETTINGS (mentionsOnly): only notify when the message
-        // mentions us — @displayName, @all or @here.
-        if (!notifSettings.mentionsOnly || this.isMentioned(content)) {
-          const body = notifSettings.showPreview
-            ? content.slice(0, 100)
-            : i18n.t('notifications.newMessage')
-          window.asgard.notifications.show(senderName, body, { conversationId: resolvedId })
-          // NOTIFICATION SETTINGS (sound): short beep alongside the notification
-          if (notifSettings.sound) ringtoneService.playBeep(660, 120)
-          // ACCESSIBILITY SETTINGS (ttsEnabled): read the message aloud
-          if (a11ySettings.ttsEnabled) speakText(`${senderName}. ${body}`)
-        }
+        // NOTIFICATION SETTINGS (mentionsOnly) ne concerne que les groupes : la
+        // description du réglage promet les messages directs, et ceux-ci ne
+        // peuvent pas nous « mentionner » au sens d'un canal.
+        const body = notifSettings.showPreview
+          ? content.slice(0, 100)
+          : i18n.t('notifications.newMessage')
+        window.asgard.notifications.show(senderName, body, { conversationId: resolvedId })
+        // NOTIFICATION SETTINGS (sound): short beep alongside the notification
+        if (notifSettings.sound) ringtoneService.playBeep(660, 120)
+        // ACCESSIBILITY SETTINGS (ttsEnabled): read the message aloud
+        if (a11ySettings.ttsEnabled) speakText(`${senderName}. ${body}`)
       }
     }
-  }
-
-  /**
-   * NOTIFICATION SETTINGS (mentionsOnly): detect whether a message mentions the
-   * local user — @displayName (case-insensitive), @all or @here.
-   */
-  private isMentioned(content: string): boolean {
-    const lower = content.toLowerCase()
-    if (lower.includes('@all') || lower.includes('@here')) return true
-    const myName = useIdentityStore.getState().identity?.profile.displayName?.trim().toLowerCase()
-    if (!myName || myName.length < 2) return false
-    return lower.includes(`@${myName}`)
   }
 
   /**
