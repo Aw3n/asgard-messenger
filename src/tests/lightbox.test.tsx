@@ -16,9 +16,10 @@
  * zoomed picture could never be dragged out from behind the controls — the
  * viewer looked like it was cropping the image.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, act, within, cleanup } from '@testing-library/react'
 import i18n from '@/i18n/config'
+import { useUIStore } from '@/stores/uiStore'
 import { ImageLightbox, type LightboxItem } from '@/features/chat/components/ImageLightbox'
 
 /**
@@ -342,5 +343,78 @@ describe('ImageLightbox', () => {
     lastVisible.focus()
     fireEvent.keyDown(window, { key: 'Tab' })
     expect(document.activeElement).toBe(visible[0])
+  })
+})
+
+/**
+ * La visionneuse fermait sur un « Escape » recopié dans le code : après un
+ * re-réglage de « Fermer la boîte de dialogue », elle restait la seule surface
+ * de l'application à obéir à l'ancienne touche — et la croix ne le disait pas.
+ */
+describe('fermeture réglée de la visionneuse', () => {
+  const comboBaseline = { ...useUIStore.getState().settings.keyboardShortcuts }
+  const closeKey = () => screen.getByRole('button', { name: label('lightbox.close') })
+
+  const bind = (combo: string) => {
+    const current = useUIStore.getState().settings.keyboardShortcuts
+    act(() => {
+      useUIStore.getState().updateSettings({ keyboardShortcuts: { ...current, closeModal: combo } })
+    })
+  }
+
+  afterEach(() => {
+    cleanup()
+    document.body.style.overflow = ''
+    act(() => {
+      useUIStore.getState().updateSettings({ keyboardShortcuts: { ...comboBaseline } })
+    })
+  })
+
+  it('nomme la touche réglée sur sa croix', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    expect(closeKey()).toHaveAttribute('aria-keyshortcuts', 'Escape')
+
+    bind('Ctrl+Shift+X')
+    expect(closeKey()).toHaveAttribute('aria-keyshortcuts', 'Control+Shift+X')
+    expect(closeKey().getAttribute('title')).toBe(`${label('lightbox.close')} — Ctrl + Shift + X`)
+
+    bind('')
+    expect(closeKey()).not.toHaveAttribute('aria-keyshortcuts')
+    expect(closeKey().getAttribute('title')).toBe(label('lightbox.close'))
+  })
+
+  it('obéit à la touche réglée, plus à « Escape » déplacée', () => {
+    const onClose = vi.fn()
+    render(<ImageLightbox items={[item()]} onClose={onClose} />)
+    bind('Ctrl+Shift+X')
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(window, { key: 'x', ctrlKey: true, shiftKey: true })
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('garde la touche pendant une composition, et rend le geste éteint à la page', () => {
+    const onClose = vi.fn()
+    render(<ImageLightbox items={[item()]} onClose={onClose} />)
+
+    fireEvent.keyDown(window, { key: 'Escape', isComposing: true })
+    fireEvent.keyDown(window, { key: 'Escape', keyCode: 229 })
+    expect(onClose).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledOnce()
+
+    cleanup()
+    const again = vi.fn()
+    render(<ImageLightbox items={[item()]} onClose={again} />)
+    bind('')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(again).not.toHaveBeenCalled()
+
+    // La croix reste le geste sûr : c'est elle qui referme sans touche réglée.
+    fireEvent.click(closeKey())
+    expect(again).toHaveBeenCalledOnce()
   })
 })

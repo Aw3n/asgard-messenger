@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { isCloseKeypress } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 
 /**
  * One entry of the photo gallery shown by the lightbox.
@@ -113,6 +115,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   fileName,
 }) => {
   const { t } = useTranslation()
+  // La croix et la touche rendent la page au chat : la touche est celle du
+  // réglage, relue à la frappe, et le bouton la nomme.
+  const closeGesture = useGestureHint('closeModal', t('lightbox.close'))
   const gallery = items.length > 1 ? items : null
 
   const [index, setIndex] = useState(() => Math.min(Math.max(startIndex, 0), Math.max(items.length - 1, 0)))
@@ -672,15 +677,19 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     }
 
     const onKey = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'Escape':
-          // En plein écran, Échap doit d'abord rendre l'écran au système.
-          if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
-            void document.exitFullscreen().catch(() => {})
-            return
-          }
-          onClose()
+      // La fermeture est le geste réglé, plus une touche recopiée : « Échap » en
+      // dur aurait continué à fermer la visionneuse alors que le réglage la
+      // porte ailleurs — et l'aurait refermée pendant une composition IME.
+      if (isCloseKeypress(e) && !e.isComposing && e.keyCode !== 229) {
+        // En plein écran, la touche doit d'abord rendre l'écran au système.
+        if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+          void document.exitFullscreen().catch(() => {})
           return
+        }
+        onClose()
+        return
+      }
+      switch (e.key) {
         case 'Tab': trapTab(e); return
         case '+': case '=': zoomBy(1.3); return
         case '-': case '_': zoomBy(1 / 1.3); return
@@ -988,7 +997,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
           <button onClick={() => void handleDownload()} disabled={srcFailed} className={toolBtn} title={t('lightbox.download')} aria-label={t('lightbox.download')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
           </button>
-          <button onClick={onClose} className={toolBtn} title={t('lightbox.close')} aria-label={t('lightbox.close')}>
+          <button onClick={onClose} className={toolBtn} title={closeGesture.title} aria-label={t('lightbox.close')} aria-keyshortcuts={closeGesture.ariaKeyShortcuts}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
           </button>
         </div>
