@@ -43,8 +43,11 @@ function toLightboxItem(att: MessageAttachment): LightboxItem {
     // La bande de vignettes de la visionneuse réutilise la miniature du
     // message telle quelle : pas de re-téléchargement pour un aperçu 44 px.
     thumb: att.thumbnail,
-    // A thumbnail alone cannot be zoomed usefully — the original is still missing.
+    // Un thumbnail seul ne se zoome pas utilement — l'original manque encore.
     preview: !live,
+    // Avec la clé, le bouton Télécharger de la visionneuse passe par le pont
+    // natif : même dossier réglé, mêmes retours que les autres pièces.
+    blobKey: att.blobKey,
     loadFull: async () => {
       if (live) return live
       if (!att.blobKey) return null

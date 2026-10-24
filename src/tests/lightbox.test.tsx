@@ -561,3 +561,118 @@ describe('vignettes et photo sans nom', () => {
     for (const value of thumbs) expect(value).toContain('{{index}}')
   })
 })
+
+/**
+ * Le bouton Télécharger de la visionneuse posait une ancre blob : il ignorait le
+ * dossier réglé dans les paramètres, ne disait rien quand la source manquait, et
+ * pouvait enregistrer le corps d'un 404 comme une photo.
+ */
+describe('téléchargement de la visionneuse', () => {
+  const downloadButton = () => screen.getByRole('button', { name: label('lightbox.download') })
+  const toasts = () => useUIStore.getState().toasts.map((toast) => `${toast.type}:${toast.title}`)
+  const beforeStorage = useUIStore.getState().settings.storage
+  const urlApi = URL as unknown as { createObjectURL: unknown; revokeObjectURL: unknown }
+  const previousCreate = urlApi.createObjectURL
+  const previousRevoke = urlApi.revokeObjectURL
+
+  beforeEach(() => {
+    useUIStore.setState({ toasts: [] })
+    vi.mocked(window.asgard.file.saveAs).mockReset()
+    vi.mocked(window.asgard.file.saveAs).mockResolvedValue({ success: false, reason: 'canceled' })
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+    useUIStore.getState().updateSettings({ storage: beforeStorage })
+    useUIStore.setState({ toasts: [] })
+    // Le toast est libellé à l'émission : on laisse un éteignoir permanent pour
+    // le `revokeObjectURL` différé, que le test ne doit pas rendre orphelin.
+    if (previousCreate === undefined) urlApi.createObjectURL = () => 'blob:stub'
+    else urlApi.createObjectURL = previousCreate
+    if (previousRevoke === undefined) urlApi.revokeObjectURL = () => {}
+    else urlApi.revokeObjectURL = previousRevoke
+  })
+
+  it('passe par le pont natif quand la photo est une pièce jointe', async () => {
+    const downloadPath = 'D:\\Images'
+    useUIStore.getState().updateSettings({
+      storage: { ...useUIStore.getState().settings.storage, downloadPath },
+    })
+    vi.mocked(window.asgard.file.saveAs).mockResolvedValue({ success: true, filePath: 'D:\\Images\\photo.png' })
+    render(<ImageLightbox items={[item({ blobKey: 'blob-1' })]} onClose={vi.fn()} />)
+
+    fireEvent.click(downloadButton())
+
+    // Le réglage de dossier va jusqu'au dialogue natif, et le succès se voit.
+    await waitFor(() =>
+      expect(window.asgard.file.saveAs).toHaveBeenCalledWith('blob-1', 'photo.png', downloadPath),
+    )
+    expect(toasts()).toEqual([`success:${label('chat.fileSaved')}`])
+  })
+
+  it('ne dit rien quand la fenêtre d’enregistrement est fermée sans choix', async () => {
+    render(<ImageLightbox items={[item({ blobKey: 'blob-1' })]} onClose={vi.fn()} />)
+
+    fireEvent.click(downloadButton())
+
+    await waitFor(() => expect(window.asgard.file.saveAs).toHaveBeenCalled())
+    expect(toasts()).toEqual([])
+  })
+
+  it('garde l’ancre blob pour une URL sans pièce jointe', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['pixels'], { type: 'image/png' }),
+    }))
+    urlApi.createObjectURL = vi.fn(() => 'blob:download')
+    urlApi.revokeObjectURL = vi.fn()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    try {
+      render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+      fireEvent.click(downloadButton())
+
+      await waitFor(() => expect(click).toHaveBeenCalledOnce())
+      expect(window.asgard.file.saveAs).not.toHaveBeenCalled()
+      expect(toasts()).toEqual([])
+    } finally {
+      click.mockRestore()
+    }
+  })
+
+  it('refuse d’enregistrer le corps d’une réponse HTTP en échec', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      blob: async () => new Blob(['page introuvable']),
+    }))
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    try {
+      render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+      fireEvent.click(downloadButton())
+
+      await waitFor(() => expect(toasts()).toEqual([`error:${label('chat.downloadFailed')}`]))
+      expect(click).not.toHaveBeenCalled()
+    } finally {
+      click.mockRestore()
+    }
+  })
+
+  it('annonce une source injoignable au lieu d’échouer en silence', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+
+    fireEvent.click(downloadButton())
+
+    await waitFor(() => expect(toasts()).toEqual([`error:${label('chat.downloadFailed')}`]))
+    expect(useUIStore.getState().toasts[0].message).toBe(label('chat.saveError'))
+  })
+
+  it('transmet la clé de blob depuis la pièce jointe', () => {
+    const attachment = readFileSync(
+      join(process.cwd(), 'src/features/chat/components/FileAttachment.tsx'),
+      'utf8',
+    )
+    expect(attachment).toContain('blobKey: att.blobKey')
+  })
+})

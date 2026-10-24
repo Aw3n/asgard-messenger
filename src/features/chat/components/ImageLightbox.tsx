@@ -3,6 +3,8 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { isCloseKeypress } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { saveAttachmentToDisk } from '@/utils/attachmentSave'
+import { useUIStore } from '@/stores/uiStore'
 
 /**
  * One entry of the photo gallery shown by the lightbox.
@@ -19,6 +21,11 @@ export interface LightboxItem {
   loadFull?: () => Promise<string | null>
   /** true when `src` is only a thumbnail — the original must be fetched to zoom usefully */
   preview?: boolean
+  /**
+   * Clé Hyperblobs de la pièce : avec elle, l'enregistrement passe par le
+   * pont natif — même dossier réglé et même retour que les autres pièces.
+   */
+  blobKey?: string
 }
 
 interface ImageLightboxProps {
@@ -852,9 +859,21 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   }, [current])
 
   const handleDownload = useCallback(async () => {
-    /** Récupère les octets puis déclenche l'enregistrement sous le nom d'origine. */
-    const fetchFor = async (url: string): Promise<Blob> => (await fetch(url)).blob()
+    const name = fileName || current?.alt || t('lightbox.image')
+    /** Récupère les octets — un 404 rend un corps, pas une image. */
+    const fetchFor = async (url: string): Promise<Blob> => {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return response.blob()
+    }
     try {
+      // Une pièce jointe connaît son blob : le pont natif applique le dossier
+      // réglé et annonce lui-même succès, refus ou panne. Sans cette clé
+      // (URL arbitraire), il reste l'ancre blob.
+      if (current?.blobKey) {
+        await saveAttachmentToDisk({ blobKey: current.blobKey, name }, t)
+        return
+      }
       let blob: Blob
       try {
         blob = await fetchFor(displaySrc)
@@ -868,13 +887,18 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = fileName || current?.alt || t('lightbox.image')
+      a.download = name
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch (err) {
       console.error('[ImageLightbox] Download failed:', err)
+      useUIStore.getState().addToast({
+        type: 'error',
+        title: t('chat.downloadFailed'),
+        message: t('chat.saveError'),
+      })
     }
   }, [displaySrc, fileName, current, t])
 

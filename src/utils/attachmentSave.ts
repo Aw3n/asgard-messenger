@@ -13,7 +13,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string
  * est un refus de l'utilisateur, pas un défaut d'Asgard.
  */
 export async function saveAttachmentToDisk(
-  attachment: MessageAttachment,
+  attachment: Pick<MessageAttachment, 'blobKey' | 'name'>,
   t: Translate,
 ): Promise<boolean> {
   const { addToast, settings } = useUIStore.getState()
