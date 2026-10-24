@@ -546,6 +546,8 @@ export default {
       "settings.firewallConfigure": "Configurer",
       "settings.firewallSuccess": "Pare-feu configuré avec succès",
       "settings.flushDht": "Vider le DHT",
+      "settings.dhtFlushed": "DHT vidé",
+      "settings.flushFailed": "Impossible de vider le DHT",
       "settings.grantPermission": "Accorder la permission",
       "settings.grantPermissionDesc": "Accordez la permission pour voir les noms des périphériques et configurer votre matériel.",
       "settings.hideRecoveryPhrase": "Masquer la phrase de récupération",
@@ -858,6 +860,7 @@ export default {
       "settings.resume": "Reprendre",
       "settings.stopPreview": "Arrêter l'aperçu",
       "settings.suspend": "Suspendre",
+      "settings.swarmToggleFailed": "Impossible de changer l'état du réseau",
       // ─── Added for UI localization ───
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "Pas de serveurs. Pas de comptes. Pas de surveillance.",

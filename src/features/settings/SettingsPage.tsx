@@ -1043,6 +1043,7 @@ const NetworkSection: React.FC = () => {
       }
     } catch (err) {
       console.error('[NetworkSection] Failed to toggle swarm:', err)
+      addToast({ type: 'error', title: t('settings.swarmToggleFailed') })
     }
     setIsSuspending(false)
   }
@@ -1050,8 +1051,10 @@ const NetworkSection: React.FC = () => {
   const handleFlush = async () => {
     try {
       await window.asgard.network.flush()
+      addToast({ type: 'success', title: t('settings.dhtFlushed'), duration: 2000 })
     } catch (err) {
       console.error('[NetworkSection] Failed to flush:', err)
+      addToast({ type: 'error', title: t('settings.flushFailed') })
     }
   }
 
