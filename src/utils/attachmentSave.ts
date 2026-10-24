@@ -1,7 +1,15 @@
 import { useUIStore } from '@/stores/uiStore'
+import { fileService } from '@/services/FileService'
 import type { MessageAttachment } from '@/types'
 
 type Translate = (key: string, options?: Record<string, unknown>) => string
+
+/** Ce qu'un enregistrement a besoin de savoir pour laisser une trace lisible. */
+type SaveableAttachment = Pick<MessageAttachment, 'name'> & {
+  blobKey?: string
+  size?: number
+  mimeType?: string
+}
 
 /**
  * Enregistrer une pièce jointe sur disque se joue en trois issues : le choix de
@@ -13,8 +21,9 @@ type Translate = (key: string, options?: Record<string, unknown>) => string
  * est un refus de l'utilisateur, pas un défaut d'Asgard.
  */
 export async function saveAttachmentToDisk(
-  attachment: Pick<MessageAttachment, 'blobKey' | 'name'>,
+  attachment: SaveableAttachment,
   t: Translate,
+  conversationId?: string,
 ): Promise<boolean> {
   const { addToast, settings } = useUIStore.getState()
 
@@ -30,6 +39,15 @@ export async function saveAttachmentToDisk(
   const result = await window.asgard.file.saveAs(attachment.blobKey, attachment.name, settings.storage.downloadPath)
 
   if (result.success) {
+    // L'historique ne se remplit qu'ici : chaque bouton « enregistrer sous »
+    // passe par cette fonction, et un échec ou un refus n'y laisse rien.
+    fileService.recordDownload({
+      blobKey: attachment.blobKey,
+      fileName: attachment.name,
+      fileSize: attachment.size ?? 0,
+      mimeType: attachment.mimeType ?? '',
+      conversationId,
+    })
     addToast({ type: 'success', title: t('chat.fileSaved'), message: result.filePath, duration: 3000 })
     return true
   }

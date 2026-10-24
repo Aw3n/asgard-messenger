@@ -8,6 +8,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { saveAttachmentToDisk } from '@/utils/attachmentSave'
+import { fileService } from '@/services/FileService'
 import { useUIStore } from '@/stores/uiStore'
 import type { MessageAttachment } from '@/types'
 
@@ -37,6 +38,7 @@ const setDownloadPath = (downloadPath: string) =>
 beforeEach(() => {
   useUIStore.setState({ toasts: [] })
   setDownloadPath('')
+  fileService.clearDownloadHistory()
   vi.mocked(window.asgard.file.saveAs).mockReset()
 })
 
@@ -98,5 +100,30 @@ describe('saveAttachmentToDisk', () => {
     await saveAttachmentToDisk(attachment(), t)
 
     expect(window.asgard.file.saveAs).toHaveBeenCalledWith('blob-1', 'note.txt', '')
+  })
+
+  it('inscrit un enregistrement réussi dans l’historique, avec sa conversation', async () => {
+    vi.mocked(window.asgard.file.saveAs).mockResolvedValue({ success: true, filePath: 'C:\\note.txt' })
+
+    await saveAttachmentToDisk(attachment(), t, 'conv-42')
+
+    const [entry] = fileService.getDownloadHistory()
+    expect(entry).toMatchObject({
+      blobKey: 'blob-1',
+      fileName: 'note.txt',
+      fileSize: 12,
+      mimeType: 'text/plain',
+      conversationId: 'conv-42',
+    })
+  })
+
+  it('n’inscrit rien quand le dialogue est annulé ou échoue', async () => {
+    vi.mocked(window.asgard.file.saveAs).mockResolvedValue({ success: false, reason: 'canceled' })
+    await saveAttachmentToDisk(attachment(), t, 'conv-42')
+
+    vi.mocked(window.asgard.file.saveAs).mockResolvedValue({ success: false, reason: 'error' })
+    await saveAttachmentToDisk(attachment(), t, 'conv-42')
+
+    expect(fileService.getDownloadHistory()).toEqual([])
   })
 })

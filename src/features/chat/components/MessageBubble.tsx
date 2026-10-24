@@ -384,7 +384,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 label={t('chat.downloadNamedFile', { name: message.attachments[0].name })}
                 onClick={async () => {
                   const firstAttachment = message.attachments?.[0]
-                  if (firstAttachment) await saveAttachmentToDisk(firstAttachment, t)
+                  if (firstAttachment) await saveAttachmentToDisk(firstAttachment, t, message.conversationId)
                   setContextMenu(null)
                 }}
               />

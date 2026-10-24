@@ -359,6 +359,14 @@ class FileService {
   private cacheMeasuredAt = 0
   private cacheLimitAnnounced = false
 
+  constructor() {
+    // Favoris et historique survivent au redémarrage : ces deux listes ne sont
+    // alimentées que par des gestes de l'utilisateur, les perdre à chaque
+    // lancement rendrait les panneaux des réglages vides pour toujours.
+    this.restoreFavorites()
+    this.restoreDownloadHistory()
+  }
+
   initialize(): void {
     p2pService.on('message:file:transfer', (msg: ProtocolMessage) => {
       this.handleIncomingFile(msg).catch(console.error)
@@ -5768,8 +5776,36 @@ class FileService {
 
   // ─── Download History ──────────────────────────────────────────────────────
 
+  private static readonly DOWNLOAD_HISTORY_KEY = 'asgard.downloadHistory'
   private downloadHistory: DownloadHistoryEntry[] = []
   private maxHistorySize = 500
+
+  private persistDownloadHistory(): void {
+    try {
+      globalThis.localStorage?.setItem(
+        FileService.DOWNLOAD_HISTORY_KEY,
+        JSON.stringify(this.downloadHistory),
+      )
+    } catch { /* quota plein : l'historique reste lisible pour la session */ }
+  }
+
+  private restoreDownloadHistory(): void {
+    try {
+      const raw = globalThis.localStorage?.getItem(FileService.DOWNLOAD_HISTORY_KEY)
+      if (!raw) return
+      const parsed: unknown = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return
+      this.downloadHistory = (parsed as DownloadHistoryEntry[])
+        .filter((entry) =>
+          entry &&
+          typeof entry.id === 'string' &&
+          typeof entry.blobKey === 'string' &&
+          typeof entry.fileName === 'string' &&
+          typeof entry.downloadedAt === 'number',
+        )
+        .slice(0, this.maxHistorySize)
+    } catch { /* un stockage illisible ne doit pas empêcher l'app de démarrer */ }
+  }
 
   /**
    * Record a file download in history.
@@ -5787,6 +5823,7 @@ class FileService {
     if (this.downloadHistory.length > this.maxHistorySize) {
       this.downloadHistory = this.downloadHistory.slice(0, this.maxHistorySize)
     }
+    this.persistDownloadHistory()
   }
 
   /**
@@ -5801,6 +5838,7 @@ class FileService {
    */
   clearDownloadHistory(): void {
     this.downloadHistory = []
+    this.persistDownloadHistory()
   }
 
   /**
@@ -5941,7 +5979,36 @@ class FileService {
 
   // ─── Favorite Files ───────────────────────────────────────────────────────
 
+  private static readonly FAVORITES_KEY = 'asgard.fileFavorites'
   private favorites: Map<string, FavoriteFile> = new Map()
+
+  private persistFavorites(): void {
+    try {
+      globalThis.localStorage?.setItem(
+        FileService.FAVORITES_KEY,
+        JSON.stringify(Array.from(this.favorites.values())),
+      )
+    } catch { /* quota plein : les favoris restent valables pour la session */ }
+  }
+
+  private restoreFavorites(): void {
+    try {
+      const raw = globalThis.localStorage?.getItem(FileService.FAVORITES_KEY)
+      if (!raw) return
+      const parsed: unknown = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return
+      for (const entry of parsed as FavoriteFile[]) {
+        if (!entry || typeof entry.blobKey !== 'string' || typeof entry.fileName !== 'string') continue
+        this.favorites.set(entry.blobKey, {
+          blobKey: entry.blobKey,
+          fileName: entry.fileName,
+          conversationId: typeof entry.conversationId === 'string' ? entry.conversationId : '',
+          mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : '',
+          addedAt: typeof entry.addedAt === 'number' ? entry.addedAt : Date.now(),
+        })
+      }
+    } catch { /* un stockage illisible ne doit pas empêcher l'app de démarrer */ }
+  }
 
   /**
    * Add a file to favorites.
@@ -5955,6 +6022,7 @@ class FileService {
       addedAt: Date.now(),
     }
     this.favorites.set(blobKey, favorite)
+    this.persistFavorites()
   }
 
   /**
@@ -5962,6 +6030,7 @@ class FileService {
    */
   removeFavorite(blobKey: string): void {
     this.favorites.delete(blobKey)
+    this.persistFavorites()
   }
 
   /**
@@ -5992,6 +6061,7 @@ class FileService {
    */
   clearFavorites(): void {
     this.favorites.clear()
+    this.persistFavorites()
   }
 
   /**

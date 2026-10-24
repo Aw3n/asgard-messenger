@@ -141,6 +141,11 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   const deleteFileAttachment = useMessageStore((s) => s.deleteFileAttachment)
   const setAttachmentLocalUrl = useMessageStore((s) => s.setAttachmentLocalUrl)
   const addToast = useUIStore((s) => s.addToast)
+  // Le panneau « Fichiers favoris » des réglages n'avait aucun producteur :
+  // cette entrée de menu est le geste qui le remplit.
+  const [isFavorite, setIsFavorite] = useState(
+    () => Boolean(attachment.blobKey) && fileService.isFavorite(attachment.blobKey as string),
+  )
 
   // GUÉRISON DES URL MORTES: `localUrl` est une URL `blob:` liée à la session
   // qui a reçu le fichier, mais elle est persistée avec le message. Au
@@ -300,7 +305,24 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
 
   const handleSaveAs = async (e?: React.MouseEvent) => {
     e?.stopPropagation()
-    await saveAttachmentToDisk(attachment, t)
+    await saveAttachmentToDisk(attachment, t, conversationId)
+  }
+
+  const handleToggleFavorite = () => {
+    const blobKey = attachment.blobKey
+    if (!blobKey) return
+    const next = !fileService.isFavorite(blobKey)
+    if (next) {
+      fileService.addFavorite(blobKey, attachment.name, conversationId ?? '', attachment.mimeType)
+    } else {
+      fileService.removeFavorite(blobKey)
+    }
+    setIsFavorite(next)
+    addToast({
+      type: 'success',
+      title: next ? t('chat.addedToFavorites') : t('chat.removedFromFavorites'),
+      duration: 2000,
+    })
   }
 
   /**
@@ -456,6 +478,9 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
           onClose={closeContextMenu}
           onDownload={handleSaveAs}
           canDownload={!!attachment.blobKey}
+          canFavorite={!!attachment.blobKey}
+          isFavorite={isFavorite}
+          onToggleFavorite={handleToggleFavorite}
           fileName={attachment.name}
         />
       )}
@@ -511,10 +536,13 @@ const AttachmentContextMenu: React.FC<{
   onClose: () => void
   onDownload: () => void
   canDownload: boolean
+  canFavorite: boolean
+  isFavorite: boolean
+  onToggleFavorite: () => void
   fileName?: string
   fromKeyboard?: boolean
   triggerRef: RefObject<HTMLDivElement | null>
-}> = ({ x, y, onClose, onDownload, canDownload, fileName, fromKeyboard, triggerRef }) => {
+}> = ({ x, y, onClose, onDownload, canDownload, canFavorite, isFavorite, onToggleFavorite, fileName, fromKeyboard, triggerRef }) => {
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
   // Le menu de la pièce jointe n'avait aucun geste clavier : seule une souris
@@ -523,6 +551,7 @@ const AttachmentContextMenu: React.FC<{
   useMenuGestures({ open: true, menuRef, triggerRef, onClose, fromKeyboard })
 
   const label = fileName ? t('chat.downloadNamedFile', { name: fileName }) : t('chat.downloadFile')
+  const favoriteLabel = isFavorite ? t('chat.removeFromFavorites') : t('chat.addToFavorites')
 
   return (
     <motion.div
@@ -554,6 +583,18 @@ const AttachmentContextMenu: React.FC<{
       >
         {canDownload ? label : t('chat.fileNotAvailable')}
       </button>
+      {canFavorite && (
+        <button
+          role="menuitem"
+          onClick={() => {
+            onToggleFavorite()
+            onClose()
+          }}
+          className="text-left px-3 py-2 text-sm rounded-lg text-asgard-text-primary hover:bg-asgard-surface-alt transition-colors"
+        >
+          {favoriteLabel}
+        </button>
+      )}
     </motion.div>
   )
 }
