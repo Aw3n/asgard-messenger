@@ -807,6 +807,7 @@ export default {
       "settings.readReceiptsDesc": "Let others know when you have read their messages",
       "settings.recoveryPhrase": "Recovery phrase",
       "settings.recoveryPhraseDesc": "Your 24-word recovery phrase can be used to restore your identity on another device. Keep it safe and never share it with anyone.",
+      "settings.recoveryPhraseFailed": "Could not show the recovery phrase",
       "settings.recoveryPhraseWarning": "Anyone with these words can access your account.",
       "settings.reducedMotion": "Reduce motion",
       "settings.reducedMotionDesc": "Minimize animations and transitions",

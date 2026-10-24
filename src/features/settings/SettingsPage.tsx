@@ -613,7 +613,8 @@ const SecuritySection: React.FC = () => {
       setSeedPhrase(words.join(' '))
       setShowSeed(true)
     } catch (err) {
-      console.error('Failed to generate seed phrase:', err)
+      console.error('[SecuritySection] Failed to generate seed phrase:', err)
+      addToast({ type: 'error', title: t('settings.recoveryPhraseFailed') })
     }
   }
 

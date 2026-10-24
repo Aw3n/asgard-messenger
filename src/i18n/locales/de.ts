@@ -824,6 +824,7 @@ export default {
       "settings.readReceiptsDesc": "Andere wissen lassen, wenn Sie ihre Nachrichten gelesen haben",
       "settings.recoveryPhrase": "Wiederherstellungssatz",
       "settings.recoveryPhraseDesc": "Ihr 24-Wort-Wiederherstellungssatz kann verwendet werden, um Ihre Identität auf einem anderen Gerät wiederherzustellen. Bewahren Sie ihn sicher auf und teilen Sie ihn niemals.",
+      "settings.recoveryPhraseFailed": "Wiederherstellungssatz konnte nicht angezeigt werden",
       "settings.recoveryPhraseWarning": "Jeder mit diesen Wörtern kann auf Ihr Konto zugreifen.",
       "settings.reducedMotion": "Animationen reduzieren",
       "settings.reducedMotionDesc": "Animationen und Übergänge minimieren",

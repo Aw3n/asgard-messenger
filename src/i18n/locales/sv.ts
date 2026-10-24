@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Meddela andra när du har läst deras meddelanden",
       "settings.recoveryPhrase": "Återställningsfras",
       "settings.recoveryPhraseDesc": "Din återställningsfras på 24 ord kan användas för att återställa din identitet på en annan enhet. Förvara den säkert och dela den aldrig.",
+      "settings.recoveryPhraseFailed": "Återställningsfrasen kunde inte visas",
       "settings.recoveryPhraseWarning": "Alla med dessa ord kan få tillgång till ditt konto.",
       "settings.reducedMotion": "Minska rörelse",
       "settings.reducedMotionDesc": "Minimera animationer och övergångar",

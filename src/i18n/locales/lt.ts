@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Informuoti kitus, kai perskaitėte jų žinutes",
       "settings.recoveryPhrase": "Atkūrimo frazė",
       "settings.recoveryPhraseDesc": "Jūsų 24 žodžių atkūrimo frazė gali būti naudojama atkurti jūsų tapatybę kitame įrenginyje. Laikykite ją saugiai ir niekada ja nesidalykite.",
+      "settings.recoveryPhraseFailed": "Nepavyko parodyti atkūrimo frazės",
       "settings.recoveryPhraseWarning": "Bet kas su šiais žodžiais gali pasiekti jūsų paskyrą.",
       "settings.reducedMotion": "Sumažinti animacijas",
       "settings.reducedMotionDesc": "Sumažinti animacijas ir perėjimus",

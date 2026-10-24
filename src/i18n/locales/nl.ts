@@ -824,6 +824,7 @@ export default {
       "settings.readReceiptsDesc": "Laat anderen weten wanneer u hun berichten heeft gelezen",
       "settings.recoveryPhrase": "Herstelzin",
       "settings.recoveryPhraseDesc": "Uw herstelzin van 24 woorden kan worden gebruikt om uw identiteit op een ander apparaat te herstellen. Bewaar deze veilig en deel deze nooit met iemand.",
+      "settings.recoveryPhraseFailed": "Herstelzin kon niet worden weergegeven",
       "settings.recoveryPhraseWarning": "Iedereen met deze woorden kan toegang krijgen tot uw account.",
       "settings.reducedMotion": "Animaties verminderen",
       "settings.reducedMotionDesc": "Animaties en overgangen minimaliseren",

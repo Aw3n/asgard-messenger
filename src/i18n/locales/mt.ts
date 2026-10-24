@@ -798,6 +798,7 @@ export default {
       "settings.readReceiptsDesc": "Informa lill-oħrajn meta taqra l-messaġġi tagħhom",
       "settings.recoveryPhrase": "Frażi ta' rkupru",
       "settings.recoveryPhraseDesc": "Il-frażi ta' rkupru ta' 24 kelma tiegħek tista' tintuża biex terġa' tikseb l-identità tiegħek fuq apparat ieħor. Żommha sigura u qatt taqsamha.",
+      "settings.recoveryPhraseFailed": "Ma setgħetx tintwera l-frażi ta' rkupru",
       "settings.recoveryPhraseWarning": "Kulħadd b'dawn il-kliem jista' jaċċessa l-kont tiegħek.",
       "settings.reducedMotion": "Naqqas l-animazzjonijiet",
       "settings.reducedMotionDesc": "Minimizza l-animazzjonijiet u t-transizzjonijiet",

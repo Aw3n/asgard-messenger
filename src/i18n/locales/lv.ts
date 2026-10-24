@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Informēt citus, kad esat izlasījis viņu ziņojumus",
       "settings.recoveryPhrase": "Atgūšanas frāze",
       "settings.recoveryPhraseDesc": "Jūsu 24 vārdu atgūšanas frāzi var izmantot, lai atjaunotu jūsu identitāti citā ierīcē. Glabājiet to droši un nekad nedalieties ar to.",
+      "settings.recoveryPhraseFailed": "Nevarēja parādīt atgūšanas frāzi",
       "settings.recoveryPhraseWarning": "Ikviens ar šiem vārdiem var piekļūt jūsu kontam.",
       "settings.reducedMotion": "Samazināt animācijas",
       "settings.reducedMotionDesc": "Minimizēt animācijas un pārejas",

@@ -798,6 +798,7 @@ export default {
       "settings.readReceiptsDesc": "Powiadamiaj innych, gdy przeczytasz ich wiadomości",
       "settings.recoveryPhrase": "Fraza odzyskiwania",
       "settings.recoveryPhraseDesc": "Twoja fraza odzyskiwania składająca się z 24 słów może być użyta do przywrócenia Twojej tożsamości na innym urządzeniu. Przechowuj ją bezpiecznie i nigdy jej nie udostępniaj.",
+      "settings.recoveryPhraseFailed": "Nie udało się wyświetlić frazy odzyskiwania",
       "settings.recoveryPhraseWarning": "Każdy, kto zna te słowa, może uzyskać dostęp do Twojego konta.",
       "settings.reducedMotion": "Zmniejsz animacje",
       "settings.reducedMotionDesc": "Minimalizuj animacje i przejścia",

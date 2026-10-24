@@ -798,6 +798,7 @@ export default {
       "settings.readReceiptsDesc": "Informovať ostatných, keď prečítate ich správy",
       "settings.recoveryPhrase": "Fráza na obnovenie",
       "settings.recoveryPhraseDesc": "Vaša 24-slovová fráza na obnovenie môže byť použitá na obnovenie vašej identity na inom zariadení. Uchovávajte ju bezpečne a nikdy ju nezdieľajte.",
+      "settings.recoveryPhraseFailed": "Frázu na obnovenie sa nepodarilo zobraziť",
       "settings.recoveryPhraseWarning": "Ktokoľvek s týmito slovami môže získať prístup k vášmu účtu.",
       "settings.reducedMotion": "Znížiť animácie",
       "settings.reducedMotionDesc": "Minimalizovať animácie a prechody",

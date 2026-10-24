@@ -798,6 +798,7 @@ export default {
       "settings.readReceiptsDesc": "Информирайте другите, когато сте прочели съобщенията им",
       "settings.recoveryPhrase": "Фраза за възстановяване",
       "settings.recoveryPhraseDesc": "Вашата фраза за възстановяване от 24 думи може да бъде използвана за възстановяване на вашата самоличност на друго устройство. Пазете я на сигурно място и никога не я споделяйте.",
+      "settings.recoveryPhraseFailed": "Фразата за възстановяване не можа да бъде показана",
       "settings.recoveryPhraseWarning": "Всеки с тези думи може да получи достъп до вашия акаунт.",
       "settings.reducedMotion": "Намаляване на анимациите",
       "settings.reducedMotionDesc": "Минимизиране на анимациите и преходите",

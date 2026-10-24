@@ -798,6 +798,7 @@ export default {
       "settings.readReceiptsDesc": "Obvestite druge, ko preberete njihova sporočila",
       "settings.recoveryPhrase": "Fraza za obnovitev",
       "settings.recoveryPhraseDesc": "Vaša 24-besedna fraza za obnovitev se lahko uporabi za obnovitev vaše identitete na drugi napravi. Shranite jo na varnem in je nikoli ne delite.",
+      "settings.recoveryPhraseFailed": "Fraze za obnovitev ni bilo mogoče prikazati",
       "settings.recoveryPhraseWarning": "Vsakdo s temi besedami lahko dostopa do vašega računa.",
       "settings.reducedMotion": "Zmanjšaj animacije",
       "settings.reducedMotionDesc": "Zmanjšaj animacije in prehode",

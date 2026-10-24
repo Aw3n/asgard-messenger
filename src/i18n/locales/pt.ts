@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Informar os outros quando leste as suas mensagens",
       "settings.recoveryPhrase": "Frase de recuperação",
       "settings.recoveryPhraseDesc": "A tua frase de recuperação de 24 palavras pode ser usada para restaurar a tua identidade noutro dispositivo. Guarda-a em segurança e nunca a partilhes.",
+      "settings.recoveryPhraseFailed": "Não foi possível mostrar a frase de recuperação",
       "settings.recoveryPhraseWarning": "Qualquer pessoa com estas palavras pode aceder à tua conta.",
       "settings.reducedMotion": "Reduzir animações",
       "settings.reducedMotionDesc": "Minimizar animações e transições",

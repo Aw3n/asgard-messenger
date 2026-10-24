@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Teavita teisi, kui olete nende sõnumid lugenud",
       "settings.recoveryPhrase": "Taastamisfraas",
       "settings.recoveryPhraseDesc": "Teie 24-sõnalist taastamisfraasi saab kasutada teie identiteedi taastamiseks teises seadmes. Hoidke seda turvaliselt ja ärge jagage seda kunagi.",
+      "settings.recoveryPhraseFailed": "Taastamisfraasi kuvamine ebaõnnestus",
       "settings.recoveryPhraseWarning": "Igaüks, kellel on need sõnad, pääseb teie kontole juurde.",
       "settings.reducedMotion": "Vähenda animatsioone",
       "settings.reducedMotionDesc": "Minimeeri animatsioonid ja üleminekud",

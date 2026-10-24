@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Ilmoita muille, kun olet lukenut heidän viestinsä",
       "settings.recoveryPhrase": "Palautuslause",
       "settings.recoveryPhraseDesc": "24 sanan palautuslausetta voidaan käyttää identiteettisi palauttamiseen toisella laitteella. Pidä se turvassa äläkä koskaan jaa sitä.",
+      "settings.recoveryPhraseFailed": "Palautuslauseen näyttäminen epäonnistui",
       "settings.recoveryPhraseWarning": "Kenellä tahansa näillä sanoilla voi olla pääsy tilillesi.",
       "settings.reducedMotion": "Vähennä liikettä",
       "settings.reducedMotionDesc": "Minimoi animaatiot ja siirtymät",

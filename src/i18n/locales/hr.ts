@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Obavijestite druge kada pročitate njihove poruke",
       "settings.recoveryPhrase": "Fraza za oporavak",
       "settings.recoveryPhraseDesc": "Vaša fraza za oporavak od 24 riječi može se koristiti za vraćanje vašeg identiteta na drugom uređaju. Čuvajte je sigurno i nikada je ne dijelite.",
+      "settings.recoveryPhraseFailed": "Nije moguće prikazati frazu za oporavak",
       "settings.recoveryPhraseWarning": "Svatko s ovim riječima može pristupiti vašem računu.",
       "settings.reducedMotion": "Smanji animacije",
       "settings.reducedMotionDesc": "Minimiziraj animacije i prijelaze",

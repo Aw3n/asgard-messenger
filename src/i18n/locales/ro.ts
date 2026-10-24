@@ -798,6 +798,7 @@ export default {
       "settings.readReceiptsDesc": "Informează ceilalți când le-ai citit mesajele",
       "settings.recoveryPhrase": "Frază de recuperare",
       "settings.recoveryPhraseDesc": "Fraza ta de recuperare de 24 de cuvinte poate fi folosită pentru a-ți recupera identitatea pe un alt dispozitiv. Păstreaz-o în siguranță și nu o partaja niciodată.",
+      "settings.recoveryPhraseFailed": "Fraza de recuperare nu a putut fi afișată",
       "settings.recoveryPhraseWarning": "Oricine are aceste cuvinte poate accesa contul tău.",
       "settings.reducedMotion": "Redu animațiile",
       "settings.reducedMotionDesc": "Minimizează animațiile și tranzițiile",

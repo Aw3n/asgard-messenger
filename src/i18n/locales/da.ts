@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Giv andre besked, når du har læst deres beskeder",
       "settings.recoveryPhrase": "Gendannelsessætning",
       "settings.recoveryPhraseDesc": "Din gendannelsessætning på 24 ord kan bruges til at gendanne din identitet på en anden enhed. Opbevar den sikkert og del den aldrig.",
+      "settings.recoveryPhraseFailed": "Gendannelsessætningen kunne ikke vises",
       "settings.recoveryPhraseWarning": "Alle med disse ord kan få adgang til din konto.",
       "settings.reducedMotion": "Reducer bevægelse",
       "settings.reducedMotionDesc": "Minimer animationer og overgange",

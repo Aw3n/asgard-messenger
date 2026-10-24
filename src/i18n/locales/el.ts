@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Ενημερώστε τους άλλους όταν διαβάσετε τα μηνύματά τους",
       "settings.recoveryPhrase": "Φράση ανάκτησης",
       "settings.recoveryPhraseDesc": "Η φράση ανάκτησης 24 λέξεών σας μπορεί να χρησιμοποιηθεί για να επαναφέρετε την ταυτότητά σας σε άλλη συσκευή. Κρατήστε την ασφαλή και μην τη μοιραστείτε ποτέ.",
+      "settings.recoveryPhraseFailed": "Δεν ήταν δυνατή η εμφάνιση της φράσης ανάκτησης",
       "settings.recoveryPhraseWarning": "Οποιοσδήποτε με αυτές τις λέξεις μπορεί να αποκτήσει πρόσβαση στον λογαριασμό σας.",
       "settings.reducedMotion": "Μείωση κίνησης",
       "settings.reducedMotionDesc": "Ελαχιστοποίηση κινήσεων και μεταβάσεων",

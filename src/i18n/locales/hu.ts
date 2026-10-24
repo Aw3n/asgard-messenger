@@ -806,6 +806,7 @@ export default {
       "settings.readReceiptsDesc": "Értesítse a többieket, amikor elolvasta üzeneteiket",
       "settings.recoveryPhrase": "Helyreállítási kifejezés",
       "settings.recoveryPhraseDesc": "24 szavas helyreállítási kifejezése használható identitása egy másik eszközön történő helyreállításához. Tartsa biztonságban és soha ne ossza meg.",
+      "settings.recoveryPhraseFailed": "Nem sikerült megjeleníteni a helyreállítási kifejezést",
       "settings.recoveryPhraseWarning": "Bárki, aki birtokolja ezeket a szavakat, hozzáférhet fiókjához.",
       "settings.reducedMotion": "Animációk csökkentése",
       "settings.reducedMotionDesc": "Animációk és átmenetek minimalizálása",

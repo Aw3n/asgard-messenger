@@ -798,6 +798,7 @@ export default {
       "settings.readReceiptsDesc": "Cuir in iúl do dhaoine eile nuair a léann tú a dteachtaireachtaí",
       "settings.recoveryPhrase": "Frása aisghabhála",
       "settings.recoveryPhraseDesc": "Is féidir do fhrása aisghabhála 24 focal a úsáid chun d'aitheantas a aischur ar ghléas eile. Coinnigh slán é agus ná roinn le duine ar bith é riamh.",
+      "settings.recoveryPhraseFailed": "Níorbh fhéidir an frása aisghabhála a thaispeáint",
       "settings.recoveryPhraseWarning": "Is féidir le haon duine leis na focail seo rochtain a fháil ar do chuntas.",
       "settings.reducedMotion": "Laghdaigh beochan",
       "settings.reducedMotionDesc": "Íoslaghdaigh beochana agus aistrithe",
