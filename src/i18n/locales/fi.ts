@@ -990,6 +990,7 @@ export default {
       "groups.channelTypeWhoWrites": "Voivat kirjoittaa: {{roles}}",
       "groups.createChannel": "Luo kanava",
       "groups.deleteChannel": "Poista kanava",
+      "groups.deleteChannelWarning": "Kanava {{name}} poistetaan ryhmästä kaikilta jäseniltä.",
       "calls.youOnHold": "Puhelu on pidossa",
       "calls.peerOnHold": "{{name}} on pidossa",
       "chat.pauseRecording": "Keskeytä tallennus",

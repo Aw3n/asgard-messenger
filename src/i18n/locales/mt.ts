@@ -1026,6 +1026,7 @@ export default {
       "groups.channelTypeWhoWrites": "Jistgħu jiktbu: {{roles}}",
       "groups.createChannel": "Oħloq kanal",
       "groups.deleteChannel": "Ħassar il-kanal",
+      "groups.deleteChannelWarning": "Il-kanal {{name}} jitneħħa mill-grupp għall-membri kollha.",
       "calls.youOnHold": "Is-sejħa fil-pawża",
       "calls.peerOnHold": "{{name}} fil-pawża",
       "chat.pauseRecording": "Pawża r-reġistrazzjoni",

@@ -990,6 +990,7 @@ export default {
       "groups.channelTypeWhoWrites": "Kan skriva: {{roles}}",
       "groups.createChannel": "Skapa kanal",
       "groups.deleteChannel": "Ta bort kanal",
+      "groups.deleteChannelWarning": "Kanalen {{name}} tas bort från gruppen för alla medlemmar.",
       "calls.youOnHold": "Du är på vänt",
       "calls.peerOnHold": "{{name}} är på vänt",
       "chat.pauseRecording": "Pausa inspelningen",

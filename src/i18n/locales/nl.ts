@@ -989,6 +989,7 @@ export default {
       "groups.channelTypeWhoWrites": "Wie kunnen schrijven: {{roles}}",
       "groups.createChannel": "Kanaal maken",
       "groups.deleteChannel": "Kanaal verwijderen",
+      "groups.deleteChannelWarning": "Het kanaal {{name}} wordt voor alle leden uit de groep verwijderd.",
       "calls.youOnHold": "Je staat in de wacht",
       "calls.peerOnHold": "{{name}} staat in de wacht",
       "chat.pauseRecording": "Opname onderbreken",

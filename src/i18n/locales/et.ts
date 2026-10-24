@@ -990,6 +990,7 @@ export default {
       "groups.channelTypeWhoWrites": "Kirjutada saavad: {{roles}}",
       "groups.createChannel": "Loo kanal",
       "groups.deleteChannel": "Kustuta kanal",
+      "groups.deleteChannelWarning": "Kanal {{name}} eemaldatakse grupist kõigi liikmete jaoks.",
       "calls.youOnHold": "Olete ootel",
       "calls.peerOnHold": "{{name}} on ootel",
       "chat.pauseRecording": "Peata salvestamine",

@@ -1001,6 +1001,7 @@ export default {
       "groups.channelTypeWhoWrites": "Chi può scrivere: {{roles}}",
       "groups.createChannel": "Crea canale",
       "groups.deleteChannel": "Elimina canale",
+      "groups.deleteChannelWarning": "Il canale {{name}} verrà rimosso dal gruppo per tutti i membri.",
       "calls.youOnHold": "Sei in attesa",
       "calls.peerOnHold": "{{name}} è in attesa",
       "chat.pauseRecording": "Metti in pausa la registrazione",

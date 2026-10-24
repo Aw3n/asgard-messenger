@@ -1003,6 +1003,7 @@ export default {
       "groups.channelTypeWhoWrites": "Gali rašyti: {{roles}}",
       "groups.createChannel": "Sukurti kanalą",
       "groups.deleteChannel": "Ištrinti kanalą",
+      "groups.deleteChannelWarning": "Kanalas {{name}} bus pašalintas iš grupės visiems nariams.",
       "calls.youOnHold": "Skambutis laikomas",
       "calls.peerOnHold": "{{name}} — laikomas",
       "chat.pauseRecording": "Pristabdyti įrašymą",

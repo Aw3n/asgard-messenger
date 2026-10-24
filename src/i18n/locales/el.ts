@@ -990,6 +990,7 @@ export default {
       "groups.channelTypeWhoWrites": "Μπορούν να γράψουν: {{roles}}",
       "groups.createChannel": "Δημιουργία καναλιού",
       "groups.deleteChannel": "Διαγραφή καναλιού",
+      "groups.deleteChannelWarning": "Το κανάλι {{name}} θα αφαιρεθεί από την ομάδα για όλα τα μέλη.",
       "calls.youOnHold": "Είστε σε αναμονή",
       "calls.peerOnHold": "{{name}} είναι σε αναμονή",
       "chat.pauseRecording": "Παύση εγγραφής",

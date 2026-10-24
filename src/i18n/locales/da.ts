@@ -990,6 +990,7 @@ export default {
       "groups.channelTypeWhoWrites": "Der kan skrives af: {{roles}}",
       "groups.createChannel": "Opret kanal",
       "groups.deleteChannel": "Slet kanal",
+      "groups.deleteChannelWarning": "Kanalen {{name}} fjernes fra gruppen for alle medlemmer.",
       "calls.youOnHold": "Du er på pause",
       "calls.peerOnHold": "{{name}} er på pause",
       "chat.pauseRecording": "Sæt optagelsen på pause",

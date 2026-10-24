@@ -1002,6 +1002,7 @@ export default {
       "groups.channelTypeWhoWrites": "Pisati mogu: {{roles}}",
       "groups.createChannel": "Stvori kanal",
       "groups.deleteChannel": "Izbriši kanal",
+      "groups.deleteChannelWarning": "Kanal {{name}} bit će uklonjen iz grupe za sve članove.",
       "calls.youOnHold": "Vi ste na čekanju",
       "calls.peerOnHold": "{{name}} je na čekanju",
       "chat.pauseRecording": "Zaustavi snimanje",

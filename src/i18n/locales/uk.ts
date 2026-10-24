@@ -1002,6 +1002,7 @@ export default {
       "groups.channelTypeWhoWrites": "Можуть писати: {{roles}}",
       "groups.createChannel": "Створити канал",
       "groups.deleteChannel": "Видалити канал",
+      "groups.deleteChannelWarning": "Канал {{name}} буде вилучено з групи для всіх учасників.",
       "calls.youOnHold": "Дзвінок на утриманні",
       "calls.peerOnHold": "{{name}} на утриманні",
       "chat.pauseRecording": "Призупинити запис",

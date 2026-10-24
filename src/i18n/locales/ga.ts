@@ -1026,6 +1026,7 @@ export default {
       "groups.channelTypeWhoWrites": "Is féidir scríobh do: {{roles}}",
       "groups.createChannel": "Cruthaigh cainéal",
       "groups.deleteChannel": "Scrios cainéal",
+      "groups.deleteChannelWarning": "Bainfear an cainéal {{name}} den ghrúpa do gach ball.",
       "calls.youOnHold": "Tá an glao ar coinneáil",
       "calls.peerOnHold": "{{name}} ar coinneáil",
       "chat.pauseRecording": "Cuir an taifeadadh ar sos",

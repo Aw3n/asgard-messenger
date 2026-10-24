@@ -9,6 +9,7 @@ import { useMenuGestures } from '@/hooks/useMenuGestures'
 import type { GroupChannel } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { CreateChannelModal } from './CreateChannelModal'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 /**
  * ChannelList — Discord-style channel sidebar within a group.
@@ -61,6 +62,9 @@ export const ChannelList: React.FC = () => {
   } | null>(null)
   const menuRef = React.useRef<HTMLDivElement>(null)
   const menuTriggerRef = React.useRef<HTMLElement | null>(null)
+  // Retirer un canal le retire pour tous les membres : la ligne le demande
+  // d'abord, au lieu d'agir sur un clic de menu.
+  const [deleteTarget, setDeleteTarget] = React.useState<GroupChannel | null>(null)
 
   const handleContextMenu = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>, channel: GroupChannel) => {
@@ -108,19 +112,17 @@ export const ChannelList: React.FC = () => {
     setContextMenu(null)
   }, [activeGroup, contextMenu])
 
-  const deleteChannel = React.useCallback(async () => {
-    if (!contextMenu || !activeGroup) return
-    const channelId = contextMenu.channel.id
+  const deleteChannel = React.useCallback(async (channel: GroupChannel) => {
+    if (!activeGroup) return
     const groupId = activeGroup.id
-    setContextMenu(null)
     try {
-      await groupService.removeChannel(groupId, channelId)
+      await groupService.removeChannel(groupId, channel.id)
       addToast({ type: 'success', title: t('groups.channelDeleted') })
     } catch (err) {
       addToast({ type: 'error', title: t('groups.channelDeleteFailed') })
       console.error(err)
     }
-  }, [activeGroup, addToast, contextMenu, t])
+  }, [activeGroup, addToast, t])
 
   if (!activeGroup) return null
 
@@ -263,7 +265,10 @@ export const ChannelList: React.FC = () => {
                 type="button"
                 role="menuitem"
                 tabIndex={-1}
-                onClick={deleteChannel}
+                onClick={() => {
+                  setDeleteTarget(contextMenu.channel)
+                  setContextMenu(null)
+                }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left text-red-400 hover:bg-red-500/10"
               >
                 <TrashIcon />
@@ -271,6 +276,23 @@ export const ChannelList: React.FC = () => {
               </button>
             )}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <ConfirmDialog
+            title="groups.deleteChannel"
+            warning="groups.deleteChannelWarning"
+            confirmLabel="groups.deleteChannel"
+            name={deleteTarget.name}
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={() => {
+              const target = deleteTarget
+              setDeleteTarget(null)
+              if (target) void deleteChannel(target)
+            }}
+          />
         )}
       </AnimatePresence>
 

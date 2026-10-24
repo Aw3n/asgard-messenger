@@ -990,6 +990,7 @@ export default {
       "groups.channelTypeWhoWrites": "Írhatnak: {{roles}}",
       "groups.createChannel": "Csatorna létrehozása",
       "groups.deleteChannel": "Csatorna törlése",
+      "groups.deleteChannelWarning": "A(z) {{name}} csatorna minden tag számára eltávolításra kerül a csoportból.",
       "calls.youOnHold": "A hívás tartásban van",
       "calls.peerOnHold": "{{name}} tartásban van",
       "chat.pauseRecording": "Felvétel szüneteltetése",

@@ -1002,6 +1002,7 @@ export default {
       "groups.channelTypeWhoWrites": "Var rakstīt: {{roles}}",
       "groups.createChannel": "Izveidot kanālu",
       "groups.deleteChannel": "Dzēst kanālu",
+      "groups.deleteChannelWarning": "Kanāls {{name}} tiks noņemts no grupas visiem dalībniekiem.",
       "calls.youOnHold": "Zvans ir aizturēts",
       "calls.peerOnHold": "{{name}} — aizturēts",
       "chat.pauseRecording": "Pauzēt ierakstu",

@@ -999,6 +999,7 @@ export default {
       "groups.channelTypeWhoWrites": "Who can write: {{roles}}",
       "groups.createChannel": "Create channel",
       "groups.deleteChannel": "Delete channel",
+      "groups.deleteChannelWarning": "The channel {{name}} will be removed from the group for all members.",
       "calls.youOnHold": "You are on hold",
       "calls.peerOnHold": "{{name}} is on hold",
       "chat.pauseRecording": "Pause recording",

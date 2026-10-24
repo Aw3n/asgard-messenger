@@ -1014,6 +1014,7 @@ export default {
       "groups.channelTypeWhoWrites": "Lahko pišejo: {{roles}}",
       "groups.createChannel": "Ustvari kanal",
       "groups.deleteChannel": "Izbriši kanal",
+      "groups.deleteChannelWarning": "Kanal {{name}} bo odstranjen iz skupine za vse člane.",
       "calls.youOnHold": "Klic je zadržen",
       "calls.peerOnHold": "{{name}} — zadržen",
       "chat.pauseRecording": "Začasno ustavi snemanje",

@@ -1008,6 +1008,7 @@ export default {
       "groups.channelTypeWhoWrites": "Mogą pisać: {{roles}}",
       "groups.createChannel": "Utwórz kanał",
       "groups.deleteChannel": "Usuń kanał",
+      "groups.deleteChannelWarning": "Kanał {{name}} zostanie usunięty z grupy dla wszystkich członków.",
       "calls.youOnHold": "Połączenie wstrzymane",
       "calls.peerOnHold": "{{name}} — połączenie wstrzymane",
       "chat.pauseRecording": "Wstrzymaj nagrywanie",

@@ -241,22 +241,42 @@ describe('suppression d’un canal', () => {
     useGroupStore.setState({ groups: { [GROUP_ID]: makeGroup('admin') }, activeGroupId: GROUP_ID, activeChannelId: 'ch-general' })
   })
 
-  it('supprime le canal visé par le menu et l’annonce', async () => {
-    render(<ChannelList />)
+  /** Ouvre le menu de la ligne puis l'entrée de suppression. */
+  const askDeleteChannel = () => {
     fireEvent.contextMenu(screen.getByText('aléatoire').closest('button') as HTMLButtonElement)
     fireEvent.click(screen.getByRole('menuitem', { name: 'groups.deleteChannel' }))
+  }
+
+  /** Le bouton d'acquiescement porte le même libellé que l'entrée du menu. */
+  const confirmDeleteChannel = () => {
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'groups.deleteChannel' }))
+  }
+
+  it('demande confirmation avant de retirer le canal', async () => {
+    render(<ChannelList />)
+    askDeleteChannel()
+
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+    const panel = screen.getByRole('dialog', { name: 'groups.deleteChannel' })
+    expect(within(panel).getByText('groups.deleteChannelWarning')).toBeInTheDocument()
+    expect(groupService.removeChannel).not.toHaveBeenCalled()
+  })
+
+  it('supprime le canal visé après confirmation et l’annonce', async () => {
+    render(<ChannelList />)
+    askDeleteChannel()
+    confirmDeleteChannel()
 
     await waitFor(() => expect(groupService.removeChannel).toHaveBeenCalledWith(GROUP_ID, 'ch-random'))
     await waitFor(() => expect(toastTitles()).toContain('groups.channelDeleted'))
-    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
   })
 
   it('annonce l’échec au lieu d’un succès silencieux', async () => {
     vi.mocked(groupService.removeChannel).mockRejectedValueOnce(new Error('droit refusé'))
 
     render(<ChannelList />)
-    fireEvent.contextMenu(screen.getByText('aléatoire').closest('button') as HTMLButtonElement)
-    fireEvent.click(screen.getByRole('menuitem', { name: 'groups.deleteChannel' }))
+    askDeleteChannel()
+    confirmDeleteChannel()
 
     await waitFor(() => expect(toastTitles()).toContain('groups.channelDeleteFailed'))
     expect(useUIStore.getState().toasts.at(-1)?.type).toBe('error')
@@ -264,10 +284,10 @@ describe('suppression d’un canal', () => {
 
   it('ferme le menu avant d’agir, pour ne cibler un autre canal', async () => {
     render(<ChannelList />)
-    fireEvent.contextMenu(screen.getByText('aléatoire').closest('button') as HTMLButtonElement)
-    fireEvent.click(screen.getByRole('menuitem', { name: 'groups.deleteChannel' }))
+    askDeleteChannel()
 
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+    confirmDeleteChannel()
     expect(groupService.removeChannel).toHaveBeenCalledTimes(1)
   })
 })

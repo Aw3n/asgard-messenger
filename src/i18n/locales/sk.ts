@@ -1002,6 +1002,7 @@ export default {
       "groups.channelTypeWhoWrites": "Mohú písať: {{roles}}",
       "groups.createChannel": "Vytvoriť kanál",
       "groups.deleteChannel": "Odstrániť kanál",
+      "groups.deleteChannelWarning": "Kanál {{name}} bude odstránený zo skupiny pre všetkých členov.",
       "calls.youOnHold": "Hovor je pozastavený",
       "calls.peerOnHold": "{{name}} — pozastavený",
       "chat.pauseRecording": "Pozastaviť nahrávanie",
