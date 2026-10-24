@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "P2P-kapcsolatok blokkolva — konfiguráció szükséges",
       "settings.firewallConfigure": "Konfigurálás",
       "settings.firewallSuccess": "A tűzfal sikeresen konfigurálva",
+      "settings.firewallUnavailable": "A tűzfal állapota ismeretlen",
+      "settings.firewallRecheck": "Újraellenőrzés",
       "settings.flushDht": "DHT ürítése",
       "settings.dhtFlushed": "DHT kiürítve",
       "settings.flushFailed": "A DHT kiürítése nem sikerült",

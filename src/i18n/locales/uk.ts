@@ -876,6 +876,8 @@ export default {
       "settings.firewallNotConfigured": "P2P-з'єднання заблоковані — потрібно налаштування",
       "settings.firewallConfigure": "Налаштувати",
       "settings.firewallSuccess": "Брандмауер налаштовано успішно",
+      "settings.firewallUnavailable": "Стан брандмауера невідомий",
+      "settings.firewallRecheck": "Перевірити знову",
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "Без серверів. Без облікових записів. Без нагляду.",
       "onboarding.p2pSecuredLine": "Чисте peer-to-peer спілкування, захищене криптографією.",

@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "P2P-ühendused blokeeritud — seadistamine on vajalik",
       "settings.firewallConfigure": "Seadista",
       "settings.firewallSuccess": "Tulemüür edukalt seadistatud",
+      "settings.firewallUnavailable": "Tulemüüri olek teadmata",
+      "settings.firewallRecheck": "Kontrolli uuesti",
       "settings.flushDht": "Tühjenda DHT",
       "settings.dhtFlushed": "DHT tühjendatud",
       "settings.flushFailed": "DHT tühjendamine ebaõnnestus",

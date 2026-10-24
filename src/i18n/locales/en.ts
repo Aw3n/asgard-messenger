@@ -885,6 +885,8 @@ export default {
       "settings.firewallNotConfigured": "P2P connections blocked — configuration required",
       "settings.firewallConfigure": "Configure",
       "settings.firewallSuccess": "Firewall configured successfully",
+      "settings.firewallUnavailable": "Firewall status unknown",
+      "settings.firewallRecheck": "Recheck",
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "No servers. No accounts. No surveillance.",
       "onboarding.p2pSecuredLine": "Pure peer-to-peer communication, secured by cryptography.",

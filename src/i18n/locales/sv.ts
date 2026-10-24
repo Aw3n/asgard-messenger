@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "P2P-anslutningar blockerade — konfiguration krävs",
       "settings.firewallConfigure": "Konfigurera",
       "settings.firewallSuccess": "Brandvägg konfigurerad framgångsrikt",
+      "settings.firewallUnavailable": "Brandväggsstatus okänd",
+      "settings.firewallRecheck": "Kontrollera igen",
       "settings.flushDht": "Töm DHT",
       "settings.dhtFlushed": "DHT rensad",
       "settings.flushFailed": "DHT kunde inte rensas",

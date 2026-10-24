@@ -551,6 +551,8 @@ export default {
       "settings.firewallNotConfigured": "Connexions P2P bloquées — configuration requise",
       "settings.firewallConfigure": "Configurer",
       "settings.firewallSuccess": "Pare-feu configuré avec succès",
+      "settings.firewallUnavailable": "État du pare-feu inconnu",
+      "settings.firewallRecheck": "Revérifier",
       "settings.flushDht": "Vider le DHT",
       "settings.dhtFlushed": "DHT vidé",
       "settings.flushFailed": "Impossible de vider le DHT",

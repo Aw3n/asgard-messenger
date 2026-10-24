@@ -876,6 +876,8 @@ export default {
       "settings.firewallNotConfigured": "P2P připojení blokována — vyžaduje se konfigurace",
       "settings.firewallConfigure": "Nakonfigurovat",
       "settings.firewallSuccess": "Firewall byl úspěšně nakonfigurován",
+      "settings.firewallUnavailable": "Stav firewallu neznámý",
+      "settings.firewallRecheck": "Zkontrolovat znovu",
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "Žádné servery. Žádné účty. Žádný dohled.",
       "onboarding.p2pSecuredLine": "Čistá komunikace peer-to-peer, zabezpečená kryptografií.",

@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "P2P ryšiai blokuojami — reikalinga konfigūracija",
       "settings.firewallConfigure": "Konfigūruoti",
       "settings.firewallSuccess": "Ugniasienė sėkmingai sukonfigūruota",
+      "settings.firewallUnavailable": "Ugniasienės būsena nežinoma",
+      "settings.firewallRecheck": "Tikrinti dar kartą",
       "settings.flushDht": "Ištuštinti DHT",
       "settings.dhtFlushed": "DHT išvalytas",
       "settings.flushFailed": "Nepavyko išvalyti DHT",

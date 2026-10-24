@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "P2P-forbindelser blokeret — konfiguration påkrævet",
       "settings.firewallConfigure": "Konfigurer",
       "settings.firewallSuccess": "Firewall konfigureret med succes",
+      "settings.firewallUnavailable": "Firewallstatus ukendt",
+      "settings.firewallRecheck": "Kontroller igen",
       "settings.flushDht": "Tøm DHT",
       "settings.dhtFlushed": "DHT ryddet",
       "settings.flushFailed": "DHT kunne ikke ryddes",

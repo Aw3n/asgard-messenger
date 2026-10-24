@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "Οι συνδέσεις P2P αποκλείονται — απαιτείται διαμόρφωση",
       "settings.firewallConfigure": "Διαμόρφωση",
       "settings.firewallSuccess": "Το firewall διαμορφώθηκε με επιτυχία",
+      "settings.firewallUnavailable": "Άγνωστη κατάσταση firewall",
+      "settings.firewallRecheck": "Επανέλεγχος",
       "settings.flushDht": "Εκκαθάριση DHT",
       "settings.dhtFlushed": "Το DHT εκκαθαρίστηκε",
       "settings.flushFailed": "Δεν ήταν δυνατός ο καθαρισμός του DHT",

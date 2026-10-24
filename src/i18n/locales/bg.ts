@@ -876,6 +876,8 @@ export default {
       "settings.firewallNotConfigured": "P2P връзките са блокирани — необходима е конфигурация",
       "settings.firewallConfigure": "Конфигурирай",
       "settings.firewallSuccess": "Защитната стена е конфигурирана успешно",
+      "settings.firewallUnavailable": "Състоянието на защитната стена е неизвестно",
+      "settings.firewallRecheck": "Провери отново",
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "Без сървъри. Без акаунти. Без наблюдение.",
       "onboarding.p2pSecuredLine": "Изцяло peer-to-peer комуникация, защитена с криптография.",

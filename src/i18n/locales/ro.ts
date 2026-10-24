@@ -876,6 +876,8 @@ export default {
       "settings.firewallNotConfigured": "Conexiuni P2P blocate — configurare necesară",
       "settings.firewallConfigure": "Configurează",
       "settings.firewallSuccess": "Firewall configurat cu succes",
+      "settings.firewallUnavailable": "Starea firewall-ului este necunoscută",
+      "settings.firewallRecheck": "Verifică din nou",
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "Fără servere. Fără conturi. Fără supraveghere.",
       "onboarding.p2pSecuredLine": "Comunicare pur peer-to-peer, securizată prin criptografie.",

@@ -765,6 +765,8 @@ export default {
       "settings.firewallNotConfigured": "P2P-verbindingen geblokkeerd — configuratie vereist",
       "settings.firewallConfigure": "Configureren",
       "settings.firewallSuccess": "Firewall succesvol geconfigureerd",
+      "settings.firewallUnavailable": "Firewallstatus onbekend",
+      "settings.firewallRecheck": "Opnieuw controleren",
       "settings.flushDht": "DHT legen",
       "settings.dhtFlushed": "DHT geleegd",
       "settings.flushFailed": "DHT kon niet worden geleegd",

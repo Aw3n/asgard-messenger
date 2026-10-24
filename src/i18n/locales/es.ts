@@ -765,6 +765,8 @@ export default {
       "settings.firewallNotConfigured": "Conexiones P2P bloqueadas — configuración requerida",
       "settings.firewallConfigure": "Configurar",
       "settings.firewallSuccess": "Cortafuegos configurado con éxito",
+      "settings.firewallUnavailable": "Estado del cortafuegos desconocido",
+      "settings.firewallRecheck": "Volver a comprobar",
       "settings.flushDht": "Vaciar DHT",
       "settings.dhtFlushed": "DHT vaciado",
       "settings.flushFailed": "No se pudo vaciar el DHT",

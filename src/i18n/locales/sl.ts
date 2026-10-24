@@ -876,6 +876,8 @@ export default {
       "settings.firewallNotConfigured": "P2P-povezave blokirane — zahtevana konfiguracija",
       "settings.firewallConfigure": "Nastavi",
       "settings.firewallSuccess": "Požarni zid uspešno nastavljen",
+      "settings.firewallUnavailable": "Stanje požarnega zidu neznano",
+      "settings.firewallRecheck": "Preveri znova",
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "Brez strežnikov. Brez računov. Brez nadzora.",
       "onboarding.p2pSecuredLine": "Čista komunikacija peer-to-peer, zaščitena s kriptografijo.",

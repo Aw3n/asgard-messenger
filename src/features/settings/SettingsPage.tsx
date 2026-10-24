@@ -985,13 +985,19 @@ const NetworkSection: React.FC = () => {
   const status = useNetworkStore((s) => s.status)
   const [peerScores, setPeerScores] = useState<Record<string, { latency: number; score: number }>>({})
   const [peerScoresUnavailable, setPeerScoresUnavailable] = useState(false)
-  const [firewallStatus, setFirewallStatus] = useState<'configured' | 'needs-admin' | 'not-configured' | 'checking'>('checking')
+  const [firewallStatus, setFirewallStatus] = useState<'configured' | 'needs-admin' | 'not-configured' | 'checking' | 'unavailable'>('checking')
   const [isConfiguringFirewall, setIsConfiguringFirewall] = useState(false)
+
+  // Une lecture en panne ne prouve pas que le pare-feu bloque : elle ne dit
+  // rien. L'annoncer « non configuré » ferait croire à un état mesuré.
+  const readFirewallStatus = useCallback(() => {
+    window.asgard.firewall.getStatus().then(setFirewallStatus).catch(() => setFirewallStatus('unavailable'))
+  }, [])
 
   // Check firewall status on mount
   useEffect(() => {
-    window.asgard.firewall.getStatus().then(setFirewallStatus).catch(() => setFirewallStatus('not-configured'))
-  }, [])
+    readFirewallStatus()
+  }, [readFirewallStatus])
 
   const handleConfigureFirewall = async () => {
     setIsConfiguringFirewall(true)
@@ -1094,20 +1100,29 @@ return (
                       ? t('settings.firewallConfigured')
                       : firewallStatus === 'checking'
                       ? t('settings.firewallChecking')
+                      : firewallStatus === 'unavailable'
+                      ? t('settings.firewallUnavailable')
                       : t('settings.firewallNotConfigured')}
                   </p>
                 </div>
               </div>
-              {firewallStatus !== 'configured' && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleConfigureFirewall}
-                  disabled={isConfiguringFirewall}
-                >
-                  {isConfiguringFirewall ? t('settings.firewallConfiguring') : t('settings.firewallConfigure')}
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {firewallStatus === 'unavailable' && (
+                  <Button variant="ghost" size="sm" onClick={readFirewallStatus}>
+                    {t('settings.firewallRecheck')}
+                  </Button>
+                )}
+                {firewallStatus !== 'configured' && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleConfigureFirewall}
+                    disabled={isConfiguringFirewall}
+                  >
+                    {isConfiguringFirewall ? t('settings.firewallConfiguring') : t('settings.firewallConfigure')}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 

@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "P2P veze blokirane — potrebna konfiguracija",
       "settings.firewallConfigure": "Konfiguriraj",
       "settings.firewallSuccess": "Vatreni zid uspješno konfiguriran",
+      "settings.firewallUnavailable": "Stanje vatrenog zida nepoznato",
+      "settings.firewallRecheck": "Provjeri ponovno",
       "settings.flushDht": "Isprazni DHT",
       "settings.dhtFlushed": "DHT očišćen",
       "settings.flushFailed": "DHT nije moguće očistiti",

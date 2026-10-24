@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "P2P savienojumi bloķēti — nepieciešama konfigurācija",
       "settings.firewallConfigure": "Konfigurēt",
       "settings.firewallSuccess": "Ugunsmūris veiksmīgi konfigurēts",
+      "settings.firewallUnavailable": "Ugunsmūra statuss nav zināms",
+      "settings.firewallRecheck": "Pārbaudīt vēlreiz",
       "settings.flushDht": "Iztukšot DHT",
       "settings.dhtFlushed": "DHT notīrīts",
       "settings.flushFailed": "DHT notīrīšana neizdevās",

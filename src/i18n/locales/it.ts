@@ -765,6 +765,8 @@ export default {
       "settings.firewallNotConfigured": "Connessioni P2P bloccate — configurazione richiesta",
       "settings.firewallConfigure": "Configura",
       "settings.firewallSuccess": "Firewall configurato con successo",
+      "settings.firewallUnavailable": "Stato del firewall sconosciuto",
+      "settings.firewallRecheck": "Ricontrolla",
       "settings.flushDht": "Svuota DHT",
       "settings.dhtFlushed": "DHT svuotato",
       "settings.flushFailed": "Impossibile svuotare il DHT",

@@ -876,6 +876,8 @@ export default {
       "settings.firewallNotConfigured": "Połączenia P2P zablokowane — wymagana konfiguracja",
       "settings.firewallConfigure": "Skonfiguruj",
       "settings.firewallSuccess": "Zapora sieciowa skonfigurowana pomyślnie",
+      "settings.firewallUnavailable": "Stan zapory nieznany",
+      "settings.firewallRecheck": "Sprawdź ponownie",
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "Bez serwerów. Bez kont. Bez inwigilacji.",
       "onboarding.p2pSecuredLine": "Czysta komunikacja peer-to-peer, zabezpieczona kryptografią.",

@@ -856,6 +856,8 @@ export default {
       "settings.firewallNotConfigured": "Konnessjonijiet P2P imblukkati — konfigurazzjoni meħtieġa",
       "settings.firewallConfigure": "Ikkonfigura",
       "settings.firewallSuccess": "Firewall ikkonfigurat b'suċċess",
+      "settings.firewallUnavailable": "L-istat tal-firewall mhux magħruf",
+      "settings.firewallRecheck": "Iċċekkja mill-ġdid",
       // ─── Added for UI localization ───
       // ─── fix-languages.mjs additions ───
       "lightbox.zoomIn": "Kabbar",

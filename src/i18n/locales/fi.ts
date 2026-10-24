@@ -747,6 +747,8 @@ export default {
       "settings.firewallNotConfigured": "P2P-yhteydet estetty — määritys vaaditaan",
       "settings.firewallConfigure": "Määritä",
       "settings.firewallSuccess": "Palomuuri määritetty onnistuneesti",
+      "settings.firewallUnavailable": "Palomuurin tila tuntematon",
+      "settings.firewallRecheck": "Tarkista uudelleen",
       "settings.flushDht": "Tyhjennä DHT",
       "settings.dhtFlushed": "DHT tyhjennetty",
       "settings.flushFailed": "DHT:n tyhjennys epäonnistui",

@@ -876,6 +876,8 @@ export default {
       "settings.firewallNotConfigured": "Naisc P2P blocáilte — cumríocht de dhíth",
       "settings.firewallConfigure": "Cumraigh",
       "settings.firewallSuccess": "Balla dóiteáin cumraithe go rathúil",
+      "settings.firewallUnavailable": "Stádas an bhalla dóiteáin anaithnid",
+      "settings.firewallRecheck": "Seiceáil arís",
       // ─── fix-languages.mjs additions ───
       "onboarding.noServersLine": "Gan fhreastalaithe. Gan chuntais. Gan fhaireachán.",
       "onboarding.p2pSecuredLine": "Cumarsáid fíor-peer-to-peer, cosanta le cripteagrafaíocht.",
