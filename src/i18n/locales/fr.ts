@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Supprimer le fichier",
       "chat.deleteFileConfirm": "Supprimer le fichier ?",
       "chat.deleteFileWarning": "Ce fichier sera supprimé pour tout le monde. Cette action ne peut pas être annulée.",
+      "chat.deleteFileFailed": "Impossible de supprimer le fichier",
       "chat.deleteForEveryone": "Supprimer pour tous",
       "chat.deleteForMe": "Supprimer pour moi",
       "chat.deleteMessage": "Supprimer le message",

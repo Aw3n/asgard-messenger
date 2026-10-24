@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Διαγραφή αρχείου",
       "chat.deleteFileConfirm": "Διαγραφή αρχείου;",
       "chat.deleteFileWarning": "Αυτό το αρχείο θα αφαιρεθεί για όλους. Η ενέργεια δεν μπορεί να αναιρεθεί.",
+      "chat.deleteFileFailed": "Δεν ήταν δυνατή η διαγραφή του αρχείου",
       "chat.deleteForEveryone": "Διαγραφή για όλους",
       "chat.deleteForMe": "Διαγραφή για μένα",
       "chat.deleteMessage": "Διαγραφή μηνύματος",

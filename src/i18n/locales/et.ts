@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Kustuta fail",
       "chat.deleteFileConfirm": "Kustuta fail?",
       "chat.deleteFileWarning": "See fail eemaldatakse kõigilt. Seda tegevust ei saa tagasi võtta.",
+      "chat.deleteFileFailed": "Faili ei õnnestunud kustutada",
       "chat.deleteForEveryone": "Kustuta kõigilt",
       "chat.deleteForMe": "Kustuta minult",
       "chat.deleteMessage": "Kustuta sõnum",

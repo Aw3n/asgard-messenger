@@ -331,9 +331,11 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         setShowDeleteConfirm(false)
       } else {
         console.warn('[FileAttachment] deleteFileAttachment returned false')
+        addToast({ type: 'error', title: t('chat.deleteFileFailed') })
       }
     } catch (err) {
       console.error('[FileAttachment] Failed to delete attachment:', err)
+      addToast({ type: 'error', title: t('chat.deleteFileFailed') })
     }
   }
 

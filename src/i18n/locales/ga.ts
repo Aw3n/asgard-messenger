@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Scrios an comhad",
       "chat.deleteFileConfirm": "Scrios an comhad?",
       "chat.deleteFileWarning": "Bainfear an comhad seo do gach duine. Ní féidir an gníomh seo a chur ar ceal.",
+      "chat.deleteFileFailed": "Níorbh fhéidir an comhad a scriosadh",
       "chat.deleteForEveryone": "Scrios do gach duine",
       "chat.deleteForMe": "Scrios dom",
       "chat.deleteMessage": "Scrios Teachtaireacht",

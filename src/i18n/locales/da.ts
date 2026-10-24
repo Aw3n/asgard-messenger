@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Slet fil",
       "chat.deleteFileConfirm": "Slet fil?",
       "chat.deleteFileWarning": "Denne fil fjernes for alle. Handlingen kan ikke fortrydes.",
+      "chat.deleteFileFailed": "Filen kunne ikke slettes",
       "chat.deleteForEveryone": "Slet for alle",
       "chat.deleteForMe": "Slet for mig",
       "chat.deleteMessage": "Slet besked",

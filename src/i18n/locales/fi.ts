@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Poista tiedosto",
       "chat.deleteFileConfirm": "Poista tiedosto?",
       "chat.deleteFileWarning": "Tämä tiedosto poistetaan kaikilta. Toimintoa ei voi perua.",
+      "chat.deleteFileFailed": "Tiedoston poistaminen epäonnistui",
       "chat.deleteForEveryone": "Poista kaikilta",
       "chat.deleteForMe": "Poista minulta",
       "chat.deleteMessage": "Poista viesti",

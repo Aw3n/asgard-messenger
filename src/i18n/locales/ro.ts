@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Șterge fișierul",
       "chat.deleteFileConfirm": "Ștergi fișierul?",
       "chat.deleteFileWarning": "Acest fișier va fi șters pentru toată lumea. Această acțiune nu poate fi anulată.",
+      "chat.deleteFileFailed": "Fișierul nu a putut fi șters",
       "chat.deleteForEveryone": "Șterge pentru toți",
       "chat.deleteForMe": "Șterge pentru mine",
       "chat.deleteMessage": "Șterge mesajul",

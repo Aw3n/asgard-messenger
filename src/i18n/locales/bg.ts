@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Изтриване на файла",
       "chat.deleteFileConfirm": "Изтриване на файла?",
       "chat.deleteFileWarning": "Този файл ще бъде премахнат за всички. Това действие не може да бъде отменено.",
+      "chat.deleteFileFailed": "Файлът не можа да бъде изтрит",
       "chat.deleteForEveryone": "Изтрий за всички",
       "chat.deleteForMe": "Изтрий за мен",
       "chat.deleteMessage": "Изтрий съобщението",

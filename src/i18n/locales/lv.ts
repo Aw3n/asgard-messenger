@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Dzēst failu",
       "chat.deleteFileConfirm": "Dzēst failu?",
       "chat.deleteFileWarning": "Šis fails tiks noņemts visiem. Šo darbību nevar atsaukt.",
+      "chat.deleteFileFailed": "Nevarēja izdzēst failu",
       "chat.deleteForEveryone": "Dzēst visiem",
       "chat.deleteForMe": "Dzēst man",
       "chat.deleteMessage": "Dzēst ziņojumu",

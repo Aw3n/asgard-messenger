@@ -277,6 +277,7 @@ export default {
       "chat.deleteFile": "Delete file",
       "chat.deleteFileConfirm": "Delete file?",
       "chat.deleteFileWarning": "This file will be removed for everyone. This action cannot be undone.",
+      "chat.deleteFileFailed": "Could not delete the file",
       "chat.saveAs": "Save as…",
       "chat.receiving": "Receiving…",
       "chat.sendingFile": "Sending file",

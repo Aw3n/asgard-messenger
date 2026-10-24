@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Ħassar il-fajl",
       "chat.deleteFileConfirm": "Ħassar il-fajl?",
       "chat.deleteFileWarning": "Dan il-fajl jitneħħa għal kulħadd. Din l-azzjoni ma tistax tiġi annullata.",
+      "chat.deleteFileFailed": "Il-fajl ma setax jitħassar",
       "chat.deleteForEveryone": "Ħassar għal kulħadd",
       "chat.deleteForMe": "Ħassar għalija",
       "chat.deleteMessage": "Ħassar messaġġ",

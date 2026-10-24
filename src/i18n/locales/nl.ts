@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Bestand verwijderen",
       "chat.deleteFileConfirm": "Bestand verwijderen?",
       "chat.deleteFileWarning": "Dit bestand wordt voor iedereen verwijderd. Deze actie kan niet ongedaan worden gemaakt.",
+      "chat.deleteFileFailed": "Kan het bestand niet verwijderen",
       "chat.deleteForEveryone": "Voor iedereen verwijderen",
       "chat.deleteForMe": "Voor mij verwijderen",
       "chat.deleteMessage": "Bericht verwijderen",

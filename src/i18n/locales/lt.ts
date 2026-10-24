@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Ištrinti failą",
       "chat.deleteFileConfirm": "Ištrinti failą?",
       "chat.deleteFileWarning": "Šis failas bus pašalintas visiems. Šio veiksmo negalima anuliuoti.",
+      "chat.deleteFileFailed": "Nepavyko ištrinti failo",
       "chat.deleteForEveryone": "Ištrinti visiems",
       "chat.deleteForMe": "Ištrinti man",
       "chat.deleteMessage": "Ištrinti pranešimą",

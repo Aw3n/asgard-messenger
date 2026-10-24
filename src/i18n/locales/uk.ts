@@ -253,6 +253,7 @@ export default {
       "chat.deleteFile": "Видалити файл",
       "chat.deleteFileConfirm": "Видалити файл?",
       "chat.deleteFileWarning": "Цей файл буде видалено для всіх. Дію неможливо скасувати.",
+      "chat.deleteFileFailed": "Не вдалося видалити файл",
       "chat.saveAs": "Зберегти як…",
       "chat.receiving": "Отримання…",
       "chat.backToChat": "Повернутися до чату",

@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Izbriši datoteku",
       "chat.deleteFileConfirm": "Izbriši datoteku?",
       "chat.deleteFileWarning": "Ova će se datoteka ukloniti za sve. Radnju nije moguće poništiti.",
+      "chat.deleteFileFailed": "Datoteku nije moguće izbrisati",
       "chat.deleteForEveryone": "Izbriši za sve",
       "chat.deleteForMe": "Izbriši za mene",
       "chat.deleteMessage": "Izbriši poruku",

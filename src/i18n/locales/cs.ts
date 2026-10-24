@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Smazat soubor",
       "chat.deleteFileConfirm": "Smazat soubor?",
       "chat.deleteFileWarning": "Tento soubor bude odstraněn pro všechny. Tuto akci nelze vrátit zpět.",
+      "chat.deleteFileFailed": "Soubor se nepodařilo odstranit",
       "chat.deleteForEveryone": "Smazat pro všechny",
       "chat.deleteForMe": "Smazat pro mě",
       "chat.deleteMessage": "Smazat zprávu",

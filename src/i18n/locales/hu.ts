@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Fájl törlése",
       "chat.deleteFileConfirm": "Törlöd a fájlt?",
       "chat.deleteFileWarning": "Ez a fájl mindenki számára törlődik. A művelet nem vonható vissza.",
+      "chat.deleteFileFailed": "Nem sikerült a fájl törlése",
       "chat.deleteForEveryone": "Törlés mindenkinek",
       "chat.deleteForMe": "Törlés nekem",
       "chat.deleteMessage": "Üzenet törlése",

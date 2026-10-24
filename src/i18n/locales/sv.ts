@@ -81,6 +81,7 @@ export default {
       "chat.deleteFile": "Ta bort fil",
       "chat.deleteFileConfirm": "Ta bort fil?",
       "chat.deleteFileWarning": "Denna fil tas bort för alla. Åtgärden kan inte ångras.",
+      "chat.deleteFileFailed": "Filen kunde inte tas bort",
       "chat.deleteForEveryone": "Ta bort för alla",
       "chat.deleteForMe": "Ta bort för mig",
       "chat.deleteMessage": "Ta bort meddelande",
