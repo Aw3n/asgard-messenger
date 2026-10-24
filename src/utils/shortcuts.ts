@@ -19,7 +19,7 @@ export type ShortcutName = keyof KeyboardShortcuts
 /**
  * Les gestes posés au premier lancement.
  *
- * Le magasin portait sa propre copie de ces quinze chaînes : l'éditeur de
+ * Le magasin portait sa propre copie de ces chaînes : l'éditeur de
  * réglages, qui doit dire si une valeur est encore celle du lancement, aurait
  * dû en tenir une seconde. Une seule table, lue par `uiStore` et par l'écran.
  */
@@ -39,14 +39,16 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   replyToMessage: 'Ctrl+R',
   forwardMessage: 'Ctrl+F',
   copyMessage: 'Ctrl+C',
+  acceptCall: 'Ctrl+Shift+A',
+  declineCall: 'Ctrl+Shift+D',
 }
 
 /**
- * Le nom de chaque geste tel que l'éditeur de réglages l'écrit.
+ * Les noms de chaque geste tel que l'éditeur de réglages l'écrit.
  *
- * Sept d'entre eux reprennent un libellé déjà prononcé ailleurs — le menu de la
- * bulle, le rail, le composeur : le même mot dans deux endroits ne peut pas
- * dériver. Les autres n'existent que sur cet écran.
+ * Plusieurs reprennent un libellé déjà prononcé ailleurs — le menu de la bulle,
+ * le rail, le composeur, la fenêtre d'appel entrant : le même mot dans deux
+ * endroits ne peut pas dériver. Les autres n'existent que sur cet écran.
  */
 export const SHORTCUT_LABEL_KEYS: Record<ShortcutName, string> = {
   sendMessage: 'contacts.sendMessage',
@@ -64,6 +66,8 @@ export const SHORTCUT_LABEL_KEYS: Record<ShortcutName, string> = {
   replyToMessage: 'chat.reply',
   forwardMessage: 'chat.forwardMessage',
   copyMessage: 'chat.copyText',
+  acceptCall: 'calls.answer',
+  declineCall: 'calls.decline',
 }
 
 export interface ParsedCombo {
@@ -236,8 +240,14 @@ export const MESSAGE_ACTION_SHORTCUTS = [
   'deleteMessage',
 ] as const satisfies readonly ShortcutName[]
 
-/** Où se joue chaque geste : les trois colonnes de l'éditeur de réglages. */
-export type ShortcutGroupId = 'composer' | 'global' | 'messages'
+/**
+ * Les deux gestes de la fenêtre d'appel entrant, lus par `IncomingCallOverlay`
+ * pendant que le téléphone sonne : répondre et refuser, aux deux combinaisons.
+ */
+export const CALL_SHORTCUTS = ['acceptCall', 'declineCall'] as const satisfies readonly ShortcutName[]
+
+/** Où se joue chaque geste : les colonnes de l'éditeur de réglages. */
+export type ShortcutGroupId = 'composer' | 'global' | 'messages' | 'call'
 
 export interface ShortcutGroup {
   id: ShortcutGroupId
@@ -247,7 +257,7 @@ export interface ShortcutGroup {
 
 /**
  * Les groupes de l'éditeur, dans l'ordre de l'écran. Chaque geste n'y figure
- * qu'une fois et les quinze y figurent : `closeModal` est lu par les dialogues
+ * qu'une fois et tous y figurent : `closeModal` est lu par les dialogues
  * eux-mêmes, non par l'écouteur global, et se règle au même titre que les
  * autres.
  */
@@ -255,9 +265,10 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
   { id: 'composer', titleKey: 'settings.shortcutsComposer', names: COMPOSER_SHORTCUTS },
   { id: 'global', titleKey: 'settings.shortcutsGlobal', names: [...WIRED_SHORTCUTS, 'closeModal'] },
   { id: 'messages', titleKey: 'settings.shortcutsOnMessage', names: MESSAGE_ACTION_SHORTCUTS },
+  { id: 'call', titleKey: 'nav.calls', names: CALL_SHORTCUTS },
 ]
 
-/** Les quinze gestes dans l'ordre de l'écran : l'ordre que prend la recherche d'un conflit. */
+/** Tous les gestes dans l'ordre de l'écran : l'ordre que prend la recherche d'un conflit. */
 export const SHORTCUT_NAMES: readonly ShortcutName[] = SHORTCUT_GROUPS.flatMap((group) => [...group.names])
 
 /** Les touches qui ne terminent jamais une combinaison : tenues seules, elles n'ont aucun geste à dire. */

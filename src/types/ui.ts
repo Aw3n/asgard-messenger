@@ -143,6 +143,10 @@ export interface KeyboardShortcuts {
   forwardMessage: string
   /** Copy message */
   copyMessage: string
+  /** Answer an incoming call */
+  acceptCall: string
+  /** Decline an incoming call */
+  declineCall: string
 }
 
 export interface CustomThemeSettings {

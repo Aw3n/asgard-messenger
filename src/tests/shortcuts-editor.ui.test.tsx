@@ -1,10 +1,11 @@
 /**
- * L'écran qui règle les quinze gestes clavier.
+ * L'écran qui règle les gestes clavier.
  *
- * `settings.keyboardShortcuts` portait quinze combinaisons que l'application lit
- * depuis quatre endroits — l'écouteur global, le composeur, les rangées de
- * message, les dialogues — sans qu'aucun écran ne les montre ni ne les laisse
- * changer. Ces tests rendent la section « shortcuts » des réglages et exigent
+ * `settings.keyboardShortcuts` portait des combinaisons que l'application lit
+ * depuis plusieurs endroits — l'écouteur global, le composeur, les rangées de
+ * message, les dialogues, la fenêtre d'appel entrant — sans qu'aucun écran ne
+ * les montre ni ne les laisse changer. Ces tests rendent la section
+ * « shortcuts » des réglages et exigent
  * les observations que l'utilisateur fait vraiment : la frappe écrit la
  * combinaison, ne déclenche pas l'action réglée, refuse ce qui est déjà tenu ou
  * ce qui détournerait le focus, et le doigt sur « vider » éteint le geste dans
@@ -116,16 +117,18 @@ afterEach(() => {
 })
 
 describe('rangées de l’écran', () => {
-  it('montre les trois groupes, dans l’ordre de l’écran', () => {
+  it('montre tous les groupes, dans l’ordre de l’écran', () => {
     renderShortcuts()
     expect(
       screen.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent),
     ).toEqual(SHORTCUT_GROUPS.map((group) => group.titleKey))
   })
 
-  it('donne les quinze gestes à régler, chacun nommé par son action', () => {
+  it('donne tous les gestes du magasin à régler, chacun nommé par son action', () => {
     renderShortcuts()
-    expect(SHORTCUT_NAMES).toHaveLength(15)
+    // Compter depuis le magasin : un geste réglé par le code mais absent de
+    // l'écran serait une combinaison que seul un fichier de réglages peut changer.
+    expect(SHORTCUT_NAMES).toHaveLength(Object.keys(DEFAULT_KEYBOARD_SHORTCUTS).length)
     for (const name of SHORTCUT_NAMES) {
       expect(valueButton(name)).toBeInTheDocument()
     }
@@ -297,7 +300,7 @@ describe('éteindre et rétablir un geste', () => {
     expect(screen.queryByText('settings.shortcutsResetAll')).not.toBeInTheDocument()
   })
 
-  it('rétablit les quinze gestes d’un seul bouton', () => {
+  it('rétablit tous les gestes d’un seul bouton', () => {
     renderShortcuts()
     press(arm('openSearch'), 'j', { ctrlKey: true })
     press(arm('toggleSidebar'), 'y', { ctrlKey: true })

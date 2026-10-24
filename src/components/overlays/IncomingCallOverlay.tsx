@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCallStore } from '@/stores/callStore'
+import { useUIStore } from '@/stores/uiStore'
 import { callService } from '@/services/CallService'
 import { Avatar } from '@/components/ui/Avatar'
+import { useGestureHint } from '@/hooks/useGestureHint'
+import { comboMatches } from '@/utils/shortcuts'
 import { useTranslation } from 'react-i18next'
 
 /**
@@ -18,6 +21,9 @@ export const IncomingCallOverlay: React.FC = () => {
   const { t } = useTranslation()
   const incomingCall = useCallStore((s) => s.incomingCall)
 
+  const acceptGesture = useGestureHint('acceptCall', t('calls.answer'))
+  const declineGesture = useGestureHint('declineCall', t('calls.decline'))
+
   const handleAccept = useCallback(async () => {
     await callService.acceptCall()
   }, [])
@@ -27,19 +33,20 @@ export const IncomingCallOverlay: React.FC = () => {
   }, [])
 
   /**
-   * Raccourcis de réponse : Ctrl+Maj+A (répondre) / Ctrl+Maj+D (refuser),
-   * comme Signal. Le combo est indicatif — les boutons restent la source
-   * d'action, le clavier suit la même paire de gestes.
+   * Répondre et refuser se règlent à l'écran « Raccourcis ». La frappe est
+   * confrontée au magasin au moment où elle part : une combinaison changée
+   * pendant la sonnerie vaut pour la touche suivante, et une combinaison
+   * effacée ne déclenche plus rien — les boutons restent seuls à répondre.
    */
   useEffect(() => {
     if (!incomingCall) return
     const onKey = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey) return
-      const key = e.key.toLowerCase()
-      if (key === 'a') {
+      if (e.isComposing || e.keyCode === 229) return
+      const { acceptCall, declineCall } = useUIStore.getState().settings.keyboardShortcuts
+      if (comboMatches(acceptCall, e)) {
         e.preventDefault()
         void handleAccept()
-      } else if (key === 'd') {
+      } else if (comboMatches(declineCall, e)) {
         e.preventDefault()
         void handleReject()
       }
@@ -177,7 +184,8 @@ export const IncomingCallOverlay: React.FC = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleReject}
-                  title="Ctrl+Shift+D"
+                  title={declineGesture.title}
+                  aria-keyshortcuts={declineGesture.ariaKeyShortcuts}
                   className="w-16 h-16 rounded-full flex items-center justify-center transition-colors"
                   style={{
                     background: 'rgba(239,68,68,0.08)',
@@ -198,7 +206,8 @@ export const IncomingCallOverlay: React.FC = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleAccept}
-                  title="Ctrl+Shift+A"
+                  title={acceptGesture.title}
+                  aria-keyshortcuts={acceptGesture.ariaKeyShortcuts}
                   className="w-16 h-16 rounded-full flex items-center justify-center transition-colors"
                   style={{
                     background: 'rgba(34,197,94,0.08)',

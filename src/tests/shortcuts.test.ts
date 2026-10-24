@@ -1,14 +1,15 @@
 /**
  * Lecture des combinaisons réglées dans `settings.keyboardShortcuts`.
  *
- * Quinze combinaisons étaient déclarées, persistées, jamais lues : le seul
- * geste vivant était un `e.key === 'k'` recopié en dur dans `App.tsx`. Ce
+ * Les combinaisons du magasin étaient déclarées, persistées, jamais lues : le
+ * seul geste vivant était un `e.key === 'k'` recopié en dur dans `App.tsx`. Ce
  * module est le seul endroit qui décide si une frappe correspond à un réglage,
  * donc il doit être strict — une combinaison mal écrite désactive l'action
  * au lieu d'inventer un geste proche.
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  CALL_SHORTCUTS,
   COMPOSER_SHORTCUTS,
   DEFAULT_KEYBOARD_SHORTCUTS,
   MESSAGE_ACTION_SHORTCUTS,
@@ -364,26 +365,30 @@ describe('gestes refusés à la saisie', () => {
 })
 
 describe('gestes présentés à l’écran', () => {
-  it('couvrent les quinze combinaisons du magasin, chacune une fois', () => {
+  it('couvrent toutes les combinaisons du magasin, chacune une fois', () => {
     const fromStore = Object.keys(DEFAULT_KEYBOARD_SHORTCUTS) as ShortcutName[]
     expect([...SHORTCUT_NAMES].sort()).toEqual([...fromStore].sort())
-    expect(new Set(SHORTCUT_NAMES).size).toBe(15)
+    // La longueur se déduit du magasin : un geste ajouté ne se contente pas
+    // d'être compté, il doit être présenté et réglable comme les autres.
+    expect(new Set(SHORTCUT_NAMES).size).toBe(fromStore.length)
   })
 
   it('nomment chaque geste', () => {
     for (const name of SHORTCUT_NAMES) {
-      expect(SHORTCUT_LABEL_KEYS[name]).toMatch(/^(settings|chat|common|contacts)\./)
+      expect(SHORTCUT_LABEL_KEYS[name]).toMatch(/^(settings|chat|common|contacts|calls)\./)
     }
   })
 
   it('rangent les gestes par endroit où ils se jouent', () => {
-    expect(SHORTCUT_GROUPS.map((group) => group.id)).toEqual(['composer', 'global', 'messages'])
-    // Le composeur et les rangées de message restent hors de l'écouteur global ;
-    // `closeModal` se règle avec les autres bien qu'il soit lu par les panneaux.
+    expect(SHORTCUT_GROUPS.map((group) => group.id)).toEqual(['composer', 'global', 'messages', 'call'])
+    // Le composeur, les rangées de message et la fenêtre d'appel entrant
+    // restent hors de l'écouteur global ; `closeModal` se règle avec les
+    // autres bien qu'il soit lu par les panneaux.
     expect(SHORTCUT_GROUPS[0].names).toEqual(['sendMessage', 'newLine'])
     expect(SHORTCUT_GROUPS[2].names).toEqual([...MESSAGE_ACTION_SHORTCUTS])
+    expect(SHORTCUT_GROUPS[3].names).toEqual([...CALL_SHORTCUTS])
     expect(SHORTCUT_GROUPS[1].names).toContain('closeModal')
-    for (const name of [...COMPOSER_SHORTCUTS, ...MESSAGE_ACTION_SHORTCUTS]) {
+    for (const name of [...COMPOSER_SHORTCUTS, ...MESSAGE_ACTION_SHORTCUTS, ...CALL_SHORTCUTS]) {
       expect(SHORTCUT_GROUPS[1].names).not.toContain(name)
     }
   })

@@ -164,8 +164,8 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({ name, shortcuts, onApply }) =
 }
 
 /**
- * Les quinze gestes, groupés selon l'endroit où ils se jouent, plus le retour
- * aux combinaisons du premier lancement.
+ * Tous les gestes réglés, groupés selon l'endroit où ils se jouent, plus le
+ * retour aux combinaisons du premier lancement.
  */
 export const ShortcutsManager: React.FC = () => {
   const { t } = useTranslation()

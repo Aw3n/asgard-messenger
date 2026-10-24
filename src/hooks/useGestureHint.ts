@@ -1,8 +1,8 @@
 /**
  * Un bouton qui fait la même chose qu'une combinaison réglée doit le dire.
  *
- * Les quinze gestes sont listés à l'écran « Raccourcis », mais la moitié d'entre
- * eux ont aussi un clic qui fait pareil : ouvrir les réglages, escamoter le
+ * Tous les gestes réglés sont listés à l'écran « Raccourcis », mais beaucoup ont
+ * aussi un clic qui fait pareil : ouvrir les réglages, escamoter le
  * panneau de liste, envoyer le message. Ce clic-là ne disait rien, et une touche
  * changée dans les réglages restait invisible là où l'on clique. L'indice vient
  * donc du réglage, au présent : survol et lecteur d'écran entendent la

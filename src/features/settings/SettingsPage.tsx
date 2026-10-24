@@ -929,7 +929,7 @@ return (
 
 // ─── Shortcuts Section ────────────────────────────────────────────────────────
 
-/** Les quinze gestes réglés, groupés par endroit où ils se jouent. */
+/** Les gestes réglés, groupés par endroit où ils se jouent. */
 const ShortcutsSection: React.FC = () => {
   const { t } = useTranslation()
   return (
