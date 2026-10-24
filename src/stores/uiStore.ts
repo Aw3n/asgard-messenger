@@ -134,6 +134,40 @@ const defaultSettings: AppSettings = {
   },
 }
 
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] }
+export type StoredSettings = DeepPartial<AppSettings>
+
+/**
+ * Fusionne un état persisté avec les valeurs par défaut.
+ *
+ * Chaque section garde les choix de l'utilisateur mais récupère les clés
+ * ajoutées depuis. `storage` est fusionné en profondeur : un état antérieur
+ * peut ne pas avoir le bloc du tout (l'écran Stockage lisait alors
+ * `settings.storage.cacheSize` sur `undefined`).
+ */
+export function mergeStoredSettings(stored?: StoredSettings): AppSettings {
+  return {
+    ...defaultSettings,
+    ...stored,
+    notifications: { ...defaultSettings.notifications, ...stored?.notifications },
+    privacy: { ...defaultSettings.privacy, ...stored?.privacy },
+    storage: {
+      ...defaultSettings.storage,
+      ...stored?.storage,
+      autoDownload: {
+        ...defaultSettings.storage.autoDownload,
+        ...stored?.storage?.autoDownload,
+      },
+    },
+    network: { ...defaultSettings.network, ...stored?.network },
+    accessibility: { ...defaultSettings.accessibility, ...stored?.accessibility },
+    chat: { ...defaultSettings.chat, ...stored?.chat },
+    media: { ...defaultSettings.media, ...stored?.media },
+    keyboardShortcuts: { ...defaultSettings.keyboardShortcuts, ...stored?.keyboardShortcuts },
+    customTheme: { ...defaultSettings.customTheme, ...stored?.customTheme },
+  }
+}
+
 // ─── Predefined Theme Presets ────────────────────────────────────────────────
 
 const themePresets: ThemePreset[] = [
@@ -563,19 +597,7 @@ export const useUIStore = create<UIState>()(
       onRehydrateStorage: () => {
         return (state) => {
           if (state) {
-            // Migrate settings: merge with defaults to ensure all properties exist
-            state.settings = {
-              ...defaultSettings,
-              ...state.settings,
-              chat: { ...defaultSettings.chat, ...state.settings.chat },
-              media: { ...defaultSettings.media, ...state.settings.media },
-              accessibility: { ...defaultSettings.accessibility, ...state.settings.accessibility },
-              notifications: { ...defaultSettings.notifications, ...state.settings.notifications },
-              privacy: { ...defaultSettings.privacy, ...state.settings.privacy },
-              network: { ...defaultSettings.network, ...state.settings.network },
-              keyboardShortcuts: { ...defaultSettings.keyboardShortcuts, ...state.settings.keyboardShortcuts },
-              customTheme: { ...defaultSettings.customTheme, ...state.settings.customTheme },
-            }
+            state.settings = mergeStoredSettings(state.settings)
           }
           if (state?.settings?.customTheme?.enabled) {
             // Apply custom theme after hydration
