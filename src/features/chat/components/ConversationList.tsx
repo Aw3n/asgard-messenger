@@ -78,12 +78,11 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
     kind: ConversationConfirmVariant
   } | null>(null)
   // Même repli que la rangée : le nom connu, sinon la clé tronquée.
-  const pendingName = pendingAction
-    ? pendingAction.conv.participantId
-      ? contacts[pendingAction.conv.participantId]?.displayName
-        ?? pendingAction.conv.participantId.slice(0, 16)
-      : pendingAction.conv.id.slice(0, 16)
-    : ''
+  const nameFor = (conv: Conversation) =>
+    conv.participantId
+      ? contacts[conv.participantId]?.displayName ?? conv.participantId.slice(0, 16)
+      : conv.id.slice(0, 16)
+  const pendingName = pendingAction ? nameFor(pendingAction.conv) : ''
   const menuRef = useRef<HTMLDivElement>(null)
   const menuTriggerRef = useRef<HTMLElement | null>(null)
 
@@ -302,6 +301,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onNewChat })
           <motion.div
             ref={menuRef}
             role="menu"
+            aria-label={nameFor(contextMenu.conv)}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}

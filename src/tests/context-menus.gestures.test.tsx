@@ -310,6 +310,16 @@ describe.each(surfaces)('$label', (surface) => {
   })
 })
 
+// C'était le seul menu sans nom : le lecteur d'écran annonçait « menu » sans
+// dire sur quelle conversation le geste allait porter.
+describe('liste des conversations : menu nommé', () => {
+  it('porte le nom du contact', () => {
+    render(<MemoryRouter><ConversationList /></MemoryRouter>)
+    fireEvent.contextMenu(screen.getByText('Bob').closest('button') as HTMLElement)
+    expect(screen.getByRole('menu', { name: 'Bob' })).toBeInTheDocument()
+  })
+})
+
 // Le tour complet n'a de sens que là où le menu compte plusieurs entrées : une
 // entrée unique ramène forcément sur elle-même.
 describe.each(surfaces.filter((surface) => ['liste des conversations', 'liste des groupes', 'menu du message'].includes(surface.label)))('$label : tour complet', (surface) => {
