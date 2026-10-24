@@ -66,6 +66,13 @@ export const OnboardingPage: React.FC = () => {
     }
   }
 
+  const handleAvatarUploadError = (reason: 'tooLarge' | 'readFailed') => {
+    addToast({
+      type: 'error',
+      title: t(reason === 'tooLarge' ? 'settings.fileTooLarge' : 'avatar.failedToLoad'),
+    })
+  }
+
   const handleFinish = () => {
     navigate('/conversations')
   }
@@ -97,6 +104,7 @@ export const OnboardingPage: React.FC = () => {
             onDisplayNameChange={setDisplayName}
             onAboutChange={setAbout}
             onAvatarChange={handleAvatarChange}
+            onAvatarError={handleAvatarUploadError}
             onSave={handleSaveProfile}
           />
         )}
@@ -283,6 +291,7 @@ interface ProfileStepProps {
   onDisplayNameChange: (v: string) => void
   onAboutChange: (v: string) => void
   onAvatarChange: (dataUrl: string) => void
+  onAvatarError: (reason: 'tooLarge' | 'readFailed') => void
   onSave: () => void
 }
 
@@ -293,6 +302,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
   onDisplayNameChange,
   onAboutChange,
   onAvatarChange,
+  onAvatarError,
   onSave,
 }) => {
   const { t } = useTranslation()
@@ -323,6 +333,7 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
           showStatus
           editable
           onUpload={onAvatarChange}
+          onUploadError={onAvatarError}
         />
       </div>
 

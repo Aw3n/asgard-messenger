@@ -20,6 +20,9 @@ interface AvatarProps {
   className?: string
   onClick?: () => void
   onUpload?: (dataUrl: string) => void
+  /** Pourquoi la photo choisie n'a pas pu être lue — sans destinataire,
+   *  l'utilisateur voyait son clic ne rien faire. */
+  onUploadError?: (reason: 'tooLarge' | 'readFailed') => void
   editable?: boolean
   lazy?: boolean
   /** Ring around avatar (like Instagram stories) */
@@ -146,6 +149,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   className,
   onClick,
   onUpload,
+  onUploadError,
   editable = false,
   lazy = true,
   ring,
@@ -183,7 +187,10 @@ export const Avatar: React.FC<AvatarProps> = ({
     input.onchange = async (ev) => {
       const file = (ev.target as HTMLInputElement).files?.[0]
       if (!file) return
-      if (file.size > 10 * 1024 * 1024) return // 10MB max
+      if (file.size > 10 * 1024 * 1024) {
+        onUploadError?.('tooLarge')
+        return
+      }
       try {
         // OPTIMIZATION: Compress to WebP for efficient P2P transmission
         const compressed = await compressAvatarToWebP(file)
@@ -193,7 +200,9 @@ export const Avatar: React.FC<AvatarProps> = ({
         const reader = new FileReader()
         reader.onload = () => {
           if (typeof reader.result === 'string') onUpload(reader.result)
+          else onUploadError?.('readFailed')
         }
+        reader.onerror = () => onUploadError?.('readFailed')
         reader.readAsDataURL(file)
       }
     }
