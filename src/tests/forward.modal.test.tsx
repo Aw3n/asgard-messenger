@@ -10,7 +10,10 @@ import { chatService } from '@/services/ChatService'
 import { groupService } from '@/services/GroupService'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useGroupStore } from '@/stores/groupStore'
-import type { Message } from '@/types'
+import { useIdentityStore } from '@/stores/identityStore'
+import { useUIStore } from '@/stores/uiStore'
+import { channelPermissionsFor } from '@/utils/groupPermissions'
+import type { GroupChannel, Message } from '@/types'
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
@@ -53,6 +56,14 @@ class IntersectionObserverStub {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.stubGlobal('IntersectionObserver', IntersectionObserverStub)
+  useUIStore.setState({ toasts: [] })
+  useIdentityStore.setState({
+    identity: {
+      keyPair: { publicKey: ME, secretKey: 'c'.repeat(128) },
+      profile: { publicKey: ME, displayName: 'Moi', status: 'online', createdAt: 0, updatedAt: 0 },
+    },
+    isSetup: true,
+  })
   useConversationStore.setState({
     conversations: {
       'conv-1': directConversation,
@@ -123,6 +134,69 @@ describe('ForwardModal', () => {
       group.channels[0].id,
       'chat.forwardedMessageTemplate',
     ))
+  })
+
+  // Le canal actif peut être une annonce : le transfert doit chercher ailleurs
+  // plutôt que d'échouer sur un canal où le membre n'a pas le droit d'écrire.
+  function setGroupChannels(
+    channels: GroupChannel[],
+    activeChannelId: string,
+  ): string {
+    const group = useGroupStore.getState().getAllGroups()[0]
+    useGroupStore.setState({
+      groups: {
+        [group.id]: {
+          ...group,
+          ownerId: PEER,
+          activeChannelId,
+          channels,
+          members: [{ publicKey: ME, displayName: 'Moi', role: 'member', joinedAt: 0, canPost: true }],
+        },
+      },
+    })
+    return group.id
+  }
+
+  const channel = (groupId: string, id: string, name: string, type: GroupChannel['type']): GroupChannel => ({
+    id,
+    groupId,
+    name,
+    type,
+    position: 0,
+    permissions: channelPermissionsFor(type),
+    unreadCount: 0,
+  })
+
+  it('transfère dans un canal ouvert à l’écriture, pas dans le canal actif fermé', async () => {
+    const groupId = setGroupChannels([
+      channel('group-annonces', 'chan-annonces', 'annonces', 'announcement'),
+      channel('group-annonces', 'chan-general', 'général', 'text'),
+    ], 'chan-annonces')
+    const send = vi.spyOn(groupService, 'sendGroupMessage').mockResolvedValue(undefined)
+    render(<ForwardModal message={message} onClose={() => {}} />)
+
+    fireEvent.click(screen.getByText('Équipe'))
+
+    await waitFor(() => expect(send).toHaveBeenCalledWith(
+      groupId,
+      'chan-general',
+      'chat.forwardedMessageTemplate',
+    ))
+  })
+
+  it('annonce l’échec quand aucun canal du groupe n’est ouvert à l’écriture', async () => {
+    setGroupChannels([
+      channel('group-annonces', 'chan-annonces', 'annonces', 'announcement'),
+    ], 'chan-annonces')
+    const send = vi.spyOn(groupService, 'sendGroupMessage').mockResolvedValue(undefined)
+    render(<ForwardModal message={message} onClose={() => {}} />)
+
+    fireEvent.click(screen.getByText('Équipe'))
+
+    await waitFor(() => expect(
+      useUIStore.getState().toasts.some((toast) => toast.title === 'chat.messageNotDelivered'),
+    ).toBe(true))
+    expect(send).not.toHaveBeenCalled()
   })
 
   it('nomme le champ de recherche des conversations', () => {

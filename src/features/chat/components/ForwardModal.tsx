@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useGroupStore } from '@/stores/groupStore'
+import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { chatService } from '@/services/ChatService'
 import { groupService } from '@/services/GroupService'
+import { canPostInChannel } from '@/utils/groupPermissions'
 import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
@@ -62,9 +64,15 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ message, onClose }) 
 
       if (conv.type === 'group' && conv.groupId) {
         const group = useGroupStore.getState().getGroup(conv.groupId)
-        const channelId = group?.activeChannelId
-          ?? group?.channels[0]?.id
-        if (!group || !channelId) throw new Error('Group has no channel')
+        if (!group) throw new Error('Group not found')
+        // Le canal actif d'un groupe peut être une annonce ou une lecture seule :
+        // y transférer échouait alors qu'un autre canal accepte l'écriture.
+        const myKey = useIdentityStore.getState().identity?.keyPair.publicKey ?? ''
+        const candidates = [group.activeChannelId, ...group.channels.map((channel) => channel.id)]
+        const channelId = candidates.find(
+          (id): id is string => !!id && canPostInChannel(group, id, myKey),
+        )
+        if (!channelId) throw new Error('No writable channel in this group')
         await groupService.sendGroupMessage(conv.groupId, channelId, content)
         useUIStore.getState().addToast({ type: 'success', title: t('chat.forwardedMessage'), duration: 3000 })
       } else if (conv.participantId) {
