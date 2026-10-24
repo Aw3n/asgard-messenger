@@ -68,4 +68,10 @@ describe('historique des téléchargements', () => {
     expect(screen.getByText('DOCX')).toBeInTheDocument()
     expect(screen.queryByText(LONG_SUBTYPE.toUpperCase())).not.toBeInTheDocument()
   })
+
+  it('nomme le champ de recherche pour le lecteur d’écran', () => {
+    render(<DownloadHistory />)
+
+    expect(screen.getByLabelText('settings.searchDownloads')).toBeInTheDocument()
+  })
 })

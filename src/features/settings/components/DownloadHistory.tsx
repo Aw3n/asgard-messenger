@@ -184,6 +184,7 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
           </svg>
           <input
             type="text"
+            aria-label={t('settings.searchDownloads')}
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder={t('settings.searchDownloads')}

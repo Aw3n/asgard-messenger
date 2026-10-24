@@ -201,6 +201,7 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"><SearchIcon /></span>
             <input
               type="text"
+              aria-label={t('settings.searchFavorites')}
               placeholder={t('settings.searchFavorites')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -208,7 +209,7 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" role="group" aria-label={t('settings.filter')}>
             <span className="text-xs text-[var(--text-secondary)]">{t('settings.filter')}:</span>
             {[
               { id: 'all', label: t('settings.all'), icon: <FolderIcon /> },
@@ -219,6 +220,7 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
             ].map(({ id, label, icon }) => (
               <button
                 key={id}
+                aria-pressed={filterType === id}
                 onClick={() => setFilterType(id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                   filterType === id
@@ -271,13 +273,27 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
                       selectedItems.has(favorite.blobKey)
                         ? 'bg-[var(--primary)]/5 border-[var(--primary)]'
                         : 'bg-[var(--bg-secondary)] border-[var(--border-primary)] hover:border-[var(--primary)]/50'
                     }`}
-                    onClick={() => handleSelectItem(favorite.blobKey)}
                   >
+                    {/* Un <button> ne peut pas contenir les boutons de la rangée :
+                        la zone de sélection prend un rôle explicite et le clavier. */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={selectedItems.has(favorite.blobKey)}
+                      aria-label={favorite.fileName}
+                      onClick={() => handleSelectItem(favorite.blobKey)}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter' && e.key !== ' ') return
+                        e.preventDefault()
+                        handleSelectItem(favorite.blobKey)
+                      }}
+                      className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                    >
                     <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center">
                       {getTypeIcon(favorite.mimeType)}
                     </div>
@@ -295,6 +311,7 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
                         )}
                         {t('settings.added')} {formatDate(favorite.addedAt)}
                       </p>
+                    </div>
                     </div>
 
                     <button
