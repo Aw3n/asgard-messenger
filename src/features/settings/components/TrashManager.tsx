@@ -7,6 +7,7 @@ import { useMessageStore } from '@/stores/messageStore'
 import { getCurrentLanguage } from '@/i18n/config'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { useUIStore } from '@/stores/uiStore'
 
 interface TrashEntry {
   blobKey: string
@@ -28,6 +29,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
   // Sortir une entrée de la corbeille ne suffit pas : la pièce jointe du fil
   // reste marquée « supprimée » tant que le store des messages ne l'apprend pas.
   const restoreFileAttachment = useMessageStore((s) => s.restoreFileAttachment)
+  const addToast = useUIStore((s) => s.addToast)
   // La croix du panneau ne fait que redire ce que la touche réglée fait déjà :
   // ce panneau-là l'ignorait encore, il la reçoit comme les autres dialogues.
   const dialogRef = useDialogBehavior(onClose)
@@ -53,8 +55,15 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
     })
   }
 
-  const handlePermanentDelete = (blobKey: string) => {
-    fileService.permanentDelete(blobKey)
+  // Une suppression que le stockage refuse laisse l'entrée en corbeille : le
+  // panneau doit le dire, sinon l'utilisateur croit l'espace libéré.
+  const handlePermanentDelete = async (blobKey: string) => {
+    const erased = await fileService.permanentDelete(blobKey)
+    if (!erased) {
+      addToast({ type: 'error', title: t('chat.deleteFileFailed') })
+      loadTrash()
+      return
+    }
     loadTrash()
     setSelectedItems((prev) => {
       const next = new Set(prev)
@@ -63,11 +72,13 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
     })
   }
 
-  const handleEmptyTrash = () => {
-    fileService.emptyTrash()
+  const handleEmptyTrash = async () => {
+    const expected = trashItems.length
+    const erased = await fileService.emptyTrash()
     loadTrash()
     setSelectedItems(new Set())
     setShowConfirmEmpty(false)
+    if (erased < expected) addToast({ type: 'error', title: t('chat.deleteFileFailed') })
   }
 
   const handleSelectAll = () => {
@@ -87,12 +98,13 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
     setSelectedItems(new Set())
   }
 
-  const handleBulkDelete = () => {
-    selectedItems.forEach((blobKey) => {
-      fileService.permanentDelete(blobKey)
-    })
+  const handleBulkDelete = async () => {
+    const results = await Promise.all(
+      Array.from(selectedItems).map((blobKey) => fileService.permanentDelete(blobKey)),
+    )
     loadTrash()
     setSelectedItems(new Set())
+    if (results.some((erased) => !erased)) addToast({ type: 'error', title: t('chat.deleteFileFailed') })
   }
 
   const formatTimeRemaining = (expiresAt: number) => {

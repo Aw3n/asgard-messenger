@@ -5695,11 +5695,49 @@ class FileService {
   }
 
   /**
-   * Permanently delete a file from trash.
+   * Un blob encore lu par une pièce jointe vivante ne doit pas être effacé :
+   * le même fichier peut avoir été transféré ou épinglé ailleurs, et supprimer
+   * ses octets casserait cette autre copie.
    */
-  permanentDelete(blobKey: string): boolean {
+  private isBlobStillReferenced(blobKey: string): boolean {
+    for (const messages of Object.values(useMessageStore.getState().messages)) {
+      for (const message of messages) {
+        if (message.deleted || message.recalled) continue
+        for (const attachment of message.attachments ?? []) {
+          if (attachment.blobKey === blobKey && !attachment.deleted) return true
+        }
+      }
+    }
+    return false
+  }
+
+  /**
+   * Permanently delete a file from trash, bytes included.
+   *
+   * Rend `false` — et laisse l'entrée en corbeille — quand le stockage refuse
+   * d'effacer : l'utilisateur peut alors réessayer au lieu de croire l'espace
+   * libéré. Un blob encore référencé ailleurs n'est pas effacé, mais son entrée
+   * quitte la corbeille.
+   */
+  async permanentDelete(blobKey: string): Promise<boolean> {
+    if (!this.trashBin.some((e) => e.blobKey === blobKey)) return false
+
+    const legacyId = /^\d+$/.test(blobKey)
+    if (!legacyId && !this.isBlobStillReferenced(blobKey)) {
+      try {
+        await window.asgard.storage.deleteBlob(blobKey)
+      } catch (err) {
+        console.warn('[FileService] Failed to erase blob:', blobKey, err)
+        return false
+      }
+    }
+
+    this.removeFromCache(blobKey)
+    this.clearDuplicateCache()
     this.trashBin = this.trashBin.filter((e) => e.blobKey !== blobKey)
     this.deletedFiles.delete(blobKey)
+    // Un favori qui pointe vers des octets effacés ne vaudrait plus rien.
+    if (this.favorites.delete(blobKey)) this.persistFavorites()
     return true
   }
 
@@ -5727,14 +5765,15 @@ class FileService {
 
   /**
    * Empty the trash bin (permanently delete all trashed files).
+   * Rend le nombre d'entrées réellement retirées : celles dont le stockage a
+   * refusé l'effacement restent, pour ne pas perdre la trace des octets.
    */
-  emptyTrash(): number {
-    const count = this.trashBin.length
-    for (const entry of this.trashBin) {
-      this.deletedFiles.delete(entry.blobKey)
+  async emptyTrash(): Promise<number> {
+    let erased = 0
+    for (const entry of [...this.trashBin]) {
+      if (await this.permanentDelete(entry.blobKey)) erased++
     }
-    this.trashBin = []
-    return count
+    return erased
   }
 
   /**

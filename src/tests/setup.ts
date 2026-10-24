@@ -43,6 +43,7 @@ const mockAsgardAPI = {
   storage: {
     getPath: vi.fn().mockResolvedValue('/mock/path'),
     getSize: vi.fn().mockResolvedValue(0),
+    deleteBlob: vi.fn().mockResolvedValue(true),
   },
   file: {
     saveAs: vi.fn().mockResolvedValue({ success: false, reason: 'canceled' }),

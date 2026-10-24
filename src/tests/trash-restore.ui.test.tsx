@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { TrashManager } from '@/features/settings/components/TrashManager'
 import { fileService } from '@/services/FileService'
 import { useMessageStore } from '@/stores/messageStore'
+import { useUIStore } from '@/stores/uiStore'
 import type { Message, MessageAttachment } from '@/types'
 
 vi.mock('react-i18next', () => ({
@@ -45,16 +46,19 @@ const storedAttachment = () =>
   useMessageStore.getState().messages[CONVERSATION_ID]?.[0]?.attachments?.[0]
 
 beforeEach(async () => {
-  fileService.emptyTrash()
+  await fileService.emptyTrash()
+  useUIStore.setState({ toasts: [] })
   useMessageStore.setState({ messages: { [CONVERSATION_ID]: [message()] } })
   vi.spyOn(fileService, 'resolveLocalUrl').mockResolvedValue('blob:restored/photo-ui')
+  vi.mocked(window.asgard.storage.deleteBlob).mockReset()
+  vi.mocked(window.asgard.storage.deleteBlob).mockResolvedValue(true)
   await useMessageStore.getState().deleteFileAttachment(MESSAGE_ID, CONVERSATION_ID, attachment.id)
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
   vi.restoreAllMocks()
-  fileService.emptyTrash()
+  await fileService.emptyTrash()
   useMessageStore.setState({ messages: {} })
 })
 
@@ -70,5 +74,17 @@ describe('panneau de la corbeille', () => {
     await waitFor(() => expect(screen.getByText('settings.noTrash')).toBeInTheDocument())
     expect(storedAttachment()?.deleted).toBe(false)
     expect(fileService.getTrashBin()).toEqual([])
+  })
+
+  it('annonce une suppression définitive que le stockage refuse', async () => {
+    vi.mocked(window.asgard.storage.deleteBlob).mockRejectedValueOnce(new Error('Storage not initialized'))
+
+    render(<TrashManager onClose={() => {}} />)
+    fireEvent.click(screen.getByTitle('settings.deletePermanently'))
+
+    await waitFor(() => expect(useUIStore.getState().toasts[0]?.title).toBe('chat.deleteFileFailed'))
+    // L'entrée reste : rien ne doit laisser croire que les octets sont partis.
+    expect(screen.getByText('photo vacances.png')).toBeInTheDocument()
+    expect(fileService.getTrashBin()).toHaveLength(1)
   })
 })

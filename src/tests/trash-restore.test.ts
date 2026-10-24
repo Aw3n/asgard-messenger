@@ -42,15 +42,18 @@ function message(): Message {
 const storedAttachment = () =>
   useMessageStore.getState().messages[CONVERSATION_ID]?.[0]?.attachments?.[0]
 
-beforeEach(() => {
-  fileService.emptyTrash()
+beforeEach(async () => {
+  await fileService.emptyTrash()
+  fileService.clearFavorites()
   useMessageStore.setState({ messages: { [CONVERSATION_ID]: [message()] } })
   vi.spyOn(fileService, 'resolveLocalUrl').mockResolvedValue('blob:restored/photo')
+  vi.mocked(window.asgard.storage.deleteBlob).mockReset()
+  vi.mocked(window.asgard.storage.deleteBlob).mockResolvedValue(true)
 })
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks()
-  fileService.emptyTrash()
+  await fileService.emptyTrash()
   useMessageStore.setState({ messages: {} })
 })
 
@@ -86,6 +89,47 @@ describe('corbeille', () => {
     expect(fileService.getTrashBin()).toEqual([])
     expect(storedAttachment()?.deleted).toBe(false)
     await vi.waitFor(() => expect(storedAttachment()?.localUrl).toBe('blob:restored/photo'))
+  })
+
+  it('efface les octets à la suppression définitive', async () => {
+    await useMessageStore.getState().deleteFileAttachment(MESSAGE_ID, CONVERSATION_ID, attachment.id)
+    fileService.addFavorite(BLOB_KEY, 'photo vacances.png', CONVERSATION_ID, 'image/png', 2048)
+
+    await expect(fileService.permanentDelete(BLOB_KEY)).resolves.toBe(true)
+
+    expect(window.asgard.storage.deleteBlob).toHaveBeenCalledWith(BLOB_KEY)
+    expect(fileService.getTrashBin()).toEqual([])
+    // Le favori ne peut plus rien rouvrir : il disparaît avec les octets.
+    expect(fileService.isFavorite(BLOB_KEY)).toBe(false)
+  })
+
+  it('garde les octets d’un blob qu’une autre pièce vivante lit encore', async () => {
+    await useMessageStore.getState().deleteFileAttachment(MESSAGE_ID, CONVERSATION_ID, attachment.id)
+    useMessageStore.setState({
+      messages: {
+        [CONVERSATION_ID]: [message()],
+        'conv-autre': [{
+          ...message(),
+          id: 'msg-autre',
+          conversationId: 'conv-autre',
+          attachments: [{ ...attachment, id: 'att-autre', localUrl: '' }],
+        }],
+      },
+    })
+
+    await expect(fileService.permanentDelete(BLOB_KEY)).resolves.toBe(true)
+
+    expect(window.asgard.storage.deleteBlob).not.toHaveBeenCalled()
+    expect(fileService.getTrashBin()).toEqual([])
+  })
+
+  it('garde l’entrée en corbeille quand le stockage refuse d’effacer', async () => {
+    await useMessageStore.getState().deleteFileAttachment(MESSAGE_ID, CONVERSATION_ID, attachment.id)
+    vi.mocked(window.asgard.storage.deleteBlob).mockRejectedValueOnce(new Error('Storage not initialized'))
+
+    await expect(fileService.permanentDelete(BLOB_KEY)).resolves.toBe(false)
+
+    expect(fileService.getTrashBin()).toHaveLength(1)
   })
 
   it('signale une entrée orpheline dont le message a disparu', () => {
