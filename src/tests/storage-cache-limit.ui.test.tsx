@@ -10,7 +10,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { useUIStore } from '@/stores/uiStore'
@@ -137,7 +137,12 @@ describe('curseur de plafond', () => {
   })
 })
 
-describe('vidage du cache', () => {
+describe('réinitialisation de toutes les données', () => {
+  const openReset = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'settings.resetAllData' }))
+    return screen.getByRole('dialog', { name: 'settings.resetAllData' })
+  }
+
   it('relit la taille après l’effacement, au lieu de laisser la barre pleine', async () => {
     const getSize = vi.fn()
       .mockResolvedValueOnce(600 * MB)
@@ -148,11 +153,29 @@ describe('vidage du cache', () => {
 
     expect(await screen.findByText(/600\.0 MB settings\.usedOf 500 MB \(100%\)/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'settings.clearCache' }))
+    const dialog = openReset()
+    // `clearAll` efface le dossier de données entier : rien ne part avant le oui.
+    expect(clearAll).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'settings.resetAllData' }))
 
     expect(await screen.findByText(/0 B settings\.usedOf 500 MB \(0%\)/)).toBeInTheDocument()
     expect(clearAll).toHaveBeenCalledTimes(1)
     expect(getSize).toHaveBeenCalledTimes(2)
+    expect(useUIStore.getState().toasts.some((toast) => toast.title === 'toast.dataReset')).toBe(true)
+  })
+
+  it('annuler la confirmation ne touche à rien', async () => {
+    const clearAll = vi.fn().mockResolvedValue(undefined)
+    Object.assign(window.asgard.storage, { clearAll })
+    await openStorage()
+
+    const dialog = openReset()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'common.cancel' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'settings.resetAllData' })).toBeNull(),
+    )
+    expect(clearAll).not.toHaveBeenCalled()
   })
 
   it('garde la mesure affichée quand l’effacement échoue, et le dit', async () => {
@@ -163,10 +186,11 @@ describe('vidage du cache', () => {
 
     expect(await screen.findByText(/300\.0 MB settings\.usedOf/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'settings.clearCache' }))
+    const dialog = openReset()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'settings.resetAllData' }))
 
     await waitFor(() =>
-      expect(useUIStore.getState().toasts.some((toast) => toast.title === 'toast.failedToClearCache')).toBe(true),
+      expect(useUIStore.getState().toasts.some((toast) => toast.title === 'toast.dataResetFailed')).toBe(true),
     )
     expect(getSize).toHaveBeenCalledTimes(1)
     expect(screen.getByText(/300\.0 MB settings\.usedOf/)).toBeInTheDocument()

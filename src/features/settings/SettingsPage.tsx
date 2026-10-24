@@ -7,6 +7,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { useNetworkStore } from '@/stores/networkStore'
 import { Avatar, compressAvatarToWebP } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { QRCodeModal } from '@/features/contacts/components/QRCodeModal'
 import { mediaDeviceService, type MediaDeviceInfo } from '@/services/MediaDeviceService'
@@ -1261,6 +1262,7 @@ const StorageSection: React.FC = () => {
   const [showShareLinks, setShowShareLinks] = useState(false)
   const [showDownloads, setShowDownloads] = useState(false)
   const [showFavorites, setShowFavorites] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   // Fetch real storage size on mount
   const loadStorageSize = useCallback(() => {
@@ -1323,15 +1325,18 @@ const StorageSection: React.FC = () => {
     input.click()
   }
 
-  const handleClearCache = async () => {
+  // `storage.clearAll` n'est pas un cache : c'est une remise à zéro du dossier
+  // de données (identité, contacts, groupes, messages). Le libellé et la
+  // confirmation doivent le dire, et le redémarrage qui suit aussi.
+  const handleResetAllData = async () => {
     try {
       await window.asgard.storage.clearAll()
-      addToast({ type: 'success', title: t('toast.cacheCleared') })
+      addToast({ type: 'success', title: t('toast.dataReset') })
       // La mesure datait d'avant l'effacement : sans cette relecture, la barre
-      // restait pleine et « vider le cache » semblait sans effet.
+      // restait pleine et « réinitialiser » semblait sans effet.
       loadStorageSize()
     } catch {
-      addToast({ type: 'error', title: t('toast.failedToClearCache') })
+      addToast({ type: 'error', title: t('toast.dataResetFailed') })
     }
   }
 
@@ -1592,10 +1597,10 @@ return (
             <Button
               variant="danger"
               size="sm"
-              onClick={handleClearCache}
+              onClick={() => setConfirmReset(true)}
               className="w-full"
             >
-              {t('settings.clearCache')}
+              {t('settings.resetAllData')}
             </Button>
           </div>
         </div>
@@ -1630,6 +1635,19 @@ return (
               <FavoritesManager onClose={() => setShowFavorites(false)} />
             </div>
           </div>
+        )}
+
+        {confirmReset && (
+          <ConfirmDialog
+            title="settings.resetAllData"
+            warning="settings.resetAllDataWarning"
+            confirmLabel="settings.resetAllData"
+            onCancel={() => setConfirmReset(false)}
+            onConfirm={() => {
+              setConfirmReset(false)
+              void handleResetAllData()
+            }}
+          />
         )}
       </div>
     )
