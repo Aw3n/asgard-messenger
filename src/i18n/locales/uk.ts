@@ -758,6 +758,7 @@ export default {
       "settings.messagePreview": "Попередній перегляд повідомлення",
       "settings.messagePreviewDesc": "Показувати вміст повідомлення у сповіщеннях",
       "settings.microphone": "Мікрофон",
+      "settings.microphoneTestFailed": "Перевірка мікрофона не вдалася",
       "settings.microphoneAccess": "Доступ до мікрофона та камери",
       "settings.microphoneUpdated": "Мікрофон оновлено",
       "settings.microphones": "Мікрофони",

@@ -777,6 +777,7 @@ export default {
       "settings.messagePreview": "Predogled sporočila",
       "settings.messagePreviewDesc": "Prikaži vsebino sporočila v obvestilih",
       "settings.microphone": "Mikrofon",
+      "settings.microphoneTestFailed": "Preizkus mikrofona ni uspel",
       "settings.microphoneAccess": "Dostop do mikrofona in kamere",
       "settings.microphoneUpdated": "Mikrofon posodobljen",
       "settings.microphones": "Mikrofoni",

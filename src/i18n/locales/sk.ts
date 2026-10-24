@@ -777,6 +777,7 @@ export default {
       "settings.messagePreview": "Náhľad správy",
       "settings.messagePreviewDesc": "Zobrazovať obsah správy v upozorneniach",
       "settings.microphone": "Mikrofón",
+      "settings.microphoneTestFailed": "Test mikrofónu zlyhal",
       "settings.microphoneAccess": "Prístup k mikrofónu a kamere",
       "settings.microphoneUpdated": "Mikrofón aktualizovaný",
       "settings.microphones": "Mikrofóny",

@@ -785,6 +785,7 @@ export default {
       "settings.messagePreview": "Προεπισκόπηση μηνύματος",
       "settings.messagePreviewDesc": "Εμφάνιση περιεχομένου μηνύματος στις ειδοποιήσεις",
       "settings.microphone": "Μικρόφωνο",
+      "settings.microphoneTestFailed": "Η δοκιμή του μικροφώνου απέτυχε",
       "settings.microphoneAccess": "Πρόσβαση μικροφώνου και κάμερας",
       "settings.microphoneUpdated": "Το μικρόφωνο ενημερώθηκε",
       "settings.microphones": "Μικρόφωνα",

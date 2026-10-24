@@ -1693,8 +1693,11 @@ const DevicesSection: React.FC = () => {
       return
     }
     if (!selectedMic) return
-    const stop = await mediaDeviceService.testMicrophone(selectedMic, setMicLevel).catch(() => null)
-    micTestRef.current = stop ?? null
+    try {
+      micTestRef.current = await mediaDeviceService.testMicrophone(selectedMic, setMicLevel)
+    } catch {
+      addToast({ type: 'error', title: t('settings.microphoneTestFailed') })
+    }
   }
 
   const handleTestCamera = async () => {

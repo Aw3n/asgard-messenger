@@ -777,6 +777,7 @@ export default {
       "settings.messagePreview": "Previzualizare mesaj",
       "settings.messagePreviewDesc": "Afișează conținutul mesajului în notificări",
       "settings.microphone": "Microfon",
+      "settings.microphoneTestFailed": "Testul microfonului a eșuat",
       "settings.microphoneAccess": "Acces microfon și cameră",
       "settings.microphoneUpdated": "Microfon actualizat",
       "settings.microphones": "Microfoane",

@@ -785,6 +785,7 @@ export default {
       "settings.messagePreview": "Viestin esikatselu",
       "settings.messagePreviewDesc": "Näytä viestin sisältö ilmoituksissa",
       "settings.microphone": "Mikrofoni",
+      "settings.microphoneTestFailed": "Mikrofonin testi epäonnistui",
       "settings.microphoneAccess": "Mikrofonin ja kameran käyttöoikeus",
       "settings.microphoneUpdated": "Mikrofoni päivitetty",
       "settings.microphones": "Mikrofonit",

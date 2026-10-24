@@ -785,6 +785,7 @@ export default {
       "settings.messagePreview": "Sõnumi eelvaade",
       "settings.messagePreviewDesc": "Kuva sõnumi sisu teadetes",
       "settings.microphone": "Mikrofon",
+      "settings.microphoneTestFailed": "Mikrofoni test ebaõnnestus",
       "settings.microphoneAccess": "Mikrofoni ja kaamera juurdepääs",
       "settings.microphoneUpdated": "Mikrofon uuendatud",
       "settings.microphones": "Mikrofonid",

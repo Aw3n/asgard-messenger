@@ -785,6 +785,7 @@ export default {
       "settings.messagePreview": "Pré-visualização da mensagem",
       "settings.messagePreviewDesc": "Mostrar o conteúdo da mensagem nas notificações",
       "settings.microphone": "Microfone",
+      "settings.microphoneTestFailed": "O teste do microfone falhou",
       "settings.microphoneAccess": "Acesso ao microfone e câmara",
       "settings.microphoneUpdated": "Microfone atualizado",
       "settings.microphones": "Microfones",

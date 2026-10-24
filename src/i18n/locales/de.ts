@@ -803,6 +803,7 @@ export default {
       "settings.messagePreview": "Nachrichtenvorschau",
       "settings.messagePreviewDesc": "Nachrichteninhalt in Benachrichtigungen anzeigen",
       "settings.microphone": "Mikrofon",
+      "settings.microphoneTestFailed": "Mikrofontest fehlgeschlagen",
       "settings.microphoneAccess": "Mikrofon- und Kamerazugriff",
       "settings.microphoneUpdated": "Mikrofon aktualisiert",
       "settings.microphones": "Mikrofone",

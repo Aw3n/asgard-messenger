@@ -777,6 +777,7 @@ export default {
       "settings.messagePreview": "Preview tal-messaġġ",
       "settings.messagePreviewDesc": "Uri l-kontenut tal-messaġġ fl-avviżi",
       "settings.microphone": "Mikrofonu",
+      "settings.microphoneTestFailed": "It-test tal-mikrofonu falla",
       "settings.microphoneAccess": "Aċċess għall-mikrofonu u l-kamera",
       "settings.microphoneUpdated": "Mikrofonu aġġornat",
       "settings.microphones": "Mikrofoni",

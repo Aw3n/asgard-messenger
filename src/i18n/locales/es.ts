@@ -803,6 +803,7 @@ export default {
       "settings.messagePreview": "Vista previa del mensaje",
       "settings.messagePreviewDesc": "Mostrar el contenido del mensaje en las notificaciones",
       "settings.microphone": "Micrófono",
+      "settings.microphoneTestFailed": "La prueba del micrófono ha fallado",
       "settings.microphoneAccess": "Acceso a micrófono y cámara",
       "settings.microphoneUpdated": "Micrófono actualizado",
       "settings.microphones": "Micrófonos",

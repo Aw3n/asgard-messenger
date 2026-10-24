@@ -785,6 +785,7 @@ export default {
       "settings.messagePreview": "Beskedforhåndsvisning",
       "settings.messagePreviewDesc": "Vis beskedindhold i notifikationer",
       "settings.microphone": "Mikrofon",
+      "settings.microphoneTestFailed": "Mikrofontesten mislykkedes",
       "settings.microphoneAccess": "Mikrofon- og kameraadgang",
       "settings.microphoneUpdated": "Mikrofon opdateret",
       "settings.microphones": "Mikrofoner",

@@ -785,6 +785,7 @@ export default {
       "settings.messagePreview": "Ziņojuma priekšskatījums",
       "settings.messagePreviewDesc": "Rādīt ziņojuma saturu paziņojumos",
       "settings.microphone": "Mikrofons",
+      "settings.microphoneTestFailed": "Mikrofona tests neizdevās",
       "settings.microphoneAccess": "Mikrofona un kameras piekļuve",
       "settings.microphoneUpdated": "Mikrofons atjaunināts",
       "settings.microphones": "Mikrofoni",

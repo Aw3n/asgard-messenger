@@ -603,6 +603,7 @@ export default {
       "settings.messagePreview": "Aperçu du message",
       "settings.messagePreviewDesc": "Afficher le contenu du message dans les notifications",
       "settings.microphone": "Microphone",
+      "settings.microphoneTestFailed": "Le test du microphone a échoué",
       "settings.microphoneAccess": "Accès microphone et caméra",
       "settings.microphoneUpdated": "Microphone mis à jour",
       "settings.microphones": "Microphones",

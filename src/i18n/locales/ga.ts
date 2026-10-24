@@ -777,6 +777,7 @@ export default {
       "settings.messagePreview": "Réamhamharc teachtaireachta",
       "settings.messagePreviewDesc": "Taispeáin ábhar teachtaireachta sna fógraí",
       "settings.microphone": "Micreafón",
+      "settings.microphoneTestFailed": "Theip ar thástáil an mhicreafóin",
       "settings.microphoneAccess": "Rochtain micreafóin agus ceamara",
       "settings.microphoneUpdated": "Micreafón nuashonraithe",
       "settings.microphones": "Micreafóin",

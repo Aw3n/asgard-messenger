@@ -785,6 +785,7 @@ export default {
       "settings.messagePreview": "Üzenet előnézet",
       "settings.messagePreviewDesc": "Üzenet tartalmának megjelenítése az értesítésekben",
       "settings.microphone": "Mikrofon",
+      "settings.microphoneTestFailed": "A mikrofon tesztje nem sikerült",
       "settings.microphoneAccess": "Mikrofon és kamera hozzáférés",
       "settings.microphoneUpdated": "Mikrofon frissítve",
       "settings.microphones": "Mikrofonok",

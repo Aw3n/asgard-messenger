@@ -803,6 +803,7 @@ export default {
       "settings.messagePreview": "Berichtvoorbeeld",
       "settings.messagePreviewDesc": "Berichtinhoud in meldingen weergeven",
       "settings.microphone": "Microfoon",
+      "settings.microphoneTestFailed": "Microfoontest mislukt",
       "settings.microphoneAccess": "Microfoon- en cameratoegang",
       "settings.microphoneUpdated": "Microfoon bijgewerkt",
       "settings.microphones": "Microfoons",

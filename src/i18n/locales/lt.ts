@@ -785,6 +785,7 @@ export default {
       "settings.messagePreview": "Žinutės peržiūra",
       "settings.messagePreviewDesc": "Rodyti žinutės turinį pranešimuose",
       "settings.microphone": "Mikrofonas",
+      "settings.microphoneTestFailed": "Mikrofono testas nepavyko",
       "settings.microphoneAccess": "Mikrofono ir kameros prieiga",
       "settings.microphoneUpdated": "Mikrofonas atnaujintas",
       "settings.microphones": "Mikrofonai",
