@@ -170,7 +170,7 @@ function parseInline(text: string, prefs: RenderPrefs): React.ReactNode {
       if (boldMatch.index > 0) {
         parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, boldMatch.index), prefs)}</span>)
       }
-      parts.push(<strong key={key++} className="font-semibold">{boldMatch[1]}</strong>)
+      parts.push(<strong key={key++} className="font-semibold">{parseSimpleInline(boldMatch[1], prefs)}</strong>)
       remaining = remaining.slice(boldMatch.index + boldMatch[0].length)
       continue
     }
@@ -181,7 +181,7 @@ function parseInline(text: string, prefs: RenderPrefs): React.ReactNode {
       if (italicMatch.index > 0) {
         parts.push(<span key={key++}>{parseSimpleInline(remaining.slice(0, italicMatch.index), prefs)}</span>)
       }
-      parts.push(<em key={key++} className="italic">{italicMatch[1]}</em>)
+      parts.push(<em key={key++} className="italic">{parseSimpleInline(italicMatch[1], prefs)}</em>)
       remaining = remaining.slice(italicMatch.index + italicMatch[0].length)
       continue
     }
