@@ -72,7 +72,9 @@ export const BlockedPeersManager: React.FC<{ onClose?: () => void }> = ({ onClos
     const contact = Object.values(contacts).find(
       (c) => c.publicKey === peerKey || c.publicKey === peerKey.slice(0, 64)
     )
-    return contact?.displayName || `Peer ${peerKey.slice(0, 12)}…`
+    // Un pair sans contact local n'a pas de nom : le mot qui l'annonce doit
+    // venir du catalogue, sinon « Peer » restait anglais dans les 25 langues.
+    return contact?.displayName || `${t('settings.peer')} ${peerKey.slice(0, 12)}…`
   }
 
   return (

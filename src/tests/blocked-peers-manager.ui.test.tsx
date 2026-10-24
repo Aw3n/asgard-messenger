@@ -68,6 +68,16 @@ describe('lire la liste des pairs bloqués', () => {
     expect(network().getBlockedPeers).toHaveBeenCalledTimes(2)
     expect(screen.queryByText('settings.blockedPeersLoadFailed')).toBeNull()
   })
+
+  it('nomme un pair inconnu dans la langue, pas avec un mot anglais en dur', async () => {
+    network().getBlockedPeers.mockResolvedValue([PEER])
+    render(<BlockedPeersManager />)
+
+    // Aucun contact ne porte cette clé : la rangée doit composer son libellé
+    // avec « settings.peer » plutôt que d'écrire « Peer » en dur.
+    expect(await screen.findByText(`settings.peer ${PEER.slice(0, 12)}…`)).toBeInTheDocument()
+    expect(screen.queryByText(`Peer ${PEER.slice(0, 12)}…`)).toBeNull()
+  })
 })
 
 describe('débloquer un pair', () => {
