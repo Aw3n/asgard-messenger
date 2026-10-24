@@ -443,9 +443,14 @@ const ContactItem: React.FC<{ contact: Contact; isSelected: boolean; onClick: ()
       </p>
     </div>
     {contact.relation === 'favorite' && (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-away">
-        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-      </svg>
+      <>
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-away">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+        </svg>
+        {/* L'étoile est visuelle : sans ce mot, la ligne ne dirait pas qu'elle
+            est en favori autrement qu'à l'œil. */}
+        <span className="sr-only">{t('contacts.relationFavorite')}</span>
+      </>
     )}
   </motion.button>
   )
