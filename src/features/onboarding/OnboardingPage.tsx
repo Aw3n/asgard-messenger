@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Avatar } from '@/components/ui/Avatar'
 import { Icon } from '@/components/ui/Icon'
+import { copyToClipboard } from '@/utils/clipboard'
 
 type Step = 'welcome' | 'create' | 'seed' | 'profile' | 'done' | 'restore'
 
@@ -352,11 +353,15 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
 
 const SeedStep: React.FC<{ seedPhrase: string; onNext: () => void }> = ({ seedPhrase, onNext }) => {
   const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
   const [copied, setCopied] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(seedPhrase)
+    if (!(await copyToClipboard(seedPhrase))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

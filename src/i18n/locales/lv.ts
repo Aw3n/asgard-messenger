@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Apstiprināt",
       "common.copied": "Nokopēts",
       "common.copy": "Kopēt",
+      "common.copyFailed": "Neizdevās kopēt",
       "common.delete": "Dzēst",
       "common.dnd": "Netraucēt",
       "common.done": "Gatavs",

@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Megerősítés",
       "common.copied": "Másolva",
       "common.copy": "Másolás",
+      "common.copyFailed": "A másolás nem sikerült",
       "common.delete": "Törlés",
       "common.dnd": "Ne zavarjanak",
       "common.done": "Kész",

@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Confirmă",
       "common.copied": "Copiat",
       "common.copy": "Copiază",
+      "common.copyFailed": "Copierea nu a reușit",
       "common.delete": "Șterge",
       "common.dnd": "Nu deranjați",
       "common.done": "Gata",

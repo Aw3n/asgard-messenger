@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Deimhnigh",
       "common.copied": "Cóipeáladh",
       "common.copy": "Cóipeáil",
+      "common.copyFailed": "Níorbh fhéidir cóipeáil",
       "common.delete": "Scrios",
       "common.dnd": "Ná cuir isteach",
       "common.done": "Déanta",

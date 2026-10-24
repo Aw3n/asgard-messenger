@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Potvrdiť",
       "common.copied": "Skopírované",
       "common.copy": "Kopírovať",
+      "common.copyFailed": "Kopírovanie zlyhalo",
       "common.delete": "Odstrániť",
       "common.dnd": "Nerušiť",
       "common.done": "Hotovo",

@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Потвърди",
       "common.copied": "Копирано",
       "common.copy": "Копирай",
+      "common.copyFailed": "Копирането не успя",
       "common.delete": "Изтрий",
       "common.dnd": "Не безпокойте",
       "common.done": "Готово",

@@ -10,6 +10,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { copyToClipboard } from '@/utils/clipboard'
 import type { MemberRole } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { getCurrentLanguage } from '@/i18n/config'
@@ -129,9 +130,12 @@ const InviteSection: React.FC<{ groupId: string; inviteKey?: string }> = ({
   const [copied, setCopied] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!inviteKey) return
-    navigator.clipboard.writeText(inviteKey)
+    if (!(await copyToClipboard(inviteKey))) {
+      addToast({ type: 'error', title: t('common.copyFailed') })
+      return
+    }
     setCopied(true)
     addToast({ type: 'success', title: t('groups.inviteKeyCopied') })
     setTimeout(() => setCopied(false), 2000)

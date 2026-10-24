@@ -10,6 +10,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { cryptoService } from '@/services/CryptoService'
 import { chatService } from '@/services/ChatService'
 import { formatPublicKey } from '@/utils/id'
+import { copyToClipboard } from '@/utils/clipboard'
 import { formatLastSeen } from '@/utils/time'
 import { fromNetworkStatus, presenceMeta, isLivePresence } from '@/utils/presence'
 import type { Contact } from '@/types'
@@ -180,8 +181,11 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
     })
   }
 
-  const handleCopyKey = () => {
-    navigator.clipboard.writeText(contact.publicKey)
+  const handleCopyKey = async () => {
+    if (!(await copyToClipboard(contact.publicKey))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
     addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
   }
 

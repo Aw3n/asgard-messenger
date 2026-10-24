@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Kkonferma",
       "common.copied": "Ikkopjat",
       "common.copy": "Ikkopja",
+      "common.copyFailed": "Ma rnexxilx l-kopja",
       "common.delete": "Ħassar",
       "common.dnd": "Tfixxixx",
       "common.done": "Magħmul",

@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Potvrdi",
       "common.copied": "Kopirano",
       "common.copy": "Kopiraj",
+      "common.copyFailed": "Kopiranje nije uspjelo",
       "common.delete": "Izbriši",
       "common.dnd": "Ne ometaj",
       "common.done": "Gotovo",

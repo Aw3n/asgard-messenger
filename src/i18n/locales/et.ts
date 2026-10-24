@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Kinnita",
       "common.copied": "Kopeeritud",
       "common.copy": "Kopeeri",
+      "common.copyFailed": "Kopeerimine ebaõnnestus",
       "common.delete": "Kustuta",
       "common.dnd": "Mitte segada",
       "common.done": "Valmis",

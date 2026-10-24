@@ -7,6 +7,7 @@ import { useConversationStore } from '@/stores/conversationStore'
 import { useUIStore } from '@/stores/uiStore'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput } from '@/utils/invite'
+import { copyToClipboard } from '@/utils/clipboard'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
 import { chatService } from '@/services/ChatService'
@@ -57,11 +58,13 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
     generateQR()
   }, [identity?.keyPair.publicKey])
 
-  const handleCopyKey = () => {
-    if (identity?.keyPair.publicKey) {
-      navigator.clipboard.writeText(identity.keyPair.publicKey)
-      addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
+  const handleCopyKey = async () => {
+    if (!identity?.keyPair.publicKey) return
+    if (!(await copyToClipboard(identity.keyPair.publicKey))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 2000 })
+      return
     }
+    addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
   }
 
   const handlePaste = () => {

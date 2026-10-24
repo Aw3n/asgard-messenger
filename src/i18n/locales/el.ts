@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Επιβεβαίωση",
       "common.copied": "Αντιγράφηκε",
       "common.copy": "Αντιγραφή",
+      "common.copyFailed": "Η αντιγραφή απέτυχε",
       "common.delete": "Διαγραφή",
       "common.dnd": "Μην ενοχλείτε",
       "common.done": "Τέλος",

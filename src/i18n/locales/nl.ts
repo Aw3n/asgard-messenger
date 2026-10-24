@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Bevestigen",
       "common.copied": "Gekopieerd",
       "common.copy": "Kopiëren",
+      "common.copyFailed": "Kopiëren mislukt",
       "common.delete": "Verwijderen",
       "common.dnd": "Niet storen",
       "common.done": "Klaar",

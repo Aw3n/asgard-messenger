@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Bekräfta",
       "common.copied": "Kopierad",
       "common.copy": "Kopiera",
+      "common.copyFailed": "Det gick inte att kopiera",
       "common.delete": "Ta bort",
       "common.dnd": "Stör ej",
       "common.done": "Klar",

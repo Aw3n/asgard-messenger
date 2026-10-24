@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Vahvista",
       "common.copied": "Kopioitu",
       "common.copy": "Kopioi",
+      "common.copyFailed": "Kopiointi epäonnistui",
       "common.delete": "Poista",
       "common.dnd": "Älä häiritse",
       "common.done": "Valmis",

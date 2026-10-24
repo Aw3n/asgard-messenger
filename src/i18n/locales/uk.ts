@@ -17,6 +17,7 @@ export default {
       "common.send": "Надіслати",
       "common.search": "Пошук",
       "common.copy": "Копіювати",
+      "common.copyFailed": "Не вдалося скопіювати",
       "common.copied": "Скопійовано",
       "common.retry": "Спробувати знову",
       "common.loading": "Завантаження…",

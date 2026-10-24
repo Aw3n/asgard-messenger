@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Patvirtinti",
       "common.copied": "Nukopijuota",
       "common.copy": "Kopijuoti",
+      "common.copyFailed": "Nepavyko nukopijuoti",
       "common.delete": "Ištrinti",
       "common.dnd": "Netrukdyti",
       "common.done": "Atlikta",

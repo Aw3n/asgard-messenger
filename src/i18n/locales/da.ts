@@ -161,6 +161,7 @@ export default {
       "common.confirm": "Bekræft",
       "common.copied": "Kopieret",
       "common.copy": "Kopiér",
+      "common.copyFailed": "Kunne ikke kopiere",
       "common.delete": "Slet",
       "common.dnd": "Stør ikke",
       "common.done": "Færdig",

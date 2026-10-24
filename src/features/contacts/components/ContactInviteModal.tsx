@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { asgardToZ32Id } from '@/utils/invite'
+import { copyToClipboard } from '@/utils/clipboard'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
 import { useTranslation } from 'react-i18next'
@@ -37,23 +38,25 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
   // ajouté depuis Keet/Pear ; le champ d'ajout Asgard l'accepte aussi.
   const keetId = identity?.keyPair.publicKey ? asgardToZ32Id(identity.keyPair.publicKey) : null
 
-  const handleCopy = () => {
+  const copyFailed = () => addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+
+  const handleCopy = async () => {
     if (!inviteKey) return
-    navigator.clipboard.writeText(inviteKey)
+    if (!(await copyToClipboard(inviteKey))) return copyFailed()
     setCopied(true)
     addToast({ type: 'success', title: t('contacts.inviteLinkCopied'), duration: 2000 })
     setTimeout(() => setCopied(false), 3000)
   }
 
-  const handleShareKey = () => {
+  const handleShareKey = async () => {
     if (!identity?.keyPair.publicKey) return
-    navigator.clipboard.writeText(identity.keyPair.publicKey)
+    if (!(await copyToClipboard(identity.keyPair.publicKey))) return copyFailed()
     addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
   }
 
-  const handleShareKeetId = () => {
+  const handleShareKeetId = async () => {
     if (!keetId) return
-    navigator.clipboard.writeText(keetId)
+    if (!(await copyToClipboard(keetId))) return copyFailed()
     setCopiedKeet(true)
     addToast({ type: 'success', title: t('contacts.keetIdCopied'), duration: 2000 })
     setTimeout(() => setCopiedKeet(false), 3000)

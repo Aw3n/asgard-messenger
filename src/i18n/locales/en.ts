@@ -23,6 +23,7 @@ export default {
       "common.send": "Send",
       "common.search": "Search",
       "common.copy": "Copy",
+      "common.copyFailed": "Couldn't copy",
       "common.copied": "Copied",
       "common.retry": "Retry",
       "common.loading": "Loading…",

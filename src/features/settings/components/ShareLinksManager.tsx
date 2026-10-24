@@ -6,6 +6,8 @@ import { fileService } from '@/services/FileService'
 import { getCurrentLanguage } from '@/i18n/config'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { useUIStore } from '@/stores/uiStore'
+import { copyToClipboard } from '@/utils/clipboard'
 
 interface ShareLink {
   token: string
@@ -21,6 +23,7 @@ interface ShareLink {
  */
 export const ShareLinksManager: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
   const [links, setLinks] = useState<ShareLink[]>([])
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
   // La croix ne fait que redire ce que la touche réglée fait déjà : ce
@@ -37,9 +40,12 @@ export const ShareLinksManager: React.FC<{ onClose?: () => void }> = ({ onClose 
     setLinks(activeLinks)
   }
 
-  const handleCopyLink = (token: string) => {
+  const handleCopyLink = async (token: string) => {
     const link = `${window.location.origin}/share/${token}`
-    navigator.clipboard.writeText(link)
+    if (!(await copyToClipboard(link))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
     setCopiedToken(token)
     setTimeout(() => setCopiedToken(null), 2000)
   }

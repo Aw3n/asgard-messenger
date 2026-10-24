@@ -13,6 +13,7 @@ import { mediaDeviceService, type MediaDeviceInfo } from '@/services/MediaDevice
 import { SUPPORTED_LANGUAGES, changeLanguage, getCurrentLanguage } from '@/i18n/config'
 import { PRESENCE_CHOICES, presenceMeta } from '@/utils/presence'
 import { isQuietNow } from '@/utils/quietHours'
+import { copyToClipboard } from '@/utils/clipboard'
 import { TrashManager } from './components/TrashManager'
 import { ShortcutsManager } from './components/ShortcutsManager'
 import { ThemeSelector } from './components/ThemeSelector'
@@ -190,6 +191,15 @@ const ProfileSection: React.FC = () => {
     addToast({ type: 'success', title: t('settings.avatarRemoved') })
   }
 
+  const handleCopyPublicKey = async () => {
+    if (!identity?.keyPair.publicKey) return
+    if (!(await copyToClipboard(identity.keyPair.publicKey))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
+    addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
+  }
+
   // Les quatre choix viennent de src/utils/presence.ts : la page Contacts propose
   // la même liste, dans le même ordre, avec les mêmes pastilles et les mêmes
   // libellés traduits — plus de seconde palette ni de second vocabulaire.
@@ -288,9 +298,7 @@ const ProfileSection: React.FC = () => {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(identity?.keyPair.publicKey ?? '')
-              }}
+              onClick={handleCopyPublicKey}
             >
               {t('common.copy')}
             </Button>
@@ -577,6 +585,7 @@ return (
 const SecuritySection: React.FC = () => {
   const identity = useIdentityStore((s) => s.identity)
   const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
   const [showSeed, setShowSeed] = useState(false)
   const [copied, setCopied] = useState(false)
   const [seedPhrase, setSeedPhrase] = useState<string>('')
@@ -596,7 +605,10 @@ const SecuritySection: React.FC = () => {
   }
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(seedPhrase)
+    if (!(await copyToClipboard(seedPhrase))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
