@@ -15,6 +15,7 @@ import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
 import { useDialogBehavior } from '@/hooks/useDialogBehavior'
 import { useGestureHint } from '@/hooks/useGestureHint'
+import { useMenuGestures } from '@/hooks/useMenuGestures'
 import { PRESENCE_CHOICES, presenceMeta, fromNetworkStatus, isLivePresence } from '@/utils/presence'
 import { chatService } from '@/services/ChatService'
 import { ContactDetailView } from './components/ContactDetailView'
@@ -62,6 +63,9 @@ export const ContactsPage: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
+  const [statusMenuFromKeyboard, setStatusMenuFromKeyboard] = useState(false)
+  const statusMenuRef = React.useRef<HTMLDivElement>(null)
+  const statusTriggerRef = React.useRef<HTMLButtonElement>(null)
   // Notre propre présence vient du profil (identityStore), plus d'un état local
   // lu une seule fois dans le DHT : la liste des contacts, le bandeau et
   // l'avatar montrent donc la même valeur que les Préférences, et elle se met à
@@ -71,8 +75,23 @@ export const ContactsPage: React.FC = () => {
   const addToast = useUIStore((s) => s.addToast)
   const userStatus: UserStatus = identity?.profile.status ?? 'online'
 
+  // Le même comportement que les cinq menus contextuels : la touche de
+  // fermeture réglée, les flèches, `Home`/`Fin`, `Tab` piégé et le clic
+  // extérieur. Le panneau de statut n'en avait aucun.
+  useMenuGestures({
+    open: showStatusMenu,
+    menuRef: statusMenuRef,
+    triggerRef: statusTriggerRef,
+    onClose: () => {
+      setShowStatusMenu(false)
+      setStatusMenuFromKeyboard(false)
+    },
+    fromKeyboard: statusMenuFromKeyboard,
+  })
+
   const handleStatusChange = (newStatus: UserStatus) => {
     setShowStatusMenu(false)
+    setStatusMenuFromKeyboard(false)
     // identityStore is the single write path: it persists the profile, publishes
     // the privacy-gated status to the DHT, and the ChatService / GroupService
     // subscriptions broadcast it to peers and groups immediately. This handler
@@ -136,13 +155,30 @@ export const ContactsPage: React.FC = () => {
             {/* Status selector */}
             <div className="relative">
               <button
-                onClick={() => setShowStatusMenu(!showStatusMenu)}
+                ref={statusTriggerRef}
+                type="button"
+                aria-label={`${t('settings.status')}: ${t(presenceMeta(userStatus).labelKey)}`}
+                aria-haspopup="menu"
+                aria-expanded={showStatusMenu}
+                onClick={() => {
+                  setStatusMenuFromKeyboard(false)
+                  setShowStatusMenu(!showStatusMenu)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+                  e.preventDefault()
+                  setStatusMenuFromKeyboard(true)
+                  setShowStatusMenu(true)
+                }}
                 className={`w-3 h-3 rounded-full ${presenceMeta(userStatus).dot} ring-2 ring-asgard-surface hover:ring-asgard-nordic/50 transition-all`}
                 title={t(presenceMeta(userStatus).labelKey)}
               />
               <AnimatePresence>
                 {showStatusMenu && (
                   <motion.div
+                    ref={statusMenuRef}
+                    role="menu"
+                    aria-label={t('settings.status')}
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -151,12 +187,16 @@ export const ContactsPage: React.FC = () => {
                     {PRESENCE_CHOICES.map((choice) => (
                       <button
                         key={choice.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={userStatus === choice.value}
+                        tabIndex={-1}
                         onClick={() => handleStatusChange(choice.value)}
                         className={`w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-asgard-surface-alt transition-colors ${
                           userStatus === choice.value ? 'bg-asgard-nordic/10' : ''
                         }`}
                       >
-                        <span className={`w-3 h-3 rounded-full ${choice.dot}`} />
+                        <span aria-hidden="true" className={`w-3 h-3 rounded-full ${choice.dot}`} />
                         <span className="text-asgard-text-primary">{t(choice.labelKey)}</span>
                       </button>
                     ))}

@@ -166,8 +166,8 @@ describe('Contacts : un statut raté se dit', () => {
       </MemoryRouter>,
     )
 
-    fireEvent.click(screen.getByTitle('common.online'))
-    fireEvent.click(screen.getByRole('button', { name: 'common.away' }))
+    fireEvent.click(screen.getByRole('button', { name: 'settings.status: common.online' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'common.away' }))
 
     await waitFor(() => {
       const toast = toasts().find((entry) => entry.title === 'settings.profileSaveFailed')

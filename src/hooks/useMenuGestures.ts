@@ -1,8 +1,9 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { isCloseKeypress } from './useDialogBehavior'
 
-/** Les entrées atteignables du menu, dans l'ordre du DOM. */
-export const MENU_ITEM_SELECTOR = '[role="menuitem"]:not([disabled])'
+/** Les entrées atteignables du menu, dans l'ordre du DOM. Le préfixe couvre
+ *  `menuitem`, `menuitemradio` et `menuitemcheckbox`. */
+export const MENU_ITEM_SELECTOR = '[role^="menuitem"]:not([disabled])'
 
 interface MenuGestures {
   /** `false` = fermé. Le menu est rendu par l'appelant : l'effet ne fait que l'armer. */
@@ -45,7 +46,11 @@ export function useMenuGestures({ open, menuRef, triggerRef, onClose, fromKeyboa
     const trigger = triggerRef?.current ?? null
 
     const onPointerDown = (event: PointerEvent) => {
-      if (!isInside(event.target as Node)) closeRef.current()
+      if (isInside(event.target as Node)) return
+      // Le déclencheur gère lui-même son basculement : fermer ici, avant son
+      // onClick, ferait rouvrir le menu dans la même frappe (fermé puis rouvert).
+      if (trigger?.contains(event.target as Node)) return
+      closeRef.current()
     }
     // Les entrées d'un menu de liste ne se ferment pas toutes elles-mêmes :
     // celles qui ouvrent une confirmation comptent sur ce clic-là.
