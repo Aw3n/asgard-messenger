@@ -93,37 +93,63 @@ describe('rendu i18next des libellés corrigés', () => {
 })
 
 /**
- * DÉFAUT CONNU, verrouillé tel quel — ce test ne valide pas un comportement
- * voulu, il empêche qu'on l'oublie.
+ * Les six libellés de comptage passent par le pluriel d'i18next.
  *
- * Le catalogue porte 7 clés `*_plural` (175 entrées, traduites dans les 25
- * langues) héritées d'i18next v19. `package.json` livre i18next v26 et
- * `config.ts` ne déclare aucune `compatibilityJSON: 'v1'` : v26 cherche
- * `_one`/`_other`/`_few`/`_many` et ne lit jamais `_plural`. Les 175 valeurs
- * sont donc mortes, et l'écran affiche un singulier là où le pluriel est écrit.
- *
- * Corriger n'est PAS un renommage : `MemberList.tsx` appelle
- * `t('common.member_plural')` comme un titre statique (« Membres », sans
- * nombre), et onze langues (pl, cs, sk, uk, sl, lt, lv, ro, ga, mt, hr) ont
- * plus de deux catégories — la valeur `_plural` actuelle y est la forme
- * « many », pas la forme « few ». Chaque clé demande une décision.
- *
- * Quand la correction arrivera, ce test doit passer au rouge : c'est le
- * signal pour le retourner en attendu-vrai plutôt que de le supprimer.
+ * Le catalogue a longtemps porté des clés `*_plural` héritées d'i18next v19 :
+ * v26 ne lit que `_one`/`_two`/`_few`/`_many`/`_other`, donc l'écran affichait
+ * le singulier à toutes les valeurs (« 3 téléchargement »). La migration a
+ * écrit chaque catégorie que `Intl.PluralRules` peut sélectionner ; ce test
+ * interroge la vraie instance, dans les 25 langues, et compare à la valeur du
+ * catalogue pour chaque catégorie — pas seulement au français.
  */
-describe('défaut connu : les clés `_plural` du catalogue sont inertes', () => {
-  it('rend le singulier même à trois', async () => {
+const COUNTED_KEYS = [
+  'calls.participantCount',
+  'settings.failedTransfers',
+  'settings.selectedCount',
+  'settings.totalDownloads',
+  'settings.totalTransfers',
+  'settings.trashItemsCount',
+]
+
+describe('pluriels du catalogue', () => {
+  it('rend le pluriel écrit en français', async () => {
     await changeLanguage('fr')
-    expect(i18n.t('settings.totalDownloads', { count: 3 })).toBe('3 téléchargement')
-    expect(i18n.t('calls.participantCount', { count: 3 })).toBe('3 participant')
-    // la valeur plurielle existe, mais seulement par son nom littéral
-    expect(i18n.t('settings.totalDownloads_plural', { count: 3 })).toBe('3 téléchargements')
+    expect(i18n.t('settings.totalDownloads', { count: 3 })).toBe('3 téléchargements')
+    expect(i18n.t('calls.participantCount', { count: 3 })).toBe('3 participants')
+    // zéro est singulier en français
+    expect(i18n.t('calls.participantCount', { count: 0 })).toBe('0 participant')
   })
 
-  it('laisse `common.member_plural` comme un titre, pas comme un pluriel', async () => {
+  it('garde `common.members` comme un titre statique', async () => {
     await changeLanguage('fr')
-    // c'est l'appel explicite de MemberList.tsx : un renommage automatique
-    // des `_plural` le casserait, d'où ce fil dans le test
-    expect(i18n.t('common.member_plural')).toBe('Membres')
+    // MemberList.tsx affiche cette clé sans nombre : c'est le titre de section
+    expect(i18n.t('common.members')).toBe('Membres')
+  })
+
+  it('sélectionne la catégorie CLDR de chaque langue', async () => {
+    const counts = [0, 1, 2, 3, 5, 11, 20, 21, 25, 100]
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      const catalog = CATALOG[code]?.translation
+      expect(catalog, `catalogue ${code} absent`).toBeTruthy()
+      const rules = new Intl.PluralRules(code)
+      for (const key of COUNTED_KEYS) {
+        for (const count of counts) {
+          const category = rules.select(count)
+          const template = category === 'one'
+            ? catalog[key]
+            : catalog[`${key}_${category}`]
+          expect(
+            template,
+            `${code} : ${key} n'a pas de forme « ${category} » (compte ${count})`
+          ).toBeTruthy()
+          const expected = template!.split('{{count}}').join(String(count))
+          const rendered = i18n.t(key, { count })
+          expect(rendered, `${code} : ${key} à ${count}`).toBe(expected)
+          expect(rendered).toContain(String(count))
+          expect(rendered).not.toContain('{{count}}')
+        }
+      }
+    }
   })
 })

@@ -51,7 +51,7 @@ export const MemberList: React.FC = () => {
           <MemberSection title={t('groups.moderators')} members={moderators} onlineMembers={onlineMembers} />
         )}
         {regularMembers.length > 0 && (
-          <MemberSection title={t('common.member_plural')} members={regularMembers} onlineMembers={onlineMembers} />
+          <MemberSection title={t('common.members')} members={regularMembers} onlineMembers={onlineMembers} />
         )}
         {guests.length > 0 && (
           <MemberSection title={t('groups.guests')} members={guests} onlineMembers={onlineMembers} />

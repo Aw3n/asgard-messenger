@@ -197,7 +197,7 @@ export const ALLOW_SAME = [
   'calls.excellent',
   'calls.openChat',
   'calls.participantCount',
-  'calls.participantCount_plural',
+  'calls.participantCount_other',
   'calls.qualityHigh',
   // « Pause » s'écrit identiquement en français.
   'chat.pauseAudio',

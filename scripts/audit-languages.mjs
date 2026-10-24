@@ -31,8 +31,8 @@ const content = fs.readFileSync(transPath, 'utf8')
 const lines = content.split('\n')
 
 // ── Parse: split file into language blocks ──────────────────────────────────
-const blockStart = /^  ([a-z]{2}): \{/
-const keyLine = /^      "((?:[^"\\]|\\.)+)": "(.*)",?$/
+const blockStart = /^ {2}([a-z]{2}): \{/
+const keyLine = /^ {6}"((?:[^"\\]|\\.)+)": "(.*)",?$/
 
 const languages = {}
 let currentLang = null
@@ -52,6 +52,22 @@ for (const line of lines) {
 const langs = Object.keys(languages)
 const REF = 'fr'
 const refKeys = Object.keys(languages[REF])
+
+// Une forme plurielle n'a de sens que pour les catégories CLDR que la langue
+// peut sélectionner sur des comptes entiers (les formes réservées aux décimales
+// ne sont jamais rendues par l'UI) ; `one` est porté par la clé de base, vers
+// laquelle i18next retombe, donc aucune entrée `_one` n'est exigée.
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/
+const pluralBaseOf = (k) => k.slice(0, k.length - k.match(PLURAL_SUFFIX)[0].length)
+const pluralCategoriesForIntegers = (lang) => {
+  const rules = new Intl.PluralRules(lang)
+  const cats = new Set()
+  for (let n = 0; n <= 200; n++) cats.add(rules.select(n))
+  cats.add(rules.select(1e6))
+  return cats
+}
+const refPluralBases = new Set(refKeys.filter((k) => PLURAL_SUFFIX.test(k)).map(pluralBaseOf))
+
 console.log(`Languages found: ${langs.length} -> ${langs.join(', ')}`)
 console.log(`Reference (${REF}) key count: ${refKeys.length}\n`)
 
@@ -109,8 +125,26 @@ for (const lang of langs) {
   if (lang === REF) continue
   const keys = Object.keys(languages[lang])
   const keySet = new Set(keys)
-  const missing = refKeys.filter((k) => !keySet.has(k))
-  const extra = keys.filter((k) => !(k in languages[REF]))
+  const pluralCats = pluralCategoriesForIntegers(lang)
+  const missing = refKeys.filter((k) => {
+    if (keySet.has(k)) return false
+    const m = k.match(PLURAL_SUFFIX)
+    return !m || pluralCats.has(m[1])
+  })
+  for (const base of refPluralBases) {
+    if (!keySet.has(base)) continue
+    for (const cat of pluralCats) {
+      if (cat === 'one') continue
+      const k = `${base}_${cat}`
+      if (!keySet.has(k) && !missing.includes(k)) missing.push(k)
+    }
+  }
+  const extra = keys.filter((k) => {
+    if (k in languages[REF]) return false
+    const m = k.match(PLURAL_SUFFIX)
+    if (!m) return true
+    return !refPluralBases.has(pluralBaseOf(k)) || !pluralCats.has(m[1])
+  })
 
   // Untranslated: same value as English (unless allowlisted as local word)
   const untranslated = []
@@ -222,6 +256,22 @@ if (report.foreignMarkers.length === 0) {
     console.log(`    [${m.lang}] ${m.key} = "${m.value}"  → ${m.marker}`)
   }
   if (report.foreignMarkers.length > 40) console.log(`    (…${report.foreignMarkers.length - 40} more)`)
+}
+
+// ── Plural keys: i18next v26 only reads the CLDR suffixes ────────────────────
+console.log('\n=== Plural key format ===')
+const legacyPlural = []
+for (const lang of langs) {
+  for (const k of Object.keys(languages[lang])) {
+    if (k.endsWith('_plural')) legacyPlural.push(`${lang}: ${k}`)
+  }
+}
+if (legacyPlural.length === 0) {
+  console.log('OK: no inert `_plural` keys (v26 reads `_one`/`_two`/`_few`/`_many`/`_other`)')
+} else {
+  problems++
+  console.log(`${legacyPlural.length} inertes clés \`_plural\` (jamais lues par i18next v26):`)
+  for (const k of legacyPlural.slice(0, 20)) console.log(`    ${k}`)
 }
 
 fs.writeFileSync('scripts/audit-languages-report.json', JSON.stringify(report, null, 2))
