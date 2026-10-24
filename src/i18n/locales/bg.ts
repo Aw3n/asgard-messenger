@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "напусна групата",
       "groups.memberRemoveFailed": "Премахването на член неуспешно",
       "groups.memberRemoved": "Членът е премахнат",
+      "groups.memberRole": "Роля на {{name}}",
       "groups.members": "Членове",
       "groups.membersList": "Членове",
       "groups.messageChannel": "Канал за съобщения: {{channelName}}",

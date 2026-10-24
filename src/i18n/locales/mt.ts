@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "telaq il-grupp",
       "groups.memberRemoveFailed": "Neħħis il-membru ma rnexxiex",
       "groups.memberRemoved": "Membru tneħħa",
+      "groups.memberRole": "Rwol ta' {{name}}",
       "groups.members": "Membri",
       "groups.membersList": "Membri",
       "groups.messageChannel": "Kanal tal-messaġġi: {{channelName}}",

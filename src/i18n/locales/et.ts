@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "lahkus grupist",
       "groups.memberRemoveFailed": "Liikme eemaldamine ebaõnnestus",
       "groups.memberRemoved": "Liige eemaldatud",
+      "groups.memberRole": "Kasutaja {{name}} roll",
       "groups.members": "Liikmed",
       "groups.membersList": "Liikmed",
       "groups.messageChannel": "Sõnumikanal: {{channelName}}",

@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "lämnade gruppen",
       "groups.memberRemoveFailed": "Det gick inte att ta bort medlemmen",
       "groups.memberRemoved": "Medlem borttagen",
+      "groups.memberRole": "Roll för {{name}}",
       "groups.members": "Medlemmar",
       "groups.membersList": "Medlemmar",
       "groups.messageChannel": "Meddelandekanal: {{channelName}}",

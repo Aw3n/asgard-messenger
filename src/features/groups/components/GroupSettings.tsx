@@ -319,6 +319,7 @@ const MemberManagement: React.FC<{ groupId: string }> = ({ groupId }) => {
                 <select
                   value={member.role}
                   onChange={(e) => handleRoleChange(member.publicKey, e.target.value as MemberRole)}
+                  aria-label={t('groups.memberRole', { name: member.displayName })}
                   className="text-xs bg-transparent border border-asgard-border rounded-lg px-2 py-1 text-asgard-text-secondary"
                 >
                   <option value="member">{t('common.member')}</option>

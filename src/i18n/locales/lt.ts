@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "paliko grupę",
       "groups.memberRemoveFailed": "Nario pašalinimas nepavyko",
       "groups.memberRemoved": "Narys pašalintas",
+      "groups.memberRole": "{{name}} vaidmuo",
       "groups.members": "Nariai",
       "groups.membersList": "Nariai",
       "groups.messageChannel": "Žinučių kanalas: {{channelName}}",

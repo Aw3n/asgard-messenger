@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "άφησε την ομάδα",
       "groups.memberRemoveFailed": "Αποτυχία αφαίρεσης μέλους",
       "groups.memberRemoved": "Το μέλος αφαιρέθηκε",
+      "groups.memberRole": "Ρόλος του {{name}}",
       "groups.members": "Μέλη",
       "groups.membersList": "Μέλη",
       "groups.messageChannel": "Κανάλι μηνυμάτων: {{channelName}}",

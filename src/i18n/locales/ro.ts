@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "a părăsit grupul",
       "groups.memberRemoveFailed": "Îndepărtarea membrului a eșuat",
       "groups.memberRemoved": "Membru îndepărtat",
+      "groups.memberRole": "Rolul lui {{name}}",
       "groups.members": "Membri",
       "groups.membersList": "Membri",
       "groups.messageChannel": "Canal mesaje: {{channelName}}",

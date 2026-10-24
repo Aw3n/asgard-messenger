@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "poistui ryhmästä",
       "groups.memberRemoveFailed": "Jäsenen poistaminen epäonnistui",
       "groups.memberRemoved": "Jäsen poistettu",
+      "groups.memberRole": "Käyttäjän {{name}} rooli",
       "groups.members": "Jäsenet",
       "groups.membersList": "Jäsenet",
       "groups.messageChannel": "Viestikanava: {{channelName}}",

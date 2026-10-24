@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "pameta grupu",
       "groups.memberRemoveFailed": "Dalībnieka noņemšana neizdevās",
       "groups.memberRemoved": "Dalībnieks noņemts",
+      "groups.memberRole": "{{name}} loma",
       "groups.members": "Dalībnieki",
       "groups.membersList": "Biedri",
       "groups.messageChannel": "Ziņu kanāls: {{channelName}}",

@@ -453,6 +453,7 @@ export default {
       "groups.memberCount": "{{count}} учасник",
       "groups.memberRemoveFailed": "Не вдалося видалити учасника",
       "groups.memberRemoved": "Учасника видалено",
+      "groups.memberRole": "Роль {{name}}",
       "groups.messageChannel": "Канал повідомлень: {{channelName}}",
       "groups.onlineMembers": "{{count}} онлайн",
       "groups.ownerLeaveMessage": "Ви власник цієї групи. Передайте права власника або видаліть групу, щоб покинути її.",

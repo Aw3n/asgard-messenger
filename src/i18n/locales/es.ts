@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "abandonó el grupo",
       "groups.memberRemoveFailed": "Error al expulsar miembro",
       "groups.memberRemoved": "Miembro expulsado",
+      "groups.memberRole": "Rol de {{name}}",
       "groups.members": "Miembros",
       "groups.membersList": "Miembros",
       "groups.messageChannel": "Canal de mensajes: {{channelName}}",

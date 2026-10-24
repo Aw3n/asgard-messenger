@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "elhagyta a csoportot",
       "groups.memberRemoveFailed": "Tag eltávolítása sikertelen",
       "groups.memberRemoved": "Tag eltávolítva",
+      "groups.memberRole": "{{name}} szerepköre",
       "groups.members": "Tagok",
       "groups.membersList": "Tagok",
       "groups.messageChannel": "Üzenetcsatorna: {{channelName}}",

@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "d'fhág an grúpa",
       "groups.memberRemoveFailed": "Theip ar bhall a bhaint",
       "groups.memberRemoved": "Ball bainte",
+      "groups.memberRole": "Ról {{name}}",
       "groups.members": "Baill",
       "groups.membersList": "Comhaltaí",
       "groups.messageChannel": "Cainéal teachtaireachta: {{channelName}}",

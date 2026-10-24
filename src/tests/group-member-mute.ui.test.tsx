@@ -179,6 +179,16 @@ describe('réglages de groupe — modération des membres', () => {
     expect(screen.queryByText('owner')).not.toBeInTheDocument()
   })
 
+  it('nomme le sélecteur de rôle du membre', () => {
+    render(<GroupSettings onClose={() => {}} />)
+
+    // Sans nom, le lecteur d'écran annonçait « liste déroulante, member » sans
+    // dire de quel membre ni de quoi il s'agit.
+    const select = screen.getByRole('combobox', { name: 'groups.memberRole' })
+    expect(select).toHaveValue('member')
+    expect(screen.getAllByRole('combobox')).toHaveLength(1)
+  })
+
   it('met le membre en sourdine et l’annonce', async () => {
     render(<GroupSettings onClose={() => {}} />)
 

@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "hat die Gruppe verlassen",
       "groups.memberRemoveFailed": "Mitglied entfernen fehlgeschlagen",
       "groups.memberRemoved": "Mitglied entfernt",
+      "groups.memberRole": "Rolle von {{name}}",
       "groups.members": "Mitglieder",
       "groups.membersList": "Mitglieder",
       "groups.messageChannel": "Nachrichtenkanal: {{channelName}}",

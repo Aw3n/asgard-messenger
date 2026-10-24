@@ -481,6 +481,7 @@ export default {
       "groups.memberCount": "{{count}} member",
       "groups.memberRemoveFailed": "Failed to remove member",
       "groups.memberRemoved": "Member removed",
+      "groups.memberRole": "Role of {{name}}",
       "groups.messageChannel": "Message channel: {{channelName}}",
       "groups.onlineMembers": "{{count}} online",
       "groups.ownerLeaveMessage": "You own this group. Transfer ownership or delete the group to leave.",

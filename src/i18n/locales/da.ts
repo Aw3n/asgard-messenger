@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "forlod gruppen",
       "groups.memberRemoveFailed": "Fjernelse af medlem mislykkedes",
       "groups.memberRemoved": "Medlem fjernet",
+      "groups.memberRole": "Rolle for {{name}}",
       "groups.members": "Medlemmer",
       "groups.membersList": "Medlemmer",
       "groups.messageChannel": "Beskedkanal: {{channelName}}",

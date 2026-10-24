@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "heeft de groep verlaten",
       "groups.memberRemoveFailed": "Lid verwijderen mislukt",
       "groups.memberRemoved": "Lid verwijderd",
+      "groups.memberRole": "Rol van {{name}}",
       "groups.members": "Leden",
       "groups.membersList": "Leden",
       "groups.messageChannel": "Berichtenkanaal: {{channelName}}",

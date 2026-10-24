@@ -301,6 +301,7 @@ export default {
       "groups.memberLeft": "napustio je grupu",
       "groups.memberRemoveFailed": "Uklanjanje člana nije uspjelo",
       "groups.memberRemoved": "Član uklonjen",
+      "groups.memberRole": "Uloga korisnika {{name}}",
       "groups.members": "Članovi",
       "groups.membersList": "Članovi",
       "groups.messageChannel": "Kanal poruka: {{channelName}}",
