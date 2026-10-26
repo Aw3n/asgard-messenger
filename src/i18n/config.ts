@@ -82,6 +82,18 @@ const savedLang = SUPPORTED_LANGUAGES.some(({ code }) => code === storedLang)
   ? storedLang as LanguageCode
   : 'fr'
 
+/**
+ * La langue annoncée par <html lang>. `index.html` la fige à « en » : un
+ * lecteur d'écran prononçait alors le français, l'allemand ou l'ukrainien avec
+ * la voix anglaise, et la règle de césure suivait la même erreur. Le code de
+ * langue est aussi ce que lit la synthèse vocale pour choisir sa voix.
+ */
+function syncDocumentLanguage(lang: string): void {
+  if (typeof document !== 'undefined') document.documentElement.lang = lang
+}
+
+syncDocumentLanguage(savedLang)
+
 i18n
   .use(initReactI18next)
   .init({
@@ -93,6 +105,11 @@ i18n
     },
     defaultNS: 'translation',
   })
+
+// Tout changement de langue passe par i18n.changeLanguage (démarrage et écran
+// des réglages) : l'écouteur garde <html lang> d'accord sans second point
+// d'appel à maintenir.
+i18n.on('languageChanged', syncDocumentLanguage)
 
 async function loadLocale(lang: string): Promise<boolean> {
   if (i18n.hasResourceBundle(lang, 'translation')) return true
