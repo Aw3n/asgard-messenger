@@ -1035,5 +1035,6 @@ export default {
       "settings.downloadFolderReset": "Back to the default folder",
       "search.clearQuery": "Clear search",
       "chat.mutedConversation": "Muted conversation",
+      "chat.pinnedConversation": "Pinned conversation",
     }
 }

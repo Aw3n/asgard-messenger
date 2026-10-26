@@ -1036,6 +1036,7 @@ export const translations = {
       "settings.downloadFolderReset": "Revenir au dossier par défaut",
       "search.clearQuery": "Effacer la recherche",
       "chat.mutedConversation": "Conversation en sourdine",
+      "chat.pinnedConversation": "Conversation épinglée",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -2063,6 +2064,7 @@ export const translations = {
       "settings.downloadFolderReset": "Terug naar de standaardmap",
       "search.clearQuery": "Zoekopdracht wissen",
       "chat.mutedConversation": "Gesprek gedempt",
+      "chat.pinnedConversation": "Vastgezet gesprek",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -3090,6 +3092,7 @@ export const translations = {
       "settings.downloadFolderReset": "Zurück zum Standardordner",
       "search.clearQuery": "Suche löschen",
       "chat.mutedConversation": "Stummgeschaltete Unterhaltung",
+      "chat.pinnedConversation": "Angeheftete Unterhaltung",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -4129,6 +4132,7 @@ export const translations = {
       "settings.downloadFolderReset": "Torna alla cartella predefinita",
       "search.clearQuery": "Cancella ricerca",
       "chat.mutedConversation": "Conversazione silenziata",
+      "chat.pinnedConversation": "Conversazione fissata",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -5168,6 +5172,7 @@ export const translations = {
       "settings.downloadFolderReset": "Volver a la carpeta predeterminada",
       "search.clearQuery": "Borrar la búsqueda",
       "chat.mutedConversation": "Conversación silenciada",
+      "chat.pinnedConversation": "Conversación fijada",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -6208,6 +6213,7 @@ export const translations = {
       "settings.downloadFolderReset": "Voltar à pasta predefinida",
       "search.clearQuery": "Limpar pesquisa",
       "chat.mutedConversation": "Conversa silenciada",
+      "chat.pinnedConversation": "Conversa fixada",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -7236,6 +7242,7 @@ export const translations = {
       "settings.downloadFolderReset": "Επιστροφή στον προεπιλεγμένο φάκελο",
       "search.clearQuery": "Διαγραφή αναζήτησης",
       "chat.mutedConversation": "Σε σίγαση συνομιλία",
+      "chat.pinnedConversation": "Καρφιτσωμένη συνομιλία",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -8264,6 +8271,7 @@ export const translations = {
       "settings.downloadFolderReset": "Tilbage til standardmappen",
       "search.clearQuery": "Ryd søgning",
       "chat.mutedConversation": "Lydløs samtale",
+      "chat.pinnedConversation": "Fastgjort samtale",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -9292,6 +9300,7 @@ export const translations = {
       "settings.downloadFolderReset": "Palaa oletuskansioon",
       "search.clearQuery": "Tyhjennä haku",
       "chat.mutedConversation": "Mykistetty keskustelu",
+      "chat.pinnedConversation": "Kiinnitetty keskustelu",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -10320,6 +10329,7 @@ export const translations = {
       "settings.downloadFolderReset": "Tillbaka till standardmappen",
       "search.clearQuery": "Rensa sökningen",
       "chat.mutedConversation": "Tystad konversation",
+      "chat.pinnedConversation": "Fäst konversation",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -11360,6 +11370,7 @@ export const translations = {
       "settings.downloadFolderReset": "Vrati zadanu mapu",
       "search.clearQuery": "Obriši pretragu",
       "chat.mutedConversation": "Utišan razgovor",
+      "chat.pinnedConversation": "Prikvaćeni razgovor",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -12388,6 +12399,7 @@ export const translations = {
       "settings.downloadFolderReset": "Naase vaikenekausta juurde",
       "search.clearQuery": "Tühjenda otsing",
       "chat.mutedConversation": "Vaigistatud vestlus",
+      "chat.pinnedConversation": "Kinnitatud vestlus",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -13416,6 +13428,7 @@ export const translations = {
       "settings.downloadFolderReset": "Vissza az alapértelmezett mappára",
       "search.clearQuery": "Keresés törlése",
       "chat.mutedConversation": "Némított beszélgetés",
+      "chat.pinnedConversation": "Rögzített beszélgetés",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -14456,6 +14469,7 @@ export const translations = {
       "settings.downloadFolderReset": "Atgriezties noklusējuma mapē",
       "search.clearQuery": "Notīrīt meklēšanu",
       "chat.mutedConversation": "Ierunāta saruna",
+      "chat.pinnedConversation": "Piespraustā saruna",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -15497,6 +15511,7 @@ export const translations = {
       "settings.downloadFolderReset": "Grįžti į numatytąjį aplanką",
       "search.clearQuery": "Išvalyti paiešką",
       "chat.mutedConversation": "Nutildytas pokalbis",
+      "chat.pinnedConversation": "Prisegtas pokalbis",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -16561,6 +16576,7 @@ export const translations = {
       "settings.downloadFolderReset": "Lura għall-fowlier predefinit",
       "search.clearQuery": "Neħħi l-ftixa",
       "chat.mutedConversation": "Konversazzjoni msikkta",
+      "chat.pinnedConversation": "Konversazzjoni mwaħħla",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -17607,6 +17623,7 @@ export const translations = {
       "settings.downloadFolderReset": "Wróć do domyślnego folderu",
       "search.clearQuery": "Wyczyść wyszukiwanie",
       "chat.mutedConversation": "Wyciszona rozmowa",
+      "chat.pinnedConversation": "Przypięta rozmowa",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -18647,6 +18664,7 @@ export const translations = {
       "settings.downloadFolderReset": "Vrátiť sa k predvolenému priečinku",
       "search.clearQuery": "Vymazať vyhľadávanie",
       "chat.mutedConversation": "Stlmená konverzácia",
+      "chat.pinnedConversation": "Pripnutá konverzácia",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -19699,6 +19717,7 @@ export const translations = {
       "settings.downloadFolderReset": "Vrni se v privzeto mapo",
       "search.clearQuery": "Počisti iskanje",
       "chat.mutedConversation": "Utišan pogovor",
+      "chat.pinnedConversation": "Pripet pogovor",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -20739,6 +20758,7 @@ export const translations = {
       "settings.downloadFolderReset": "Vrátit se do výchozí složky",
       "search.clearQuery": "Vymazat hledání",
       "chat.mutedConversation": "Ztišená konverzace",
+      "chat.pinnedConversation": "Připnutá konverzace",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -21767,6 +21787,7 @@ export const translations = {
       "settings.downloadFolderReset": "Връщане в папката по подразбиране",
       "search.clearQuery": "Изчистване на търсенето",
       "chat.mutedConversation": "Заглушен разговор",
+      "chat.pinnedConversation": "Закачен разговор",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -22831,6 +22852,7 @@ export const translations = {
       "settings.downloadFolderReset": "Fill ar an bhfillteán réamhshocraithe",
       "search.clearQuery": "Glanch an cuardach",
       "chat.mutedConversation": "Comhrá balbhaithe",
+      "chat.pinnedConversation": "Comhrá greamaithe",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -23871,6 +23893,7 @@ export const translations = {
       "settings.downloadFolderReset": "Înapoi la folderul implicit",
       "search.clearQuery": "Șterge căutarea",
       "chat.mutedConversation": "Conversație fără sunet",
+      "chat.pinnedConversation": "Conversație fixată",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -24908,6 +24931,7 @@ export const translations = {
       "settings.downloadFolderReset": "Back to the default folder",
       "search.clearQuery": "Clear search",
       "chat.mutedConversation": "Muted conversation",
+      "chat.pinnedConversation": "Pinned conversation",
     }
   },
 
@@ -25949,6 +25973,7 @@ export const translations = {
       "settings.downloadFolderReset": "Повернутися до типової теки",
       "search.clearQuery": "Очистити пошук",
       "chat.mutedConversation": "Розмова без звуку",
+      "chat.pinnedConversation": "Закріплена розмова",
     }
   },
 }

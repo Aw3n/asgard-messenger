@@ -1050,5 +1050,6 @@ export default {
       "settings.downloadFolderReset": "Vrni se v privzeto mapo",
       "search.clearQuery": "Počisti iskanje",
       "chat.mutedConversation": "Utišan pogovor",
+      "chat.pinnedConversation": "Pripet pogovor",
     }
 }

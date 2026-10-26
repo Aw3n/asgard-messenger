@@ -1026,5 +1026,6 @@ export default {
       "settings.downloadFolderReset": "Tillbaka till standardmappen",
       "search.clearQuery": "Rensa sökningen",
       "chat.mutedConversation": "Tystad konversation",
+      "chat.pinnedConversation": "Fäst konversation",
     }
 }

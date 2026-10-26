@@ -1026,5 +1026,6 @@ export default {
       "settings.downloadFolderReset": "Връщане в папката по подразбиране",
       "search.clearQuery": "Изчистване на търсенето",
       "chat.mutedConversation": "Заглушен разговор",
+      "chat.pinnedConversation": "Закачен разговор",
     }
 }

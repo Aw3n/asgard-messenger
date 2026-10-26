@@ -1025,5 +1025,6 @@ export default {
       "settings.downloadFolderReset": "Terug naar de standaardmap",
       "search.clearQuery": "Zoekopdracht wissen",
       "chat.mutedConversation": "Gesprek gedempt",
+      "chat.pinnedConversation": "Vastgezet gesprek",
     }
 }

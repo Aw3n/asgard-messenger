@@ -1025,5 +1025,6 @@ export default {
       "settings.downloadFolderReset": "Zurück zum Standardordner",
       "search.clearQuery": "Suche löschen",
       "chat.mutedConversation": "Stummgeschaltete Unterhaltung",
+      "chat.pinnedConversation": "Angeheftete Unterhaltung",
     }
 }

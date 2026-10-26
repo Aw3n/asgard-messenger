@@ -1038,5 +1038,6 @@ export default {
       "settings.downloadFolderReset": "Vrátit se do výchozí složky",
       "search.clearQuery": "Vymazat hledání",
       "chat.mutedConversation": "Ztišená konverzace",
+      "chat.pinnedConversation": "Připnutá konverzace",
     }
 }

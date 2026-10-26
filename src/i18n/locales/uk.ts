@@ -1038,5 +1038,6 @@ export default {
       "settings.downloadFolderReset": "Повернутися до типової теки",
       "search.clearQuery": "Очистити пошук",
       "chat.mutedConversation": "Розмова без звуку",
+      "chat.pinnedConversation": "Закріплена розмова",
     }
 }

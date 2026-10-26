@@ -1026,5 +1026,6 @@ export default {
       "settings.downloadFolderReset": "Tilbage til standardmappen",
       "search.clearQuery": "Ryd søgning",
       "chat.mutedConversation": "Lydløs samtale",
+      "chat.pinnedConversation": "Fastgjort samtale",
     }
 }

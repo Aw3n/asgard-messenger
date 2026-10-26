@@ -1026,5 +1026,6 @@ export default {
       "settings.downloadFolderReset": "Palaa oletuskansioon",
       "search.clearQuery": "Tyhjennä haku",
       "chat.mutedConversation": "Mykistetty keskustelu",
+      "chat.pinnedConversation": "Kiinnitetty keskustelu",
     }
 }

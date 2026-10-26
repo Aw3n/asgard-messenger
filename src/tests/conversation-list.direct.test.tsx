@@ -260,6 +260,23 @@ describe('liste des conversations', () => {
     const row = screen.getByRole('button', { name: /Bob/ })
     expect(row).toHaveAccessibleName(/nav\.unreadCount:3/)
     expect(row).toHaveAccessibleName(/chat\.mutedConversation/)
+    expect(row).not.toHaveAccessibleName(/chat\.pinnedConversation/)
+  })
+
+  it('annonce une conversation épinglée dans le nom de la ligne', () => {
+    useConversationStore.setState({
+      conversations: { [direct.id]: { ...direct, pinned: true } },
+    })
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    // La punaise est une icône aria-hidden : sans ce mot, la ligne ne dit pas
+    // qu'elle est remontée en tête de liste.
+    expect(screen.getByRole('button', { name: /Bob/ }))
+      .toHaveAccessibleName(/chat\.pinnedConversation/)
   })
 
   it('marque toutes les conversations comme lues', () => {

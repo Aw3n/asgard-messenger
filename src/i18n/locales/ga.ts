@@ -1062,5 +1062,6 @@ export default {
       "settings.downloadFolderReset": "Fill ar an bhfillteán réamhshocraithe",
       "search.clearQuery": "Glanch an cuardach",
       "chat.mutedConversation": "Comhrá balbhaithe",
+      "chat.pinnedConversation": "Comhrá greamaithe",
     }
 }

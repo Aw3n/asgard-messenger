@@ -1038,5 +1038,6 @@ export default {
       "settings.downloadFolderReset": "Vrati zadanu mapu",
       "search.clearQuery": "Obriši pretragu",
       "chat.mutedConversation": "Utišan razgovor",
+      "chat.pinnedConversation": "Prikvaćeni razgovor",
     }
 }

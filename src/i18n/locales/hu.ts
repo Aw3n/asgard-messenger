@@ -1026,5 +1026,6 @@ export default {
       "settings.downloadFolderReset": "Vissza az alapértelmezett mappára",
       "search.clearQuery": "Keresés törlése",
       "chat.mutedConversation": "Némított beszélgetés",
+      "chat.pinnedConversation": "Rögzített beszélgetés",
     }
 }

@@ -1044,5 +1044,6 @@ export default {
       "settings.downloadFolderReset": "Wróć do domyślnego folderu",
       "search.clearQuery": "Wyczyść wyszukiwanie",
       "chat.mutedConversation": "Wyciszona rozmowa",
+      "chat.pinnedConversation": "Przypięta rozmowa",
     }
 }

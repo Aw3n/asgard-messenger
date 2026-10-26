@@ -1038,5 +1038,6 @@ export default {
       "settings.downloadFolderReset": "Voltar à pasta predefinida",
       "search.clearQuery": "Limpar pesquisa",
       "chat.mutedConversation": "Conversa silenciada",
+      "chat.pinnedConversation": "Conversa fixada",
     }
 }

@@ -1039,5 +1039,6 @@ export default {
       "settings.downloadFolderReset": "Grįžti į numatytąjį aplanką",
       "search.clearQuery": "Išvalyti paiešką",
       "chat.mutedConversation": "Nutildytas pokalbis",
+      "chat.pinnedConversation": "Prisegtas pokalbis",
     }
 }
