@@ -447,8 +447,8 @@ export const ChatView: React.FC = () => {
   }, [conversation?.participantId])
 
   const handleSend = useCallback(
-    async (content: string) => {
-      if (!dataId || !conversation?.participantId) return
+    async (content: string): Promise<boolean> => {
+      if (!dataId || !conversation?.participantId) return false
       try {
         followOwnSendRef.current = true
         const outcome = await chatService.sendMessage(
@@ -466,10 +466,14 @@ export const ChatView: React.FC = () => {
             duration: 5000,
           })
         }
+        return true
       } catch (err) {
         followOwnSendRef.current = false
         console.error('[ChatView] handleSend error:', err)
         try { window.asgard.debugLog('[ChatView] handleSend error: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+        // Le composeur restaure la phrase ; ce toast dit pourquoi elle est revenue.
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.messageNotDelivered') })
+        return false
       }
     },
     [dataId, conversation, replyTo, t]

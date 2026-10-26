@@ -159,18 +159,25 @@ export const GroupView: React.FC = () => {
     && canPostInChannel(activeGroup, channelId, identity?.keyPair.publicKey ?? '')
 
   const handleSend = useCallback(
-    (content: string) => {
+    async (content: string): Promise<boolean> => {
       // Send message via P2P to group members
-      if (!identity || !channelId || !activeGroup) return
+      if (!identity || !channelId || !activeGroup) return false
       const quoted = replyTo
       setReplyTo(undefined)
       followOwnSendRef.current = true
-      groupService.sendGroupMessage(activeGroup.id, channelId, content, undefined, undefined, quoted?.id)
-        .catch((err) => {
-          console.warn('[GroupView] sendGroupMessage failed:', err)
-        })
+      try {
+        await groupService.sendGroupMessage(activeGroup.id, channelId, content, undefined, undefined, quoted?.id)
+        return true
+      } catch (err) {
+        // Le composeur a déjà vidé le champ : sans ce retour, la phrase
+        // saisie disparaissait sur un envoi refusé.
+        followOwnSendRef.current = false
+        console.warn('[GroupView] sendGroupMessage failed:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.messageNotDelivered') })
+        return false
+      }
     },
-    [identity, channelId, activeGroup, replyTo]
+    [identity, channelId, activeGroup, replyTo, t]
   )
 
   const handleTyping = useCallback(

@@ -8,9 +8,10 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Group, Message } from '@/types'
 
-const { scrollToIndexMock, virtuosoProps } = vi.hoisted(() => ({
+const { scrollToIndexMock, virtuosoProps, sendOutcome } = vi.hoisted(() => ({
   scrollToIndexMock: vi.fn(),
   virtuosoProps: {} as Record<string, unknown>,
+  sendOutcome: { value: undefined as boolean | void },
 }))
 
 vi.mock('react-i18next', () => ({
@@ -56,14 +57,28 @@ vi.mock('@/features/chat/components/MessageBubble', () => ({
 }))
 
 // Le composeur de test rend visible la cible qu'on lui passe : sans ça, rien de
-// ce que décide le canal ne serait observable.
+// ce que décide le canal ne serait observable. Son bouton expose aussi la
+// promesse d'envoi, pour vérifier ce que la vue rend au composeur.
 vi.mock('@/features/chat/components/MessageInput', () => ({
-  MessageInput: (props: { replyTo?: Message; editingMessage?: Message }) =>
+  MessageInput: (props: {
+    replyTo?: Message
+    editingMessage?: Message
+    onSend: (content: string) => void | Promise<boolean | void>
+  }) =>
     React.createElement('div', {
       'data-testid': 'composer',
       'data-reply': props.replyTo?.id ?? '',
       'data-edit': props.editingMessage?.id ?? '',
-    }),
+    },
+    React.createElement('button', {
+      'data-testid': 'composer-send',
+      onClick: () => {
+        Promise.resolve(props.onSend('phrase du canal')).then((accepted) => {
+          sendOutcome.value = accepted
+        })
+      },
+    })
+    ),
 }))
 
 vi.mock('@/features/chat/components/ActiveTransfersWidget', () => ({
@@ -85,6 +100,7 @@ vi.mock('@/services/GroupService', () => ({
     loadChannelMessageContext: vi.fn(),
     loadNewerChannelMessages: vi.fn(),
     announceGroupPresence: vi.fn(),
+    sendGroupMessage: vi.fn(async () => {}),
     sendTypingIndicator: vi.fn(async () => {}),
     markAsRead: vi.fn(async () => {}),
   },
@@ -394,5 +410,34 @@ describe('GroupView : geste réglé branché sur le canal', () => {
     })
 
     expect(screen.getByTestId('composer').getAttribute('data-reply')).toBe('recent-2')
+  })
+})
+
+describe('GroupView : envoi refusé du canal', () => {
+  beforeEach(() => {
+    sendOutcome.value = undefined
+    vi.mocked(groupService.sendGroupMessage).mockClear()
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true)
+    useGroupStore.setState({ groupViewVisible: true })
+  })
+
+  it('rend false et le dit quand le canal refuse l’envoi', async () => {
+    vi.mocked(groupService.sendGroupMessage).mockRejectedValueOnce(new Error('réseau'))
+
+    renderChannel()
+    fireEvent.click(await screen.findByTestId('composer-send'))
+
+    await waitFor(() => expect(toastTitles()).toEqual(['chat.messageNotDelivered']))
+    // Le composeur restaure sa phrase sur ce `false` : sans lui, le texte
+    // tapé disparaissait sans un mot.
+    expect(sendOutcome.value).toBe(false)
+  })
+
+  it('rend true sans rien annoncer quand l’envoi aboutit', async () => {
+    renderChannel()
+    fireEvent.click(await screen.findByTestId('composer-send'))
+
+    await waitFor(() => expect(sendOutcome.value).toBe(true))
+    expect(toastTitles()).toEqual([])
   })
 })

@@ -13,9 +13,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Conversation } from '@/types'
 import type { Message } from '@/types'
 
-const { scrollToIndexMock, virtuosoProps } = vi.hoisted(() => ({
+const { scrollToIndexMock, virtuosoProps, sendOutcome } = vi.hoisted(() => ({
   scrollToIndexMock: vi.fn(),
   virtuosoProps: {} as Record<string, unknown>,
+  sendOutcome: { value: undefined as boolean | void },
 }))
 
 vi.mock('react-i18next', () => ({
@@ -62,13 +63,27 @@ vi.mock('@/features/chat/components/MessageBubble', () => ({
 
 // Le composeur de test rend visible la cible qu'on lui passe : réponse en cours
 // ou message en édition, sinon rien de ce que décide le fil ne serait observable.
+// Son bouton expose aussi la promesse d'envoi, pour vérifier ce que la vue rend.
 vi.mock('@/features/chat/components/MessageInput', () => ({
-  MessageInput: (props: { replyTo?: Message; editingMessage?: Message }) =>
+  MessageInput: (props: {
+    replyTo?: Message
+    editingMessage?: Message
+    onSend: (content: string) => void | Promise<boolean | void>
+  }) =>
     React.createElement('div', {
       'data-testid': 'composer',
       'data-reply': props.replyTo?.id ?? '',
       'data-edit': props.editingMessage?.id ?? '',
-    }),
+    },
+    React.createElement('button', {
+      'data-testid': 'composer-send',
+      onClick: () => {
+        Promise.resolve(props.onSend('phrase du fil')).then((accepted) => {
+          sendOutcome.value = accepted
+        })
+      },
+    })
+    ),
 }))
 
 vi.mock('@/features/chat/components/ActiveTransfersWidget', () => ({
@@ -94,6 +109,7 @@ vi.mock('@/services/ChatService', () => ({
     loadMessageContext: vi.fn(),
     loadNewerMessages: vi.fn(),
     probeContact: vi.fn(),
+    sendMessage: vi.fn(async () => 'sent'),
     sendReadReceipt: vi.fn(async () => {}),
     sendTyping: vi.fn(async () => {}),
   },
@@ -479,5 +495,32 @@ describe('ChatView : gestes réglés branchés sur le fil', () => {
 
     pressOn(row, 'v', { ctrlKey: true, altKey: true })
     expect(composerReply()).toBe('recent-1')
+  })
+})
+
+describe('ChatView : envoi refusé du fil', () => {
+  beforeEach(() => {
+    sendOutcome.value = undefined
+    vi.mocked(chatService.sendMessage).mockClear()
+  })
+
+  it('rend false et le dit quand l’envoi échoue', async () => {
+    vi.mocked(chatService.sendMessage).mockRejectedValueOnce(new Error('identité absente'))
+
+    renderThread()
+    fireEvent.click(await screen.findByTestId('composer-send'))
+
+    await waitFor(() => expect(toastTitles()).toEqual(['chat.messageNotDelivered']))
+    // Le composeur restaure sa phrase sur ce `false` : sans lui, le texte
+    // tapé disparaissait sans un mot.
+    expect(sendOutcome.value).toBe(false)
+  })
+
+  it('rend true sans rien annoncer quand l’envoi aboutit', async () => {
+    renderThread()
+    fireEvent.click(await screen.findByTestId('composer-send'))
+
+    await waitFor(() => expect(sendOutcome.value).toBe(true))
+    expect(toastTitles()).toEqual([])
   })
 })

@@ -16,7 +16,11 @@ interface MessageInputProps {
   replyToName?: string
   /** Message en cours de modification : le composer passe en mode édition. */
   editingMessage?: Message
-  onSend: (content: string, type?: 'text') => void
+  /**
+   * `false` ou un rejet signale que l'envoi n'a pas abouti : le composeur
+   * restaure alors le texte, au lieu de l'avoir effacé pour rien.
+   */
+  onSend: (content: string, type?: 'text') => void | Promise<boolean | void>
   onEditSubmit?: (content: string) => void
   onCancelEdit?: () => void
   onFiles?: (files: File[]) => void
@@ -264,6 +268,33 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     [onTyping]
   )
 
+  /**
+   * Le champ se vide dès l'envoi ; si la vue rend `false` ou rejette, la phrase
+   * revient dans le champ et dans le brouillon — sauf si l'utilisateur a déjà
+   * recommencé à écrire ou changé de fil entre-temps.
+   */
+  const restoreIfSendFailed = useCallback(
+    (outcome: void | Promise<boolean | void>, text: string, filId: string) => {
+      if (!outcome || typeof (outcome as Promise<unknown>).then !== 'function') return
+      const restore = () => {
+        if (conversationIdRef.current === filId) {
+          if (latestContentRef.current !== '') return
+          setComposerContent(text)
+          useConversationStore.getState().setDraft(filId, text)
+          return
+        }
+        // Fil quitté pendant l'envoi : la phrase revient en brouillon de son
+        // fil, jamais dans le champ de celui qui est affiché.
+        useConversationStore.getState().setDraft(filId, text)
+      }
+      ;(outcome as Promise<boolean | void>).then(
+        (accepted) => { if (accepted === false) restore() },
+        restore
+      )
+    },
+    [setComposerContent]
+  )
+
   /** @returns `true` quand l'envoi a effectivement eu lieu : le geste clavier
    * ne revendique la touche que dans ce cas. */
   const handleSend = useCallback((): boolean => {
@@ -290,7 +321,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     if (trimmed) {
-      onSend(trimmed)
+      const outcome = onSend(trimmed)
       setComposerContent('')
       // Effacer tout de suite : un enregistrement différé réécrirait le texte
       // envoyé comme brouillon.
@@ -299,11 +330,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         draftTimerRef.current = null
       }
       useConversationStore.getState().setDraft(conversationId, '')
+      restoreIfSendFailed(outcome, trimmed, conversationId)
     }
     handleTyping(false)
     textareaRef.current?.focus()
     return true
-  }, [content, editingMessage, pendingFiles, disabled, onSend, onEditSubmit, onFiles, handleTyping, conversationId, setComposerContent])
+  }, [content, editingMessage, pendingFiles, disabled, onSend, onEditSubmit, onFiles, handleTyping, conversationId, setComposerContent, restoreIfSendFailed])
 
   /**
    * Retour à la ligne demandé par la combinaison réglée : le texte du navigateur
