@@ -952,6 +952,7 @@ export default {
       "chat.fileTypeBlocked": "Biztonsági okokból ez a fájltípus nem nyitható meg közvetlenül. Használja a „Mentés másként” lehetőséget.",
       "chat.retrySend": "Újraküldés",
       "chat.editFailed": "Az üzenetet nem sikerült szerkeszteni",
+      "chat.editForPeerFailed": "Csak itt szerkesztve: a névjegy nem kapta meg a javítást",
       "chat.messageActions": "Üzenetműveletek",
       "chat.reactWith": "Reagálás: {{emoji}}",
       "chat.statusSending": "Küldés…",

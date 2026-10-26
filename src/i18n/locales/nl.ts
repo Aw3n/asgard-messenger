@@ -951,6 +951,7 @@ export default {
       "chat.fileTypeBlocked": "Uit veiligheid kan dit bestandstype niet rechtstreeks worden geopend. Gebruik ‘Opslaan als’.",
       "chat.retrySend": "Opnieuw versturen",
       "chat.editFailed": "Kan bericht niet bewerken",
+      "chat.editForPeerFailed": "Alleen hier gewijzigd: de contactpersoon heeft de correctie niet ontvangen",
       "chat.messageActions": "Berichtacties",
       "chat.reactWith": "Reageren met {{emoji}}",
       "chat.statusSending": "Verzenden…",

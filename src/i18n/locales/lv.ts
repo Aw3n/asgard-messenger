@@ -964,6 +964,7 @@ export default {
       "chat.fileTypeBlocked": "Drošības dēļ šo faila tipu nevar atvērt tieši. Izmantojiet “Saglabāt kā”.",
       "chat.retrySend": "Sūtīt vēlreiz",
       "chat.editFailed": "Ziņu neizdevās rediģēt",
+      "chat.editForPeerFailed": "Rediģēts tikai šeit: kontaktpersona nesaņēma labojumu",
       "chat.messageActions": "Ziņas darbības",
       "chat.reactWith": "Reaģēt ar {{emoji}}",
       "chat.statusSending": "Notiek sūtīšana",

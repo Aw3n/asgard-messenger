@@ -976,6 +976,7 @@ export default {
       "chat.fileTypeBlocked": "Zaradi varnosti te vrste datoteke ni mogoče odpreti neposredno. Uporabite »Shrani kot«.",
       "chat.retrySend": "Pošlji znova",
       "chat.editFailed": "Sporočila ni bilo mogoče urediti",
+      "chat.editForPeerFailed": "Urejeno samo tukaj: stik ni prejel popravka",
       "chat.messageActions": "Dejanja sporočila",
       "chat.reactWith": "Odzivi z {{emoji}}",
       "chat.statusSending": "Pošiljanje…",

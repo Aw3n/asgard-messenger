@@ -952,6 +952,7 @@ export default {
       "chat.fileTypeBlocked": "Turvallisuussyistä tätä tiedostotyyppiä ei voi avata suoraan. Käytä Tallenna nimellä.",
       "chat.retrySend": "Lähetä uudelleen",
       "chat.editFailed": "Viestin muokkaaminen epäonnistui",
+      "chat.editForPeerFailed": "Muokattu vain täällä: yhteyshenkilö ei saanut korjausta",
       "chat.messageActions": "Viestin toiminnot",
       "chat.reactWith": "Reagoi emojilla {{emoji}}",
       "chat.statusSending": "Lähetetään",

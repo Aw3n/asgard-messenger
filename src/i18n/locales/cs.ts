@@ -964,6 +964,7 @@ export default {
       "chat.fileTypeBlocked": "Z bezpečnostních důvodů nelze tento typ souboru otevřít přímo. Použijte „Uložit jako“.",
       "chat.retrySend": "Odeslat znovu",
       "chat.editFailed": "Zprávu se nepodařilo upravit",
+      "chat.editForPeerFailed": "Upraveno pouze zde: kontakt neobdržel opravu",
       "chat.messageActions": "Akce zprávy",
       "chat.reactWith": "Reagovat pomocí {{emoji}}",
       "chat.statusSending": "Odesílání…",

@@ -964,6 +964,7 @@ export default {
       "chat.fileTypeBlocked": "Por segurança, este tipo de ficheiro não pode ser aberto diretamente. Use «Guardar como».",
       "chat.retrySend": "Reenviar",
       "chat.editFailed": "Não foi possível editar a mensagem",
+      "chat.editForPeerFailed": "Editado apenas aqui: o contacto não recebeu a correção",
       "chat.messageActions": "Ações da mensagem",
       "chat.reactWith": "Reagir com {{emoji}}",
       "chat.statusSending": "A enviar",

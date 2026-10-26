@@ -964,6 +964,7 @@ export default {
       "chat.fileTypeBlocked": "Iz sigurnosnih razloga ova vrsta datoteke ne može se izravno otvoriti. Upotrijebite „Spremi kao”.",
       "chat.retrySend": "Pošalji ponovno",
       "chat.editFailed": "Nije moguće urediti poruku",
+      "chat.editForPeerFailed": "Uređeno samo ovdje: kontakt nije primio ispravak",
       "chat.messageActions": "Radnje poruke",
       "chat.reactWith": "Reagiraj s {{emoji}}",
       "chat.statusSending": "Šalje se",

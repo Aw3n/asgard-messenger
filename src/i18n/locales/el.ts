@@ -952,6 +952,7 @@ export default {
       "chat.fileTypeBlocked": "Για ασφάλεια, αυτός ο τύπος αρχείου δεν μπορεί να ανοίξει απευθείας. Χρησιμοποιήστε «Αποθήκευση ως».",
       "chat.retrySend": "Επαναποστολή",
       "chat.editFailed": "Δεν ήταν δυνατή η επεξεργασία του μηνύματος",
+      "chat.editForPeerFailed": "Επεξεργάστηκε μόνο εδώ: η επαφή δεν έλαβε τη διόρθωση",
       "chat.messageActions": "Ενέργειες μηνύματος",
       "chat.reactWith": "Αντίδραση με {{emoji}}",
       "chat.statusSending": "Αποστολή…",

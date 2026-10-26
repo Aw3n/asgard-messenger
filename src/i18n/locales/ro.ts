@@ -964,6 +964,7 @@ export default {
       "chat.fileTypeBlocked": "Din motive de siguranță, acest tip de fișier nu poate fi deschis direct. Folosiți „Salvează ca”.",
       "chat.retrySend": "Trimite din nou",
       "chat.editFailed": "Mesajul nu a putut fi editat",
+      "chat.editForPeerFailed": "Editat doar aici: contactul nu a primit corectura",
       "chat.messageActions": "Acțiuni pentru mesaj",
       "chat.reactWith": "Reacționează cu {{emoji}}",
       "chat.statusSending": "Se trimite",

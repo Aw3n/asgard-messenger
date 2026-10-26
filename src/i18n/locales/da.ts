@@ -952,6 +952,7 @@ export default {
       "chat.fileTypeBlocked": "Af sikkerhedshensyn kan denne filtype ikke åbnes direkte. Brug »Gem som«.",
       "chat.retrySend": "Send igen",
       "chat.editFailed": "Beskeden kunne ikke redigeres",
+      "chat.editForPeerFailed": "Kun redigeret her: kontakten modtog ikke rettelsen",
       "chat.messageActions": "Beskedhandlinger",
       "chat.reactWith": "Reager med {{emoji}}",
       "chat.statusSending": "Sender",

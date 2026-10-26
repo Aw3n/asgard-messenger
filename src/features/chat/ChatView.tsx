@@ -491,7 +491,7 @@ export const ChatView: React.FC = () => {
       } catch (err) {
         console.error('[ChatView] editMessage failed:', err)
         try { window.asgard.debugLog('[ChatView] editMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
-        useUIStore.getState().addToast({ type: 'error', title: t('chat.editFailed') })
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.editForPeerFailed') })
       }
     },
     [editingMessage, dataId, conversation, t]

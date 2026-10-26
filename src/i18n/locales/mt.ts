@@ -988,6 +988,7 @@ export default {
       "chat.fileTypeBlocked": "Għas-sigurtà, dan it-tip ta' fajl ma jistax jinfetaħ direttament. Uża “Issejvja bħala”.",
       "chat.retrySend": "Ibgħat mill-ġdid",
       "chat.editFailed": "Il-messaġġ ma setax jiġi editjat",
+      "chat.editForPeerFailed": "Editjat biss hawn: il-kuntatt ma rċeviex il-korrezzjoni",
       "chat.messageActions": "Azzjonijiet tal-messaġġ",
       "chat.reactWith": "Irreaġixxi b'{{emoji}}",
       "chat.statusSending": "Qed jintbagħat",

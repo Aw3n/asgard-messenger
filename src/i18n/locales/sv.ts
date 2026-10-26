@@ -952,6 +952,7 @@ export default {
       "chat.fileTypeBlocked": "Av säkerhetsskäl kan den här filtypen inte öppnas direkt. Använd »Spara som».",
       "chat.retrySend": "Skicka igen",
       "chat.editFailed": "Det gick inte att redigera meddelandet",
+      "chat.editForPeerFailed": "Endast ändrat här: kontakten fick inte rättelsen",
       "chat.messageActions": "Meddelandeåtgärder",
       "chat.reactWith": "Reagera med {{emoji}}",
       "chat.statusSending": "Skickar",

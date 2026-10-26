@@ -69,6 +69,7 @@ vi.mock('@/features/chat/components/MessageInput', () => ({
     replyTo?: Message
     editingMessage?: Message
     onSend: (content: string) => void | Promise<boolean | void>
+    onEditSubmit: (content: string) => void
   }) =>
     React.createElement('div', {
       'data-testid': 'composer',
@@ -82,7 +83,13 @@ vi.mock('@/features/chat/components/MessageInput', () => ({
           sendOutcome.value = accepted
         })
       },
-    })
+    }),
+    props.editingMessage
+      ? React.createElement('button', {
+        'data-testid': 'composer-edit-submit',
+        onClick: () => { props.onEditSubmit('texte corrigé') },
+      })
+      : null,
     ),
 }))
 
@@ -110,6 +117,7 @@ vi.mock('@/services/ChatService', () => ({
     loadNewerMessages: vi.fn(),
     probeContact: vi.fn(),
     sendMessage: vi.fn(async () => 'sent'),
+    editMessage: vi.fn(async () => {}),
     sendReadReceipt: vi.fn(async () => {}),
     sendTyping: vi.fn(async () => {}),
   },
@@ -495,6 +503,37 @@ describe('ChatView : gestes réglés branchés sur le fil', () => {
 
     pressOn(row, 'v', { ctrlKey: true, altKey: true })
     expect(composerReply()).toBe('recent-1')
+  })
+})
+
+describe('ChatView : édition non transmise', () => {
+  beforeEach(() => {
+    vi.mocked(chatService.editMessage).mockClear()
+  })
+
+  /** Ouvre l'édition du dernier message à soi par le geste réglé. */
+  const startEditing = async () => {
+    renderThread()
+    await waitFor(() => expect(screen.getByTestId('bubble-recent-2')).toBeInTheDocument())
+    fireEvent.keyDown(document.body, { key: 'e', ctrlKey: true })
+    return screen.findByTestId('composer-edit-submit')
+  }
+
+  it('dit que la correction reste ici quand l’avis au pair échoue', async () => {
+    vi.mocked(chatService.editMessage).mockRejectedValueOnce(new Error('pair injoignable'))
+
+    fireEvent.click(await startEditing())
+
+    // Le texte est déjà corrigé et enregistré ici : parler d'un échec
+    // d'édition serait faux, seul le contact n'a pas reçu la correction.
+    await waitFor(() => expect(toastTitles()).toEqual(['chat.editForPeerFailed']))
+  })
+
+  it('ne dit rien quand l’édition part', async () => {
+    fireEvent.click(await startEditing())
+
+    await waitFor(() => expect(chatService.editMessage).toHaveBeenCalledTimes(1))
+    expect(toastTitles()).toEqual([])
   })
 })
 

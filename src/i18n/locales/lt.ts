@@ -965,6 +965,7 @@ export default {
       "chat.fileTypeBlocked": "Saugumo sumetimais šio tipo failo negalima atidaryti tiesiogiai. Naudokite „Išsaugoti kaip“.",
       "chat.retrySend": "Siųsti dar kartą",
       "chat.editFailed": "Nepavyko redaguoti žinutės",
+      "chat.editForPeerFailed": "Pakeista tik čia: kontaktas negavo pataisos",
       "chat.messageActions": "Žinutės veiksmai",
       "chat.reactWith": "Reaguoti su {{emoji}}",
       "chat.statusSending": "Siunčiama",

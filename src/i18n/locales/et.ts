@@ -952,6 +952,7 @@ export default {
       "chat.fileTypeBlocked": "Turvalisuse huvides ei saa seda failitüüpi otse avada. Kasutage „Salvesta kui”.",
       "chat.retrySend": "Saada uuesti",
       "chat.editFailed": "Sõnumi muutmine ebaõnnestus",
+      "chat.editForPeerFailed": "Muudetud ainult siin: kontakt ei saanud parandust",
       "chat.messageActions": "Sõnumi toimingud",
       "chat.reactWith": "Reageeri emojiga {{emoji}}",
       "chat.statusSending": "Saadan",

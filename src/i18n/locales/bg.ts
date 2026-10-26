@@ -952,6 +952,7 @@ export default {
       "chat.fileTypeBlocked": "От съображения за сигурност този тип файл не може да се отвори директно. Използвайте „Запази като“.",
       "chat.retrySend": "Изпрати отново",
       "chat.editFailed": "Съобщението не можа да бъде редактирано",
+      "chat.editForPeerFailed": "Редактирано само тук: контактът не получи корекцията",
       "chat.messageActions": "Действия със съобщението",
       "chat.reactWith": "Реагиране с {{emoji}}",
       "chat.statusSending": "Изпращане…",

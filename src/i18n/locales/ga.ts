@@ -988,6 +988,7 @@ export default {
       "chat.fileTypeBlocked": "Ar mhaithe le sábháilteacht, ní féidir an cineál comhaid seo a oscailt go díreach. Úsáid “Sábháil mar”.",
       "chat.retrySend": "Seol arís",
       "chat.editFailed": "Níorbh fhéidir an teachtaireacht a chur in eagar",
+      "chat.editForPeerFailed": "Curtha in eagar anseo amháin: ní bhfuair an teagmhálaí an ceartú",
       "chat.messageActions": "Gníomhartha teachtaireachta",
       "chat.reactWith": "Freagair le {{emoji}}",
       "chat.statusSending": "Á sheoladh",

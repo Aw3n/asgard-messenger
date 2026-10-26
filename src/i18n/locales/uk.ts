@@ -964,6 +964,7 @@ export default {
       "chat.fileTypeBlocked": "З міркувань безпеки цей тип файлу не можна відкрити напряму. Скористайтеся «Зберегти як».",
       "chat.retrySend": "Надіслати знову",
       "chat.editFailed": "Не вдалося змінити повідомлення",
+      "chat.editForPeerFailed": "Змінено лише тут: контакт не отримав виправлення",
       "chat.messageActions": "Дії з повідомленням",
       "chat.reactWith": "Реагувати з {{emoji}}",
       "chat.statusSending": "Надсилання…",
