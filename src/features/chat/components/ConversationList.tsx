@@ -14,8 +14,9 @@ import { ConversationConfirm, type ConversationConfirmVariant } from './Conversa
 import { formatConversationTime } from '@/utils/time'
 import { cn } from '@/utils/cn'
 import { MUTE_DURATIONS } from '@/utils/mute'
+import { isLivePresence, presenceMeta } from '@/utils/presence'
 import { useMenuGestures } from '@/hooks/useMenuGestures'
-import type { Conversation } from '@/types'
+import type { Conversation, UserStatus } from '@/types'
 import { useTranslation } from 'react-i18next'
 
 interface ConversationListProps {
@@ -442,7 +443,7 @@ interface ConversationItemProps {
   typing?: boolean
   contactName?: string
   contactAvatar?: string
-  contactStatus?: string
+  contactStatus?: UserStatus
   contactPending?: boolean
   isActive: boolean
   onClick: () => void
@@ -496,7 +497,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           name={name}
           publicKey={conv.participantId}
           size="md"
-          status={contactStatus as 'online' | 'offline' | 'away' | 'busy' | 'invisible' | undefined}
+          status={contactStatus}
           showStatus
         />
       </div>
@@ -512,6 +513,11 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           >
             {name}
           </span>
+          {/* La pastille de l'avatar est un simple point : sans ce mot, un
+              contact joignable se lisait comme un contact hors ligne. */}
+          {contactStatus && isLivePresence(contactStatus) && (
+            <span className="sr-only">{t(presenceMeta(contactStatus).labelKey)}</span>
+          )}
           {contactPending && (
             <span className="text-xxs px-1.5 py-0.5 rounded-full bg-asgard-away/15 text-asgard-away flex-shrink-0 ml-2">
               {t('contacts.pendingBadge')}

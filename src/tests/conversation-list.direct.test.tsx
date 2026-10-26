@@ -279,6 +279,23 @@ describe('liste des conversations', () => {
       .toHaveAccessibleName(/chat\.pinnedConversation/)
   })
 
+  it('annonce la présence d’un contact joignable, pas celle d’un contact absent', () => {
+    render(
+      <MemoryRouter>
+        <ConversationList />
+      </MemoryRouter>,
+    )
+
+    // La pastille de l'avatar reste un point muet : la rangée doit dire si le
+    // contact est là, et seulement s'il l'est.
+    expect(screen.getByRole('button', { name: /Bob/ })).toHaveAccessibleName(/common\.online/)
+
+    act(() => {
+      useContactStore.setState({ contacts: { [PEER]: { ...contact, status: 'offline' } } })
+    })
+    expect(screen.getByRole('button', { name: /Bob/ })).not.toHaveAccessibleName(/common\.(online|away|busy)/)
+  })
+
   it('marque toutes les conversations comme lues', () => {
     const groupUnread: Group = {
       id: group.id,
