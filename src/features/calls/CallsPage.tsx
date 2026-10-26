@@ -6,11 +6,11 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { formatPublicKey } from '@/utils/id'
 import { isLivePresence, presenceMeta } from '@/utils/presence'
+import { formatMessageTime } from '@/utils/time'
 import { PageTransition } from '@/components/ui/PageTransition'
 import type { CallRecord, CallType } from '@/stores/callStore'
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/stores/uiStore'
-import { getCurrentLanguage } from '@/i18n/config'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 /** Grouped call history entry: latest call per contact + count */
@@ -144,16 +144,6 @@ export const CallsPage: React.FC = () => {
     const m = Math.floor(seconds / 60)
     const s = seconds % 60
     return `${m}:${s.toString().padStart(2, '0')}`
-  }
-
-  const formatDate = (timestamp: number): string => {
-    const now = Date.now()
-    const diff = now - timestamp
-    const locale = getCurrentLanguage()
-    if (diff < 86400000) {
-      return new Date(timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-    }
-    return new Date(timestamp).toLocaleDateString(locale)
   }
 
   const getCallIcon = (call: CallRecord) => {
@@ -402,7 +392,7 @@ export const CallsPage: React.FC = () => {
                         {group.totalCount}
                       </span>
                     )}
-                    <span className="text-xs text-asgard-text-muted">{formatDate(group.latestCall.startedAt)}</span>
+                    <span className="text-xs text-asgard-text-muted">{formatMessageTime(group.latestCall.startedAt)}</span>
                     {/* Expand indicator */}
                     {expandable && (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={`text-asgard-text-muted transition-transform ${expandedPeer === group.peerId ? 'rotate-180' : ''}`}>
@@ -485,7 +475,7 @@ export const CallsPage: React.FC = () => {
                               )}
                             </div>
                           </div>
-                          <span className="text-xs text-asgard-text-muted">{formatDate(call.startedAt)}</span>
+                          <span className="text-xs text-asgard-text-muted">{formatMessageTime(call.startedAt)}</span>
                         </div>
                       ))}
                     </div>

@@ -14,6 +14,7 @@ import { CallsPage } from '@/features/calls/CallsPage'
 import { callService } from '@/services/CallService'
 import { useCallStore, type CallRecord } from '@/stores/callStore'
 import { useContactStore } from '@/stores/contactStore'
+import { getCurrentLanguage } from '@/i18n/config'
 import type { Contact } from '@/types'
 
 const missedCall: CallRecord = {
@@ -57,6 +58,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
@@ -229,5 +231,36 @@ describe('liste des contacts d’appel', () => {
 
     expect(screen.getByRole('button', { name: 'calls.audioCall — Camille' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'calls.videoCall — Camille' })).toBeInTheDocument()
+  })
+})
+
+describe('datation de l’historique', () => {
+  it('nomme le jour d’un appel de la veille au lieu d’afficher une heure seule', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 2, 11, 10, 0, 0))
+
+    const appelDuJour = new Date(2026, 2, 11, 9, 0, 0).getTime()
+    const appelDeLaVeille = new Date(2026, 2, 10, 22, 0, 0).getTime()
+    const heure = (ts: number) =>
+      new Date(ts).toLocaleTimeString(getCurrentLanguage(), { hour: '2-digit', minute: '2-digit' })
+
+    useCallStore.setState({
+      history: [
+        { ...missedCall, id: 'appel-du-jour', peerId: 'peer-alice', peerName: 'Alice', startedAt: appelDuJour },
+        // Deux appels : la rangée devient dépliable, donc une seule zone nommée.
+        { ...missedCall, id: 'appel-veille', peerId: 'peer-bruno', peerName: 'Bruno', startedAt: appelDeLaVeille },
+        { ...missedCall, id: 'appel-avant-veille', peerId: 'peer-bruno', peerName: 'Bruno', startedAt: appelDeLaVeille - 86_400_000 },
+      ],
+    })
+    render(<CallsPage />)
+
+    // 22 h la veille reste à moins de 24 h : la fenêtre glissante n'affichait
+    // que « 22:00 », indiscernable d'un appel passé le jour même.
+    const ligne = screen.getByRole('button', { expanded: false, name: /Bruno/ })
+    const libelle = within(ligne).getByText(new RegExp(heure(appelDeLaVeille)))
+    expect(libelle.textContent).not.toBe(heure(appelDeLaVeille))
+
+    // Un appel du jour garde son heure seule.
+    expect(screen.getByText(heure(appelDuJour))).toBeInTheDocument()
   })
 })
