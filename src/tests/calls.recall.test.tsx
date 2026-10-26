@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('react-i18next', () => ({
@@ -14,6 +14,7 @@ import { CallsPage } from '@/features/calls/CallsPage'
 import { callService } from '@/services/CallService'
 import { useCallStore, type CallRecord } from '@/stores/callStore'
 import { useContactStore } from '@/stores/contactStore'
+import type { Contact } from '@/types'
 
 const missedCall: CallRecord = {
   id: 'call-manque', peerId: 'peer-manque', peerName: 'Camille', type: 'video',
@@ -186,8 +187,47 @@ describe('rangée d’historique dépliable', () => {
     useCallStore.setState({ history: [missedCall] })
     render(<CallsPage />)
 
-    expect(screen.queryByRole('button', { name: /Camille/ })).toBeNull()
+    expect(screen.queryByRole('button', { expanded: false })).toBeNull()
     expect(document.querySelector('[aria-expanded]')).toBeNull()
     expect(document.querySelector('.cursor-pointer')).toBeNull()
+  })
+})
+
+describe('liste des contacts d’appel', () => {
+  const alice: Contact = {
+    publicKey: 'peer-alice', displayName: 'Alice', status: 'online', relation: 'contact',
+    verified: false, addedAt: Date.now(),
+  }
+  const seedAlice = (status: Contact['status'] = 'online') => {
+    useContactStore.setState({ contacts: { [alice.publicKey]: { ...alice, status } } })
+  }
+
+  it('nomme chaque bouton d’appel par son contact', () => {
+    seedAlice()
+    render(<CallsPage />)
+
+    // Deux boutons identiques par contact : sans le nom, un lecteur d'écran
+    // annonçait « Appel audio » sans dire à qui.
+    expect(screen.getByRole('button', { name: 'calls.audioCall — Alice' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'calls.videoCall — Alice' })).toBeInTheDocument()
+  })
+
+  it('annonce la présence d’un contact joignable, pas celle d’un contact absent', () => {
+    seedAlice('online')
+    render(<CallsPage />)
+
+    expect(screen.getByText('common.online')).toBeInTheDocument()
+
+    act(() => seedAlice('offline'))
+
+    expect(screen.queryByText('common.online')).toBeNull()
+  })
+
+  it('nomme aussi le rappel par contact dans l’historique', () => {
+    useCallStore.setState({ history: [missedCall] })
+    render(<CallsPage />)
+
+    expect(screen.getByRole('button', { name: 'calls.audioCall — Camille' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'calls.videoCall — Camille' })).toBeInTheDocument()
   })
 })

@@ -5,6 +5,7 @@ import { callService } from '@/services/CallService'
 import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { formatPublicKey } from '@/utils/id'
+import { isLivePresence, presenceMeta } from '@/utils/presence'
 import { PageTransition } from '@/components/ui/PageTransition'
 import type { CallRecord, CallType } from '@/stores/callStore'
 import { useTranslation } from 'react-i18next'
@@ -310,12 +311,18 @@ export const CallsPage: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-asgard-text-primary truncate">{contact.displayName}</p>
                   <p className="text-xs text-asgard-text-muted">{formatPublicKey(contact.publicKey)}</p>
+                  {/* La pastille de l'avatar est un point muet : sans ce mot, un
+                      contact joignable se lisait comme un contact hors ligne. */}
+                  {isLivePresence(contact.status) && (
+                    <span className="sr-only">{t(presenceMeta(contact.status).labelKey)}</span>
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => callService.startCall(contact.publicKey, contact.displayName, 'audio', contact.avatar)}
                     className="w-8 h-8 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                     title={t('calls.audioCall')}
+                    aria-label={`${t('calls.audioCall')} — ${contact.displayName}`}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
                       <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
@@ -325,6 +332,7 @@ export const CallsPage: React.FC = () => {
                     onClick={() => callService.startCall(contact.publicKey, contact.displayName, 'video', contact.avatar)}
                     className="w-8 h-8 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                     title={t('calls.videoCall')}
+                    aria-label={`${t('calls.videoCall')} — ${contact.displayName}`}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
                       <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
@@ -437,6 +445,7 @@ export const CallsPage: React.FC = () => {
                           onClick={() => recall(group, 'audio')}
                           className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                           title={t('calls.audioCall')}
+                          aria-label={`${t('calls.audioCall')} — ${group.peerName}`}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
                             <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
@@ -446,6 +455,7 @@ export const CallsPage: React.FC = () => {
                           onClick={() => recall(group, 'video')}
                           className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                           title={t('calls.videoCall')}
+                          aria-label={`${t('calls.videoCall')} — ${group.peerName}`}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
                             <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
