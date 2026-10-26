@@ -735,7 +735,7 @@ export default {
       "settings.cameras": "Kamerák",
       "settings.chatDensity_comfortable": "Kényelmes",
       "settings.chatDensity_compact": "Kompakt",
-      "settings.chatDensity_cozy": "Kényelmes",
+      "settings.chatDensity_cozy": "Hangulatos",
       "settings.chatSubtitle": "Állítsa be csevegési élményét",
       "settings.clearCache": "Gyorsítótár törlése",
       "settings.clearDownloadHistoryWarning": "A letöltési előzmények kiürülnek. A már mentett fájlok a lemezen maradnak.",

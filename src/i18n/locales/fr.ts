@@ -485,7 +485,7 @@ export default {
       "settings.chat": "Discussion",
       "settings.chatDensity_comfortable": "Confortable",
       "settings.chatDensity_compact": "Compact",
-      "settings.chatDensity_cozy": "Confortable",
+      "settings.chatDensity_cozy": "Cosy",
       "settings.chatSubtitle": "Configurez votre expérience de messagerie",
       "settings.clearAll": "Tout effacer",
       "settings.clearCache": "Vider le cache",

@@ -735,7 +735,7 @@ export default {
       "settings.cameras": "Kaamerad",
       "settings.chatDensity_comfortable": "Mugav",
       "settings.chatDensity_compact": "Kompaktne",
-      "settings.chatDensity_cozy": "Mugav",
+      "settings.chatDensity_cozy": "Hubane",
       "settings.chatSubtitle": "Seadistage oma vestluskogemus",
       "settings.clearCache": "Tühjenda vahemälu",
       "settings.clearDownloadHistoryWarning": "Allalaadimiste ajalugu tühjendatakse. Juba salvestatud failid jäävad kettale.",

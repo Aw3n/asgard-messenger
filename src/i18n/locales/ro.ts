@@ -747,7 +747,7 @@ export default {
       "settings.cameras": "Camere",
       "settings.chatDensity_comfortable": "Confortabil",
       "settings.chatDensity_compact": "Compact",
-      "settings.chatDensity_cozy": "Confortabil",
+      "settings.chatDensity_cozy": "Primitor",
       "settings.chatSubtitle": "Configurează experiența ta de conversație",
       "settings.clearCache": "Golește memoria cache",
       "settings.clearDownloadHistoryWarning": "Istoricul descărcărilor va fi golit. Fișierele deja salvate rămân pe disc.",

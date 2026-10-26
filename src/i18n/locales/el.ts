@@ -735,7 +735,7 @@ export default {
       "settings.cameras": "Κάμερες",
       "settings.chatDensity_comfortable": "Άνετη",
       "settings.chatDensity_compact": "Συμπαγής",
-      "settings.chatDensity_cozy": "Άνετη",
+      "settings.chatDensity_cozy": "Ζεστή",
       "settings.chatSubtitle": "Διαμορφώστε την εμπειρία συνομιλίας σας",
       "settings.clearCache": "Εκκαθάριση cache",
       "settings.clearDownloadHistoryWarning": "Το ιστορικό λήψεων θα αδειάσει. Τα αρχεία που έχουν ήδη αποθηκευτεί παραμένουν στον δίσκο σας.",

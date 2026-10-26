@@ -747,7 +747,7 @@ export default {
       "settings.cameras": "Kamere",
       "settings.chatDensity_comfortable": "Udobno",
       "settings.chatDensity_compact": "Kompaktno",
-      "settings.chatDensity_cozy": "Udobno",
+      "settings.chatDensity_cozy": "Toplo",
       "settings.chatSubtitle": "Konfigurirajte svoje iskustvo chatanja",
       "settings.clearCache": "Očisti predmemoriju",
       "settings.clearDownloadHistoryWarning": "Povijest preuzimanja bit će ispražnjena. Već spremljene datoteke ostaju na disku.",

@@ -771,7 +771,7 @@ export default {
       "settings.cameras": "Ceamaraí",
       "settings.chatDensity_comfortable": "Compordach",
       "settings.chatDensity_compact": "Dlúth",
-      "settings.chatDensity_cozy": "Compordach",
+      "settings.chatDensity_cozy": "Cluthar",
       "settings.chatSubtitle": "Cumraigh do thaithí comhrá",
       "settings.clearCache": "Glan taisce",
       "settings.clearDownloadHistoryWarning": "Glanfar stair na n-íosluchtuithe. Fanann comhaid atá sábháilte cheana ar do dhiosca.",

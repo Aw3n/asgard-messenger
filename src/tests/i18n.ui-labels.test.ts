@@ -52,6 +52,9 @@ const LABEL_KEYS = [
   'groups.broadcastModeHint',
   'calls.typeAudio',
   'calls.typeVideo',
+  'settings.chatDensity_comfortable',
+  'settings.chatDensity_cozy',
+  'settings.chatDensity_compact',
 ]
 
 describe('rendu i18next des libellés corrigés', () => {

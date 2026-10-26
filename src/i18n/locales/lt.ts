@@ -748,7 +748,7 @@ export default {
       "settings.cameras": "Kameros",
       "settings.chatDensity_comfortable": "Patogu",
       "settings.chatDensity_compact": "Kompaktiška",
-      "settings.chatDensity_cozy": "Patogu",
+      "settings.chatDensity_cozy": "Jaukus",
       "settings.chatSubtitle": "Konfigūruokite savo pokalbių patirtį",
       "settings.clearCache": "Išvalyti talpyklą",
       "settings.clearDownloadHistoryWarning": "Atsisiuntimų istorija bus išvalyta. Jau išsaugoti failai lieka diske.",

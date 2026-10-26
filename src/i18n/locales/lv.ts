@@ -747,7 +747,7 @@ export default {
       "settings.cameras": "Kameras",
       "settings.chatDensity_comfortable": "Ērts",
       "settings.chatDensity_compact": "Kompakts",
-      "settings.chatDensity_cozy": "Ērts",
+      "settings.chatDensity_cozy": "Mājīgs",
       "settings.chatSubtitle": "Konfigurējiet savu tērzēšanas pieredzi",
       "settings.clearCache": "Notīrīt kešatmiņu",
       "settings.clearDownloadHistoryWarning": "Lejupielāžu vēsture tiks iztīrīta. Jau saglabātās datnes paliek diskā.",

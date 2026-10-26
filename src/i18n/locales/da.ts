@@ -735,7 +735,7 @@ export default {
       "settings.cameras": "Kameraer",
       "settings.chatDensity_comfortable": "Behagelig",
       "settings.chatDensity_compact": "Kompakt",
-      "settings.chatDensity_cozy": "Behagelig",
+      "settings.chatDensity_cozy": "Hyggelig",
       "settings.chatSubtitle": "Konfigurer din chatoplevelse",
       "settings.clearCache": "Ryd cache",
       "settings.clearDownloadHistoryWarning": "Downloadhistorikken ryddes. Filer, der allerede er gemt, bliver på din disk.",

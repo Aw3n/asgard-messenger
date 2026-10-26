@@ -735,7 +735,7 @@ export default {
       "settings.cameras": "Kameror",
       "settings.chatDensity_comfortable": "Bekväm",
       "settings.chatDensity_compact": "Kompakt",
-      "settings.chatDensity_cozy": "Bekväm",
+      "settings.chatDensity_cozy": "Mysig",
       "settings.chatSubtitle": "Konfigurera din chattupplevelse",
       "settings.clearCache": "Rensa cache",
       "settings.clearDownloadHistoryWarning": "Nedladdningshistoriken töms. Filer som redan sparats finns kvar på disken.",

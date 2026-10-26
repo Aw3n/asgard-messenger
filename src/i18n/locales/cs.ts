@@ -747,7 +747,7 @@ export default {
       "settings.cameras": "Kamery",
       "settings.chatDensity_comfortable": "Pohodlná",
       "settings.chatDensity_compact": "Kompaktní",
-      "settings.chatDensity_cozy": "Pohodlná",
+      "settings.chatDensity_cozy": "Útulná",
       "settings.chatSubtitle": "Konfigurujte své chatové prostředí",
       "settings.clearCache": "Vymazat mezipaměť",
       "settings.clearDownloadHistoryWarning": "Historie stahování bude vymazána. Již uložené soubory zůstávají na disku.",

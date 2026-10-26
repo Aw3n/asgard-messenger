@@ -771,7 +771,7 @@ export default {
       "settings.cameras": "Kameras",
       "settings.chatDensity_comfortable": "Komdu",
       "settings.chatDensity_compact": "Kompatt",
-      "settings.chatDensity_cozy": "Komdu",
+      "settings.chatDensity_cozy": "Sħun",
       "settings.chatSubtitle": "Ikkonfigura l-esperjenza taċ-chat tiegħek",
       "settings.clearCache": "Neħħi l-cache",
       "settings.clearDownloadHistoryWarning": "L-istorja tat-tniżżil se tiġi mħassra. Il-fajls li diġà ġew salvati jibqgħu fuq id-diska tiegħek.",

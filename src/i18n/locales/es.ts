@@ -765,7 +765,7 @@ export default {
       "settings.cameras": "Cámaras",
       "settings.chatDensity_comfortable": "Cómodo",
       "settings.chatDensity_compact": "Compacto",
-      "settings.chatDensity_cozy": "Cómodo",
+      "settings.chatDensity_cozy": "Acogedor",
       "settings.chatSubtitle": "Configura tu experiencia de mensajería",
       "settings.clearCache": "Vaciar caché",
       "settings.clearDownloadHistoryWarning": "Se vaciará el historial de descargas. Los archivos ya guardados permanecen en tu disco.",

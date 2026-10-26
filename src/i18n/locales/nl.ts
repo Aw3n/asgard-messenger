@@ -753,7 +753,7 @@ export default {
       "settings.cameras": "Camera's",
       "settings.chatDensity_comfortable": "Comfortabel",
       "settings.chatDensity_compact": "Compact",
-      "settings.chatDensity_cozy": "Comfortabel",
+      "settings.chatDensity_cozy": "Knus",
       "settings.chatSubtitle": "Configureer uw chatervaring",
       "settings.clearCache": "Cache wissen",
       "settings.clearDownloadHistoryWarning": "De downloadgeschiedenis wordt gewist. Bestanden die al zijn opgeslagen, blijven op je schijf staan.",

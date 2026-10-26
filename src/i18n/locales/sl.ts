@@ -759,7 +759,7 @@ export default {
       "settings.cameras": "Kamere",
       "settings.chatDensity_comfortable": "Udobno",
       "settings.chatDensity_compact": "Kompaktno",
-      "settings.chatDensity_cozy": "Udobno",
+      "settings.chatDensity_cozy": "Prisrčno",
       "settings.chatSubtitle": "Konfigurirajte svojo izkušnjo klepeta",
       "settings.clearCache": "Počisti predpomnilnik",
       "settings.clearDownloadHistoryWarning": "Zgodovina prenosov bo izpraznjena. Že shranjene datoteke ostanejo na disku.",

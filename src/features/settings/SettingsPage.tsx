@@ -788,7 +788,10 @@ return (
               {t('settings.messageDensity')}
             </p>
             <div role="group" aria-labelledby={densityGroupId} className="flex gap-3">
-              {(['comfortable', 'compact', 'cozy'] as const).map((d) => (
+              {/* Ordre du plus aéré au plus serré : MessageBubble donne 1,5 / 1 / 0,5
+                  de marge verticale. Placer « compact » avant « cozy » faisait
+                  croire que le troisième choix était le plus dense. */}
+              {(['comfortable', 'cozy', 'compact'] as const).map((d) => (
                 <button
                   key={d}
                   onClick={() => updateSettings({ chat: { ...chat, density: d } })}

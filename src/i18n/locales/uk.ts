@@ -726,7 +726,7 @@ export default {
       "settings.cameras": "Камери",
       "settings.chatDensity_comfortable": "Зручна",
       "settings.chatDensity_compact": "Компактна",
-      "settings.chatDensity_cozy": "Зручна",
+      "settings.chatDensity_cozy": "Затишна",
       "settings.chatSubtitle": "Налаштуйте свій досвід чату",
       "settings.clearCache": "Очистити кеш",
       "settings.clearDownloadHistoryWarning": "Історію завантажень буде очищено. Уже збережені файли залишаться на диску.",

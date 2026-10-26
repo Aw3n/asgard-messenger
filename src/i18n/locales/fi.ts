@@ -735,7 +735,7 @@ export default {
       "settings.cameras": "Kamerat",
       "settings.chatDensity_comfortable": "Mukava",
       "settings.chatDensity_compact": "Tiivis",
-      "settings.chatDensity_cozy": "Mukava",
+      "settings.chatDensity_cozy": "Viihtyisä",
       "settings.chatSubtitle": "Mukauta viestintäkokemustasi",
       "settings.clearCache": "Tyhjennä välimuisti",
       "settings.clearDownloadHistoryWarning": "Lataushistoria tyhjennetään. Jo tallennetut tiedostot säilyvät levylläsi.",
