@@ -1104,7 +1104,13 @@ class ChatService {
    * Edit a sent message
    */
   async editMessage(messageId: string, conversationId: string, newContent: string, peerId: string): Promise<void> {
-    useMessageStore.getState().editMessage(messageId, conversationId, newContent)
+    const store = useMessageStore.getState()
+    store.editMessage(messageId, conversationId, newContent)
+    // Sans cette écriture, le texte corrigé n'existe qu'en mémoire : au
+    // redémarrage l'ancien revient chez l'auteur, alors que le contact garde
+    // la correction reçue.
+    const edited = store.getMessage(messageId, conversationId)
+    if (edited) storageService.saveMessage(conversationId, edited).catch(console.error)
     await p2pService.sendMessage(peerId, 'chat:edit', { messageId, conversationId, newContent })
   }
 
@@ -1125,7 +1131,12 @@ class ChatService {
    * Delete a message (soft delete — marks as deleted)
    */
   async deleteMessage(messageId: string, conversationId: string, peerId: string): Promise<void> {
-    useMessageStore.getState().deleteMessage(messageId, conversationId)
+    const store = useMessageStore.getState()
+    store.deleteMessage(messageId, conversationId)
+    // Le tombeau doit survivre au redémarrage, comme celui des groupes :
+    // sinon la phrase supprimée revient chez l'auteur au prochain lancement.
+    const deleted = store.getMessage(messageId, conversationId)
+    if (deleted) storageService.saveMessage(conversationId, deleted).catch(console.error)
     await p2pService.sendMessage(peerId, 'chat:delete', { messageId, conversationId })
   }
 
