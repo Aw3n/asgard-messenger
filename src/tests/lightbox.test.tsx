@@ -350,6 +350,88 @@ describe('ImageLightbox', () => {
 })
 
 /**
+ * Une photo transférée de 321×380 s'ouvrait à sa taille naturelle au milieu
+ * d'une scène de 900×560 : l'échelle 1 valait « pixels naturels », il n'existait
+ * aucun cadrage. Elle doit remplir la scène sans être rognée — et « ajusté » ne
+ * doit pas être confondu avec « zoomé », sinon la galerie se figerait.
+ */
+describe('cadrage d’une photo transférée', () => {
+  /**
+   * jsdom ne calcule aucune mise en page : on fixe la scène et la boîte rendue
+   * de l'image, puis on déclenche le chargement comme le navigateur le ferait.
+   */
+  const layOut = (
+    img: HTMLImageElement,
+    stage: HTMLElement,
+    box: { w: number; h: number },
+    scene: { w: number; h: number },
+  ) => {
+    const size = (el: Element, prop: string, value: number) =>
+      Object.defineProperty(el, prop, { configurable: true, value })
+    size(stage, 'clientWidth', scene.w)
+    size(stage, 'clientHeight', scene.h)
+    size(img, 'offsetWidth', box.w)
+    size(img, 'offsetHeight', box.h)
+    size(img, 'naturalWidth', box.w)
+    size(img, 'naturalHeight', box.h)
+    fireEvent.load(img)
+  }
+
+  const scaleOf = () => Number(/scale\(([\d.]+)\)/.exec(imgOf().style.transform)?.[1])
+  const sceneAndImage = (box: { w: number; h: number }) => {
+    layOut(imgOf(), screen.getByTestId('lightbox-stage'), box, { w: 900, h: 560 })
+  }
+
+  it('remplit la scène avec une petite photo, sans la rogner', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    sceneAndImage({ w: 321, h: 380 })
+
+    // 900/321 = 2,80 mais 560/380 = 1,47 : c'est la hauteur qui limite.
+    expect(scaleOf()).toBeCloseTo(560 / 380, 6)
+    expect(screen.getByText('147%')).toBeInTheDocument()
+  })
+
+  it('laisse une photo déjà plus grande à l’échelle de la scène', () => {
+    render(<ImageLightbox items={[item()]} onClose={vi.fn()} />)
+    sceneAndImage({ w: 900, h: 560 })
+
+    expect(scaleOf()).toBe(1)
+  })
+
+  it('n’est pas « zoomée » à l’ajustement : galerie, clavier et double-clic restent relatifs', async () => {
+    render(<ImageLightbox items={[item({ id: 'a' }), item({ id: 'b' })]} onClose={vi.fn()} />)
+    sceneAndImage({ w: 321, h: 380 })
+    expect(scaleOf()).toBeCloseTo(560 / 380, 6)
+
+    // La bande et les flèches restent actives : la photo est entière.
+    expect(screen.getByTestId('lightbox-filmstrip')).toBeInTheDocument()
+    const next = screen.getByLabelText(label('lightbox.next'), { selector: 'button' })
+    expect(next.className).not.toContain('pointer-events-none')
+
+    // Le double-clic entre dans le détail puis revient à l'ajustement, pas à 1.
+    fireEvent.doubleClick(imgOf())
+    expect(scaleOf()).toBeCloseTo(2.5, 6)
+    fireEvent.doubleClick(imgOf())
+    expect(scaleOf()).toBeCloseTo(560 / 380, 6)
+
+    // La flèche du clavier navigue au lieu de déplacer la vue.
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await waitFor(() => expect(screen.getByText('2 / 2')).toBeInTheDocument())
+  })
+
+  it('remonte un <img> neuf à chaque photo, même quand deux entrées partagent la source', () => {
+    render(<ImageLightbox items={[item({ id: 'a' }), item({ id: 'b' })]} onClose={vi.fn()} />)
+    const first = imgOf()
+
+    fireEvent.click(screen.getByLabelText(label('lightbox.next'), { selector: 'button' }))
+
+    // Un élément réutilisé ne rejoue pas `load` : la photo suivante resterait
+    // invisible et cadrée sur la boîte de la précédente.
+    expect(imgOf()).not.toBe(first)
+  })
+})
+
+/**
  * La visionneuse fermait sur un « Escape » recopié dans le code : après un
  * re-réglage de « Fermer la boîte de dialogue », elle restait la seule surface
  * de l'application à obéir à l'ancienne touche — et la croix ne le disait pas.

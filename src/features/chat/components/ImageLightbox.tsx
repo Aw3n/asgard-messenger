@@ -137,6 +137,12 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   const [index, setIndex] = useState(() => Math.min(Math.max(startIndex, 0), Math.max(items.length - 1, 0)))
   const [view, setView] = useState<View>({ scale: 1, x: 0, y: 0 })
+  /**
+   * Échelle d'ajustement mesurée : 1 pour une photo déjà plus grande que la
+   * scène (le CSS la borne), davantage pour une petite pièce jointe, qui
+   * s'affichait jusqu'ici à sa taille naturelle au milieu du noir.
+   */
+  const [fit, setFit] = useState(1)
   const [dragging, setDragging] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [natural, setNatural] = useState({ w: 0, h: 0 })
@@ -164,6 +170,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const bottomBarRef = useRef<HTMLDivElement>(null)
   const arrowRef = useRef<HTMLButtonElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
+  /** Miroir synchrone de `fit` : les gestes enregistrés une fois le lisent à jour. */
+  const fitRef = useRef(1)
   /** Timestamp of the last tap — touch devices report no dblclick. */
   const lastTapAt = useRef(0)
   /** Source pour laquelle la récupération par `loadFull` a déjà été tentée. */
@@ -198,8 +206,12 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const current = useMemo(() => items[Math.min(index, items.length - 1)], [items, index])
   const displaySrc = fullUrl ?? current?.src ?? ''
   const showingOriginal = !!fullUrl || (current ? !current.preview : true)
-  /** Un zoom en cours gèle la navigation : bande, flèches et flèches clavier. */
-  const isZoomed = view.scale > MIN_SCALE + 0.02
+  /**
+   * Un zoom au-delà de l'ajustement gèle la navigation : bande, flèches et
+   * flèches clavier. À l'ajustement lui-même la photo reste entière, même
+   * agrandie pour remplir la scène.
+   */
+  const isZoomed = view.scale > fit + 0.02
 
   // Keep the latest values reachable from listeners registered once.
   const stateRef = useRef({ view, index, items })
@@ -220,10 +232,14 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   /** Ceiling for the current image: a bit past pixel-perfect, never pure mush. */
   const maxScale = useCallback(() => {
     const img = imgRef.current
-    if (!img || !img.offsetWidth || !natural.w) return 8
-    const oneToOne = natural.w / img.offsetWidth
-    return Math.min(ABSOLUTE_MAX_SCALE, Math.max(2.5, oneToOne * 2))
-  }, [natural])
+    const fitNow = fitRef.current
+    if (!img || !img.offsetWidth || !img.naturalWidth) return Math.max(DETAIL_SCALE, fitNow)
+    const oneToOne = img.naturalWidth / img.offsetWidth
+    // `fitNow * 2` garde un pas de zoom au-dessus de l'ajustement même quand la
+    // photo agrandie frôle déjà le plafond : sans lui, « + » resterait inerte
+    // sur une petite pièce jointe.
+    return Math.min(ABSOLUTE_MAX_SCALE, Math.max(DETAIL_SCALE, oneToOne * 2, fitNow * 2))
+  }, [])
 
   /**
    * Élément sur lequel se mesurent l'ajustement et les bornes du pan. La scène
@@ -231,6 +247,25 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
    * alors sur le conteneur, qui ne peut rien déplacer de toute façon.
    */
   const frame = useCallback((): HTMLElement | null => stageRef.current ?? containerRef.current, [])
+
+  /**
+   * Échelle à laquelle la photo remplit la scène sans en dépasser. Une image
+   * plus grande est déjà bornée par `max-w-full max-h-full` (facteur 1) ; une
+   * photo transférée plus petite, elle, restait à sa taille naturelle — le
+   * lecteur s'ouvrait sur une vignette au milieu du noir. La mesure se fait sur
+   * la boîte rendue de l'<img>, que la transformation CSS ne change pas.
+   */
+  const measureFit = useCallback(() => {
+    const img = imgRef.current
+    const cont = frame()
+    if (!img || !cont) return 1
+    const w = img.offsetWidth
+    const h = img.offsetHeight
+    const stageW = cont.clientWidth
+    const stageH = cont.clientHeight
+    if (!w || !h || !stageW || !stageH) return 1
+    return Math.min(ABSOLUTE_MAX_SCALE, Math.max(1, Math.min(stageW / w, stageH / h)))
+  }, [frame])
 
   /**
    * Bornes du pan pour une échelle donnée. Quand l'image dépasse la scène, la
@@ -327,7 +362,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     const oy = (clientY ?? cy) - cy
     let x = ox - (ox - v.x) * ratio
     let y = oy - (oy - v.y) * ratio
-    if (scale <= MIN_SCALE + 0.001) { x = 0; y = 0 }
+    if (scale <= fitRef.current + 0.001) { x = 0; y = 0 }
     return clampView({ scale, x, y })
   }, [clampView, frame, maxScale])
 
@@ -343,8 +378,11 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   const fitToWindow = useCallback(() => {
     stopFling()
-    setView({ scale: 1, x: 0, y: 0 })
-  }, [stopFling])
+    const next = measureFit()
+    fitRef.current = next
+    setFit(next)
+    setView({ scale: next, x: 0, y: 0 })
+  }, [measureFit, stopFling])
 
   /** Ramène l'échelle dans les bornes courantes (le plafond change avec l'image). */
   const clampScale = useCallback((v: View): View => {
@@ -353,18 +391,38 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     return scale === v.scale ? v : { ...v, scale }
   }, [maxScale])
 
+  /**
+   * Recadre sur l'ajustement courant. Tant que la vue est restée à
+   * l'ajustement (aucun zoom manuel), elle suit la nouvelle mesure — bandeaux
+   * masqués, plein écran, redimensionnement, original chargé ; une vue zoomée
+   * ne garde que la mise à jour de ses bornes.
+   */
+  const applyFit = useCallback(() => {
+    const next = measureFit()
+    const previous = fitRef.current
+    const changed = Math.abs(next - previous) > 0.001
+    fitRef.current = next
+    if (changed) setFit(next)
+    setView((v) => {
+      if (Math.abs(v.scale - previous) >= 0.02) return clampView(clampScale(v))
+      if (!changed && v.x === 0 && v.y === 0) return v
+      return { scale: next, x: 0, y: 0 }
+    })
+  }, [measureFit, clampView, clampScale])
+
   /** 1 image pixel = 1 screen pixel. */
   const showActualSize = useCallback(() => {
     const img = imgRef.current
-    if (!img || !img.offsetWidth || !natural.w) return
-    zoomTo(natural.w / img.offsetWidth)
-  }, [natural, zoomTo])
+    if (!img || !img.offsetWidth || !img.naturalWidth) return
+    zoomTo(img.naturalWidth / img.offsetWidth)
+  }, [zoomTo])
 
   const toggleDetail = useCallback((clientX?: number, clientY?: number) => {
     stopFling()
-    setView((v) => (v.scale > MIN_SCALE + 0.02
-      ? { scale: 1, x: 0, y: 0 }
-      : rescale(v, Math.min(DETAIL_SCALE, maxScale()), clientX, clientY)))
+    const fitNow = fitRef.current
+    setView((v) => (v.scale > fitNow + 0.02
+      ? { scale: fitNow, x: 0, y: 0 }
+      : rescale(v, Math.min(maxScale(), Math.max(DETAIL_SCALE, fitNow * 1.5)), clientX, clientY)))
   }, [maxScale, rescale, stopFling])
 
   // ── Gallery navigation ─────────────────────────────────────────────────────
@@ -381,6 +439,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     stopFling()
     setSwipeDx(0)
     setDismiss(null)
+    fitRef.current = 1
+    setFit(1)
     setView({ scale: 1, x: 0, y: 0 })
     setFullUrl(null)
     setFullFailed(false)
@@ -416,7 +476,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     // Le clic qui suit un geste ne doit pas être relu comme un clic de fond.
     suppressBackdropClick.current = false
     const { view: currentView, items: list } = stateRef.current
-    if (currentView.scale <= MIN_SCALE + 0.001) {
+    if (currentView.scale <= fitRef.current + 0.001) {
       // Photo entière : balayage horizontal = changer de photo, glisser vers le
       // bas = fermer. La fermeture est réservée au doigt, la souris a le fond,
       // Échap et le bouton de fermeture.
@@ -579,7 +639,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     const cY = (p.cy - centerY - p.start.y) / p.start.scale
     let x = cx - centerX - cX * scale
     let y = cy - centerY - cY * scale
-    if (scale <= MIN_SCALE + 0.001) { x = 0; y = 0 }
+    if (scale <= fitRef.current + 0.001) { x = 0; y = 0 }
     setView(clampView({ scale, x, y }))
   }, [clampView, frame, maxScale])
 
@@ -622,7 +682,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       */
       if (
         !e.ctrlKey
-        && v.scale <= MIN_SCALE + 0.001
+        && v.scale <= fitRef.current + 0.001
         && list.length > 1
         && Math.abs(e.deltaX) > Math.abs(e.deltaY)
       ) {
@@ -713,7 +773,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         case 'f': case 'F': void toggleFullscreen(); return
         // Au zoom, la navigation est gelée : les flèches déplacent la vue.
         case 'ArrowRight':
-          if (stateRef.current.view.scale > MIN_SCALE + 0.02) {
+          if (stateRef.current.view.scale > fitRef.current + 0.02) {
             stopFling()
             setView((v) => clampView({ ...v, x: v.x - 60 }))
           } else if (stateRef.current.items.length > 1) {
@@ -723,7 +783,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
           }
           return
         case 'ArrowLeft':
-          if (stateRef.current.view.scale > MIN_SCALE + 0.02) {
+          if (stateRef.current.view.scale > fitRef.current + 0.02) {
             stopFling()
             setView((v) => clampView({ ...v, x: v.x + 60 }))
           } else if (stateRef.current.items.length > 1) {
@@ -778,11 +838,11 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     const onResize = () => {
       stopFling()
       measureChrome()
-      setView((v) => clampView(v))
+      applyFit()
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [clampView, measureChrome, stopFling])
+  }, [applyFit, measureChrome, stopFling])
 
   // La surface utile change quand les bandeaux s'effacent (clic sur l'image),
   // quand on entre en plein écran, et dès qu'ils viennent d'être mesurés : sans
@@ -790,9 +850,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   // un bord de la photo demeurerait inaccessible.
   useEffect(() => {
     measureChrome()
-    const id = requestAnimationFrame(() => setView((v) => clampView(v)))
+    const id = requestAnimationFrame(() => applyFit())
     return () => cancelAnimationFrame(id)
-  }, [chromeVisible, isFullscreen, isZoomed, insets, measureChrome, clampView])
+  }, [chromeVisible, isFullscreen, isZoomed, insets, measureChrome, applyFit])
 
   // Freeze the page behind and hand focus to the dialog.
   useEffect(() => {
@@ -813,6 +873,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     setSrcFailed(false)
     setLoaded(false)
     setNatural({ w: 0, h: 0 })
+    fitRef.current = 1
+    setFit(1)
     setView({ scale: 1, x: 0, y: 0 })
     setSwipeDx(0)
     setDismiss(null)
@@ -940,15 +1002,21 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   const onImgLoad = useCallback(() => {
     const img = imgRef.current
-    setLoaded(true)
     setSrcFailed(false)
-    if (!img) return
+    if (!img) {
+      setLoaded(true)
+      return
+    }
     setNatural({ w: img.naturalWidth, h: img.naturalHeight })
-    // La miniature remplacée par l'original change la boîte de rendu : plafond
-    // de zoom et bornes du pan sont recalculés sur la nouvelle géométrie, sinon
-    // une vue déjà zoomée resterait réglée sur l'ancienne image.
-    requestAnimationFrame(() => setView((v) => clampView(clampScale(v))))
-  }, [clampView, clampScale])
+    // La miniature remplacée par l'original change la boîte de rendu : le
+    // cadrage et le plafond de zoom sont remesurés sur la nouvelle géométrie.
+    // La lecture de `offsetWidth` force la mise en page, donc l'ajustement est
+    // juste même dans le gestionnaire de chargement. La photo ne devient
+    // visible qu'une fois ajustée : elle s'ouvre à sa taille définitive, sans
+    // grossir sous les yeux.
+    applyFit()
+    setLoaded(true)
+  }, [applyFit])
 
   const zoomPercentage = Math.round(view.scale * 100)
   const fullscreenLabel = isFullscreen ? t('lightbox.exitFullscreen') : t('lightbox.fullscreen')
@@ -1112,7 +1180,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
             }}
           >
             <img
-              key={`${displaySrc}:${attempt}`}
+              key={`${current?.id ?? ''}:${displaySrc}:${attempt}`}
               ref={imgRef}
               src={displaySrc}
               alt={current?.alt ?? fileName ?? t('lightbox.image')}
