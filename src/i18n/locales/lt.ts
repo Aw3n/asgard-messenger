@@ -1042,5 +1042,7 @@ export default {
       "search.clearQuery": "Išvalyti paiešką",
       "chat.mutedConversation": "Nutildytas pokalbis",
       "chat.pinnedConversation": "Prisegtas pokalbis",
+      "calls.connectingCount": "Jungiamasi: {{count}}",
+      "calls.connectedContactCount": "Prijungti kontaktai: {{count}}",
     }
 }

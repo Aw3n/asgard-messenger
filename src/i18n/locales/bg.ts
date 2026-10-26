@@ -1029,5 +1029,7 @@ export default {
       "search.clearQuery": "Изчистване на търсенето",
       "chat.mutedConversation": "Заглушен разговор",
       "chat.pinnedConversation": "Закачен разговор",
+      "calls.connectingCount": "Връзки в ход: {{count}}",
+      "calls.connectedContactCount": "Свързани контакти: {{count}}",
     }
 }

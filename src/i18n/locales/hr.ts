@@ -1041,5 +1041,7 @@ export default {
       "search.clearQuery": "Obriši pretragu",
       "chat.mutedConversation": "Utišan razgovor",
       "chat.pinnedConversation": "Prikvaćeni razgovor",
+      "calls.connectingCount": "Povezivanja u tijeku: {{count}}",
+      "calls.connectedContactCount": "Povezani kontakti: {{count}}",
     }
 }

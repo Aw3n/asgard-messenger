@@ -1029,5 +1029,7 @@ export default {
       "search.clearQuery": "Διαγραφή αναζήτησης",
       "chat.mutedConversation": "Σε σίγαση συνομιλία",
       "chat.pinnedConversation": "Καρφιτσωμένη συνομιλία",
+      "calls.connectingCount": "Συνδέσεις σε εξέλιξη: {{count}}",
+      "calls.connectedContactCount": "Συνδεδεμένες επαφές: {{count}}",
     }
 }

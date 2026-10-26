@@ -1038,5 +1038,7 @@ export default {
       "search.clearQuery": "Clear search",
       "chat.mutedConversation": "Muted conversation",
       "chat.pinnedConversation": "Pinned conversation",
+      "calls.connectingCount": "Connections in progress: {{count}}",
+      "calls.connectedContactCount": "Connected contacts: {{count}}",
     }
 }

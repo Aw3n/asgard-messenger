@@ -1041,5 +1041,7 @@ export default {
       "search.clearQuery": "Очистити пошук",
       "chat.mutedConversation": "Розмова без звуку",
       "chat.pinnedConversation": "Закріплена розмова",
+      "calls.connectingCount": "З’єднання в процесі: {{count}}",
+      "calls.connectedContactCount": "Підключені контакти: {{count}}",
     }
 }

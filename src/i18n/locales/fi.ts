@@ -1029,5 +1029,7 @@ export default {
       "search.clearQuery": "Tyhjennä haku",
       "chat.mutedConversation": "Mykistetty keskustelu",
       "chat.pinnedConversation": "Kiinnitetty keskustelu",
+      "calls.connectingCount": "Yhteydet käynnissä: {{count}}",
+      "calls.connectedContactCount": "Yhdistetyt yhteystiedot: {{count}}",
     }
 }

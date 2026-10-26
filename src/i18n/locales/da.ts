@@ -1029,5 +1029,7 @@ export default {
       "search.clearQuery": "Ryd søgning",
       "chat.mutedConversation": "Lydløs samtale",
       "chat.pinnedConversation": "Fastgjort samtale",
+      "calls.connectingCount": "Forbindelser i gang: {{count}}",
+      "calls.connectedContactCount": "Forbundne kontakter: {{count}}",
     }
 }

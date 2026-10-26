@@ -1041,5 +1041,7 @@ export default {
       "search.clearQuery": "Limpar pesquisa",
       "chat.mutedConversation": "Conversa silenciada",
       "chat.pinnedConversation": "Conversa fixada",
+      "calls.connectingCount": "Ligações em curso: {{count}}",
+      "calls.connectedContactCount": "Contactos ligados: {{count}}",
     }
 }

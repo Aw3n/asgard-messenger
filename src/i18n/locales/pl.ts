@@ -1047,5 +1047,7 @@ export default {
       "search.clearQuery": "Wyczyść wyszukiwanie",
       "chat.mutedConversation": "Wyciszona rozmowa",
       "chat.pinnedConversation": "Przypięta rozmowa",
+      "calls.connectingCount": "Połączenia w toku: {{count}}",
+      "calls.connectedContactCount": "Połączeni kontakty: {{count}}",
     }
 }

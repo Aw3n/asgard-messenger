@@ -1041,5 +1041,7 @@ export default {
       "search.clearQuery": "Notīrīt meklēšanu",
       "chat.mutedConversation": "Ierunāta saruna",
       "chat.pinnedConversation": "Piespraustā saruna",
+      "calls.connectingCount": "Savienojumi notiek: {{count}}",
+      "calls.connectedContactCount": "Savienotie kontakti: {{count}}",
     }
 }

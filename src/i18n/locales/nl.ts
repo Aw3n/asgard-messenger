@@ -1028,5 +1028,7 @@ export default {
       "search.clearQuery": "Zoekopdracht wissen",
       "chat.mutedConversation": "Gesprek gedempt",
       "chat.pinnedConversation": "Vastgezet gesprek",
+      "calls.connectingCount": "Verbindingen bezig: {{count}}",
+      "calls.connectedContactCount": "Verbonden contacten: {{count}}",
     }
 }

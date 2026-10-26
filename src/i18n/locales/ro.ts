@@ -1041,5 +1041,7 @@ export default {
       "search.clearQuery": "Șterge căutarea",
       "chat.mutedConversation": "Conversație fără sunet",
       "chat.pinnedConversation": "Conversație fixată",
+      "calls.connectingCount": "Conexiuni în curs: {{count}}",
+      "calls.connectedContactCount": "Contacte conectate: {{count}}",
     }
 }

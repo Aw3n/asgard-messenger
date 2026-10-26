@@ -1053,5 +1053,7 @@ export default {
       "search.clearQuery": "Počisti iskanje",
       "chat.mutedConversation": "Utišan pogovor",
       "chat.pinnedConversation": "Pripet pogovor",
+      "calls.connectingCount": "Povezave v teku: {{count}}",
+      "calls.connectedContactCount": "Povezani stiki: {{count}}",
     }
 }

@@ -1039,6 +1039,8 @@ export const translations = {
       "search.clearQuery": "Effacer la recherche",
       "chat.mutedConversation": "Conversation en sourdine",
       "chat.pinnedConversation": "Conversation épinglée",
+      "calls.connectingCount": "Connexions en cours : {{count}}",
+      "calls.connectedContactCount": "Contacts connectés : {{count}}",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -2069,6 +2071,8 @@ export const translations = {
       "search.clearQuery": "Zoekopdracht wissen",
       "chat.mutedConversation": "Gesprek gedempt",
       "chat.pinnedConversation": "Vastgezet gesprek",
+      "calls.connectingCount": "Verbindingen bezig: {{count}}",
+      "calls.connectedContactCount": "Verbonden contacten: {{count}}",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -3099,6 +3103,8 @@ export const translations = {
       "search.clearQuery": "Suche löschen",
       "chat.mutedConversation": "Stummgeschaltete Unterhaltung",
       "chat.pinnedConversation": "Angeheftete Unterhaltung",
+      "calls.connectingCount": "Verbindungen im Aufbau: {{count}}",
+      "calls.connectedContactCount": "Verbundene Kontakte: {{count}}",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -4141,6 +4147,8 @@ export const translations = {
       "search.clearQuery": "Cancella ricerca",
       "chat.mutedConversation": "Conversazione silenziata",
       "chat.pinnedConversation": "Conversazione fissata",
+      "calls.connectingCount": "Connessioni in corso: {{count}}",
+      "calls.connectedContactCount": "Contatti connessi: {{count}}",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -5183,6 +5191,8 @@ export const translations = {
       "search.clearQuery": "Borrar la búsqueda",
       "chat.mutedConversation": "Conversación silenciada",
       "chat.pinnedConversation": "Conversación fijada",
+      "calls.connectingCount": "Conexiones en curso: {{count}}",
+      "calls.connectedContactCount": "Contactos conectados: {{count}}",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -6226,6 +6236,8 @@ export const translations = {
       "search.clearQuery": "Limpar pesquisa",
       "chat.mutedConversation": "Conversa silenciada",
       "chat.pinnedConversation": "Conversa fixada",
+      "calls.connectingCount": "Ligações em curso: {{count}}",
+      "calls.connectedContactCount": "Contactos ligados: {{count}}",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -7257,6 +7269,8 @@ export const translations = {
       "search.clearQuery": "Διαγραφή αναζήτησης",
       "chat.mutedConversation": "Σε σίγαση συνομιλία",
       "chat.pinnedConversation": "Καρφιτσωμένη συνομιλία",
+      "calls.connectingCount": "Συνδέσεις σε εξέλιξη: {{count}}",
+      "calls.connectedContactCount": "Συνδεδεμένες επαφές: {{count}}",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -8288,6 +8302,8 @@ export const translations = {
       "search.clearQuery": "Ryd søgning",
       "chat.mutedConversation": "Lydløs samtale",
       "chat.pinnedConversation": "Fastgjort samtale",
+      "calls.connectingCount": "Forbindelser i gang: {{count}}",
+      "calls.connectedContactCount": "Forbundne kontakter: {{count}}",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -9319,6 +9335,8 @@ export const translations = {
       "search.clearQuery": "Tyhjennä haku",
       "chat.mutedConversation": "Mykistetty keskustelu",
       "chat.pinnedConversation": "Kiinnitetty keskustelu",
+      "calls.connectingCount": "Yhteydet käynnissä: {{count}}",
+      "calls.connectedContactCount": "Yhdistetyt yhteystiedot: {{count}}",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -10350,6 +10368,8 @@ export const translations = {
       "search.clearQuery": "Rensa sökningen",
       "chat.mutedConversation": "Tystad konversation",
       "chat.pinnedConversation": "Fäst konversation",
+      "calls.connectingCount": "Anslutningar pågår: {{count}}",
+      "calls.connectedContactCount": "Anslutna kontakter: {{count}}",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -11393,6 +11413,8 @@ export const translations = {
       "search.clearQuery": "Obriši pretragu",
       "chat.mutedConversation": "Utišan razgovor",
       "chat.pinnedConversation": "Prikvaćeni razgovor",
+      "calls.connectingCount": "Povezivanja u tijeku: {{count}}",
+      "calls.connectedContactCount": "Povezani kontakti: {{count}}",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -12424,6 +12446,8 @@ export const translations = {
       "search.clearQuery": "Tühjenda otsing",
       "chat.mutedConversation": "Vaigistatud vestlus",
       "chat.pinnedConversation": "Kinnitatud vestlus",
+      "calls.connectingCount": "Ühendused käimas: {{count}}",
+      "calls.connectedContactCount": "Ühendatud kontaktid: {{count}}",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -13455,6 +13479,8 @@ export const translations = {
       "search.clearQuery": "Keresés törlése",
       "chat.mutedConversation": "Némított beszélgetés",
       "chat.pinnedConversation": "Rögzített beszélgetés",
+      "calls.connectingCount": "Kapcsolódások folyamatban: {{count}}",
+      "calls.connectedContactCount": "Csatlakozott névjegyek: {{count}}",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -14498,6 +14524,8 @@ export const translations = {
       "search.clearQuery": "Notīrīt meklēšanu",
       "chat.mutedConversation": "Ierunāta saruna",
       "chat.pinnedConversation": "Piespraustā saruna",
+      "calls.connectingCount": "Savienojumi notiek: {{count}}",
+      "calls.connectedContactCount": "Savienotie kontakti: {{count}}",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -15542,6 +15570,8 @@ export const translations = {
       "search.clearQuery": "Išvalyti paiešką",
       "chat.mutedConversation": "Nutildytas pokalbis",
       "chat.pinnedConversation": "Prisegtas pokalbis",
+      "calls.connectingCount": "Jungiamasi: {{count}}",
+      "calls.connectedContactCount": "Prijungti kontaktai: {{count}}",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -16609,6 +16639,8 @@ export const translations = {
       "search.clearQuery": "Neħħi l-ftixa",
       "chat.mutedConversation": "Konversazzjoni msikkta",
       "chat.pinnedConversation": "Konversazzjoni mwaħħla",
+      "calls.connectingCount": "Konnessjonijiet għaddejjin: {{count}}",
+      "calls.connectedContactCount": "Kuntatti konnessi: {{count}}",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -17658,6 +17690,8 @@ export const translations = {
       "search.clearQuery": "Wyczyść wyszukiwanie",
       "chat.mutedConversation": "Wyciszona rozmowa",
       "chat.pinnedConversation": "Przypięta rozmowa",
+      "calls.connectingCount": "Połączenia w toku: {{count}}",
+      "calls.connectedContactCount": "Połączeni kontakty: {{count}}",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -18701,6 +18735,8 @@ export const translations = {
       "search.clearQuery": "Vymazať vyhľadávanie",
       "chat.mutedConversation": "Stlmená konverzácia",
       "chat.pinnedConversation": "Pripnutá konverzácia",
+      "calls.connectingCount": "Prebiehajúce pripojenia: {{count}}",
+      "calls.connectedContactCount": "Pripojené kontakty: {{count}}",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -19756,6 +19792,8 @@ export const translations = {
       "search.clearQuery": "Počisti iskanje",
       "chat.mutedConversation": "Utišan pogovor",
       "chat.pinnedConversation": "Pripet pogovor",
+      "calls.connectingCount": "Povezave v teku: {{count}}",
+      "calls.connectedContactCount": "Povezani stiki: {{count}}",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -20799,6 +20837,8 @@ export const translations = {
       "search.clearQuery": "Vymazat hledání",
       "chat.mutedConversation": "Ztišená konverzace",
       "chat.pinnedConversation": "Připnutá konverzace",
+      "calls.connectingCount": "Probíhající připojení: {{count}}",
+      "calls.connectedContactCount": "Připojené kontakty: {{count}}",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -21830,6 +21870,8 @@ export const translations = {
       "search.clearQuery": "Изчистване на търсенето",
       "chat.mutedConversation": "Заглушен разговор",
       "chat.pinnedConversation": "Закачен разговор",
+      "calls.connectingCount": "Връзки в ход: {{count}}",
+      "calls.connectedContactCount": "Свързани контакти: {{count}}",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -22897,6 +22939,8 @@ export const translations = {
       "search.clearQuery": "Glanch an cuardach",
       "chat.mutedConversation": "Comhrá balbhaithe",
       "chat.pinnedConversation": "Comhrá greamaithe",
+      "calls.connectingCount": "Ceangail ar siúl: {{count}}",
+      "calls.connectedContactCount": "Teagmhálaithe ceangailte: {{count}}",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -23940,6 +23984,8 @@ export const translations = {
       "search.clearQuery": "Șterge căutarea",
       "chat.mutedConversation": "Conversație fără sunet",
       "chat.pinnedConversation": "Conversație fixată",
+      "calls.connectingCount": "Conexiuni în curs: {{count}}",
+      "calls.connectedContactCount": "Contacte conectate: {{count}}",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -24980,6 +25026,8 @@ export const translations = {
       "search.clearQuery": "Clear search",
       "chat.mutedConversation": "Muted conversation",
       "chat.pinnedConversation": "Pinned conversation",
+      "calls.connectingCount": "Connections in progress: {{count}}",
+      "calls.connectedContactCount": "Connected contacts: {{count}}",
     }
   },
 
@@ -26024,6 +26072,8 @@ export const translations = {
       "search.clearQuery": "Очистити пошук",
       "chat.mutedConversation": "Розмова без звуку",
       "chat.pinnedConversation": "Закріплена розмова",
+      "calls.connectingCount": "З’єднання в процесі: {{count}}",
+      "calls.connectedContactCount": "Підключені контакти: {{count}}",
     }
   },
 }

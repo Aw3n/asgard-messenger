@@ -234,6 +234,35 @@ describe('liste des contacts d’appel', () => {
   })
 })
 
+describe('badges de connexion', () => {
+  const alice: Contact = {
+    publicKey: 'peer-alice', displayName: 'Alice', status: 'online', relation: 'contact',
+    verified: false, addedAt: Date.now(),
+  }
+
+  it('nomme le nombre de connexions en cours', async () => {
+    Object.assign(window.asgard.network, {
+      getConnectingCount: vi.fn().mockResolvedValue(2),
+    })
+    render(<CallsPage />)
+
+    // Sans nom, un lecteur d'écran annonçait « 2 » entre le titre et les boutons.
+    expect(await screen.findByRole('img', { name: 'calls.connectingCount' })).toBeInTheDocument()
+  })
+
+  it('nomme le nombre de contacts connectés', async () => {
+    useContactStore.setState({ contacts: { [alice.publicKey]: alice } })
+    Object.assign(window.asgard.network, {
+      getConnectedPeersInfo: vi.fn().mockResolvedValue(new Map([
+        ['socket-1', { publicKey: 'socket-1', topics: [], prioritized: false, ed25519PublicKey: 'peer-alice' }],
+      ])),
+    })
+    render(<CallsPage />)
+
+    expect(await screen.findByRole('img', { name: 'calls.connectedContactCount' })).toBeInTheDocument()
+  })
+})
+
 describe('datation de l’historique', () => {
   it('nomme le jour d’un appel de la veille au lieu d’afficher une heure seule', () => {
     vi.useFakeTimers()

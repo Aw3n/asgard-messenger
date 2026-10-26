@@ -1029,5 +1029,7 @@ export default {
       "search.clearQuery": "Keresés törlése",
       "chat.mutedConversation": "Némított beszélgetés",
       "chat.pinnedConversation": "Rögzített beszélgetés",
+      "calls.connectingCount": "Kapcsolódások folyamatban: {{count}}",
+      "calls.connectedContactCount": "Csatlakozott névjegyek: {{count}}",
     }
 }

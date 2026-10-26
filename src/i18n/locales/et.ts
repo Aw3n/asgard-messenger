@@ -1029,5 +1029,7 @@ export default {
       "search.clearQuery": "Tühjenda otsing",
       "chat.mutedConversation": "Vaigistatud vestlus",
       "chat.pinnedConversation": "Kinnitatud vestlus",
+      "calls.connectingCount": "Ühendused käimas: {{count}}",
+      "calls.connectedContactCount": "Ühendatud kontaktid: {{count}}",
     }
 }

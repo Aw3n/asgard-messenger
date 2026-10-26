@@ -1065,5 +1065,7 @@ export default {
       "search.clearQuery": "Neħħi l-ftixa",
       "chat.mutedConversation": "Konversazzjoni msikkta",
       "chat.pinnedConversation": "Konversazzjoni mwaħħla",
+      "calls.connectingCount": "Konnessjonijiet għaddejjin: {{count}}",
+      "calls.connectedContactCount": "Kuntatti konnessi: {{count}}",
     }
 }

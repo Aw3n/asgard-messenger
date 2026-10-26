@@ -1029,5 +1029,7 @@ export default {
       "search.clearQuery": "Rensa sökningen",
       "chat.mutedConversation": "Tystad konversation",
       "chat.pinnedConversation": "Fäst konversation",
+      "calls.connectingCount": "Anslutningar pågår: {{count}}",
+      "calls.connectedContactCount": "Anslutna kontakter: {{count}}",
     }
 }

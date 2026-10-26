@@ -1065,5 +1065,7 @@ export default {
       "search.clearQuery": "Glanch an cuardach",
       "chat.mutedConversation": "Comhrá balbhaithe",
       "chat.pinnedConversation": "Comhrá greamaithe",
+      "calls.connectingCount": "Ceangail ar siúl: {{count}}",
+      "calls.connectedContactCount": "Teagmhálaithe ceangailte: {{count}}",
     }
 }

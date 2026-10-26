@@ -1040,5 +1040,7 @@ export default {
       "search.clearQuery": "Borrar la búsqueda",
       "chat.mutedConversation": "Conversación silenciada",
       "chat.pinnedConversation": "Conversación fijada",
+      "calls.connectingCount": "Conexiones en curso: {{count}}",
+      "calls.connectedContactCount": "Contactos conectados: {{count}}",
     }
 }

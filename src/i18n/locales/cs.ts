@@ -1041,5 +1041,7 @@ export default {
       "search.clearQuery": "Vymazat hledání",
       "chat.mutedConversation": "Ztišená konverzace",
       "chat.pinnedConversation": "Připnutá konverzace",
+      "calls.connectingCount": "Probíhající připojení: {{count}}",
+      "calls.connectedContactCount": "Připojené kontakty: {{count}}",
     }
 }
