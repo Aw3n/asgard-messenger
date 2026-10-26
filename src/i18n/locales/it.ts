@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Gruppi attivi: {{total}}",
       "calls.inCall": "In chiamata",
       "calls.incomingAudioCall": "Chiamata audio in arrivo",
+      "calls.typeAudio": "Audio",
+      "calls.typeVideo": "Video",
       "calls.incomingCall": "Chiamata in arrivo",
       "calls.incomingVideoCall": "Videochiamata in arrivo",
       "calls.low": "Basso",

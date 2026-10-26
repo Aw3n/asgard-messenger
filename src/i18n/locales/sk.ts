@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Aktívne skupiny: {{total}}",
       "calls.inCall": "V hovore",
       "calls.incomingAudioCall": "Prichádzajúci audiohovor",
+      "calls.typeAudio": "Zvuk",
+      "calls.typeVideo": "Video",
       "calls.incomingCall": "Prichádzajúci hovor",
       "calls.incomingVideoCall": "Prichádzajúci videohovor",
       "calls.low": "Nízka",

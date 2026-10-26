@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Aktyvios grupės: {{total}}",
       "calls.inCall": "Pokalbyje",
       "calls.incomingAudioCall": "Įeinantis garso skambutis",
+      "calls.typeAudio": "Garso",
+      "calls.typeVideo": "Vaizdo",
       "calls.incomingCall": "Įeinantis skambutis",
       "calls.incomingVideoCall": "Įeinantis vaizdo skambutis",
       "calls.low": "Žemas",

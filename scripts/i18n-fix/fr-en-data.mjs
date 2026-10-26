@@ -199,6 +199,8 @@ export const ALLOW_SAME = [
   'calls.participantCount',
   'calls.participantCount_other',
   'calls.qualityHigh',
+  // « Audio » est le mot français du type d'appel, comme dans « appel audio ».
+  'calls.typeAudio',
   // « Pause » s'écrit identiquement en français.
   'chat.pauseAudio',
   'common.admin',

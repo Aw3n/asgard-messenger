@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Actieve groepen: {{total}}",
       "calls.inCall": "In gesprek",
       "calls.incomingAudioCall": "Inkomend audio-oproep",
+      "calls.typeAudio": "Audio",
+      "calls.typeVideo": "Video",
       "calls.incomingCall": "Inkomende oproep",
       "calls.incomingVideoCall": "Inkomend video-oproep",
       "calls.low": "Laag",

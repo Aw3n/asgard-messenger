@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Активни групи: {{total}}",
       "calls.inCall": "В разговор",
       "calls.incomingAudioCall": "Входящо аудио обаждане",
+      "calls.typeAudio": "Аудио",
+      "calls.typeVideo": "Видео",
       "calls.incomingCall": "Входящо обаждане",
       "calls.incomingVideoCall": "Входящо видео обаждане",
       "calls.low": "Ниско",

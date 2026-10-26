@@ -50,6 +50,8 @@ const LABEL_KEYS = [
   'search.messages',
   'common.muted',
   'groups.broadcastModeHint',
+  'calls.typeAudio',
+  'calls.typeVideo',
 ]
 
 describe('rendu i18next des libellés corrigés', () => {

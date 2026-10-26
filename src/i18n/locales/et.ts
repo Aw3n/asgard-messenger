@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Aktiivsed grupid: {{total}}",
       "calls.inCall": "Kõnes",
       "calls.incomingAudioCall": "Sisenev helikõne",
+      "calls.typeAudio": "Heli",
+      "calls.typeVideo": "Video",
       "calls.incomingCall": "Sissetulev kõne",
       "calls.incomingVideoCall": "Sisenev videokõne",
       "calls.low": "Madal",

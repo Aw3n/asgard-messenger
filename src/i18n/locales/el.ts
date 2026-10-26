@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Ενεργές ομάδες: {{total}}",
       "calls.inCall": "Σε κλήση",
       "calls.incomingAudioCall": "Εισερχόμενη ηχητική κλήση",
+      "calls.typeAudio": "Ήχος",
+      "calls.typeVideo": "Βίντεο",
       "calls.incomingCall": "Εισερχόμενη κλήση",
       "calls.incomingVideoCall": "Εισερχόμενη βιντεοκλήση",
       "calls.low": "Χαμηλό",

@@ -379,7 +379,7 @@ export const CallsPage: React.FC = () => {
                           {group.latestCall.missed ? t('calls.missedCall') : group.latestCall.direction === 'incoming' ? t('calls.incomingCall') : t('calls.outgoingCall')}
                         </span>
                         <span className="text-xs text-asgard-text-muted">•</span>
-                        <span className="text-xs text-asgard-text-muted capitalize">{group.latestCall.type}</span>
+                        <span className="text-xs text-asgard-text-muted">{t(group.latestCall.type === 'audio' ? 'calls.typeAudio' : 'calls.typeVideo')}</span>
                         {group.latestCall.duration !== undefined && group.latestCall.duration > 0 && (
                           <>
                             <span className="text-xs text-asgard-text-muted">•</span>
@@ -466,7 +466,7 @@ export const CallsPage: React.FC = () => {
                                 {call.missed ? t('calls.missedCall') : call.direction === 'incoming' ? t('calls.incomingCall') : t('calls.outgoingCall')}
                               </span>
                               <span className="text-xs text-asgard-text-muted">•</span>
-                              <span className="text-xs text-asgard-text-muted capitalize">{call.type}</span>
+                              <span className="text-xs text-asgard-text-muted">{t(call.type === 'audio' ? 'calls.typeAudio' : 'calls.typeVideo')}</span>
                               {call.duration !== undefined && call.duration > 0 && (
                                 <>
                                   <span className="text-xs text-asgard-text-muted">•</span>

@@ -300,6 +300,8 @@ export default {
       "calls.camera": "Камера",
       "calls.incomingVideoCall": "Вхідний відеовиклик",
       "calls.incomingAudioCall": "Вхідний аудіовиклик",
+      "calls.typeAudio": "Аудіо",
+      "calls.typeVideo": "Відео",
       "calls.participantCount": "{{count}} учасник",
       "calls.participantCount_few": "{{count}} учасники",
       "calls.participantCount_many": "{{count}} учасників",

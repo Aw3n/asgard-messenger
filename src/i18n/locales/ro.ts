@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Grupuri active: {{total}}",
       "calls.inCall": "În apel",
       "calls.incomingAudioCall": "Apel audio primit",
+      "calls.typeAudio": "Audio",
+      "calls.typeVideo": "Video",
       "calls.incomingCall": "Apel primit",
       "calls.incomingVideoCall": "Apel video primit",
       "calls.low": "Scăzut",

@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Aktīvās grupas: {{total}}",
       "calls.inCall": "Sarunā",
       "calls.incomingAudioCall": "Ienākošais audiozvans",
+      "calls.typeAudio": "Audio",
+      "calls.typeVideo": "Video",
       "calls.incomingCall": "Ienākošs zvans",
       "calls.incomingVideoCall": "Ienākošais videozvans",
       "calls.low": "Zems",

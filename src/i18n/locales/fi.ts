@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Aktiiviset ryhmät: {{total}}",
       "calls.inCall": "Puhelussa",
       "calls.incomingAudioCall": "Saapuva äänipuhelu",
+      "calls.typeAudio": "Ääni",
+      "calls.typeVideo": "Video",
       "calls.incomingCall": "Saapuva puhelu",
       "calls.incomingVideoCall": "Saapuva videopuhelu",
       "calls.low": "Heikko",

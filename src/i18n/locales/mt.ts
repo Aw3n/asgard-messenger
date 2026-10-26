@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Gruppi attivi: {{total}}",
       "calls.inCall": "F'sejħa",
       "calls.incomingAudioCall": "Awdio sejħa ġejjija",
+      "calls.typeAudio": "Awdjo",
+      "calls.typeVideo": "Vidjo",
       "calls.incomingCall": "Sejħa deħlin",
       "calls.incomingVideoCall": "Video sejħa ġejjija",
       "calls.low": "Baxx",

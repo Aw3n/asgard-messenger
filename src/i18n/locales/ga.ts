@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Grúpaí gníomhacha: {{total}}",
       "calls.inCall": "I nglao",
       "calls.incomingAudioCall": "Glao fuaime isteach",
+      "calls.typeAudio": "Fuaim",
+      "calls.typeVideo": "Físeán",
       "calls.incomingCall": "Glao isteach",
       "calls.incomingVideoCall": "Glao físeáin isteach",
       "calls.low": "Íseal",

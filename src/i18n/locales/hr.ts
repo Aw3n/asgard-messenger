@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Aktivne grupe: {{total}}",
       "calls.inCall": "U pozivu",
       "calls.incomingAudioCall": "Dolazni audio poziv",
+      "calls.typeAudio": "Audio",
+      "calls.typeVideo": "Video",
       "calls.incomingCall": "Dolazni poziv",
       "calls.incomingVideoCall": "Dolazni video poziv",
       "calls.low": "Nisko",

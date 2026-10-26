@@ -40,6 +40,8 @@ export default {
       "calls.activeGroupTopics": "Aktív csoportok: {{total}}",
       "calls.inCall": "Hívásban",
       "calls.incomingAudioCall": "Bejövő hanghívás",
+      "calls.typeAudio": "Hang",
+      "calls.typeVideo": "Videó",
       "calls.incomingCall": "Bejövő hívás",
       "calls.incomingVideoCall": "Bejövő videóhívás",
       "calls.low": "Gyenge",

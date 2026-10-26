@@ -329,6 +329,8 @@ export default {
       "calls.camera": "Camera",
       "calls.incomingVideoCall": "Incoming video call",
       "calls.incomingAudioCall": "Incoming audio call",
+      "calls.typeAudio": "Audio",
+      "calls.typeVideo": "Video",
       "calls.participantCount": "{{count}} participant",
       "calls.participantCount_other": "{{count}} participants",
       "calls.statsTitle": "Call statistics",

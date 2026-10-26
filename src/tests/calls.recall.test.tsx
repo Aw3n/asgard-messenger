@@ -85,6 +85,39 @@ describe('rappel depuis l’historique des appels', () => {
   })
 })
 
+describe('type d’appel dans l’historique', () => {
+  it('affiche le libellé traduit, pas l’identifiant brut', () => {
+    useCallStore.setState({ history: [missedCall] })
+    render(<CallsPage />)
+
+    // `type` vaut 'audio' | 'video' : la classe `capitalize` ne faisait que
+    // mettre une majuscule à l'identifiant, resté anglais dans 24 langues.
+    expect(screen.getByText('calls.typeVideo')).toBeInTheDocument()
+    expect(screen.queryByText('video')).toBeNull()
+  })
+
+  it('nomme aussi les appels audio', () => {
+    useCallStore.setState({ history: [{ ...missedCall, id: 'call-audio', type: 'audio' }] })
+    render(<CallsPage />)
+
+    expect(screen.getByText('calls.typeAudio')).toBeInTheDocument()
+    expect(screen.queryByText('audio')).toBeNull()
+  })
+
+  it('traduit le type des appels révélés au dépliage', () => {
+    const olderAudio: CallRecord = {
+      ...missedCall, id: 'call-audio-plus-ancien', type: 'audio', startedAt: Date.now() - 60_000,
+    }
+    useCallStore.setState({ history: [missedCall, olderAudio] })
+    render(<CallsPage />)
+
+    fireEvent.click(screen.getByRole('button', { expanded: false, name: /Camille/ }))
+
+    expect(screen.getAllByText('calls.typeVideo')).toHaveLength(1)
+    expect(screen.getByText('calls.typeAudio')).toBeInTheDocument()
+  })
+})
+
 describe('vidage de l’historique', () => {
   const openConfirm = () => {
     fireEvent.click(screen.getByRole('button', { name: 'calls.clearHistory' }))
