@@ -189,7 +189,7 @@ export interface ThemePreset {
 }
 
 /** Panel displayed in the right sidebar */
-export type RightPanelView = 'info' | 'members' | 'files' | 'links' | 'search' | null
+export type RightPanelView = 'info' | 'files' | 'links' | 'search' | null
 
 /** Modal types */
 export type ModalType =
