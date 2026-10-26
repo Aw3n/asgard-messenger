@@ -543,6 +543,10 @@ class CallService {
       }
       if (!this.localStream) {
         console.error('[CallService] Failed to get local media after 3 attempts:', lastError)
+        // Le pair a déjà reçu call:accept et nous croit connectés : sans ce
+        // raccrochage, il restait devant une image noire sans explication.
+        this.notifyMediaUnavailable()
+        await this.endCall()
         return
       }
 
@@ -837,6 +841,7 @@ class CallService {
     } catch (err) {
       console.error('[CallService] Failed to get local media:', err)
       useCallStore.getState().endCall()
+      this.notifyMediaUnavailable()
       return
     }
 
@@ -951,7 +956,16 @@ class CallService {
     }
     if (!this.localStream) {
       console.error('[CallService] Failed to get local media after 3 attempts:', lastError)
+      // L'appelant sonnait encore : sans ce refus il attendait son délai de
+      // 30 s puis inscrivait un appel manqué, sans savoir que le micro et la
+      // caméra avaient été refusés de notre côté.
+      await p2pService.sendMessage(incomingCall.peerId, 'call:reject', {
+        reason: incomingCall.isGroupCall ? 'rejected_group' : 'media_failed',
+        isGroupCall: incomingCall.isGroupCall,
+        groupId: incomingCall.groupId,
+      }).catch(console.error)
       useCallStore.getState().rejectCall()
+      this.notifyMediaUnavailable()
       return
     }
 
@@ -1887,6 +1901,19 @@ class CallService {
           this.startCall(call.peerId, call.peerName, call.type, call.peerAvatar)
         },
       },
+    })
+  }
+
+  /**
+   * Micro et caméra refusés : l'appel n'a aucun média. Les trois chemins qui
+   * peuvent le découvrir (décrocher, répondre après acceptation, appel de
+   * groupe) posent la même annonce, sinon l'écran se vide sans explication.
+   */
+  private notifyMediaUnavailable(): void {
+    useUIStore.getState().addToast({
+      type: 'error',
+      title: i18n.t('calls.mediaUnavailable'),
+      duration: 6000,
     })
   }
 

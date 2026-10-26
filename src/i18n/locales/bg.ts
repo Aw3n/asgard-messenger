@@ -1032,5 +1032,6 @@ export default {
       "calls.connectingCount": "Връзки в ход: {{count}}",
       "calls.connectedContactCount": "Свързани контакти: {{count}}",
       "contacts.dhtProfileFailed": "DHT профилът е недостъпен — опитайте отново",
+      "calls.mediaUnavailable": "Микрофонът или камерата не са налични",
     }
 }

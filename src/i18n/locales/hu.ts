@@ -1032,5 +1032,6 @@ export default {
       "calls.connectingCount": "Kapcsolódások folyamatban: {{count}}",
       "calls.connectedContactCount": "Csatlakozott névjegyek: {{count}}",
       "contacts.dhtProfileFailed": "A DHT-profil nem érhető el – próbálja újra",
+      "calls.mediaUnavailable": "A mikrofon vagy a kamera nem elérhető",
     }
 }

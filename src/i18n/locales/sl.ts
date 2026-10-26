@@ -1056,5 +1056,6 @@ export default {
       "calls.connectingCount": "Povezave v teku: {{count}}",
       "calls.connectedContactCount": "Povezani stiki: {{count}}",
       "contacts.dhtProfileFailed": "Profil DHT ni dosegljiv — poskusite znova",
+      "calls.mediaUnavailable": "Mikrofon ali kamera ni na voljo",
     }
 }

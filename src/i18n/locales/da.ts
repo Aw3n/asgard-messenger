@@ -1032,5 +1032,6 @@ export default {
       "calls.connectingCount": "Forbindelser i gang: {{count}}",
       "calls.connectedContactCount": "Forbundne kontakter: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profilen er ikke tilgængelig — prøv igen",
+      "calls.mediaUnavailable": "Mikrofon eller kamera er ikke tilgængelig",
     }
 }

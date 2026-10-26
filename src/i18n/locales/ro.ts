@@ -1044,5 +1044,6 @@ export default {
       "calls.connectingCount": "Conexiuni în curs: {{count}}",
       "calls.connectedContactCount": "Contacte conectate: {{count}}",
       "contacts.dhtProfileFailed": "Profilul DHT este inaccesibil — încercați din nou",
+      "calls.mediaUnavailable": "Microfonul sau camera nu este disponibilă",
     }
 }

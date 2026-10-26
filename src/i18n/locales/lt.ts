@@ -1045,5 +1045,6 @@ export default {
       "calls.connectingCount": "Jungiamasi: {{count}}",
       "calls.connectedContactCount": "Prijungti kontaktai: {{count}}",
       "contacts.dhtProfileFailed": "DHT profilis nepasiekiamas — bandykite dar kartą",
+      "calls.mediaUnavailable": "Mikrofonas arba kamera nepasiekiami",
     }
 }

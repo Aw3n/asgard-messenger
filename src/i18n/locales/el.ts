@@ -1032,5 +1032,6 @@ export default {
       "calls.connectingCount": "Συνδέσεις σε εξέλιξη: {{count}}",
       "calls.connectedContactCount": "Συνδεδεμένες επαφές: {{count}}",
       "contacts.dhtProfileFailed": "Το προφίλ DHT δεν είναι προσβάσιμο — δοκιμάστε ξανά",
+      "calls.mediaUnavailable": "Το μικρόφωνο ή η κάμερα δεν είναι διαθέσιμα",
     }
 }

@@ -1068,5 +1068,6 @@ export default {
       "calls.connectingCount": "Ceangail ar siúl: {{count}}",
       "calls.connectedContactCount": "Teagmhálaithe ceangailte: {{count}}",
       "contacts.dhtProfileFailed": "Níl próifíl DHT inrochtana — bain triail eile as",
+      "calls.mediaUnavailable": "Níl an micreafón nó an ceamara ar fáil",
     }
 }

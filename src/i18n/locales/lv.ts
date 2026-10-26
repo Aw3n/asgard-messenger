@@ -1044,5 +1044,6 @@ export default {
       "calls.connectingCount": "Savienojumi notiek: {{count}}",
       "calls.connectedContactCount": "Savienotie kontakti: {{count}}",
       "contacts.dhtProfileFailed": "DHT profils nav pieejams — mēģiniet vēlreiz",
+      "calls.mediaUnavailable": "Mikrofons vai kamera nav pieejama",
     }
 }

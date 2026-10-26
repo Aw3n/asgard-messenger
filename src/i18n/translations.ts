@@ -1042,6 +1042,7 @@ export const translations = {
       "calls.connectingCount": "Connexions en cours : {{count}}",
       "calls.connectedContactCount": "Contacts connectés : {{count}}",
       "contacts.dhtProfileFailed": "Profil DHT inaccessible — réessayez",
+      "calls.mediaUnavailable": "Micro ou caméra indisponible",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -2075,6 +2076,7 @@ export const translations = {
       "calls.connectingCount": "Verbindingen bezig: {{count}}",
       "calls.connectedContactCount": "Verbonden contacten: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profiel onbereikbaar — probeer opnieuw",
+      "calls.mediaUnavailable": "Microfoon of camera niet beschikbaar",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -3108,6 +3110,7 @@ export const translations = {
       "calls.connectingCount": "Verbindungen im Aufbau: {{count}}",
       "calls.connectedContactCount": "Verbundene Kontakte: {{count}}",
       "contacts.dhtProfileFailed": "DHT-Profil nicht erreichbar – erneut versuchen",
+      "calls.mediaUnavailable": "Mikrofon oder Kamera nicht verfügbar",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -4153,6 +4156,7 @@ export const translations = {
       "calls.connectingCount": "Connessioni in corso: {{count}}",
       "calls.connectedContactCount": "Contatti connessi: {{count}}",
       "contacts.dhtProfileFailed": "Profilo DHT irraggiungibile — riprova",
+      "calls.mediaUnavailable": "Microfono o fotocamera non disponibile",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -5198,6 +5202,7 @@ export const translations = {
       "calls.connectingCount": "Conexiones en curso: {{count}}",
       "calls.connectedContactCount": "Contactos conectados: {{count}}",
       "contacts.dhtProfileFailed": "Perfil DHT inaccesible — inténtalo de nuevo",
+      "calls.mediaUnavailable": "Micrófono o cámara no disponible",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -6244,6 +6249,7 @@ export const translations = {
       "calls.connectingCount": "Ligações em curso: {{count}}",
       "calls.connectedContactCount": "Contactos ligados: {{count}}",
       "contacts.dhtProfileFailed": "Perfil DHT inacessível — tente novamente",
+      "calls.mediaUnavailable": "Microfone ou câmara indisponível",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -7278,6 +7284,7 @@ export const translations = {
       "calls.connectingCount": "Συνδέσεις σε εξέλιξη: {{count}}",
       "calls.connectedContactCount": "Συνδεδεμένες επαφές: {{count}}",
       "contacts.dhtProfileFailed": "Το προφίλ DHT δεν είναι προσβάσιμο — δοκιμάστε ξανά",
+      "calls.mediaUnavailable": "Το μικρόφωνο ή η κάμερα δεν είναι διαθέσιμα",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -8312,6 +8319,7 @@ export const translations = {
       "calls.connectingCount": "Forbindelser i gang: {{count}}",
       "calls.connectedContactCount": "Forbundne kontakter: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profilen er ikke tilgængelig — prøv igen",
+      "calls.mediaUnavailable": "Mikrofon eller kamera er ikke tilgængelig",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -9346,6 +9354,7 @@ export const translations = {
       "calls.connectingCount": "Yhteydet käynnissä: {{count}}",
       "calls.connectedContactCount": "Yhdistetyt yhteystiedot: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profiilia ei tavoiteta — yritä uudelleen",
+      "calls.mediaUnavailable": "Mikrofoni tai kamera ei ole käytettävissä",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -10380,6 +10389,7 @@ export const translations = {
       "calls.connectingCount": "Anslutningar pågår: {{count}}",
       "calls.connectedContactCount": "Anslutna kontakter: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profilen går inte att nå – försök igen",
+      "calls.mediaUnavailable": "Mikrofonen eller kameran är inte tillgänglig",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -11426,6 +11436,7 @@ export const translations = {
       "calls.connectingCount": "Povezivanja u tijeku: {{count}}",
       "calls.connectedContactCount": "Povezani kontakti: {{count}}",
       "contacts.dhtProfileFailed": "DHT profil nije dostupan — pokušajte ponovno",
+      "calls.mediaUnavailable": "Mikrofon ili kamera nije dostupan",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -12460,6 +12471,7 @@ export const translations = {
       "calls.connectingCount": "Ühendused käimas: {{count}}",
       "calls.connectedContactCount": "Ühendatud kontaktid: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profiil pole kättesaadav — proovi uuesti",
+      "calls.mediaUnavailable": "Mikrofon või kaamera pole saadaval",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -13494,6 +13506,7 @@ export const translations = {
       "calls.connectingCount": "Kapcsolódások folyamatban: {{count}}",
       "calls.connectedContactCount": "Csatlakozott névjegyek: {{count}}",
       "contacts.dhtProfileFailed": "A DHT-profil nem érhető el – próbálja újra",
+      "calls.mediaUnavailable": "A mikrofon vagy a kamera nem elérhető",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -14540,6 +14553,7 @@ export const translations = {
       "calls.connectingCount": "Savienojumi notiek: {{count}}",
       "calls.connectedContactCount": "Savienotie kontakti: {{count}}",
       "contacts.dhtProfileFailed": "DHT profils nav pieejams — mēģiniet vēlreiz",
+      "calls.mediaUnavailable": "Mikrofons vai kamera nav pieejama",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -15587,6 +15601,7 @@ export const translations = {
       "calls.connectingCount": "Jungiamasi: {{count}}",
       "calls.connectedContactCount": "Prijungti kontaktai: {{count}}",
       "contacts.dhtProfileFailed": "DHT profilis nepasiekiamas — bandykite dar kartą",
+      "calls.mediaUnavailable": "Mikrofonas arba kamera nepasiekiami",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -16657,6 +16672,7 @@ export const translations = {
       "calls.connectingCount": "Konnessjonijiet għaddejjin: {{count}}",
       "calls.connectedContactCount": "Kuntatti konnessi: {{count}}",
       "contacts.dhtProfileFailed": "Il-profil DHT mhux aċċessibbli — erġa’ pprova",
+      "calls.mediaUnavailable": "Il-mikrofonu jew il-kamera mhumiex disponibbli",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -17709,6 +17725,7 @@ export const translations = {
       "calls.connectingCount": "Połączenia w toku: {{count}}",
       "calls.connectedContactCount": "Połączeni kontakty: {{count}}",
       "contacts.dhtProfileFailed": "Profil DHT niedostępny — spróbuj ponownie",
+      "calls.mediaUnavailable": "Mikrofon lub kamera niedostępne",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -18755,6 +18772,7 @@ export const translations = {
       "calls.connectingCount": "Prebiehajúce pripojenia: {{count}}",
       "calls.connectedContactCount": "Pripojené kontakty: {{count}}",
       "contacts.dhtProfileFailed": "Profil DHT je nedostupný — skúste znova",
+      "calls.mediaUnavailable": "Mikrofón alebo kamera nie je dostupná",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -19813,6 +19831,7 @@ export const translations = {
       "calls.connectingCount": "Povezave v teku: {{count}}",
       "calls.connectedContactCount": "Povezani stiki: {{count}}",
       "contacts.dhtProfileFailed": "Profil DHT ni dosegljiv — poskusite znova",
+      "calls.mediaUnavailable": "Mikrofon ali kamera ni na voljo",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -20859,6 +20878,7 @@ export const translations = {
       "calls.connectingCount": "Probíhající připojení: {{count}}",
       "calls.connectedContactCount": "Připojené kontakty: {{count}}",
       "contacts.dhtProfileFailed": "Profil DHT není dostupný — zkuste to znovu",
+      "calls.mediaUnavailable": "Mikrofon nebo kamera není dostupná",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -21893,6 +21913,7 @@ export const translations = {
       "calls.connectingCount": "Връзки в ход: {{count}}",
       "calls.connectedContactCount": "Свързани контакти: {{count}}",
       "contacts.dhtProfileFailed": "DHT профилът е недостъпен — опитайте отново",
+      "calls.mediaUnavailable": "Микрофонът или камерата не са налични",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -22963,6 +22984,7 @@ export const translations = {
       "calls.connectingCount": "Ceangail ar siúl: {{count}}",
       "calls.connectedContactCount": "Teagmhálaithe ceangailte: {{count}}",
       "contacts.dhtProfileFailed": "Níl próifíl DHT inrochtana — bain triail eile as",
+      "calls.mediaUnavailable": "Níl an micreafón nó an ceamara ar fáil",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -24009,6 +24031,7 @@ export const translations = {
       "calls.connectingCount": "Conexiuni în curs: {{count}}",
       "calls.connectedContactCount": "Contacte conectate: {{count}}",
       "contacts.dhtProfileFailed": "Profilul DHT este inaccesibil — încercați din nou",
+      "calls.mediaUnavailable": "Microfonul sau camera nu este disponibilă",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -25052,6 +25075,7 @@ export const translations = {
       "calls.connectingCount": "Connections in progress: {{count}}",
       "calls.connectedContactCount": "Connected contacts: {{count}}",
       "contacts.dhtProfileFailed": "DHT profile unreachable — try again",
+      "calls.mediaUnavailable": "Microphone or camera unavailable",
     }
   },
 
@@ -26099,6 +26123,7 @@ export const translations = {
       "calls.connectingCount": "З’єднання в процесі: {{count}}",
       "calls.connectedContactCount": "Підключені контакти: {{count}}",
       "contacts.dhtProfileFailed": "Профіль DHT недоступний — спробуйте ще раз",
+      "calls.mediaUnavailable": "Мікрофон або камера недоступні",
     }
   },
 }

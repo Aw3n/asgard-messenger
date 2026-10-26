@@ -1032,5 +1032,6 @@ export default {
       "calls.connectingCount": "Anslutningar pågår: {{count}}",
       "calls.connectedContactCount": "Anslutna kontakter: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profilen går inte att nå – försök igen",
+      "calls.mediaUnavailable": "Mikrofonen eller kameran är inte tillgänglig",
     }
 }

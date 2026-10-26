@@ -1050,5 +1050,6 @@ export default {
       "calls.connectingCount": "Połączenia w toku: {{count}}",
       "calls.connectedContactCount": "Połączeni kontakty: {{count}}",
       "contacts.dhtProfileFailed": "Profil DHT niedostępny — spróbuj ponownie",
+      "calls.mediaUnavailable": "Mikrofon lub kamera niedostępne",
     }
 }

@@ -1044,5 +1044,6 @@ export default {
       "calls.connectingCount": "З’єднання в процесі: {{count}}",
       "calls.connectedContactCount": "Підключені контакти: {{count}}",
       "contacts.dhtProfileFailed": "Профіль DHT недоступний — спробуйте ще раз",
+      "calls.mediaUnavailable": "Мікрофон або камера недоступні",
     }
 }

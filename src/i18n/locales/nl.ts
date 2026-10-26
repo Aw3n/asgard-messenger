@@ -1031,5 +1031,6 @@ export default {
       "calls.connectingCount": "Verbindingen bezig: {{count}}",
       "calls.connectedContactCount": "Verbonden contacten: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profiel onbereikbaar — probeer opnieuw",
+      "calls.mediaUnavailable": "Microfoon of camera niet beschikbaar",
     }
 }

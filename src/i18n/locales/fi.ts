@@ -1032,5 +1032,6 @@ export default {
       "calls.connectingCount": "Yhteydet käynnissä: {{count}}",
       "calls.connectedContactCount": "Yhdistetyt yhteystiedot: {{count}}",
       "contacts.dhtProfileFailed": "DHT-profiilia ei tavoiteta — yritä uudelleen",
+      "calls.mediaUnavailable": "Mikrofoni tai kamera ei ole käytettävissä",
     }
 }

@@ -1044,5 +1044,6 @@ export default {
       "calls.connectingCount": "Prebiehajúce pripojenia: {{count}}",
       "calls.connectedContactCount": "Pripojené kontakty: {{count}}",
       "contacts.dhtProfileFailed": "Profil DHT je nedostupný — skúste znova",
+      "calls.mediaUnavailable": "Mikrofón alebo kamera nie je dostupná",
     }
 }
