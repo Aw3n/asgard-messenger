@@ -247,7 +247,7 @@ async function createWindow(): Promise<void> {
 
   // Handle minimize to tray
   mainWindow.on('close', (event) => {
-    if (tray && !app.isQuitting) {
+    if (tray?.available && !app.isQuitting) {
       event.preventDefault()
       mainWindow?.hide()
     }

@@ -66,6 +66,15 @@ export class AsgardTray {
   }
 
   /**
+   * Vrai si la barre d'état a réellement été créée. La fermeture de la fenêtre
+   * ne la masque que dans ce cas : sans icône pour la rouvrir, la masquer
+   * reviendrait à la rendre inaccessible.
+   */
+  get available(): boolean {
+    return this.tray !== null
+  }
+
+  /**
    * Change la langue du menu tray (appelé quand le renderer change de langue).
    * Les codes inconnus conservent la langue courante.
    */
@@ -143,12 +152,12 @@ export class AsgardTray {
 
   private create(): void {
     try {
-      // Load the app icon from assets — works in both dev and packaged (asar) modes
-      const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev')
-      const projectRoot = isDev
-        ? path.resolve(app.getAppPath(), '..', '..')
-        : app.getAppPath()
-      const iconPath = path.join(projectRoot, 'assets', 'asgard-icon.png')
+      // `app.getAppPath()` est déjà la racine de l'application dans les deux
+      // modes : le projet en dev (`electron .`), l'asar une fois empaqueté,
+      // où le dossier `assets/` est copié tel quel. Y ajouter '..','..' en dev
+      // cherchait l'icône dans le dossier parent du projet : barre d'état
+      // absente, alors que la fermeture masquait quand même la fenêtre.
+      const iconPath = path.join(app.getAppPath(), 'assets', 'asgard-icon.png')
       const icon = nativeImage.createFromPath(iconPath)
       if (icon.isEmpty()) {
         console.warn('[AsgardTray] Icon missing at', iconPath)
@@ -231,10 +240,9 @@ export class AsgardTray {
       { type: 'separator' },
       {
         label: s.quit,
-        click: () => {
-          app.isQuitting = true
-          app.quit()
-        },
+        // `before-quit` (main.ts) pose app.isQuitting avant la fermeture des
+        // fenêtres : inutile de le doubler ici.
+        click: () => app.quit(),
       },
     ])
 
