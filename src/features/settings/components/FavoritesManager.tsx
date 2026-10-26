@@ -162,10 +162,13 @@ export function FavoritesManager({ onClose }: FavoritesManagerProps) {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp)
     const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    // Deux instants séparés de 20 h peuvent appartenir à deux jours
+    // différents : « aujourd'hui » se compte en jours calendaires, pas en
+    // tranches de 24 h.
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    const diffDays = Math.round((startOfDay(now) - startOfDay(date)) / (1000 * 60 * 60 * 24))
 
-    if (diffDays === 0) return t('time.today')
+    if (diffDays <= 0) return t('time.today')
     if (diffDays === 1) return t('time.yesterday')
     if (diffDays < 7) return t('time.daysAgo', { count: diffDays })
     return date.toLocaleDateString(getCurrentLanguage())
