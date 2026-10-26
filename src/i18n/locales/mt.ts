@@ -1067,5 +1067,6 @@ export default {
       "chat.pinnedConversation": "Konversazzjoni mwaħħla",
       "calls.connectingCount": "Konnessjonijiet għaddejjin: {{count}}",
       "calls.connectedContactCount": "Kuntatti konnessi: {{count}}",
+      "contacts.dhtProfileFailed": "Il-profil DHT mhux aċċessibbli — erġa’ pprova",
     }
 }

@@ -1031,5 +1031,6 @@ export default {
       "chat.pinnedConversation": "Fastgjort samtale",
       "calls.connectingCount": "Forbindelser i gang: {{count}}",
       "calls.connectedContactCount": "Forbundne kontakter: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-profilen er ikke tilgængelig — prøv igen",
     }
 }

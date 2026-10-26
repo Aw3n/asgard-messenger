@@ -1031,5 +1031,6 @@ export default {
       "chat.pinnedConversation": "Rögzített beszélgetés",
       "calls.connectingCount": "Kapcsolódások folyamatban: {{count}}",
       "calls.connectedContactCount": "Csatlakozott névjegyek: {{count}}",
+      "contacts.dhtProfileFailed": "A DHT-profil nem érhető el – próbálja újra",
     }
 }

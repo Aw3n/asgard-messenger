@@ -1031,5 +1031,6 @@ export default {
       "chat.pinnedConversation": "Καρφιτσωμένη συνομιλία",
       "calls.connectingCount": "Συνδέσεις σε εξέλιξη: {{count}}",
       "calls.connectedContactCount": "Συνδεδεμένες επαφές: {{count}}",
+      "contacts.dhtProfileFailed": "Το προφίλ DHT δεν είναι προσβάσιμο — δοκιμάστε ξανά",
     }
 }

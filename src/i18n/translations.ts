@@ -1041,6 +1041,7 @@ export const translations = {
       "chat.pinnedConversation": "Conversation épinglée",
       "calls.connectingCount": "Connexions en cours : {{count}}",
       "calls.connectedContactCount": "Contacts connectés : {{count}}",
+      "contacts.dhtProfileFailed": "Profil DHT inaccessible — réessayez",
     }
   },
   // ─────────────────────────────── Nederlands ─────────────────────────────
@@ -2073,6 +2074,7 @@ export const translations = {
       "chat.pinnedConversation": "Vastgezet gesprek",
       "calls.connectingCount": "Verbindingen bezig: {{count}}",
       "calls.connectedContactCount": "Verbonden contacten: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-profiel onbereikbaar — probeer opnieuw",
     }
   },
   // ─────────────────────────────── Deutsch ────────────────────────────────
@@ -3105,6 +3107,7 @@ export const translations = {
       "chat.pinnedConversation": "Angeheftete Unterhaltung",
       "calls.connectingCount": "Verbindungen im Aufbau: {{count}}",
       "calls.connectedContactCount": "Verbundene Kontakte: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-Profil nicht erreichbar – erneut versuchen",
     }
   },
   // ─────────────────────────────── Italiano ───────────────────────────────
@@ -4149,6 +4152,7 @@ export const translations = {
       "chat.pinnedConversation": "Conversazione fissata",
       "calls.connectingCount": "Connessioni in corso: {{count}}",
       "calls.connectedContactCount": "Contatti connessi: {{count}}",
+      "contacts.dhtProfileFailed": "Profilo DHT irraggiungibile — riprova",
     }
   },
   // ─────────────────────────────── Español ────────────────────────────────
@@ -5193,6 +5197,7 @@ export const translations = {
       "chat.pinnedConversation": "Conversación fijada",
       "calls.connectingCount": "Conexiones en curso: {{count}}",
       "calls.connectedContactCount": "Contactos conectados: {{count}}",
+      "contacts.dhtProfileFailed": "Perfil DHT inaccesible — inténtalo de nuevo",
     }
   },
   // ─────────────────────────────── Português ─────────────────────────────
@@ -6238,6 +6243,7 @@ export const translations = {
       "chat.pinnedConversation": "Conversa fixada",
       "calls.connectingCount": "Ligações em curso: {{count}}",
       "calls.connectedContactCount": "Contactos ligados: {{count}}",
+      "contacts.dhtProfileFailed": "Perfil DHT inacessível — tente novamente",
     }
   },
   // ─────────────────────────────── Ελληνικά ───────────────────────────────
@@ -7271,6 +7277,7 @@ export const translations = {
       "chat.pinnedConversation": "Καρφιτσωμένη συνομιλία",
       "calls.connectingCount": "Συνδέσεις σε εξέλιξη: {{count}}",
       "calls.connectedContactCount": "Συνδεδεμένες επαφές: {{count}}",
+      "contacts.dhtProfileFailed": "Το προφίλ DHT δεν είναι προσβάσιμο — δοκιμάστε ξανά",
     }
   },
   // ─────────────────────────────── Dansk ──────────────────────────────────
@@ -8304,6 +8311,7 @@ export const translations = {
       "chat.pinnedConversation": "Fastgjort samtale",
       "calls.connectingCount": "Forbindelser i gang: {{count}}",
       "calls.connectedContactCount": "Forbundne kontakter: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-profilen er ikke tilgængelig — prøv igen",
     }
   },
   // ─────────────────────────────── Suomi ──────────────────────────────────
@@ -9337,6 +9345,7 @@ export const translations = {
       "chat.pinnedConversation": "Kiinnitetty keskustelu",
       "calls.connectingCount": "Yhteydet käynnissä: {{count}}",
       "calls.connectedContactCount": "Yhdistetyt yhteystiedot: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-profiilia ei tavoiteta — yritä uudelleen",
     }
   },
   // ─────────────────────────────── Svenska ────────────────────────────────
@@ -10370,6 +10379,7 @@ export const translations = {
       "chat.pinnedConversation": "Fäst konversation",
       "calls.connectingCount": "Anslutningar pågår: {{count}}",
       "calls.connectedContactCount": "Anslutna kontakter: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-profilen går inte att nå – försök igen",
     }
   },
   // ─────────────────────────────── Hrvatski ───────────────────────────────
@@ -11415,6 +11425,7 @@ export const translations = {
       "chat.pinnedConversation": "Prikvaćeni razgovor",
       "calls.connectingCount": "Povezivanja u tijeku: {{count}}",
       "calls.connectedContactCount": "Povezani kontakti: {{count}}",
+      "contacts.dhtProfileFailed": "DHT profil nije dostupan — pokušajte ponovno",
     }
   },
   // ─────────────────────────────── Eesti ─────────────────────────────────
@@ -12448,6 +12459,7 @@ export const translations = {
       "chat.pinnedConversation": "Kinnitatud vestlus",
       "calls.connectingCount": "Ühendused käimas: {{count}}",
       "calls.connectedContactCount": "Ühendatud kontaktid: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-profiil pole kättesaadav — proovi uuesti",
     }
   },
   // ─────────────────────────────── Magyar ─────────────────────────────────
@@ -13481,6 +13493,7 @@ export const translations = {
       "chat.pinnedConversation": "Rögzített beszélgetés",
       "calls.connectingCount": "Kapcsolódások folyamatban: {{count}}",
       "calls.connectedContactCount": "Csatlakozott névjegyek: {{count}}",
+      "contacts.dhtProfileFailed": "A DHT-profil nem érhető el – próbálja újra",
     }
   },
   // ─────────────────────────────── Latviešu ───────────────────────────────
@@ -14526,6 +14539,7 @@ export const translations = {
       "chat.pinnedConversation": "Piespraustā saruna",
       "calls.connectingCount": "Savienojumi notiek: {{count}}",
       "calls.connectedContactCount": "Savienotie kontakti: {{count}}",
+      "contacts.dhtProfileFailed": "DHT profils nav pieejams — mēģiniet vēlreiz",
     }
   },
   // ─────────────────────────────── Lietuvių ───────────────────────────────
@@ -15572,6 +15586,7 @@ export const translations = {
       "chat.pinnedConversation": "Prisegtas pokalbis",
       "calls.connectingCount": "Jungiamasi: {{count}}",
       "calls.connectedContactCount": "Prijungti kontaktai: {{count}}",
+      "contacts.dhtProfileFailed": "DHT profilis nepasiekiamas — bandykite dar kartą",
     }
   },
   // ─────────────────────────────── Malti ─────────────────────────────────
@@ -16641,6 +16656,7 @@ export const translations = {
       "chat.pinnedConversation": "Konversazzjoni mwaħħla",
       "calls.connectingCount": "Konnessjonijiet għaddejjin: {{count}}",
       "calls.connectedContactCount": "Kuntatti konnessi: {{count}}",
+      "contacts.dhtProfileFailed": "Il-profil DHT mhux aċċessibbli — erġa’ pprova",
     }
   },
   // ─────────────────────────────── Polski ─────────────────────────────────
@@ -17692,6 +17708,7 @@ export const translations = {
       "chat.pinnedConversation": "Przypięta rozmowa",
       "calls.connectingCount": "Połączenia w toku: {{count}}",
       "calls.connectedContactCount": "Połączeni kontakty: {{count}}",
+      "contacts.dhtProfileFailed": "Profil DHT niedostępny — spróbuj ponownie",
     }
   },
   // ─────────────────────────────── Slovenčina ────────────────────────────
@@ -18737,6 +18754,7 @@ export const translations = {
       "chat.pinnedConversation": "Pripnutá konverzácia",
       "calls.connectingCount": "Prebiehajúce pripojenia: {{count}}",
       "calls.connectedContactCount": "Pripojené kontakty: {{count}}",
+      "contacts.dhtProfileFailed": "Profil DHT je nedostupný — skúste znova",
     }
   },
   // ─────────────────────────────── Slovenščina ───────────────────────────
@@ -19794,6 +19812,7 @@ export const translations = {
       "chat.pinnedConversation": "Pripet pogovor",
       "calls.connectingCount": "Povezave v teku: {{count}}",
       "calls.connectedContactCount": "Povezani stiki: {{count}}",
+      "contacts.dhtProfileFailed": "Profil DHT ni dosegljiv — poskusite znova",
     }
   },
   // ─────────────────────────────── Čeština ────────────────────────────────
@@ -20839,6 +20858,7 @@ export const translations = {
       "chat.pinnedConversation": "Připnutá konverzace",
       "calls.connectingCount": "Probíhající připojení: {{count}}",
       "calls.connectedContactCount": "Připojené kontakty: {{count}}",
+      "contacts.dhtProfileFailed": "Profil DHT není dostupný — zkuste to znovu",
     }
   },
   // ─────────────────────────────── Български ───────────────────────────────
@@ -21872,6 +21892,7 @@ export const translations = {
       "chat.pinnedConversation": "Закачен разговор",
       "calls.connectingCount": "Връзки в ход: {{count}}",
       "calls.connectedContactCount": "Свързани контакти: {{count}}",
+      "contacts.dhtProfileFailed": "DHT профилът е недостъпен — опитайте отново",
     }
   },
   // ─────────────────────────────── Gaeilge ────────────────────────────────────
@@ -22941,6 +22962,7 @@ export const translations = {
       "chat.pinnedConversation": "Comhrá greamaithe",
       "calls.connectingCount": "Ceangail ar siúl: {{count}}",
       "calls.connectedContactCount": "Teagmhálaithe ceangailte: {{count}}",
+      "contacts.dhtProfileFailed": "Níl próifíl DHT inrochtana — bain triail eile as",
     }
   },
   // ─────────────────────────────── Română ─────────────────────────────────────
@@ -23986,6 +24008,7 @@ export const translations = {
       "chat.pinnedConversation": "Conversație fixată",
       "calls.connectingCount": "Conexiuni în curs: {{count}}",
       "calls.connectedContactCount": "Contacte conectate: {{count}}",
+      "contacts.dhtProfileFailed": "Profilul DHT este inaccesibil — încercați din nou",
     }
   },
   // ─────────────────────────────── English (fallback) ────────────────────────
@@ -25028,6 +25051,7 @@ export const translations = {
       "chat.pinnedConversation": "Pinned conversation",
       "calls.connectingCount": "Connections in progress: {{count}}",
       "calls.connectedContactCount": "Connected contacts: {{count}}",
+      "contacts.dhtProfileFailed": "DHT profile unreachable — try again",
     }
   },
 
@@ -26074,6 +26098,7 @@ export const translations = {
       "chat.pinnedConversation": "Закріплена розмова",
       "calls.connectingCount": "З’єднання в процесі: {{count}}",
       "calls.connectedContactCount": "Підключені контакти: {{count}}",
+      "contacts.dhtProfileFailed": "Профіль DHT недоступний — спробуйте ще раз",
     }
   },
 }

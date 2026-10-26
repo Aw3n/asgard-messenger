@@ -1043,5 +1043,6 @@ export default {
       "chat.pinnedConversation": "Conversație fixată",
       "calls.connectingCount": "Conexiuni în curs: {{count}}",
       "calls.connectedContactCount": "Contacte conectate: {{count}}",
+      "contacts.dhtProfileFailed": "Profilul DHT este inaccesibil — încercați din nou",
     }
 }

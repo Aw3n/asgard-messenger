@@ -1043,5 +1043,6 @@ export default {
       "chat.pinnedConversation": "Pripnutá konverzácia",
       "calls.connectingCount": "Prebiehajúce pripojenia: {{count}}",
       "calls.connectedContactCount": "Pripojené kontakty: {{count}}",
+      "contacts.dhtProfileFailed": "Profil DHT je nedostupný — skúste znova",
     }
 }

@@ -1030,5 +1030,6 @@ export default {
       "chat.pinnedConversation": "Vastgezet gesprek",
       "calls.connectingCount": "Verbindingen bezig: {{count}}",
       "calls.connectedContactCount": "Verbonden contacten: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-profiel onbereikbaar — probeer opnieuw",
     }
 }

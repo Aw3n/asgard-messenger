@@ -1042,5 +1042,6 @@ export default {
       "chat.pinnedConversation": "Conversazione fissata",
       "calls.connectingCount": "Connessioni in corso: {{count}}",
       "calls.connectedContactCount": "Contatti connessi: {{count}}",
+      "contacts.dhtProfileFailed": "Profilo DHT irraggiungibile — riprova",
     }
 }

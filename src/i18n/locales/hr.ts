@@ -1043,5 +1043,6 @@ export default {
       "chat.pinnedConversation": "Prikvaćeni razgovor",
       "calls.connectingCount": "Povezivanja u tijeku: {{count}}",
       "calls.connectedContactCount": "Povezani kontakti: {{count}}",
+      "contacts.dhtProfileFailed": "DHT profil nije dostupan — pokušajte ponovno",
     }
 }

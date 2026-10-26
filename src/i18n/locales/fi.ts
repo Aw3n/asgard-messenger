@@ -1031,5 +1031,6 @@ export default {
       "chat.pinnedConversation": "Kiinnitetty keskustelu",
       "calls.connectingCount": "Yhteydet käynnissä: {{count}}",
       "calls.connectedContactCount": "Yhdistetyt yhteystiedot: {{count}}",
+      "contacts.dhtProfileFailed": "DHT-profiilia ei tavoiteta — yritä uudelleen",
     }
 }

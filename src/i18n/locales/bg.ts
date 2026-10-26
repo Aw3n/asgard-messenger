@@ -1031,5 +1031,6 @@ export default {
       "chat.pinnedConversation": "Закачен разговор",
       "calls.connectingCount": "Връзки в ход: {{count}}",
       "calls.connectedContactCount": "Свързани контакти: {{count}}",
+      "contacts.dhtProfileFailed": "DHT профилът е недостъпен — опитайте отново",
     }
 }

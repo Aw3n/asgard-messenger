@@ -1043,5 +1043,6 @@ export default {
       "chat.pinnedConversation": "Piespraustā saruna",
       "calls.connectingCount": "Savienojumi notiek: {{count}}",
       "calls.connectedContactCount": "Savienotie kontakti: {{count}}",
+      "contacts.dhtProfileFailed": "DHT profils nav pieejams — mēģiniet vēlreiz",
     }
 }

@@ -48,6 +48,9 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
   const [dhtProfile, setDhtProfile] = useState<{ displayName: string; avatar?: string; timestamp: number; status?: string; statusMessage?: string } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileFetched, setProfileFetched] = useState(false)
+  // Une interrogation qui rejette n'est pas une recherche encore en cours : sans
+  // cet état, le point jaune clignotait indéfiniment après une panne.
+  const [profileError, setProfileError] = useState(false)
 
   const isFavorite = contact.relation === 'favorite'
   const isBlocked = contact.relation === 'blocked'
@@ -59,6 +62,7 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
   const fetchDHTProfile = useCallback(async () => {
     if (!window.asgard?.network?.fetchProfile) return
     setProfileLoading(true)
+    setProfileError(false)
     try {
       const profile = await window.asgard.network.fetchProfile(contact.publicKey)
       const current = useContactStore.getState().getContact(contact.publicKey)
@@ -88,6 +92,8 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
       setProfileFetched(true)
     } catch (err) {
       console.error('[ContactDetailView] Failed to fetch DHT profile:', err)
+      setProfileError(true)
+      setProfileFetched(true)
     } finally {
       setProfileLoading(false)
     }
@@ -357,10 +363,14 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
           </div>
           )
         })() : (
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${profileFetched ? 'bg-asgard-border' : 'bg-yellow-400 animate-pulse'}`} />
+          <div className="flex items-center gap-2" role="status">
+            <span className={`w-2 h-2 rounded-full ${profileError ? 'bg-asgard-busy' : profileFetched ? 'bg-asgard-border' : 'bg-yellow-400 animate-pulse'}`} />
             <span className="text-xs text-asgard-text-muted">
-              {profileFetched ? t('time.directProfileUnavailable') : t('time.searchingDHT')}
+              {profileError
+                ? t('contacts.dhtProfileFailed')
+                : profileFetched
+                  ? t('time.directProfileUnavailable')
+                  : t('time.searchingDHT')}
             </span>
           </div>
         )}

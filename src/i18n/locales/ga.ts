@@ -1067,5 +1067,6 @@ export default {
       "chat.pinnedConversation": "Comhrá greamaithe",
       "calls.connectingCount": "Ceangail ar siúl: {{count}}",
       "calls.connectedContactCount": "Teagmhálaithe ceangailte: {{count}}",
+      "contacts.dhtProfileFailed": "Níl próifíl DHT inrochtana — bain triail eile as",
     }
 }

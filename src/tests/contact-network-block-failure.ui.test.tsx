@@ -90,6 +90,23 @@ describe('relation affichée', () => {
   })
 })
 
+describe('profil DHT', () => {
+  it('une lecture en panne se dit au lieu de chercher sans fin', async () => {
+    network().fetchProfile.mockRejectedValueOnce(new Error('DHT injoignable'))
+    view()
+
+    expect(await screen.findByText('contacts.dhtProfileFailed')).toBeInTheDocument()
+    expect(screen.queryByText('time.searchingDHT')).not.toBeInTheDocument()
+  })
+
+  it('un profil absent reste un état sans panne', async () => {
+    view()
+
+    expect(await screen.findByText('time.directProfileUnavailable')).toBeInTheDocument()
+    expect(screen.queryByText('contacts.dhtProfileFailed')).not.toBeInTheDocument()
+  })
+})
+
 describe('bloquer un contact', () => {
   it('un blocage réussi ne signale aucune panne réseau', async () => {
     view()
