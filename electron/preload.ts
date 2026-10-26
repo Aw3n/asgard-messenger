@@ -26,6 +26,7 @@ export interface AsgardAPI {
     close: () => void
     isMaximized: () => Promise<boolean>
     onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
+    setUnreadCount: (count: number) => void
   }
   // Identity & Crypto
   identity: {
@@ -58,7 +59,7 @@ export interface AsgardAPI {
     suspend: () => Promise<void>
     resume: () => Promise<void>
     flush: () => Promise<void>
-    updateConfig: (config: { maxPeers?: number; relayEnabled?: boolean }) => Promise<void>
+    updateConfig: (config: { maxPeers?: number }) => Promise<void>
     blockPeer: (noisePublicKeyHex: string, blocked: boolean) => Promise<void>
     getPeerScores: () => Promise<Record<string, { latency: number; score: number }>>
     publishProfile: (displayName: string, avatar?: string) => Promise<boolean>
@@ -84,9 +85,6 @@ export interface AsgardAPI {
     setFirewall: (firewallFn: (remotePublicKey: string, remoteHandshakePayload: unknown) => boolean) => Promise<boolean>
     getServerAddress: () => Promise<{ host: string; port: number; publicKey: string } | null>
     refreshServer: () => Promise<boolean>
-    suspendSwarm: () => Promise<boolean>
-    resumeSwarm: () => Promise<boolean>
-    flushSwarm: () => Promise<boolean>
     dhtLookup: (topicHex: string) => Promise<Array<{ publicKey: string; nodes: Array<{ host: string; port: number }> }>>
     dhtAnnounce: (topicHex: string) => Promise<boolean>
     dhtUnannounce: (topicHex: string) => Promise<boolean>
@@ -116,7 +114,7 @@ export interface AsgardAPI {
     getSize: () => Promise<number>
     saveMessage: (conversationId: string, message: unknown) => Promise<void>
     saveMessages: (conversationId: string, messages: unknown[]) => Promise<void>
-    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; reverse?: boolean }) => Promise<unknown[]>
+    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; afterId?: string; reverse?: boolean }) => Promise<unknown[]>
     getLastMessages: (conversationId: string, count?: number) => Promise<unknown[]>
     getLatestMessage: (conversationId: string) => Promise<unknown | null>
     clearMessages: (conversationId: string) => Promise<void>
@@ -213,12 +211,24 @@ export interface AsgardAPI {
   notifications: {
     show: (title: string, body: string, options?: NotificationOptions) => void
     requestPermission: () => Promise<boolean>
+    onClick: (callback: (target: NotificationClickTarget) => void) => () => void
   }
   // File operations
   file: {
-    saveAs: (blobId: string, suggestedName: string) => Promise<
+    saveAs: (blobId: string, suggestedName: string, downloadDir?: string) => Promise<
       | { success: true; filePath: string }
       | { success: false; reason: 'not-found' | 'canceled' | 'error'; message?: string }
+    >
+    open: (blobId: string, suggestedName: string) => Promise<
+      | { success: true }
+      | { success: false; reason: 'not-found' | 'blocked' | 'error'; message?: string }
+    >
+  }
+  // Native dialogs
+  dialog: {
+    pickFolder: () => Promise<
+      | { success: true; path: string }
+      | { success: false; reason: 'canceled' | 'error'; message?: string }
     >
   }
   // App info
@@ -232,6 +242,8 @@ export interface AsgardAPI {
     getPendingDeepLink: () => Promise<string | null>
     // DEEP LINK: liens reçus pendant que l'app tourne
     onDeepLink: (callback: (url: string) => void) => () => void
+    // APPEL ENTRANT: clignotement de l'icône de la barre des tâches
+    flashFrame: (flag: boolean) => void
     // PRIVACY SETTINGS (privacy.linkPreviews): métadonnées OG récupérées côté main
     fetchLinkPreview: (url: string) => Promise<{
       url: string
@@ -267,6 +279,7 @@ contextBridge.exposeInMainWorld('asgard', {
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
     onMaximizeChange: (callback: (isMaximized: boolean) => void) =>
       createListener('window:maximizeChange', callback),
+    setUnreadCount: (count: number) => ipcRenderer.send('window:set-unread', count),
   },
   identity: {
     create: () => ipcRenderer.invoke('identity:create'),
@@ -297,7 +310,7 @@ contextBridge.exposeInMainWorld('asgard', {
     suspend: () => ipcRenderer.invoke('network:suspend'),
     resume: () => ipcRenderer.invoke('network:resume'),
     flush: () => ipcRenderer.invoke('network:flush'),
-    updateConfig: (config: { maxPeers?: number; relayEnabled?: boolean }) =>
+    updateConfig: (config: { maxPeers?: number }) =>
       ipcRenderer.invoke('network:updateConfig', config),
     blockPeer: (noisePublicKeyHex: string, blocked: boolean) =>
       ipcRenderer.invoke('network:blockPeer', noisePublicKeyHex, blocked),
@@ -330,9 +343,6 @@ contextBridge.exposeInMainWorld('asgard', {
       ipcRenderer.invoke('network:setFirewall', firewallFn),
     getServerAddress: () => ipcRenderer.invoke('network:getServerAddress'),
     refreshServer: () => ipcRenderer.invoke('network:refreshServer'),
-    suspendSwarm: () => ipcRenderer.invoke('network:suspendSwarm'),
-    resumeSwarm: () => ipcRenderer.invoke('network:resumeSwarm'),
-    flushSwarm: () => ipcRenderer.invoke('network:flushSwarm'),
     dhtLookup: (topicHex: string) => ipcRenderer.invoke('network:dhtLookup', topicHex),
     dhtAnnounce: (topicHex: string) => ipcRenderer.invoke('network:dhtAnnounce', topicHex),
     dhtUnannounce: (topicHex: string) => ipcRenderer.invoke('network:dhtUnannounce', topicHex),
@@ -371,7 +381,7 @@ contextBridge.exposeInMainWorld('asgard', {
       ipcRenderer.invoke('storage:saveMessage', conversationId, message),
     saveMessages: (conversationId: string, messages: unknown[]) =>
       ipcRenderer.invoke('storage:saveMessages', conversationId, messages),
-    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; reverse?: boolean }) =>
+    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; afterId?: string; reverse?: boolean }) =>
       ipcRenderer.invoke('storage:getMessages', conversationId, options),
     getLastMessages: (conversationId: string, count?: number) =>
       ipcRenderer.invoke('storage:getLastMessages', conversationId, count),
@@ -540,9 +550,16 @@ contextBridge.exposeInMainWorld('asgard', {
     show: (title: string, body: string, options?: NotificationOptions) =>
       ipcRenderer.send('notifications:show', title, body, options),
     requestPermission: () => ipcRenderer.invoke('notifications:requestPermission'),
+    onClick: (callback: (target: NotificationClickTarget) => void) =>
+      createListener('notifications:click', callback),
   },
   file: {
-    saveAs: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:save-as', blobId, suggestedName),
+    saveAs: (blobId: string, suggestedName: string, downloadDir?: string) =>
+      ipcRenderer.invoke('file:save-as', blobId, suggestedName, downloadDir),
+    open: (blobId: string, suggestedName: string) => ipcRenderer.invoke('file:open', blobId, suggestedName),
+  },
+  dialog: {
+    pickFolder: () => ipcRenderer.invoke('dialog:pick-folder'),
   },
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
@@ -554,6 +571,7 @@ contextBridge.exposeInMainWorld('asgard', {
     getPendingDeepLink: () => ipcRenderer.invoke('app:getPendingDeepLink'),
     onDeepLink: (callback: (url: string) => void) =>
       createListener('app:deepLink', callback),
+    flashFrame: (flag: boolean) => ipcRenderer.send('window:flash-frame', flag),
     fetchLinkPreview: (url: string) => ipcRenderer.invoke('app:fetchLinkPreview', url),
   },
 } satisfies AsgardAPI)
@@ -614,4 +632,13 @@ interface NotificationOptions {
   icon?: string
   silent?: boolean
   urgency?: 'normal' | 'critical' | 'low'
+  /** Destination ouverte au clic : fil 1:1, ou canal d'un groupe. */
+  conversationId?: string
+  groupId?: string
+  channelId?: string
 }
+
+type NotificationClickTarget = Pick<
+  NotificationOptions,
+  'conversationId' | 'groupId' | 'channelId'
+>

@@ -1,9 +1,10 @@
-import type { Message, OutgoingMessage, ProtocolMessage, Contact, UserStatus, NetworkPeer } from '@/types'
+import type { Message, Mention, OutgoingMessage, ProtocolMessage, Contact, UserStatus, NetworkPeer } from '@/types'
 import { p2pService } from './P2PService'
 import { cryptoService } from './CryptoService'
 import { storageService } from './StorageService'
 import { groupService } from './GroupService'
 import { ringtoneService } from './RingtoneService'
+import { confirmPendingContact } from './contactRequests'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
@@ -12,6 +13,10 @@ import { useNetworkStore } from '@/stores/networkStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useGroupStore } from '@/stores/groupStore'
 import { generateId } from '@/utils/id'
+import { sortMessagesByCursor } from '@/utils/messageGap'
+import { speakText } from '@/utils/speech'
+import { isQuietNow } from '@/utils/quietHours'
+import i18n from '@/i18n/config'
 import {
   toNetworkStatus,
   fromNetworkStatus,
@@ -22,13 +27,15 @@ import {
 
 /** Queued message for offline delivery retry */
 interface PendingMessage {
-  id: string
-  outgoing: OutgoingMessage
+  message: Message
   conversationId: string
   peerId: string
   createdAt: number
   attempts: number
 }
+
+/** Résultat d'un envoi : parti sur le réseau, ou mis en file d'attente */
+export type SendOutcome = 'sent' | 'queued'
 
 /** Queued reaction for retry when the peer was unreachable at toggle time */
 interface PendingReaction {
@@ -94,7 +101,11 @@ class ChatService {
   // Anti-rentree: connexions en cours de dérivation/tentative
   private redialInFlight: Set<string> = new Set()
   private lastRedialAt: Map<string, number> = new Map()
-  private static readonly REDIAL_INTERVAL = 30_000 // 30 s entre deux jointPeer vers un contact non connecté
+  // Anti-rafale des sondes déclenchées par l'ouverture d'une conversation.
+  private lastProbeAt: Map<string, number> = new Map()
+  private static readonly REDIAL_INTERVAL = 10_000 // 10 s — re-tentative rapide après une coupure
+  private static readonly PROBE_INTERVAL = 8_000 // 8 s entre deux sondes du même contact
+  private static readonly DHT_PROFILE_MAX_AGE = 2 * 60 * 1000 // au-delà, le record DHT ne prouve plus rien
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null
   // Peers considered offline until heard from (ms)
   // CRITICAL FIX: Reduced from 120s to 45s. A Hyperswarm/Noise connection does NOT
@@ -140,7 +151,14 @@ class ChatService {
   private lastPresenceStatus: Map<string, UserStatus> = new Map()
   private static readonly MAX_PENDING_PER_PEER = 500
   private static readonly MAX_PENDING_AGE = 7 * 24 * 60 * 60 * 1000 // 7 days
+  /** Nombre de renvois avant de marquer un message définitivement « failed » */
+  private static readonly MAX_SEND_ATTEMPTS = 3
   private static readonly MAX_PENDING_REACTIONS = 200
+  /** Contenu et identifiant d'un message 1:1 entrant. */
+  private static readonly MAX_INCOMING_CHARS = 100_000
+  private static readonly MAX_INCOMING_ID = 128
+  private static readonly MAX_INCOMING_MENTIONS = 32
+  private static readonly MAX_INCOMING_SIGNATURE = 256
   private static readonly REACTION_MAX_ATTEMPTS = 3
 
   static getInstance(): ChatService {
@@ -200,6 +218,10 @@ class ChatService {
 
           const chunkData = bytes.slice(sepIdx + 1)
           const totalChunks = header.total ?? 1
+          // A header is attacker-controlled: bound the reassembly before
+          // allocating anything on its promise (legit chunks are 16 KiB).
+          if (!Number.isInteger(totalChunks) || totalChunks < 1 || totalChunks > ChatService.MAX_AVATAR_CHUNKS) return
+          if (chunkData.length > ChatService.MAX_AVATAR_CHUNK_BYTES) return
           const target = header.target ?? 'contact' // Backward compat: default to 'contact'
           const groupId = header.groupId
 
@@ -230,6 +252,10 @@ class ChatService {
           // Subsequent chunk (no header) — append to buffer
           const buf = this.avatarBuffers.get(data.from)
           if (!buf) return
+          if (buf.chunks.length >= buf.totalChunks || bytes.length > ChatService.MAX_AVATAR_CHUNK_BYTES) {
+            this.avatarBuffers.delete(data.from)
+            return
+          }
 
           buf.chunks.push(new Uint8Array(bytes))
           buf.receivedChunks++
@@ -276,146 +302,49 @@ class ChatService {
 
     // Handle message edits
     p2pService.on('message:chat:edit', (msg: ProtocolMessage) => {
-      const { messageId, conversationId, newContent } = msg.payload as EditPayload
-      useMessageStore.getState().editMessage(messageId, conversationId, newContent)
+      this.handleChatEdit(msg)
     })
 
     // Handle message deletions
     p2pService.on('message:chat:delete', (msg: ProtocolMessage) => {
-      const { messageId, conversationId } = msg.payload as DeletePayload
-      // CRITICAL: Resolve the correct local conversationId
-      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      const resolvedConvId = myPk
-        ? cryptoService.deriveConversationId(myPk, msg.from)
-        : conversationId
-      // Hard delete: permanently remove the message from store and storage
-      useMessageStore.getState().deleteMessagePermanently(messageId, resolvedConvId)
-      storageService.deleteMessage(resolvedConvId, messageId).catch(() => {})
+      this.handleChatDelete(msg)
     })
 
     // Handle reactions
     p2pService.on('message:chat:reaction', (msg: ProtocolMessage) => {
-      const { messageId, conversationId, emoji, action } = msg.payload as ReactionPayload
-      const store = useMessageStore.getState()
-
-      // CRITICAL: Resolve the correct local conversationId from both peers' keys.
-      // The sender's conversationId may differ from ours.
-      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      const resolvedConvId = myPk
-        ? cryptoService.deriveConversationId(myPk, msg.from)
-        : conversationId
-
-      // Also try the original conversationId as fallback
-      let message = store.getMessage(messageId, resolvedConvId)
-      let actualConvId = resolvedConvId
-      if (!message) {
-        message = store.getMessage(messageId, conversationId)
-        if (message) actualConvId = conversationId
-      }
-      // Last resort: search all conversations
-      if (!message) {
-        const allMessages = store.messages
-        for (const convId of Object.keys(allMessages)) {
-          const found = allMessages[convId]?.find((m) => m.id === messageId)
-          if (found) {
-            message = found
-            actualConvId = convId
-            break
-          }
-        }
-      }
-      if (!message) {
-        const dropLog = `[ChatService] !!! chat:reaction from ${msg.from?.slice(0, 16)} dropped: message ${messageId?.slice(0, 8)} not found in any loaded conversation`
-        console.warn(dropLog)
-        try { window.asgard.debugLog(dropLog) } catch {}
-        return
-      }
-
-      if (action === 'add') {
-        store.addReaction(messageId, actualConvId, emoji, msg.from)
-      } else {
-        store.removeReaction(messageId, actualConvId, emoji, msg.from)
-      }
-
-      // Sans cette écriture, la réaction reçue n'existe qu'en mémoire et meurt au redémarrage.
-      const updated = useMessageStore.getState().getMessage(messageId, actualConvId)
-      if (updated) storageService.saveMessage(actualConvId, updated).catch(() => {})
+      this.handleChatReaction(msg)
     })
 
     // Handle read receipts (DM)
     p2pService.on('message:chat:read', (msg: ProtocolMessage) => {
-      const payload = msg.payload as { messageIds?: string[]; messageId?: string; conversationId?: string }
-      const ids = payload.messageIds ?? (payload.messageId ? [payload.messageId] : [])
-      const legacyLog = `[ChatService] === LEGACY chat:read from ${msg.from?.slice(0, 16)} | msgs: ${ids.length}`
-      console.log(legacyLog)
-      try { window.asgard.debugLog(legacyLog) } catch {}
-      const store = useMessageStore.getState()
-      for (const id of ids) {
-        store.markMessageRead(id, msg.from)
-      }
+      this.handleChatRead(msg)
     })
 
     // Handle delivery & read receipts (unified receipt protocol).
-    // When a peer acknowledges our message, upgrade its status accordingly.
     p2pService.on('message:chat:receipt', (msg: ProtocolMessage) => {
-      const payload = msg.payload as { messageIds: string[]; status: 'delivered' | 'read'; conversationId?: string }
-      const recvLog = `[ChatService] === RECEIPT RECEIVED from ${msg.from?.slice(0, 16)} | status: ${payload.status} | msgs: ${payload.messageIds.length}`
-      console.log(recvLog)
-      try { window.asgard.debugLog(recvLog) } catch {}
-      const store = useMessageStore.getState()
-      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      if (!myPk) return
-
-      for (const messageId of payload.messageIds) {
-        // Find the message across all conversations (it's one we sent)
-        for (const convId of Object.keys(store.messages)) {
-          const messages = store.messages[convId]
-          const idx = messages.findIndex((m) => m.id === messageId)
-          if (idx !== -1) {
-            const m = messages[idx]
-            // Only upgrade status for our own messages, and never downgrade
-            if (m.senderId !== myPk) break
-            const order = { sending: 0, sent: 1, delivered: 2, read: 3, failed: 0, scheduled: 0 }
-            if ((order[payload.status] ?? 0) > (order[m.status] ?? 0)) {
-              const updateLog = `[ChatService] Upgrading message ${messageId.slice(0, 16)} from ${m.status} to ${payload.status}`
-              console.log(updateLog)
-              try { window.asgard.debugLog(updateLog) } catch {}
-              store.updateStatus(messageId, convId, payload.status)
-            }
-            break
-          }
-        }
-      }
+      this.handleChatReceipt(msg)
     })
 
     // Handle message recall
     p2pService.on('message:chat:recall', (msg: ProtocolMessage) => {
-      const { messageId, conversationId, reason } = msg.payload as RecallPayload
-      const store = useMessageStore.getState()
-
-      // Resolve the correct local conversationId
-      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      const resolvedConvId = myPk
-        ? cryptoService.deriveConversationId(myPk, msg.from)
-        : conversationId
-
-      // Mark message as recalled
-      store.recallMessage(messageId, resolvedConvId, reason)
-      
-      // Also delete from storage
-      storageService.deleteMessage(resolvedConvId, messageId).catch(() => {})
+      this.handleChatRecall(msg)
     })
 
     // Handle ephemeral message expiration notification
     p2pService.on('message:chat:ephemeral', (msg: ProtocolMessage) => {
-      const { conversationId, expiresAt } = msg.payload as { conversationId: string; expiresAt: number }
+      const payload = msg.payload as { expiresAt?: unknown } | null
+      if (!msg.from || !payload || typeof payload !== 'object') return
+      const requested = payload.expiresAt
+      if (typeof requested !== 'number' || !Number.isFinite(requested) || requested <= 0) return
+      // A peer owns its message's lifetime, not an unbounded timer: cap the
+      // declaration so a far-future or absurd value cannot park the store.
+      const expiresAt = Math.min(requested, Date.now() + 30 * 24 * 60 * 60 * 1000)
       const store = useMessageStore.getState()
 
       // Resolve the correct local conversationId
       const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-      const resolvedConvId = myPk
-        ? cryptoService.deriveConversationId(myPk, msg.from)
-        : conversationId
+      if (!myPk) return
+      const resolvedConvId = cryptoService.deriveConversationId(myPk, msg.from)
 
       // Find the last message from this peer and set its expiration
       const msgs = store.messages[resolvedConvId]
@@ -431,9 +360,21 @@ class ChatService {
 
     // Handle typing indicators
     p2pService.on('message:presence:typing', (msg: ProtocolMessage) => {
+      const payload = msg.payload as { conversationId?: unknown; typing?: unknown } | null
+      if (!msg.from || !payload || typeof payload !== 'object') return
+      if (typeof payload.typing !== 'boolean') return
+      const contact = useContactStore.getState().getContact(msg.from)
+      // A typing indicator names a conversation; only the DM this peer owns is
+      // legitimate, or a third contact could make them appear in another chat.
+      if (!contact || contact.relation === 'blocked') return
+      const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+      if (!myPk) return
+      const conversationId = cryptoService.deriveConversationId(myPk, msg.from)
+      if (payload.conversationId !== conversationId) return
+
       // Activity from peer proves they are online (fallback for older clients)
       this.markPeerActive(msg.from)
-      const { conversationId, typing } = msg.payload as TypingPayload
+      const typing = payload.typing
       useNetworkStore.getState().setTyping(conversationId, msg.from, typing)
 
       // Auto-clear typing after 5 seconds
@@ -444,16 +385,23 @@ class ChatService {
           useNetworkStore.getState().setTyping(conversationId, msg.from, false)
         }, 5000)
         this.typingTimers.set(key, timer)
+      } else {
+        this.typingTimers.delete(key)
       }
     })
 
     // Handle presence updates
     p2pService.on('message:presence:update', (msg: ProtocolMessage) => {
-      const payload = msg.payload as PresencePayload
+      const payload = msg.payload as PresencePayload | null
+      if (!msg.from || !payload || typeof payload !== 'object') return
+      const declared = typeof payload.status === 'string' ? payload.status.trim().toLowerCase() : ''
+      if (!['online', 'away', 'offline', 'dnd', 'busy', 'invisible'].includes(declared)) return
       const recvMsg = `[ChatService] === PRESENCE RECEIVED from: ${msg.from?.slice(0, 32)} | status: ${payload.status}`
       console.log(recvMsg)
       try { window.asgard.debugLog(recvMsg) } catch {}
       const contact = useContactStore.getState().getContact(msg.from)
+      // A blocked contact keeps its frozen card: no status, name or avatar push.
+      if (contact?.relation === 'blocked') return
       const mappedStatus = fromNetworkStatus(payload.status)
       const updateMsg = `[ChatService] Presence update: contact found=${!!contact} | mapped=${mappedStatus}`
       console.log(updateMsg)
@@ -469,16 +417,25 @@ class ChatService {
     p2pService.on('message:presence:ping', (msg: ProtocolMessage) => {
       // Any traffic from peer proves they are online (fallback for older clients)
       this.markPeerActive(msg.from)
-      const { timestamp } = msg.payload as { timestamp: number }
+      const payload = msg.payload as { timestamp?: unknown } | null
+      const sentAt = typeof payload?.timestamp === 'number' && Number.isFinite(payload.timestamp)
+        ? payload.timestamp
+        : Date.now()
       // Respond with pong immediately
-      p2pService.sendMessage(msg.from, 'presence:pong', { timestamp }).catch(() => {})
+      p2pService.sendMessage(msg.from, 'presence:pong', { timestamp: sentAt }).catch(() => {})
     })
 
     p2pService.on('message:presence:pong', (msg: ProtocolMessage) => {
       // Any traffic from peer proves they are online (fallback for older clients)
       this.markPeerActive(msg.from)
-      const { timestamp } = msg.payload as { timestamp: number }
-      const rtt = Date.now() - timestamp
+      const payload = msg.payload as { timestamp?: unknown } | null
+      const sentAt = typeof payload?.timestamp === 'number' && Number.isFinite(payload.timestamp)
+        ? payload.timestamp
+        : null
+      if (sentAt === null) return
+      const rtt = Date.now() - sentAt
+      // Reject clock-skewed or absurd values instead of displaying them.
+      if (rtt < 0 || rtt > 60_000) return
       // Update network store with latency
       useNetworkStore.getState().setPeerLatency(msg.from, rtt)
       console.log('[ChatService] Pong from', msg.from.slice(0, 16), '— RTT:', rtt, 'ms')
@@ -788,7 +745,15 @@ class ChatService {
       console.log('[ChatService] Applied pending presence for peer:', data.publicKey.slice(0, 16), '| status:', pendingPayload.status)
     }
 
-    if (!this.contactRequestsSent.has(data.publicKey)) {
+    // La demande n'est renvoyée que si NOUS avons ajouté ce pair et qu'il ne l'a
+    // pas encore confirmée. L'ancien envoi inconditionnel, à chaque connexion,
+    // transformait une simple identification (contact déjà confirmé, ou pair
+    // recroisé) en demande : elle ne doit naître que d'un ajout volontaire.
+    if (
+      contact.relation === 'pending' &&
+      contact.requestDirection === 'outgoing' &&
+      !this.contactRequestsSent.has(data.publicKey)
+    ) {
       this.contactRequestsSent.add(data.publicKey)
       if (identity) {
         p2pService.sendMessage(data.peerId, 'contact:request', {
@@ -855,9 +820,13 @@ class ChatService {
       status: mappedStatus,
       lastSeen: now,
     }
-    if (payload.displayName !== undefined) updates.displayName = payload.displayName
-    if (payload.avatar !== undefined) updates.avatar = payload.avatar
-    if (payload.customStatus !== undefined) updates.customStatus = payload.customStatus
+    const displayName = ChatService.declaredName(payload.displayName)
+    if (displayName) updates.displayName = displayName
+    const avatar = ChatService.declaredAvatar(payload.avatar)
+    if (avatar) updates.avatar = avatar
+    if (typeof payload.customStatus === 'string') {
+      updates.customStatus = payload.customStatus.slice(0, ChatService.MAX_CUSTOM_STATUS)
+    }
 
     useContactStore.getState().updateContact(publicKey, updates)
   }
@@ -883,75 +852,120 @@ class ChatService {
    * Uses a deterministic conversationId derived from both peers' public keys
    * (via the discovery topic hash), ensuring both parties use the same ID.
    */
-  async sendMessage(outgoing: OutgoingMessage, _conversationId: string, peerId: string): Promise<void> {
+  async sendMessage(outgoing: OutgoingMessage, _conversationId: string, peerId: string): Promise<SendOutcome> {
     const identity = useIdentityStore.getState().identity
     if (!identity) throw new Error('No identity')
 
     console.log('[ChatService] === SEND MESSAGE to peer:', peerId.slice(0, 32), '| type:', outgoing.type)
     try { window.asgard.debugLog('[ChatService] === SEND MESSAGE to peer: ' + peerId.slice(0, 32)) } catch {}
 
+    // Derive deterministic conversationId from both peers' public keys
+    const resolvedId = cryptoService.deriveConversationId(identity.keyPair.publicKey, peerId)
+    const signedMessage = await this.buildSignedMessage(outgoing, resolvedId, identity.keyPair.publicKey)
+
+    // Répondre vaut acceptation : si ce pair nous avait ajoutés, notre message
+    // est la réponse qui confirme l'ajout (et lui envoie contact:accept).
+    this.confirmReplyContact(peerId)
+
     try {
-      // Derive deterministic conversationId from both peers' public keys
-      const resolvedId = cryptoService.deriveConversationId(identity.keyPair.publicKey, peerId)
-      console.log('[ChatService] Step 1: conversationId derived:', resolvedId.slice(0, 16))
+      // PERFORMANCE: sendRawMessage() saute la signature Ed25519 du P2P — le
+      // payload est déjà signé ci-dessus (~5-20 ms gagnés par message).
+      await p2pService.sendRawMessage(peerId, 'chat:message', signedMessage)
+      useMessageStore.getState().updateStatus(signedMessage.id, resolvedId, 'sent')
+      storageService.saveMessage(resolvedId, signedMessage).catch(console.error)
+      this.ensureConversation(resolvedId, peerId, signedMessage)
+      console.log('[ChatService] Message sent:', signedMessage.id)
+      return 'sent'
+    } catch (err) {
+      const errMsg = `[ChatService] sendMessage network failure: ${err instanceof Error ? err.message : String(err)}`
+      console.error(errMsg)
+      try { window.asgard.debugLog(errMsg) } catch {}
 
-      // PERFORMANCE: Store message and sign in parallel (independent operations)
-      console.log('[ChatService] Step 2: Calling messageStore.sendMessage...')
-      const [message] = await Promise.all([
-        useMessageStore.getState().sendMessage(
-          { ...outgoing, conversationId: resolvedId },
-          identity.keyPair.publicKey
-        ),
-      ])
-      console.log('[ChatService] Step 3: messageStore.sendMessage completed, message.id:', message.id)
+      // Hors ligne : on garde le message signé en file, il sera renvoyé à la
+      // reconnexion. Le statut reste « sending » (horloge) tant que les
+      // tentatives ne sont pas épuisées.
+      this.queueMessage(signedMessage, resolvedId, peerId)
+      useMessageStore.getState().updateStatus(signedMessage.id, resolvedId, 'sending')
+      return 'queued'
+    }
+  }
 
-      // Sign the message (Ed25519 — ~5-20ms)
-      console.log('[ChatService] Step 4: Calling cryptoService.sign...')
+  /**
+   * Renvoie un message passé en échec définitif, à la demande de l'utilisateur.
+   * Même identifiant et même horodatage que l'original : le pair qui l'aurait
+   * déjà reçu (échec ambigu) le déduplique au lieu d'afficher deux bulles.
+   * Un second échec réseau le remet en file pour la reconnexion.
+   */
+  async retryMessage(messageId: string, conversationId: string, peerId: string): Promise<SendOutcome> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) throw new Error('No identity')
+
+    const message = useMessageStore.getState().getMessage(messageId, conversationId)
+    if (!message || message.deleted) throw new Error('Message not found')
+
+    const signature = await cryptoService.sign({
+      id: message.id,
+      content: message.content,
+      timestamp: message.timestamp,
+      senderId: message.senderId,
+    })
+    const signedMessage: Message = { ...message, signature }
+
+    this.confirmReplyContact(peerId)
+
+    try {
+      await p2pService.sendRawMessage(peerId, 'chat:message', signedMessage)
+      useMessageStore.getState().updateStatus(messageId, conversationId, 'sent')
+      storageService.saveMessage(conversationId, signedMessage).catch(console.error)
+      return 'sent'
+    } catch (err) {
+      console.warn('[ChatService] retry failed — message re-queued:', err)
+      this.queueMessage(signedMessage, conversationId, peerId)
+      useMessageStore.getState().updateStatus(messageId, conversationId, 'sending')
+      return 'queued'
+    }
+  }
+
+  /**
+   * Répondre dans la conversation vaut acceptation d'une demande entrante.
+   * L'avatar n'est poussé qu'à la transition, pas à chaque message.
+   */
+  private confirmReplyContact(peerId: string): void {
+    if (!confirmPendingContact(peerId, 'incoming', true)) return
+    const identity = useIdentityStore.getState().identity
+    if (identity?.profile.avatar && p2pService.isPeerConnected(peerId)) {
+      this.sendAvatarViaMedia(peerId, identity.profile.avatar, 'contact').catch(() => {})
+    }
+  }
+
+  /**
+   * Crée le message local puis le signe. Le message signé est réutilisé tel
+   * quel par les renvois : re-passer par messageStore.sendMessage créerait un
+   * doublon dans la conversation à chaque tentative.
+   */
+  private async buildSignedMessage(
+    outgoing: OutgoingMessage,
+    conversationId: string,
+    senderId: string
+  ): Promise<Message> {
+    const message = await useMessageStore.getState().sendMessage(
+      { ...outgoing, conversationId },
+      senderId
+    )
+    try {
       const signature = await cryptoService.sign({
         id: message.id,
         content: message.content,
         timestamp: message.timestamp,
         senderId: message.senderId,
       })
-      console.log('[ChatService] Step 5: cryptoService.sign completed, signature length:', signature.length)
-
-      const signedMessage: Message = { ...message, signature }
-
-      // PERFORMANCE: Update UI immediately (optimistic) before network send
-      useMessageStore.getState().updateStatus(message.id, resolvedId, 'sent')
-
-      // PERFORMANCE: Use sendRawMessage() to skip redundant Ed25519 signing in P2P layer.
-      // The message payload is already signed above — no need to sign again.
-      // This saves ~5-20ms per message.
-      console.log('[ChatService] Step 6: Calling p2pService.sendRawMessage...')
-      const sendPromise = p2pService.sendRawMessage(peerId, 'chat:message', signedMessage)
-
-      // Fire-and-forget: persist to Hyperbee storage + ensure conversation (don't await)
-      storageService.saveMessage(resolvedId, signedMessage).catch(console.error)
-      this.ensureConversation(resolvedId, peerId, signedMessage)
-
-      // Await network send last — UI is already updated
-      await sendPromise
-      console.log('[ChatService] Message sent:', message.id)
+      return { ...message, signature }
     } catch (err) {
-      const errMsg = `[ChatService] sendMessage ERROR: ${err instanceof Error ? err.message : String(err)}\n${err instanceof Error && err.stack ? err.stack : ''}`
-      console.error(errMsg)
-      try { window.asgard.debugLog(errMsg) } catch {}
-      
-      // OFFLINE QUEUE: Queue message for retry when peer comes back online
-      const resolvedId = cryptoService.deriveConversationId(
-        useIdentityStore.getState().identity!.keyPair.publicKey,
-        peerId
-      )
-      this.queueMessage(outgoing, resolvedId, peerId)
-      // Mark as 'sending' (pending) in UI instead of 'failed'
-      const msgs = useMessageStore.getState().messages[resolvedId]
-      if (msgs && msgs.length > 0) {
-        const lastMsg = msgs[msgs.length - 1]
-        if (lastMsg.senderId === useIdentityStore.getState().identity?.keyPair.publicKey) {
-          useMessageStore.getState().updateStatus(lastMsg.id, resolvedId, 'sending')
-        }
-      }
+      // Erreur locale (signature) : rien à réessayer sur le réseau.
+      // On laisse un échec visible au lieu d'un spinner éternel.
+      console.error('[ChatService] buildSignedMessage failure:', err)
+      useMessageStore.getState().updateStatus(message.id, conversationId, 'failed')
+      throw err
     }
   }
 
@@ -961,25 +975,38 @@ class ChatService {
    * Queue a message for later delivery when peer is offline.
    * Messages are stored in memory and flushed when peer reconnects.
    */
-  private queueMessage(outgoing: OutgoingMessage, conversationId: string, peerId: string): void {
+  private queueMessage(message: Message, conversationId: string, peerId: string): void {
     const queue = this.pendingMessages.get(peerId) ?? []
-    
-    // Enforce max queue size per peer
+
+    // Un renvoi ne doit jamais empiler deux fois le même message.
+    if (queue.some((pending) => pending.message.id === message.id)) return
+
+    // Enforce max queue size per peer — le plus ancien écarté doit être
+    // visible comme échec, pas disparaître silencieusement.
     if (queue.length >= ChatService.MAX_PENDING_PER_PEER) {
-      queue.shift() // Remove oldest
+      const dropped = queue.shift()
+      if (dropped) {
+        useMessageStore.getState().updateStatus(dropped.message.id, dropped.conversationId, 'failed')
+        console.warn(`[ChatService] Offline queue full — message ${dropped.message.id} marked failed`)
+      }
     }
-    
+
     queue.push({
-      id: generateId(),
-      outgoing,
+      message,
       conversationId,
       peerId,
       createdAt: Date.now(),
       attempts: 0,
     })
-    
+
     this.pendingMessages.set(peerId, queue)
     console.log(`[ChatService] Message queued for offline delivery to ${peerId.slice(0, 16)} (queue: ${queue.length})`)
+  }
+
+  /** Marque définitivement un message en file comme non délivré. */
+  private markPendingFailed(pending: PendingMessage, reason: string): void {
+    useMessageStore.getState().updateStatus(pending.message.id, pending.conversationId, 'failed')
+    console.warn(`[ChatService] Pending message ${pending.message.id} failed (${reason}, attempts: ${pending.attempts})`)
   }
 
   /**
@@ -989,49 +1016,37 @@ class ChatService {
   async flushPendingMessages(peerId: string): Promise<void> {
     const queue = this.pendingMessages.get(peerId)
     if (!queue || queue.length === 0) return
-    
+
     console.log(`[ChatService] Flushing ${queue.length} pending messages for peer ${peerId.slice(0, 16)}`)
-    
-    const now = Date.now()
-    const toRemove: number[] = []
-    
-    for (let i = 0; i < queue.length; i++) {
-      const pending = queue[i]
-      
-      // Skip expired messages (older than MAX_PENDING_AGE)
-      if (now - pending.createdAt > ChatService.MAX_PENDING_AGE) {
-        toRemove.push(i)
+
+    const survivors: PendingMessage[] = []
+
+    for (const pending of queue) {
+      // Expiré : échec explicite (l'ancien code le retirait sans statut).
+      if (Date.now() - pending.createdAt > ChatService.MAX_PENDING_AGE) {
+        this.markPendingFailed(pending, 'expired')
         continue
       }
-      
+
       try {
+        await p2pService.sendRawMessage(peerId, 'chat:message', pending.message)
+        useMessageStore.getState().updateStatus(pending.message.id, pending.conversationId, 'sent')
+        storageService.saveMessage(pending.conversationId, pending.message).catch(console.error)
+        console.log(`[ChatService] Pending message sent successfully (attempt ${pending.attempts + 1})`)
+      } catch (err) {
         pending.attempts++
-        await this.sendMessage(pending.outgoing, pending.conversationId, peerId)
-        toRemove.push(i)
-        console.log(`[ChatService] Pending message sent successfully (attempt ${pending.attempts})`)
-      } catch {
-        // Failed again — keep in queue for next retry
-        if (pending.attempts >= 3) {
-          // Mark as failed after 3 retry attempts
-          const msgs = useMessageStore.getState().messages[pending.conversationId]
-          if (msgs) {
-            const msg = msgs.find(m => m.content === pending.outgoing.content && m.status === 'sending')
-            if (msg) {
-              useMessageStore.getState().updateStatus(msg.id, pending.conversationId, 'failed')
-            }
-          }
-          toRemove.push(i)
-          console.warn(`[ChatService] Pending message failed after ${pending.attempts} attempts, marked as failed`)
+        if (pending.attempts >= ChatService.MAX_SEND_ATTEMPTS) {
+          this.markPendingFailed(pending, err instanceof Error ? err.message : 'send failed')
+        } else {
+          survivors.push(pending)
         }
       }
     }
-    
-    // Remove sent/expired messages from queue (reverse order to preserve indices)
-    const updatedQueue = queue.filter((_, i) => !toRemove.includes(i))
-    if (updatedQueue.length === 0) {
+
+    if (survivors.length === 0) {
       this.pendingMessages.delete(peerId)
     } else {
-      this.pendingMessages.set(peerId, updatedQueue)
+      this.pendingMessages.set(peerId, survivors)
     }
   }
 
@@ -1089,7 +1104,13 @@ class ChatService {
    * Edit a sent message
    */
   async editMessage(messageId: string, conversationId: string, newContent: string, peerId: string): Promise<void> {
-    useMessageStore.getState().editMessage(messageId, conversationId, newContent)
+    const store = useMessageStore.getState()
+    store.editMessage(messageId, conversationId, newContent)
+    // Sans cette écriture, le texte corrigé n'existe qu'en mémoire : au
+    // redémarrage l'ancien revient chez l'auteur, alors que le contact garde
+    // la correction reçue.
+    const edited = store.getMessage(messageId, conversationId)
+    if (edited) storageService.saveMessage(conversationId, edited).catch(console.error)
     await p2pService.sendMessage(peerId, 'chat:edit', { messageId, conversationId, newContent })
   }
 
@@ -1110,7 +1131,12 @@ class ChatService {
    * Delete a message (soft delete — marks as deleted)
    */
   async deleteMessage(messageId: string, conversationId: string, peerId: string): Promise<void> {
-    useMessageStore.getState().deleteMessage(messageId, conversationId)
+    const store = useMessageStore.getState()
+    store.deleteMessage(messageId, conversationId)
+    // Le tombeau doit survivre au redémarrage, comme celui des groupes :
+    // sinon la phrase supprimée revient chez l'auteur au prochain lancement.
+    const deleted = store.getMessage(messageId, conversationId)
+    if (deleted) storageService.saveMessage(conversationId, deleted).catch(console.error)
     await p2pService.sendMessage(peerId, 'chat:delete', { messageId, conversationId })
   }
 
@@ -1121,7 +1147,9 @@ class ChatService {
     useMessageStore.getState().deleteMessagePermanently(messageId, conversationId)
     storageService.deleteMessage(conversationId, messageId).catch(console.error)
     if (peerId) {
-      await p2pService.sendMessage(peerId, 'chat:delete', { messageId, conversationId }).catch(() => {})
+      // L'avis au pair doit pouvoir échouer : la copie locale est déjà partie,
+      // mais le contact garderait la sienne sans que personne ne l'apprenne.
+      await p2pService.sendMessage(peerId, 'chat:delete', { messageId, conversationId })
     }
   }
 
@@ -2441,6 +2469,68 @@ class ChatService {
   }
 
   /**
+   * Un signal P2P récent (déclaration ou socket ouvert) fait autorité : le DHT
+   * n'apporte alors qu'une copie plus ancienne et ne doit pas être interrogé.
+   */
+  isPeerReachable(publicKey: string): boolean {
+    return this.hasFreshPresence(publicKey) || p2pService.isPeerConnected(publicKey)
+  }
+
+  /**
+   * Accélère la découverte d'un contact au moment où l'utilisateur ouvre sa
+   * conversation : compose directement son adresse Noise (sans attendre le
+   * heartbeat) et interroge son profil DHT si aucun signal P2P ne fait autorité.
+   * Throttlé : ouvrir une conversation ne doit pas relancer une rafale DHT.
+   */
+  probeContact(publicKey: string): void {
+    const contact = useContactStore.getState().getContact(publicKey)
+    if (!contact || contact.relation === 'blocked') return
+    const now = Date.now()
+    if (now - (this.lastProbeAt.get(publicKey) ?? 0) < ChatService.PROBE_INTERVAL) return
+    this.lastProbeAt.set(publicKey, now)
+
+    if (!p2pService.isPeerConnected(publicKey)) {
+      void this.redial(publicKey)
+    }
+    if (!this.isPeerReachable(publicKey)) {
+      void this.refreshDhtPresence(publicKey)
+    }
+  }
+
+  /** Lit le profil DHT d'un contact et applique son statut avec les règles de priorité. */
+  async refreshDhtPresence(publicKey: string): Promise<boolean> {
+    if (!window.asgard?.network?.fetchProfile) return false
+    const profile = await window.asgard.network.fetchProfile(publicKey).catch(() => null)
+    return this.applyDhtProfile(publicKey, profile)
+  }
+
+  /**
+   * Applique un profil DHT (ou son absence) au statut d'un contact.
+   *
+   * Règles, dans l'ordre :
+   * 1. bloqué → jamais touché ;
+   * 2. signal P2P récent → le DHT est une copie plus ancienne, ignorée ;
+   * 3. profil de moins de 2 min → son statut s'applique ;
+   * 4. profil absent ou périmé → hors ligne.
+   * Renvoie true si le statut a changé.
+   */
+  applyDhtProfile(
+    publicKey: string,
+    profile: { status?: string; timestamp?: number } | null,
+    maxAgeMs: number = ChatService.DHT_PROFILE_MAX_AGE,
+  ): boolean {
+    const contact = useContactStore.getState().getContact(publicKey)
+    if (!contact || contact.relation === 'blocked') return false
+    if (this.isPeerReachable(publicKey)) return false
+
+    const fresh = !!profile?.status && !!profile.timestamp && Date.now() - profile.timestamp < maxAgeMs
+    const next = fresh && profile?.status ? fromNetworkStatus(profile.status) : 'offline'
+    if (contact.status === next) return false
+    useContactStore.getState().updateContact(publicKey, { status: next })
+    return true
+  }
+
+  /**
    * Broadcast presence update to all connected peers.
    * PERFORMANCE: Skips broadcast if status hasn't changed since last broadcast.
    * Sends minimal payload (status + customStatus, no displayName/avatar).
@@ -2555,24 +2645,59 @@ class ChatService {
    * @param target - 'contact' | 'group_member' | 'group_icon'
    * @param groupId - Group ID (required for group_member and group_icon)
    */
+  /** Avatars are compressed to ≤256 px WebP; anything multi-megabyte is abuse. */
+  private static readonly MAX_AVATAR_CHARS = 2 * 1024 * 1024
+  private static readonly MAX_AVATAR_CHUNKS = 256
+  private static readonly MAX_AVATAR_CHUNK_BYTES = 64 * 1024
+  private static readonly AVATAR_DATA_URL = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/
+  private static readonly MAX_PROFILE_NAME = 200
+  private static readonly MAX_CUSTOM_STATUS = 200
+
+  /** A peer-declared name: trimmed, non-empty, bounded. */
+  private static declaredName(value: unknown): string | undefined {
+    if (typeof value !== 'string') return undefined
+    const trimmed = value.trim()
+    return trimmed ? trimmed.slice(0, ChatService.MAX_PROFILE_NAME) : undefined
+  }
+
+  /** A peer-declared avatar must be an image data URL of sane size. */
+  private static declaredAvatar(value: unknown): string | undefined {
+    if (typeof value !== 'string' || value.length === 0) return undefined
+    if (value.length > ChatService.MAX_AVATAR_CHARS) return undefined
+    return ChatService.AVATAR_DATA_URL.test(value) ? value : undefined
+  }
+
   private storeAvatar(ed25519Key: string, avatarData: string, target: string, groupId?: string): void {
-    // Always update the contact store — the 1:1 contact avatar should always reflect
-    // the sender's current avatar, regardless of the delivery context.
-    useContactStore.getState().updateContact(ed25519Key, { avatar: avatarData })
+    // Binary chunks carry no application-level signature: validate before any
+    // store sees them, or a peer could inject arbitrary markup via the data
+    // URL or park megabytes in the zustand stores and local persistence.
+    if (typeof avatarData !== 'string' || avatarData.length === 0) return
+    if (avatarData.length > ChatService.MAX_AVATAR_CHARS) return
+    if (!ChatService.AVATAR_DATA_URL.test(avatarData)) return
+    const group = typeof groupId === 'string' && groupId.length <= 128
+      ? useGroupStore.getState().getGroup(groupId)
+      : undefined
 
     if (target === 'group_member' && groupId) {
-      // Group member's profile avatar — update in group store too
+      // Only a member of that group can refresh its own member avatar.
+      if (!group?.members.some((member) => member.publicKey === ed25519Key)) return
       useGroupStore.getState().updateMember(groupId, ed25519Key, { avatar: avatarData })
+      // The member avatar is the sender's own profile: keep the 1:1 card in sync.
+      useContactStore.getState().updateContact(ed25519Key, { avatar: avatarData })
       const msg = `[ChatService] Group member avatar stored: ${avatarData.length} chars for ${ed25519Key.slice(0, 16)} in group ${groupId.slice(0, 16)}`
       console.log(msg)
       try { window.asgard.debugLog(msg) } catch {}
     } else if (target === 'group_icon' && groupId) {
-      // Group's own avatar/icon — update in group store
+      // The icon is an admin setting: a member (or an outsider) must not be
+      // able to deface it by pushing media with a guessed groupId.
+      if (!group || !useGroupStore.getState().isAdmin(groupId, ed25519Key)) return
       useGroupStore.getState().updateGroup(groupId, { avatar: avatarData })
       const msg = `[ChatService] Group icon avatar stored: ${avatarData.length} chars for group ${groupId.slice(0, 16)}`
       console.log(msg)
       try { window.asgard.debugLog(msg) } catch {}
     } else {
+      // Contact avatar: updateContact ignores keys that are not contacts.
+      useContactStore.getState().updateContact(ed25519Key, { avatar: avatarData })
       // Standard contact avatar
       const msg = `[ChatService] Contact avatar stored: ${avatarData.length} chars for ${ed25519Key.slice(0, 16)}`
       console.log(msg)
@@ -2696,7 +2821,11 @@ class ChatService {
    * Called when opening a conversation to restore message history.
    * OPTIMIZATION: Uses reverse pagination to load latest messages first.
    */
-  async loadMessages(conversationId: string, limit = 50): Promise<Message[]> {
+  /**
+   * `null` = la lecture a échoué, à distinguer d'une page vide : une vue qui
+   * confond les deux déclare l'historique épuisé et le trou devient définitif.
+   */
+  async loadMessages(conversationId: string, limit = 50): Promise<Message[] | null> {
     try {
       // OPTIMIZATION: Load latest messages in reverse order (newest first)
       // This is much faster than loading all messages and sorting
@@ -2709,7 +2838,7 @@ class ChatService {
       return messages
     } catch (err) {
       console.error('[ChatService] Failed to load messages:', err)
-      return []
+      return null
     }
   }
 
@@ -2717,7 +2846,7 @@ class ChatService {
    * Load older messages before a given timestamp (pagination).
    * OPTIMIZATION: Uses Hyperbee range queries for efficient pagination.
    */
-  async loadOlderMessages(conversationId: string, beforeTimestamp: number, limit = 50): Promise<Message[]> {
+  async loadOlderMessages(conversationId: string, beforeTimestamp: number, limit = 50): Promise<Message[] | null> {
     try {
       const messages = await storageService.getMessages(conversationId, {
         before: beforeTimestamp,
@@ -2730,7 +2859,61 @@ class ChatService {
       return messages
     } catch (err) {
       console.error('[ChatService] Failed to load older messages:', err)
-      return []
+      return null
+    }
+  }
+
+  /**
+   * Load the messages surrounding a date, to open a deep search result in
+   * context. The target itself is included with the page before it.
+   * The page is returned ordered by storage key so the caller knows its newest
+   * exact cursor; `null` means the read failed, not that there is no context.
+   */
+  async loadMessageContext(conversationId: string, timestamp: number, limit = 50): Promise<Message[] | null> {
+    try {
+      const [before, after] = await Promise.all([
+        storageService.getMessages(conversationId, {
+          before: timestamp + 1,
+          limit,
+          reverse: true,
+        }),
+        storageService.getMessages(conversationId, {
+          after: timestamp,
+          limit,
+        }),
+      ])
+      const merged = sortMessagesByCursor([...before, ...after])
+      if (merged.length > 0) useMessageStore.getState().addMessages(conversationId, merged)
+      return merged
+    } catch (err) {
+      console.error('[ChatService] Failed to load message context:', err)
+      return null
+    }
+  }
+
+  /**
+   * Load the page that follows an exact message key (gap after a deep jump).
+   * The identifier keeps messages sharing the same millisecond in the page.
+   */
+  async loadNewerMessages(
+    conversationId: string,
+    afterTimestamp: number,
+    afterId: string,
+    limit = 50,
+  ): Promise<Message[] | null> {
+    try {
+      const messages = await storageService.getMessages(conversationId, {
+        after: afterTimestamp,
+        afterId,
+        limit,
+      })
+      if (messages.length > 0) {
+        useMessageStore.getState().addMessages(conversationId, messages)
+      }
+      return messages
+    } catch (err) {
+      console.error('[ChatService] Failed to load newer messages:', err)
+      return null
     }
   }
 
@@ -2779,8 +2962,189 @@ class ChatService {
     }
   }
 
+  /**
+   * Resolve a message a peer claims to act on inside the 1:1 conversation it
+   * shares with us. The old handlers searched every loaded conversation: a
+   * contact could edit, delete or react to group messages and to other
+   * contacts' messages that happened to share an id.
+   */
+  private findDmMessage(from: string, messageId: unknown): { conversationId: string; message: Message } | null {
+    if (typeof messageId !== 'string' || !messageId || !from) return null
+    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+    if (!myPk) return null
+    const conversationId = cryptoService.deriveConversationId(myPk, from)
+    const message = useMessageStore.getState().getMessage(messageId, conversationId)
+    return message ? { conversationId, message } : null
+  }
+
+  private handleChatEdit(msg: ProtocolMessage): void {
+    const { messageId, newContent } = msg.payload as EditPayload
+    if (typeof newContent !== 'string' || newContent.length === 0 || newContent.length > 20_000) return
+    const found = this.findDmMessage(msg.from, messageId)
+    // Only the author may rewrite a message.
+    if (!found || found.message.senderId !== msg.from) return
+    useMessageStore.getState().editMessage(messageId, found.conversationId, newContent)
+    const edited = useMessageStore.getState().getMessage(messageId, found.conversationId)
+    if (edited) storageService.saveMessage(found.conversationId, edited).catch(() => {})
+  }
+
+  private handleChatDelete(msg: ProtocolMessage): void {
+    const { messageId } = msg.payload as DeletePayload
+    const found = this.findDmMessage(msg.from, messageId)
+    // A delete request means "delete my message", never someone else's.
+    if (!found || found.message.senderId !== msg.from) return
+    useMessageStore.getState().deleteMessagePermanently(messageId, found.conversationId)
+    storageService.deleteMessage(found.conversationId, messageId).catch(() => {})
+  }
+
+  private handleChatReaction(msg: ProtocolMessage): void {
+    const { messageId, emoji, action } = msg.payload as ReactionPayload
+    if (typeof emoji !== 'string' || emoji.length === 0 || emoji.length > 16) return
+    if (action !== 'add' && action !== 'remove') return
+    const found = this.findDmMessage(msg.from, messageId)
+    if (!found) return
+    const store = useMessageStore.getState()
+    if (action === 'add') {
+      store.addReaction(messageId, found.conversationId, emoji, msg.from)
+    } else {
+      store.removeReaction(messageId, found.conversationId, emoji, msg.from)
+    }
+    // Sans cette écriture, la réaction reçue n'existe qu'en mémoire et meurt au redémarrage.
+    const updated = store.getMessage(messageId, found.conversationId)
+    if (updated) storageService.saveMessage(found.conversationId, updated).catch(() => {})
+  }
+
+  private handleChatRead(msg: ProtocolMessage): void {
+    const payload = msg.payload as { messageIds?: string[]; messageId?: string }
+    const ids = payload.messageIds ?? (payload.messageId ? [payload.messageId] : [])
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 1000) return
+    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+    if (!myPk) return
+    const conversationId = cryptoService.deriveConversationId(myPk, msg.from)
+    const store = useMessageStore.getState()
+    for (const id of ids) {
+      // A read marker only applies to messages we sent in this conversation.
+      const message = store.getMessage(id, conversationId)
+      if (message?.senderId !== myPk) continue
+      store.markMessageRead(id, msg.from)
+    }
+  }
+
+  private handleChatReceipt(msg: ProtocolMessage): void {
+    const payload = msg.payload as { messageIds: string[]; status: 'delivered' | 'read' }
+    if (!Array.isArray(payload.messageIds) || payload.messageIds.length === 0 || payload.messageIds.length > 1000) return
+    if (payload.status !== 'delivered' && payload.status !== 'read') return
+    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
+    if (!myPk) return
+    const conversationId = cryptoService.deriveConversationId(myPk, msg.from)
+    const store = useMessageStore.getState()
+    const messages = store.messages[conversationId]
+    if (!messages) return
+
+    for (const messageId of payload.messageIds) {
+      const m = messages.find((message) => message.id === messageId)
+      // Only our own messages can be acknowledged, and never downgraded.
+      if (!m || m.senderId !== myPk) continue
+      const order = { sending: 0, sent: 1, delivered: 2, read: 3, failed: 0, scheduled: 0 }
+      if ((order[payload.status] ?? 0) > (order[m.status] ?? 0)) {
+        store.updateStatus(messageId, conversationId, payload.status)
+      }
+    }
+  }
+
+  private handleChatRecall(msg: ProtocolMessage): void {
+    const { messageId, reason } = msg.payload as RecallPayload
+    const found = this.findDmMessage(msg.from, messageId)
+    // Only the author can recall a message.
+    if (!found || found.message.senderId !== msg.from) return
+    useMessageStore.getState().recallMessage(
+      messageId,
+      found.conversationId,
+      typeof reason === 'string' ? reason.slice(0, 500) : undefined,
+    )
+    storageService.deleteMessage(found.conversationId, messageId).catch(() => {})
+  }
+
+  /**
+   * Un message 1:1 entrant n'est retenu que pour ses champs d'affichage.
+   * Réactions, accusés, modifications, pièces jointes et statut sont un état
+   * local alimenté par leurs propres messages : les recopier depuis le fil
+   * laisserait l'expéditeur planter une bulle déjà « lue » ou un fichier
+   * fantôme. Le devis de réponse est relu dans la conversation locale.
+   */
+  private sanitizeIncomingDmMessage(
+    raw: Message,
+    from: string,
+    conversationId: string,
+  ): Message | null {
+    if (typeof raw.id !== 'string' || raw.id.length === 0 || raw.id.length > ChatService.MAX_INCOMING_ID) return null
+    if (typeof raw.content !== 'string' || raw.content.length > ChatService.MAX_INCOMING_CHARS) return null
+    if (typeof raw.timestamp !== 'number' || !Number.isFinite(raw.timestamp) || raw.timestamp <= 0) return null
+    if (typeof raw.senderId !== 'string' || raw.senderId !== from) return null
+
+    const timestamp = Math.min(raw.timestamp, Date.now() + 86_400_000)
+    const mentions: Mention[] = Array.isArray(raw.mentions)
+      ? raw.mentions.slice(0, ChatService.MAX_INCOMING_MENTIONS).flatMap((value) => {
+        if (!value || typeof value !== 'object') return []
+        const mention = value as unknown as Record<string, unknown>
+        if (typeof mention.publicKey !== 'string'
+          || mention.publicKey.length === 0
+          || mention.publicKey.length > ChatService.MAX_INCOMING_ID) return []
+        const startIndex = typeof mention.startIndex === 'number'
+          && Number.isInteger(mention.startIndex) && mention.startIndex >= 0
+          ? Math.min(mention.startIndex, raw.content.length)
+          : 0
+        const endIndex = typeof mention.endIndex === 'number'
+          && Number.isInteger(mention.endIndex) && mention.endIndex >= startIndex
+          ? Math.min(mention.endIndex, raw.content.length)
+          : startIndex
+        return [{
+          publicKey: mention.publicKey,
+          displayName: typeof mention.displayName === 'string'
+            ? mention.displayName.slice(0, ChatService.MAX_PROFILE_NAME)
+            : '',
+          startIndex,
+          endIndex,
+        }]
+      })
+      : []
+
+    let replyTo: Message['replyTo']
+    const rawReply = raw.replyTo
+    if (rawReply && typeof rawReply === 'object'
+      && typeof rawReply.id === 'string'
+      && rawReply.id.length > 0
+      && rawReply.id.length <= ChatService.MAX_INCOMING_ID) {
+      const quoted = useMessageStore.getState().getMessage(rawReply.id, conversationId)
+      if (quoted) {
+        replyTo = {
+          id: quoted.id,
+          senderId: quoted.senderId,
+          content: quoted.content,
+          type: quoted.type,
+        }
+      }
+    }
+
+    return {
+      id: raw.id,
+      conversationId,
+      senderId: from,
+      type: raw.type === 'mention' ? 'mention' : 'text',
+      content: raw.content,
+      timestamp,
+      status: 'delivered',
+      ...(mentions.length > 0 ? { mentions } : {}),
+      ...(replyTo ? { replyTo } : {}),
+      ...(typeof raw.signature === 'string' && raw.signature.length <= ChatService.MAX_INCOMING_SIGNATURE
+        ? { signature: raw.signature }
+        : {}),
+    }
+  }
+
   private async handleIncomingMessage(msg: ProtocolMessage): Promise<void> {
-    const message = msg.payload as Message
+    const message = msg.payload as Message | null
+    if (!msg.from || !message || typeof message !== 'object') return
 
     const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
     const resolvedId = myPk
@@ -2795,32 +3159,40 @@ class ChatService {
     const contact = useContactStore.getState().getContact(msg.from)
     if (contact?.relation === 'blocked') return
 
+    // Un contenu ou un identifiant démesuré ne va pas plus loin : la
+    // vérification de signature sérialise déjà le contenu.
+    if (typeof message.id !== 'string' || message.id.length === 0 || message.id.length > ChatService.MAX_INCOMING_ID) return
+    if (typeof message.content !== 'string' || message.content.length > ChatService.MAX_INCOMING_CHARS) return
+    if (typeof message.timestamp !== 'number' || !Number.isFinite(message.timestamp) || message.timestamp <= 0) return
+    if (typeof message.senderId !== 'string' || message.senderId !== msg.from) return
+
     // HOLEPUNCH SECURITY: Verify the Ed25519 message-level signature.
     // The sender signs { id, content, timestamp, senderId } with their private key.
     // This ensures the message content hasn't been tampered with and
     // cryptographically proves the sender's identity.
     // Without this, a malicious peer could forge or alter messages.
-    if (message.signature) {
-      try {
-        const isValid = await cryptoService.verify(
-          { id: message.id, content: message.content, timestamp: message.timestamp, senderId: message.senderId },
-          message.signature,
-          msg.from
-        )
-        if (!isValid) {
-          console.warn('[ChatService] !!! INVALID MESSAGE SIGNATURE from:', msg.from?.slice(0, 32), '| msgId:', message.id?.slice(0, 8))
-          try { window.asgard.debugLog('[ChatService] INVALID SIGNATURE rejected from: ' + msg.from?.slice(0, 32)) } catch {}
-          return // Reject forged/tampered messages
-        }
-      } catch (err) {
-        console.warn('[ChatService] Signature verification error:', err)
-        return // Reject on verification failure
-      }
-    } else {
+    if (typeof message.signature !== 'string'
+      || message.signature.length === 0
+      || message.signature.length > ChatService.MAX_INCOMING_SIGNATURE) {
       // HOLEPUNCH SECURITY: Messages without signatures are rejected for integrity.
       // All chat messages must be signed by the sender.
       console.warn('[ChatService] !!! UNSIGNED MESSAGE from:', msg.from?.slice(0, 32), '— rejecting')
       return
+    }
+    try {
+      const isValid = await cryptoService.verify(
+        { id: message.id, content: message.content, timestamp: message.timestamp, senderId: message.senderId },
+        message.signature,
+        msg.from
+      )
+      if (!isValid) {
+        console.warn('[ChatService] !!! INVALID MESSAGE SIGNATURE from:', msg.from?.slice(0, 32), '| msgId:', message.id?.slice(0, 8))
+        try { window.asgard.debugLog('[ChatService] INVALID SIGNATURE rejected from: ' + msg.from?.slice(0, 32)) } catch {}
+        return // Reject forged/tampered messages
+      }
+    } catch (err) {
+      console.warn('[ChatService] Signature verification error:', err)
+      return // Reject on verification failure
     }
 
     // CRITICAL: Mark sender as online when we receive any message from them.
@@ -2828,18 +3200,35 @@ class ChatService {
     // receiving a message proves the peer is online.
     this.markPeerActive(msg.from)
 
-    // Update the message with the correct conversationId
-    const correctedMessage: Message = { ...message, conversationId: resolvedId }
+    // Le pair nous a répondu : notre demande sortante est confirmée. Pas
+    // d'accept en écho — sa réponse suffit, et une acceptation renvoyée
+    // l'ajouterait chez lui alors que ce n'est pas ce qu'il a demandé.
+    confirmPendingContact(msg.from, 'outgoing', false)
+
+    // Seuls les champs d'affichage sont conservés, dans la conversation
+    // dérivée de l'identité signataire.
+    const correctedMessage = this.sanitizeIncomingDmMessage(message, msg.from, resolvedId)
+    if (!correctedMessage) return
+
+    // Un renvoi garde le même identifiant (file hors ligne, « réessayer ») :
+    // le store déduplique la bulle, mais recompter un non-lu et rejouer la
+    // notification feraient deux alertes pour un seul message. L'accusé,
+    // lui, repart toujours — c'est ce que le pair attend en renvoyant.
+    const alreadyKnown = Boolean(
+      useMessageStore.getState().getMessage(correctedMessage.id, resolvedId)
+    )
 
     // Add message to store
     useMessageStore.getState().addMessage(correctedMessage)
 
-    // Persist message to Hyperbee storage
+    // Persist message to Hyperbee storage (clé timestamp:id, donc idempotent)
     storageService.saveMessage(resolvedId, correctedMessage).catch(console.error)
 
     // RECEIPT: Send a delivery receipt to the sender so their status icon updates
     // from ✓ (sent) to ✓✓ (delivered). Best-effort, non-blocking.
     this.sendDeliveryReceipt(msg.from, [correctedMessage.id]).catch(() => {})
+
+    if (alreadyKnown) return
 
     // CRITICAL: Auto-create conversation if it doesn't exist (new contact messaging us)
     this.ensureConversation(resolvedId, msg.from, correctedMessage)
@@ -2847,66 +3236,144 @@ class ChatService {
     // Update unread count
     const convStore = useConversationStore.getState()
     const activeId = convStore.activeConversationId
-    if (activeId !== resolvedId) {
+    // L'identifiant sélectionné survit à la navigation : seul un ChatView
+    // monté prouve que le fil est sous les yeux de l'utilisateur.
+    const viewingConversation = convStore.chatViewVisible && activeId === resolvedId
+    if (!viewingConversation) {
       convStore.incrementUnread(resolvedId)
     }
 
     // Show notification if not active conversation AND notifications are allowed
-    if (activeId !== resolvedId) {
+    if (!viewingConversation) {
+      const muted = convStore.getConversation(resolvedId)?.muted ?? false
       const notifSettings = useUIStore.getState().settings.notifications
       const a11ySettings = useUIStore.getState().settings.accessibility
-      if (notifSettings.enabled && !notifSettings.dndMode) {
+      if (!muted && notifSettings.enabled && !isQuietNow(notifSettings)) {
         const senderName = contact?.displayName ?? msg.from.slice(0, 8)
         const content = correctedMessage.content ?? ''
-        // NOTIFICATION SETTINGS (mentionsOnly): only notify when the message
-        // mentions us — @displayName, @all or @here.
-        if (!notifSettings.mentionsOnly || this.isMentioned(content)) {
-          const body = notifSettings.showPreview
-            ? content.slice(0, 100)
-            : 'New message'
-          window.asgard.notifications.show(senderName, body)
-          // NOTIFICATION SETTINGS (sound): short beep alongside the notification
-          if (notifSettings.sound) ringtoneService.playBeep(660, 120)
-          // ACCESSIBILITY SETTINGS (ttsEnabled): read the message aloud
-          if (a11ySettings.ttsEnabled) this.speakText(`${senderName}. ${body}`)
-        }
+        // NOTIFICATION SETTINGS (mentionsOnly) ne concerne que les groupes : la
+        // description du réglage promet les messages directs, et ceux-ci ne
+        // peuvent pas nous « mentionner » au sens d'un canal.
+        const body = notifSettings.showPreview
+          ? content.slice(0, 100)
+          : i18n.t('notifications.newMessage')
+        window.asgard.notifications.show(senderName, body, { conversationId: resolvedId })
+        // NOTIFICATION SETTINGS (sound): short beep alongside the notification
+        if (notifSettings.sound) ringtoneService.playBeep(660, 120)
+        // ACCESSIBILITY SETTINGS (ttsEnabled): read the message aloud
+        if (a11ySettings.ttsEnabled) speakText(`${senderName}. ${body}`)
       }
     }
   }
 
   /**
-   * NOTIFICATION SETTINGS (mentionsOnly): detect whether a message mentions the
-   * local user — @displayName (case-insensitive), @all or @here.
+   * Ajoute un pair par sa clé publique et ouvre sa conversation.
+   *
+   * La relation naît « en attente » : le pair doit répondre dans la conversation
+   * pour confirmer l'ajout — aucune acceptation automatique de part et d'autre.
+   * Retourne l'identifiant de conversation à ouvrir. Si une demande entrante du
+   * même pair existe déjà, ajouter sa clé vaut acceptation : la relation passe
+   * immédiatement à « contact ».
    */
-  private isMentioned(content: string): boolean {
-    const lower = content.toLowerCase()
-    if (lower.includes('@all') || lower.includes('@here')) return true
-    const myName = useIdentityStore.getState().identity?.profile.displayName?.trim().toLowerCase()
-    if (!myName || myName.length < 2) return false
-    return lower.includes(`@${myName}`)
-  }
+  async registerContact(publicKey: string, displayName?: string): Promise<string> {
+    const identity = useIdentityStore.getState().identity
+    if (!identity) throw new Error('No identity')
+    if (publicKey === identity.keyPair.publicKey) throw new Error('Cannot add yourself')
 
-  /**
-   * ACCESSIBILITY SETTINGS (ttsEnabled): speak text aloud with the Web Speech
-   * API. Best-effort — silently ignored when unsupported.
-   */
-  private speakText(text: string): void {
+    const store = useContactStore.getState()
+    const existing = store.getContact(publicKey)
+    if (existing?.relation === 'blocked') throw new Error('Contact is blocked')
+
+    const name = displayName?.trim()
+    const conversationId = cryptoService.deriveConversationId(
+      identity.keyPair.publicKey,
+      publicKey
+    )
+
+    if (!existing) {
+      const contact: Contact = {
+        publicKey,
+        displayName: name || `User-${publicKey.slice(24, 32)}`,
+        status: 'offline',
+        relation: 'pending',
+        requestDirection: 'outgoing',
+        verified: false,
+        addedAt: Date.now(),
+      }
+      store.addContact(contact)
+      storageService.saveContact(contact).catch((err) => {
+        console.warn('[ChatService] Failed to persist contact request:', err)
+      })
+    } else if (existing.relation === 'pending') {
+      if (name) store.updateContact(publicKey, { displayName: name })
+      if (existing.requestDirection === 'incoming') {
+        confirmPendingContact(publicKey, 'incoming', true)
+      }
+    }
+
+    // La conversation existe même pendant l'attente : c'est là que la réponse
+    // qui confirme l'ajout sera écrite.
+    this.ensureConversation(conversationId, publicKey)
+
+    // Les deux chemins de découverte courent ensemble : composer l'adresse Noise
+    // ne doit pas attendre les annonces de topic (plusieurs secondes).
+    if (!p2pService.isPeerConnected(publicKey)) {
+      void this.redial(publicKey)
+    }
+    // Le contact vient d'être ajouté : son statut DHT (s'il est en ligne) doit
+    // s'afficher sans attendre la boucle de refresh de 30 s. L'ordre P2P
+    // prioritaire est appliqué par applyDhtProfile.
+    void this.refreshDhtPresence(publicKey)
+
     try {
-      if (!('speechSynthesis' in window)) return
-      const utterance = new SpeechSynthesisUtterance(text.slice(0, 300))
-      utterance.lang = navigator.language || 'fr-FR'
-      window.speechSynthesis.speak(utterance)
-    } catch { /* best-effort */ }
+      const topic = await cryptoService.deriveConversationTopic(
+        identity.keyPair.publicKey,
+        publicKey
+      )
+      await p2pService.joinTopic(topic)
+    } catch (err) {
+      // L'ajout local reste valide ; le heartbeat retentera la connexion.
+      console.warn('[ChatService] Failed to join conversation topic:', err)
+    }
+
+    const contact = useContactStore.getState().getContact(publicKey)
+    if (
+      contact?.relation === 'pending' &&
+      contact.requestDirection === 'outgoing' &&
+      p2pService.isPeerConnected(publicKey)
+    ) {
+      this.contactRequestsSent.add(publicKey)
+      p2pService
+        .sendMessage(publicKey, 'contact:request', {
+          displayName: identity.profile.displayName,
+        })
+        .catch((err) => {
+          this.contactRequestsSent.delete(publicKey)
+          console.warn('[ChatService] Failed to send contact request:', err)
+        })
+    }
+
+    return conversationId
   }
 
   /**
-   * Handle incoming contact request
-   * CRITICAL: Always respond with contact:accept to establish bidirectional presence.
-   * Without this, the sender never learns that we're online.
+   * Handle incoming contact request.
+   *
+   * Une demande ne confirme jamais l'ajout : elle crée (ou rafraîchit) une
+   * relation « pending » / `incoming`, et c'est la réponse de l'utilisateur
+   * dans la conversation qui enverra contact:accept. L'ancien code acceptait
+   * automatiquement, ce qui rouvrait même les contacts bloqués.
    */
   private handleContactRequest(msg: ProtocolMessage): void {
-    const { displayName, avatar } = msg.payload as { displayName?: string; avatar?: string }
-    const existing = useContactStore.getState().getContact(msg.from)
+    const payload = msg.payload as { displayName?: unknown; avatar?: unknown } | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const displayName = ChatService.declaredName(payload.displayName)
+    const avatar = ChatService.declaredAvatar(payload.avatar)
+    const store = useContactStore.getState()
+    const existing = store.getContact(msg.from)
+
+    // Bloqué : la demande ne rouvre rien et ne doit pas déclencher d'accept.
+    if (existing?.relation === 'blocked') return
 
     // Activité, pas déclaration : c'est markPeerActive() qui décide de montrer le
     // pair « en ligne », et il respecte un « absent » / « occupé » / « invisible »
@@ -2914,30 +3381,42 @@ class ChatService {
     // Pour un contact encore inconnu, il ne fait qu'enregistrer l'horodatage.
     this.markPeerActive(msg.from)
 
-    if (existing && existing.relation === 'pending') {
-      // Montée de relation : les champs déclaratifs sont repris, mais le statut
-      // n'est pas écrit ici.
-      useContactStore.getState().updateContact(msg.from, {
-        relation: 'contact',
-        displayName: displayName ?? existing.displayName,
-        avatar: avatar ?? existing.avatar,
-        lastSeen: Date.now(),
-      })
-    } else if (!existing) {
-      // New contact — create as 'contact' directly (not 'pending')
-      // since they initiated the request, they've already added us. Aucun pair
-      // jamais atteint n'a de déclaration en poche : « online » est ici exactement
-      // ce que markPeerActive() aurait décidé.
+    // Les deux pairs ont ajouté la clé de l'autre : intentions réciproques. Une
+    // demande ne circule désormais que depuis un ajout volontaire (voir
+    // handleIdentifiedPeer), donc la recevoir alors que notre propre demande
+    // est sortante confirme les deux côtés.
+    const mutual = existing?.relation === 'pending' && existing.requestDirection === 'outgoing'
+
+    if (!existing) {
+      // New contact — pending until we reply. Aucun pair jamais atteint n'a de
+      // déclaration en poche : « online » est ici exactement ce que
+      // markPeerActive() aurait décidé.
       const contact: Contact = {
         publicKey: msg.from,
         displayName: displayName ?? msg.from.slice(0, 8),
         avatar,
         status: 'online',
-        relation: 'contact',
+        relation: 'pending',
+        requestDirection: 'incoming',
         verified: false,
         addedAt: Date.now(),
       }
-      useContactStore.getState().addContact(contact)
+      store.addContact(contact)
+      storageService.saveContact(contact).catch((err) => {
+        console.warn('[ChatService] Failed to persist incoming contact request:', err)
+      })
+    } else {
+      // Champs déclaratifs repris sans toucher à la relation : une demande
+      // reçue ne promeut ni un favori ni une demande déjà en attente.
+      store.updateContact(msg.from, {
+        displayName: displayName ?? existing.displayName,
+        avatar: avatar ?? existing.avatar,
+        lastSeen: Date.now(),
+        ...(existing.relation === 'pending' && !existing.requestDirection
+          ? { requestDirection: 'incoming' as const }
+          : {}),
+      })
+      if (mutual) confirmPendingContact(msg.from, 'outgoing', true)
     }
 
     // CRITICAL: Auto-create conversation so we can navigate to it
@@ -2954,17 +3433,23 @@ class ChatService {
         .catch(() => {})
     }
 
-    // CRITICAL: Send contact:accept back so the sender knows we're online.
-    // This is the bidirectional handshake completion.
     const identity = useIdentityStore.getState().identity
     if (identity) {
-      // PERFORMANCE: Never include avatar in signed messages (saves ~3.8MB per sign)
-      // Avatar is sent separately via binary media channel below
-      p2pService.sendMessage(msg.from, 'contact:accept', {
-        displayName: identity.profile.displayName,
-      }).catch(err => {
-        console.warn('[ChatService] Failed to send contact:accept to:', msg.from.slice(0, 16), err)
-      })
+      // Un contact DÉJÀ confirmé (ou confirmé à l'instant par un ajout croisé)
+      // reçoit l'accept. Une demande encore en attente n'en reçoit pas : seule
+      // la réponse de l'utilisateur confirme l'ajout. On annonce simplement
+      // notre présence, sans avatar tant que le contact n'est pas confirmé.
+      const current = useContactStore.getState().getContact(msg.from)
+      if (current && (current.relation === 'contact' || current.relation === 'favorite')) {
+        if (!mutual) {
+          p2pService.sendMessage(msg.from, 'contact:accept', {
+            displayName: identity.profile.displayName,
+          }).catch(err => {
+            console.warn('[ChatService] Failed to send contact:accept to:', msg.from.slice(0, 16), err)
+          })
+        }
+        this.sendAvatarViaMedia(msg.from, identity.profile.avatar).catch(() => {})
+      }
 
       // Also send our presence so they know we're online
       const status = this.outgoingPresence()
@@ -2973,30 +3458,53 @@ class ChatService {
         displayName: identity.profile.displayName,
         // PERFORMANCE: No avatar in signed message
       }).catch(() => {})
-
-      // PERFORMANCE: Send avatar via binary media channel (doesn't block signing)
-      this.sendAvatarViaMedia(msg.from, identity.profile.avatar).catch(() => {})
     }
 
     this.flushPendingPresence()
   }
 
   /**
-   * Handle incoming contact acceptance
+   * Handle incoming contact acceptance.
+   *
+   * Une acceptation reçue confirme une demande sortante ; elle ne doit jamais
+   * débloquer un pair bloqué ni écraser un favori (l'ancien code forçait
+   * `relation: 'contact'` dans tous les cas).
    */
   private handleContactAccept(msg: ProtocolMessage): void {
-    const { displayName } = msg.payload as { displayName?: string }
+    const payload = msg.payload as { displayName?: unknown } | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const displayName = ChatService.declaredName(payload.displayName)
+    const store = useContactStore.getState()
+    const existing = store.getContact(msg.from)
+
+    if (existing?.relation === 'blocked') return
+
+    if (!existing) {
+      // Ils nous acceptent sans que nous les ayons ajoutés : la relation est
+      // confirmée des deux côtés par l'acceptation elle-même.
+      const contact: Contact = {
+        publicKey: msg.from,
+        displayName: displayName ?? msg.from.slice(0, 8),
+        status: 'online',
+        relation: 'contact',
+        verified: false,
+        addedAt: Date.now(),
+      }
+      store.addContact(contact)
+      storageService.saveContact(contact).catch((err) => {
+        console.warn('[ChatService] Failed to persist accepted contact:', err)
+      })
+    } else {
+      if (displayName) store.updateContact(msg.from, { displayName })
+      // pending (les deux sens) → contact ; contact/favori inchangés.
+      confirmPendingContact(msg.from, 'any', false)
+      store.updateContact(msg.from, { lastSeen: Date.now() })
+    }
 
     // CRITICAL: Update activity timestamp — receiving accept proves the peer is there,
     // nothing more. L'acceptation est une activité, pas une déclaration : c'est
     // markPeerActive() qui tranche, pour ne pas effacer un « absent » / « occupé » /
     // « invisible » que ce pair vient de nous annoncer.
-    useContactStore.getState().updateContact(msg.from, {
-      relation: 'contact',
-      displayName: displayName ?? undefined,
-      // Avatar will arrive via binary media channel (not in signed message)
-      lastSeen: Date.now(),
-    })
     this.markPeerActive(msg.from)
 
     // CRITICAL: Auto-create conversation so user can navigate to it
@@ -3034,6 +3542,9 @@ class ChatService {
    */
   private handleContactRemove(msg: ProtocolMessage): void {
     const existing = useContactStore.getState().getContact(msg.from)
+    // Un bloqué ne pilote plus notre carnet : sinon un contact:remove reçu
+    // effaçait le blocage et rouvrait la conversation.
+    if (existing?.relation === 'blocked') return
     if (existing) {
       useContactStore.getState().removeContact(msg.from)
       this.peerLastActivity.delete(msg.from)
@@ -3089,6 +3600,7 @@ class ChatService {
     this.noiseKeyCache.clear()
     this.redialInFlight.clear()
     this.lastRedialAt.clear()
+    this.lastProbeAt.clear()
     this.lastTypingSent.clear()
   }
 
@@ -3617,11 +4129,6 @@ interface ReactionPayload {
   conversationId: string
   emoji: string
   action: 'add' | 'remove'
-}
-
-interface TypingPayload {
-  conversationId: string
-  typing: boolean
 }
 
 interface PresencePayload {

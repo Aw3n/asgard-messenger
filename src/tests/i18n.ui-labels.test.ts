@@ -14,8 +14,12 @@
  * que la machine rend doit être ce que l'humain a écrit, langue par langue.
  */
 import { describe, it, expect } from 'vitest'
-import i18n, { SUPPORTED_LANGUAGES } from '@/i18n/config'
+import i18n, { changeLanguage, SUPPORTED_LANGUAGES } from '@/i18n/config'
 import { translations } from '@/i18n/translations'
+
+// Les catalogues hors français arrivent par chunk : `changeLanguage` expose une
+// promesse qui se résout une fois la langue effective, et le rendu ci-dessous
+// attend ce point avant d'interroger i18next.
 
 type Blocks = Record<string, { translation: Record<string, string> }>
 const CATALOG = translations as unknown as Blocks
@@ -46,12 +50,17 @@ const LABEL_KEYS = [
   'search.messages',
   'common.muted',
   'groups.broadcastModeHint',
+  'calls.typeAudio',
+  'calls.typeVideo',
+  'settings.chatDensity_comfortable',
+  'settings.chatDensity_cozy',
+  'settings.chatDensity_compact',
 ]
 
 describe('rendu i18next des libellés corrigés', () => {
   for (const { code } of SUPPORTED_LANGUAGES) {
     it(`${code} — chaque libellé rend sa valeur du catalogue`, async () => {
-      await i18n.changeLanguage(code)
+      await changeLanguage(code)
       for (const key of LABEL_KEYS) {
         const expected = CATALOG[code]?.translation[key]
         expect(expected, `le catalogue ${code} n'a pas « ${key} »`).toBeTruthy()
@@ -65,7 +74,7 @@ describe('rendu i18next des libellés corrigés', () => {
 
   it('aucun onglet, thème ni taille ne rend son identifiant brut', async () => {
     for (const { code } of SUPPORTED_LANGUAGES) {
-      await i18n.changeLanguage(code)
+      await changeLanguage(code)
       for (const key of LABEL_KEYS) {
         const rendered = i18n.t(key)
         expect(RAW_IDENTIFIERS, `${code} : « ${key} » affiche l'identifiant « ${rendered} »`).not.toContain(rendered)
@@ -78,7 +87,7 @@ describe('rendu i18next des libellés corrigés', () => {
     // `search.resultsCount_one`/`_other` puis retombe sur la base, et la
     // tournure « Résultats : 3 » est correcte quel que soit le nombre
     for (const { code } of SUPPORTED_LANGUAGES) {
-      await i18n.changeLanguage(code)
+      await changeLanguage(code)
       for (const count of [0, 1, 7]) {
         const rendered = i18n.t('search.resultsCount', { count })
         expect(rendered).not.toContain('{{count}}')
@@ -89,37 +98,73 @@ describe('rendu i18next des libellés corrigés', () => {
 })
 
 /**
- * DÉFAUT CONNU, verrouillé tel quel — ce test ne valide pas un comportement
- * voulu, il empêche qu'on l'oublie.
+ * Les libellés de comptage passent par le pluriel d'i18next.
  *
- * Le catalogue porte 7 clés `*_plural` (175 entrées, traduites dans les 25
- * langues) héritées d'i18next v19. `package.json` livre i18next v26 et
- * `config.ts` ne déclare aucune `compatibilityJSON: 'v1'` : v26 cherche
- * `_one`/`_other`/`_few`/`_many` et ne lit jamais `_plural`. Les 175 valeurs
- * sont donc mortes, et l'écran affiche un singulier là où le pluriel est écrit.
- *
- * Corriger n'est PAS un renommage : `MemberList.tsx` appelle
- * `t('common.member_plural')` comme un titre statique (« Membres », sans
- * nombre), et onze langues (pl, cs, sk, uk, sl, lt, lv, ro, ga, mt, hr) ont
- * plus de deux catégories — la valeur `_plural` actuelle y est la forme
- * « many », pas la forme « few ». Chaque clé demande une décision.
- *
- * Quand la correction arrivera, ce test doit passer au rouge : c'est le
- * signal pour le retourner en attendu-vrai plutôt que de le supprimer.
+ * Le catalogue a longtemps porté des clés `*_plural` héritées d'i18next v19 :
+ * v26 ne lit que `_one`/`_two`/`_few`/`_many`/`_other`, donc l'écran affichait
+ * le singulier à toutes les valeurs (« 3 téléchargement »). La migration a
+ * écrit chaque catégorie que `Intl.PluralRules` peut sélectionner ; ce test
+ * interroge la vraie instance, dans les 25 langues, et compare à la valeur du
+ * catalogue pour chaque catégorie — pas seulement au français.
  */
-describe('défaut connu : les clés `_plural` du catalogue sont inertes', () => {
-  it('rend le singulier même à trois', async () => {
-    await i18n.changeLanguage('fr')
-    expect(i18n.t('settings.totalDownloads', { count: 3 })).toBe('3 téléchargement')
-    expect(i18n.t('calls.participantCount', { count: 3 })).toBe('3 participant')
-    // la valeur plurielle existe, mais seulement par son nom littéral
-    expect(i18n.t('settings.totalDownloads_plural', { count: 3 })).toBe('3 téléchargements')
+const COUNTED_KEYS = [
+  'calls.participantCount',
+  'chat.transfersActive',
+  'groups.memberCount',
+  'groups.peopleTyping',
+  'settings.failedTransfers',
+  'settings.selectedCount',
+  'settings.totalDownloads',
+  'settings.totalTransfers',
+  'settings.trashItemsCount',
+  'time.daysAgo',
+  'time.hoursAgo',
+  'time.minutesAgo',
+]
+
+describe('pluriels du catalogue', () => {
+  it('rend le pluriel écrit en français', async () => {
+    await changeLanguage('fr')
+    expect(i18n.t('settings.totalDownloads', { count: 3 })).toBe('3 téléchargements')
+    expect(i18n.t('calls.participantCount', { count: 3 })).toBe('3 participants')
+    // zéro est singulier en français
+    expect(i18n.t('calls.participantCount', { count: 0 })).toBe('0 participant')
+    expect(i18n.t('groups.memberCount', { count: 1 })).toBe('1 membre')
+    expect(i18n.t('groups.memberCount', { count: 3 })).toBe('3 membres')
+    // « Il y a 1 jours » était la forme rendue avant ce lot
+    expect(i18n.t('time.daysAgo', { count: 1 })).toBe('Il y a 1 jour')
   })
 
-  it('laisse `common.member_plural` comme un titre, pas comme un pluriel', async () => {
-    await i18n.changeLanguage('fr')
-    // c'est l'appel explicite de MemberList.tsx : un renommage automatique
-    // des `_plural` le casserait, d'où ce fil dans le test
-    expect(i18n.t('common.member_plural')).toBe('Membres')
+  it('garde `common.members` comme un titre statique', async () => {
+    await changeLanguage('fr')
+    // MemberList.tsx affiche cette clé sans nombre : c'est le titre de section
+    expect(i18n.t('common.members')).toBe('Membres')
+  })
+
+  it('sélectionne la catégorie CLDR de chaque langue', async () => {
+    const counts = [0, 1, 2, 3, 5, 11, 20, 21, 25, 100]
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      await changeLanguage(code)
+      const catalog = CATALOG[code]?.translation
+      expect(catalog, `catalogue ${code} absent`).toBeTruthy()
+      const rules = new Intl.PluralRules(code)
+      for (const key of COUNTED_KEYS) {
+        for (const count of counts) {
+          const category = rules.select(count)
+          const template = category === 'one'
+            ? catalog[key]
+            : catalog[`${key}_${category}`]
+          expect(
+            template,
+            `${code} : ${key} n'a pas de forme « ${category} » (compte ${count})`
+          ).toBeTruthy()
+          const expected = template!.split('{{count}}').join(String(count))
+          const rendered = i18n.t(key, { count })
+          expect(rendered, `${code} : ${key} à ${count}`).toBe(expected)
+          expect(rendered).toContain(String(count))
+          expect(rendered).not.toContain('{{count}}')
+        }
+      }
+    }
   })
 })

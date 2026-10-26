@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCallStore } from '@/stores/callStore'
 import { callService } from '@/services/CallService'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 
 /**
  * CallControls — bottom control bar for calls.
@@ -13,22 +15,14 @@ export const CallControls: React.FC = () => {
   const { t } = useTranslation()
   const { isMuted, isCameraOff, isScreenSharing } = useCallStore()
   const endCall = useCallStore((s) => s.endCall)
+  // L'attente est l'état de l'appel, pas celui du bouton : elle survit au
+  // remontage et se partage avec la carte réduite et l'en-tête.
+  const isOnHold = useCallStore((s) => s.isOnHold)
   const [showSettings, setShowSettings] = useState(false)
-  const [isOnHold, setIsOnHold] = useState(false)
 
   const handleEndCall = () => {
     callService.endCall()
     endCall()
-  }
-
-  const handleHold = () => {
-    const newState = !isOnHold
-    setIsOnHold(newState)
-    // Mute mic and disable camera when on hold
-    if (newState) {
-      if (!isMuted) callService.toggleMute()
-      if (!isCameraOff) callService.toggleCamera()
-    }
   }
 
   return (
@@ -97,7 +91,7 @@ export const CallControls: React.FC = () => {
 
       {/* Hold call */}
       <CallButton
-        onClick={handleHold}
+        onClick={() => callService.toggleHold()}
         active={isOnHold}
         activeColor="rgba(251,191,36,0.2)"
         activeBorder="rgba(251,191,36,0.5)"
@@ -265,20 +259,49 @@ interface CallSettingsPanelProps {
   onClose: () => void
 }
 
+/** Le panneau et la page Réglages nomment les mêmes paliers dans le même ordre. */
+const QUALITY_CHOICES = ['auto', 'low', 'medium', 'high'] as const
+
+const QUALITY_LABEL_KEYS: Record<(typeof QUALITY_CHOICES)[number], string> = {
+  auto: 'calls.qualityAuto',
+  low: 'calls.qualityLow',
+  medium: 'calls.qualityMedium',
+  high: 'calls.qualityHigh',
+}
+
 const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
   const { t } = useTranslation()
-  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high')
-  const [noiseSuppression, setNoiseSuppression] = useState(true)
-  const [echoCancellation, setEchoCancellation] = useState(true)
+  // Les réglages commandent l'appel en cours : ce qui s'affiche vient de ce que
+  // CallService applique (plafond d'envoi, consignes de la piste de micro), pas
+  // d'un état local que l'utilisateur se contenterait de peindre.
+  const videoQuality = useCallStore((s) => s.videoQuality)
+  const [audio, setAudio] = useState(() => callService.getAudioProcessingStatus())
+  const videoQualityGroupId = React.useId()
+  // Le panneau se referme à la touche réglée, comme les autres dialogues : sa
+  // croix doit la nommer.
+  const dialogRef = useDialogBehavior(onClose)
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
+
+  const setProcessing = (key: 'noiseReduction' | 'echoCancellation', enabled: boolean) => {
+    setAudio((prev) => ({ ...prev, [key]: enabled }))
+    if (key === 'noiseReduction') callService.setNoiseSuppression(enabled)
+    else callService.setEchoCancellation(enabled)
+  }
 
   return (
     <motion.div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('calls.callSettings')}
+      tabIndex={-1}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.2 }}
       style={{
         position: 'absolute',
+        outline: 'none',
         bottom: '100%',
         left: '50%',
         transform: 'translateX(-50%)',
@@ -310,6 +333,9 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
         </h3>
         <button
           onClick={onClose}
+          aria-label={t('common.close')}
+          title={closeGesture.title}
+          aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
           style={{
             width: '28px',
             height: '28px',
@@ -331,7 +357,7 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
 
       {/* Video Quality */}
       <div style={{ marginBottom: '16px' }}>
-        <label style={{
+        <p id={videoQualityGroupId} style={{
           fontSize: '13px',
           fontWeight: 500,
           color: 'rgba(255,255,255,0.8)',
@@ -339,15 +365,16 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
           display: 'block',
         }}>
           {t('calls.videoQuality')}
-        </label>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {(['high', 'medium', 'low'] as const).map((quality) => (
+        </p>
+        <div role="group" aria-labelledby={videoQualityGroupId} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {QUALITY_CHOICES.map((quality) => (
             <button
               key={quality}
-              onClick={() => setVideoQuality(quality)}
+              onClick={() => callService.setVideoQuality(quality)}
+              aria-pressed={videoQuality === quality}
               style={{
-                flex: 1,
-                padding: '8px 12px',
+                flex: '1 1 70px',
+                padding: '8px 10px',
                 borderRadius: '8px',
                 background: videoQuality === quality ? 'rgba(79,195,247,0.2)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${videoQuality === quality ? 'rgba(79,195,247,0.5)' : 'rgba(255,255,255,0.1)'}`,
@@ -358,7 +385,7 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
                 transition: 'all 0.15s ease',
               }}
             >
-              {quality === 'high' ? t('calls.qualityHigh') : quality === 'medium' ? t('calls.qualityMedium') : t('calls.qualityLow')}
+              {t(QUALITY_LABEL_KEYS[quality])}
             </button>
           ))}
         </div>
@@ -387,8 +414,9 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
           </div>
         </div>
         <ToggleSwitch
-          enabled={noiseSuppression}
-          onChange={setNoiseSuppression}
+          label={t('calls.noiseSuppression')}
+          enabled={audio.noiseReduction}
+          onChange={(enabled) => setProcessing('noiseReduction', enabled)}
         />
       </div>
 
@@ -414,8 +442,9 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
           </div>
         </div>
         <ToggleSwitch
-          enabled={echoCancellation}
-          onChange={setEchoCancellation}
+          label={t('calls.echoCancellation')}
+          enabled={audio.echoCancellation}
+          onChange={(enabled) => setProcessing('echoCancellation', enabled)}
         />
       </div>
     </motion.div>
@@ -425,12 +454,17 @@ const CallSettingsPanel: React.FC<CallSettingsPanelProps> = ({ onClose }) => {
 // ─── Toggle Switch ─────────────────────────────────────────────────────────────
 
 interface ToggleSwitchProps {
+  /** Le commutateur n'a pas de texte : sans lui, rien ne dit ce qu'il commande. */
+  label: string
   enabled: boolean
   onChange: (enabled: boolean) => void
 }
 
-const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onChange }) => (
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ label, enabled, onChange }) => (
   <button
+    role="switch"
+    aria-checked={enabled}
+    aria-label={label}
     onClick={() => onChange(!enabled)}
     style={{
       width: '44px',

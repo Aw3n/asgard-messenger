@@ -28,6 +28,13 @@ const mockAsgardAPI = {
   network: {
     join: vi.fn().mockResolvedValue(undefined),
     leave: vi.fn().mockResolvedValue(undefined),
+    flush: vi.fn().mockResolvedValue(undefined),
+    joinPeer: vi.fn().mockResolvedValue(undefined),
+    connectToContact: vi.fn().mockResolvedValue(undefined),
+    deriveNoisePublicKey: vi.fn().mockResolvedValue('c'.repeat(64)),
+    fetchProfile: vi.fn().mockResolvedValue(null),
+    publishProfile: vi.fn().mockResolvedValue(true),
+    publishStatus: vi.fn().mockResolvedValue(true),
     send: vi.fn().mockResolvedValue(undefined),
     onPeer: vi.fn().mockReturnValue(() => {}),
     onMessage: vi.fn().mockReturnValue(() => {}),
@@ -36,6 +43,14 @@ const mockAsgardAPI = {
   storage: {
     getPath: vi.fn().mockResolvedValue('/mock/path'),
     getSize: vi.fn().mockResolvedValue(0),
+    deleteBlob: vi.fn().mockResolvedValue(true),
+  },
+  file: {
+    saveAs: vi.fn().mockResolvedValue({ success: false, reason: 'canceled' }),
+    open: vi.fn().mockResolvedValue({ success: false, reason: 'not-found' }),
+  },
+  dialog: {
+    pickFolder: vi.fn().mockResolvedValue({ success: false, reason: 'canceled' }),
   },
   notifications: {
     show: vi.fn(),
@@ -45,6 +60,7 @@ const mockAsgardAPI = {
     getVersion: vi.fn().mockResolvedValue('1.0.1'),
     getPlatform: vi.fn().mockReturnValue('win32'),
     openExternal: vi.fn(),
+    flashFrame: vi.fn(),
     getTheme: vi.fn().mockResolvedValue('dark'),
     onThemeChange: vi.fn().mockReturnValue(() => {}),
     getPendingDeepLink: vi.fn().mockResolvedValue(null),

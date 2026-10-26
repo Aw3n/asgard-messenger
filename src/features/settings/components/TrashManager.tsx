@@ -3,10 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/cn'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { useMessageStore } from '@/stores/messageStore'
 import { getCurrentLanguage } from '@/i18n/config'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
+import { useUIStore } from '@/stores/uiStore'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface TrashEntry {
   blobKey: string
+  fileName?: string
+  mimeType?: string
+  fileSize?: number
   deletedAt: number
   expiresAt: number
 }
@@ -14,11 +22,29 @@ interface TrashEntry {
 /**
  * TrashManager — manages deleted files with restore and permanent delete options.
  */
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+}
+
 export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { t } = useTranslation()
   const [trashItems, setTrashItems] = useState<TrashEntry[]>([])
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showConfirmEmpty, setShowConfirmEmpty] = useState(false)
+  // Une suppression définitive ne se rattrape pas : la ligne et la sélection
+  // passent par le dialogue commun, nommé quand il vise un seul fichier.
+  const [pendingDelete, setPendingDelete] = useState<{ blobKey: string; name: string } | 'bulk' | null>(null)
+  // Sortir une entrée de la corbeille ne suffit pas : la pièce jointe du fil
+  // reste marquée « supprimée » tant que le store des messages ne l'apprend pas.
+  const restoreFileAttachment = useMessageStore((s) => s.restoreFileAttachment)
+  const addToast = useUIStore((s) => s.addToast)
+  // La croix du panneau ne fait que redire ce que la touche réglée fait déjà :
+  // ce panneau-là l'ignorait encore, il la reçoit comme les autres dialogues.
+  const dialogRef = useDialogBehavior(onClose)
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
 
   useEffect(() => {
     loadTrash()
@@ -31,6 +57,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
 
   const handleRestore = (blobKey: string) => {
     fileService.restoreFromTrash(blobKey)
+    restoreFileAttachment(blobKey)
     loadTrash()
     setSelectedItems((prev) => {
       const next = new Set(prev)
@@ -39,8 +66,15 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
     })
   }
 
-  const handlePermanentDelete = (blobKey: string) => {
-    fileService.permanentDelete(blobKey)
+  // Une suppression que le stockage refuse laisse l'entrée en corbeille : le
+  // panneau doit le dire, sinon l'utilisateur croit l'espace libéré.
+  const handlePermanentDelete = async (blobKey: string) => {
+    const erased = await fileService.permanentDelete(blobKey)
+    if (!erased) {
+      addToast({ type: 'error', title: t('chat.deleteFileFailed') })
+      loadTrash()
+      return
+    }
     loadTrash()
     setSelectedItems((prev) => {
       const next = new Set(prev)
@@ -49,11 +83,13 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
     })
   }
 
-  const handleEmptyTrash = () => {
-    fileService.emptyTrash()
+  const handleEmptyTrash = async () => {
+    const expected = trashItems.length
+    const erased = await fileService.emptyTrash()
     loadTrash()
     setSelectedItems(new Set())
     setShowConfirmEmpty(false)
+    if (erased < expected) addToast({ type: 'error', title: t('chat.deleteFileFailed') })
   }
 
   const handleSelectAll = () => {
@@ -67,17 +103,19 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
   const handleBulkRestore = () => {
     selectedItems.forEach((blobKey) => {
       fileService.restoreFromTrash(blobKey)
+      restoreFileAttachment(blobKey)
     })
     loadTrash()
     setSelectedItems(new Set())
   }
 
-  const handleBulkDelete = () => {
-    selectedItems.forEach((blobKey) => {
-      fileService.permanentDelete(blobKey)
-    })
+  const handleBulkDelete = async () => {
+    const results = await Promise.all(
+      Array.from(selectedItems).map((blobKey) => fileService.permanentDelete(blobKey)),
+    )
     loadTrash()
     setSelectedItems(new Set())
+    if (results.some((erased) => !erased)) addToast({ type: 'error', title: t('chat.deleteFileFailed') })
   }
 
   const formatTimeRemaining = (expiresAt: number) => {
@@ -92,7 +130,14 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
   const stats = fileService.getTrashStats()
 
   return (
-    <div className="flex flex-col h-full bg-asgard-surface">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('settings.trash')}
+      tabIndex={-1}
+      className="flex flex-col h-full bg-asgard-surface focus:outline-none"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-asgard-border">
         <div className="flex items-center gap-3">
@@ -126,7 +171,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
                     {t('settings.restore')} ({selectedItems.size})
                   </button>
                   <button
-                    onClick={handleBulkDelete}
+                    onClick={() => setPendingDelete('bulk')}
                     className="px-3 py-1.5 text-xs text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
                   >
                     {t('common.delete')} ({selectedItems.size})
@@ -144,6 +189,9 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
           {onClose && (
             <button
               onClick={onClose}
+              aria-label={t('common.close')}
+              title={closeGesture.title}
+              aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-asgard-surface-alt transition-colors"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-secondary">
@@ -185,6 +233,8 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
                 >
                   {/* Checkbox */}
                   <button
+                    aria-label={item.fileName ?? item.blobKey}
+                    aria-pressed={selectedItems.has(item.blobKey)}
                     onClick={() => {
                       setSelectedItems((prev) => {
                         const next = new Set(prev)
@@ -219,11 +269,11 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
 
                   {/* File info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-asgard-text-primary truncate font-mono">
-                      {item.blobKey.slice(0, 16)}...
+                    <p className="text-sm text-asgard-text-primary truncate">
+                      {item.fileName ?? `${item.blobKey.slice(0, 16)}...`}
                     </p>
                     <p className="text-xs text-asgard-text-muted">
-                      {t('settings.deletedAt')}: {new Date(item.deletedAt).toLocaleDateString(getCurrentLanguage())}
+                      {`${t('settings.deletedAt')}: ${new Date(item.deletedAt).toLocaleDateString(getCurrentLanguage())}${item.fileSize ? ` · ${formatBytes(item.fileSize)}` : ''}`}
                     </p>
                   </div>
 
@@ -244,7 +294,10 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
                       </svg>
                     </button>
                     <button
-                      onClick={() => handlePermanentDelete(item.blobKey)}
+                      onClick={() => setPendingDelete({
+                        blobKey: item.blobKey,
+                        name: item.fileName ?? `${item.blobKey.slice(0, 16)}...`,
+                      })}
                       className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-asgard-text-muted hover:text-red-400 transition-colors"
                       title={t('settings.deletePermanently')}
                     >
@@ -264,7 +317,7 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
       {trashItems.length > 0 && (
         <div className="px-6 py-3 border-t border-asgard-border bg-asgard-surface-alt">
           <p className="text-xs text-asgard-text-muted">
-            {t('settings.trashItemsCount', { count: stats.count })}
+            {`${t('settings.trashItemsCount', { count: stats.count })}${stats.totalSize > 0 ? ` · ${formatBytes(stats.totalSize)}` : ''}`}
           </p>
         </div>
       )}
@@ -272,44 +325,91 @@ export const TrashManager: React.FC<{ onClose?: () => void }> = ({ onClose }) =>
       {/* Confirm empty dialog */}
       <AnimatePresence>
         {showConfirmEmpty && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowConfirmEmpty(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="mica-card border border-asgard-border rounded-2xl p-6 max-w-sm mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-semibold text-asgard-text-primary mb-2">
-                {t('settings.emptyTrashConfirm')}
-              </h3>
-              <p className="text-sm text-asgard-text-secondary mb-4">
-                {t('settings.emptyTrashWarning', { count: trashItems.length })}
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowConfirmEmpty(false)}
-                  className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={handleEmptyTrash}
-                  className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                >
-                  {t('settings.emptyTrash')}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <EmptyTrashConfirm
+            onClose={() => setShowConfirmEmpty(false)}
+            onConfirm={handleEmptyTrash}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {pendingDelete && (
+          <ConfirmDialog
+            title="settings.deletePermanently"
+            warning={pendingDelete === 'bulk' ? 'settings.deleteSelectionWarning' : 'settings.deleteForeverWarning'}
+            confirmLabel="settings.deletePermanently"
+            name={pendingDelete === 'bulk' ? undefined : pendingDelete.name}
+            onCancel={() => setPendingDelete(null)}
+            onConfirm={() => {
+              const target = pendingDelete
+              setPendingDelete(null)
+              if (target === 'bulk') void handleBulkDelete()
+              else if (target) void handlePermanentDelete(target.blobKey)
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+/**
+ * La confirmation de vidage est un dialogue à part entière : posé par-dessus
+ * une page déjà utilisable, il doit se refermer sur Échap et ne pas laisser Tab
+ * repartir dans la liste qu'il recouvre.
+ */
+const EmptyTrashConfirm: React.FC<{ onClose: () => void; onConfirm: () => void }> = ({
+  onClose,
+  onConfirm,
+}) => {
+  const { t } = useTranslation()
+  const dialogRef = useDialogBehavior(onClose)
+  // La touche réglée renvoie à la corbeille : le bouton qui fait ce geste le dit.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        ref={dialogRef}
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trash-empty-confirm-title"
+        tabIndex={-1}
+        className="mica-card border border-asgard-border rounded-2xl p-6 max-w-sm mx-4 focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id="trash-empty-confirm-title" className="text-lg font-semibold text-asgard-text-primary mb-2">
+          {t('settings.emptyTrashConfirm')}
+        </h3>
+        <p className="text-sm text-asgard-text-secondary mb-4">
+          {t('settings.emptyTrashWarning')}
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onClose}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+            className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+          >
+            {t('settings.emptyTrash')}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   )
 }

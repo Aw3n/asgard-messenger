@@ -3,6 +3,9 @@ import { motion } from 'framer-motion'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { asgardToZ32Id } from '@/utils/invite'
+import { copyToClipboard } from '@/utils/clipboard'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { useTranslation } from 'react-i18next'
 
 interface ContactInviteModalProps {
@@ -18,6 +21,12 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
   const addToast = useUIStore((s) => s.addToast)
   const [copied, setCopied] = useState(false)
   const [copiedKeet, setCopiedKeet] = useState(false)
+  const dialogRef = useDialogBehavior(onClose)
+  // Le bouton « Fermer » fait ce que fait la touche réglée : il doit la nommer.
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
+  const inviteLinkId = React.useId()
+  const publicKeyId = React.useId()
+  const keetIdFieldId = React.useId()
 
   // Generate invite link from public key
   const inviteKey = identity?.keyPair.publicKey
@@ -29,23 +38,25 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
   // ajouté depuis Keet/Pear ; le champ d'ajout Asgard l'accepte aussi.
   const keetId = identity?.keyPair.publicKey ? asgardToZ32Id(identity.keyPair.publicKey) : null
 
-  const handleCopy = () => {
+  const copyFailed = () => addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+
+  const handleCopy = async () => {
     if (!inviteKey) return
-    navigator.clipboard.writeText(inviteKey)
+    if (!(await copyToClipboard(inviteKey))) return copyFailed()
     setCopied(true)
     addToast({ type: 'success', title: t('contacts.inviteLinkCopied'), duration: 2000 })
     setTimeout(() => setCopied(false), 3000)
   }
 
-  const handleShareKey = () => {
+  const handleShareKey = async () => {
     if (!identity?.keyPair.publicKey) return
-    navigator.clipboard.writeText(identity.keyPair.publicKey)
+    if (!(await copyToClipboard(identity.keyPair.publicKey))) return copyFailed()
     addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
   }
 
-  const handleShareKeetId = () => {
+  const handleShareKeetId = async () => {
     if (!keetId) return
-    navigator.clipboard.writeText(keetId)
+    if (!(await copyToClipboard(keetId))) return copyFailed()
     setCopiedKeet(true)
     addToast({ type: 'success', title: t('contacts.keetIdCopied'), duration: 2000 })
     setTimeout(() => setCopiedKeet(false), 3000)
@@ -60,10 +71,15 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('contacts.inviteTitle')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal focus:outline-none"
       >
         <h3 className="text-lg font-semibold text-asgard-text-primary mb-1">{t('contacts.inviteTitle')}</h3>
         <p className="text-sm text-asgard-text-muted mb-5">
@@ -72,11 +88,12 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
 
         {/* Invite link */}
         <div className="mb-4">
-          <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+          <label htmlFor={inviteLinkId} className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
             {t('contacts.inviteLink')}
           </label>
           <div className="flex items-center gap-2">
             <input
+              id={inviteLinkId}
               readOnly
               value={inviteKey}
               className="flex-1 bg-asgard-black/30 border border-asgard-border/30 rounded-xl px-3 py-2.5 text-xs text-asgard-text-secondary font-mono truncate focus:outline-none"
@@ -96,11 +113,12 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
 
         {/* Public key */}
         <div className="mb-4">
-          <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+          <label htmlFor={publicKeyId} className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
             {t('contacts.publicKey')}
           </label>
           <div className="flex items-center gap-2">
             <input
+              id={publicKeyId}
               readOnly
               value={identity?.keyPair.publicKey || ''}
               className="flex-1 bg-asgard-black/30 border border-asgard-border/30 rounded-xl px-3 py-2.5 text-xs text-asgard-text-secondary font-mono truncate focus:outline-none"
@@ -117,11 +135,12 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
         {/* Keet/Pear compatible id (z-base-32) */}
         {keetId && (
           <div className="mb-4">
-            <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+            <label htmlFor={keetIdFieldId} className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
               {t('contacts.keetId')}
             </label>
             <div className="flex items-center gap-2">
               <input
+                id={keetIdFieldId}
                 readOnly
                 value={keetId}
                 className="flex-1 bg-asgard-black/30 border border-asgard-border/30 rounded-xl px-3 py-2.5 text-xs text-asgard-text-secondary font-mono truncate focus:outline-none"
@@ -153,6 +172,8 @@ export const ContactInviteModal: React.FC<ContactInviteModalProps> = ({ onClose 
         <button
           onClick={onClose}
           className="w-full py-2.5 text-sm text-asgard-text-muted hover:text-asgard-text-secondary transition-colors"
+          title={closeGesture.title}
+          aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
         >
           {t('common.close')}
         </button>

@@ -1,11 +1,15 @@
-import { BrowserWindow, ipcMain, app, nativeTheme, shell, Notification, dialog } from 'electron'
+import { BrowserWindow, ipcMain, app, nativeTheme, Notification, dialog, shell } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
+import { promises as dns } from 'dns'
 import { IdentityService } from '../services/IdentityService'
 import { NetworkService } from '../services/NetworkService'
 import { StorageService } from '../services/StorageService'
 import { configureFirewall, checkFirewallRule, runFirewallHelperAsAdmin, getFirewallStatus } from '../services/FirewallService'
 import { AsgardTray } from '../tray'
+import { dialogLabels, normalizeDownloadDir, saveDefaultPath, SUPPORTED_LANGUAGES } from '../utils/dialogLabels'
+import { openExternalSafe } from '../utils/openExternal'
+import { isDisallowedIpAddress, isIpLiteral, isSafePreviewUrl } from '../utils/previewUrlSafety'
 
 /**
  * Registers all IPC handlers for the main process.
@@ -13,6 +17,18 @@ import { AsgardTray } from '../tray'
  */
 let storageService: StorageService | null = null
 let networkServiceRef: NetworkService | null = null
+/**
+ * Langue courante du renderer, tenue à jour par 'ui:setLanguage'. Les boîtes de
+ * dialogue natives s'affichent dans cette langue (cf. electron/utils/dialogLabels).
+ */
+let uiLanguage = 'en'
+
+/** Extensions qu'un clic « ouvrir » ne doit jamais lancer directement. */
+const OPEN_BLOCKED_EXTENSIONS = new Set([
+  '.exe', '.com', '.bat', '.cmd', '.msi', '.scr', '.pif', '.cpl',
+  '.ps1', '.psm1', '.vbs', '.vbe', '.js', '.jse', '.wsf', '.wsh',
+  '.jar', '.lnk', '.reg', '.dll', '.app', '.sh', '.bash', '.py',
+])
 
 // ── Quit cleanup coordination (pattern officiel Electron) ─────────────────────
 // ELECTRON/HOLEPUNCH CONFORMANCE : Electron n'attend PAS les promesses des
@@ -63,6 +79,15 @@ function getStorage(): StorageService {
     storageService = new StorageService()
   }
   return storageService
+}
+
+/** Un chemin enregistré dans les réglages peut avoir été déplacé ou supprimé depuis. */
+async function isExistingDirectory(dir: string): Promise<boolean> {
+  try {
+    return (await fs.stat(dir)).isDirectory()
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -165,11 +190,26 @@ function setupWindowHandlers(win: BrowserWindow, tray?: AsgardTray): void {
     win.close()
   })
 
+  // APPEL ENTRANT: clignotement de l'icône de la barre des tâches tant que la
+  // fenêtre n'a pas l'attention. Le renderer déclenche (appel reçu) et coupe
+  // (réponse, refus, expiration) — le main ne fait que relayer à la fenêtre
+  // émettrice, pour rester correct si plusieurs fenêtres existent.
+  ipcMain.on('window:flash-frame', (event, flag: unknown) => {
+    BrowserWindow.fromWebContents(event.sender)?.flashFrame(flag === true)
+  })
+
   ipcMain.handle('window:isMaximized', () => win.isMaximized())
+
+  // Total des non-lus pour le tooltip du tray : la fenêtre masquée n'a pas de
+  // titre visible, le tray est alors la seule surface d'alerte.
+  ipcMain.on('window:set-unread', (_event, count: unknown) => {
+    tray?.setUnread(typeof count === 'number' ? count : 0)
+  })
 
   // Language sync: renderer → main. Localizes the native tray menu
   // (the main process has no access to i18next, see electron/tray.ts).
   ipcMain.handle('ui:setLanguage', (_event, lang: string) => {
+    if (typeof lang === 'string' && SUPPORTED_LANGUAGES.includes(lang)) uiLanguage = lang
     tray?.setLanguage(lang)
     return true
   })
@@ -449,7 +489,7 @@ function setupNetworkHandlers(win: BrowserWindow): void {
     await networkService.flush()
   })
 
-  ipcMain.handle('network:updateConfig', async (_event, config: { maxPeers?: number; relayEnabled?: boolean }) => {
+  ipcMain.handle('network:updateConfig', async (_event, config: { maxPeers?: number }) => {
     networkService.updateConfig(config)
   })
 
@@ -561,19 +601,6 @@ function setupNetworkHandlers(win: BrowserWindow): void {
 
   ipcMain.handle('network:refreshServer', async () => {
     return networkService.refreshServer()
-  })
-
-  // OPTIMIZATION: Hyperswarm power management and flush
-  ipcMain.handle('network:suspendSwarm', async () => {
-    return await networkService.suspendSwarm()
-  })
-
-  ipcMain.handle('network:resumeSwarm', async () => {
-    return await networkService.resumeSwarm()
-  })
-
-  ipcMain.handle('network:flushSwarm', async () => {
-    return await networkService.flushSwarm()
   })
 
   // OPTIMIZATION: HyperDHT direct operations
@@ -1296,7 +1323,10 @@ async function setupStorageHandlers(): Promise<void> {
 
   // File save dialog — allows user to save a blob to a local folder.
   // Uses the SAME initialized storage instance as all other blob handlers.
-  ipcMain.handle('file:save-as', async (_event, blobId: string, suggestedName: string) => {
+  // `downloadDir` est le réglage storage.downloadPath, porté par le renderer
+  // (source de vérité des réglages) : sans lui la boîte de dialogue ouvrait
+  // toujours son emplacement système, réglage affiché mais jamais appliqué.
+  ipcMain.handle('file:save-as', async (_event, blobId: string, suggestedName: string, downloadDir?: string) => {
     try {
       console.log(`[file:save-as] Requested blobId=${blobId}, name=${suggestedName}`)
       const data = await storage.getBlob(blobId)
@@ -1308,10 +1338,14 @@ async function setupStorageHandlers(): Promise<void> {
 
       const ext = path.extname(suggestedName) || ''
       const parentWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+      const preferredDir = normalizeDownloadDir(downloadDir)
+      const dir = preferredDir && (await isExistingDirectory(preferredDir)) ? preferredDir : undefined
+      if (preferredDir && !dir) console.warn('[file:save-as] Download folder unavailable:', preferredDir)
+      const labels = dialogLabels(uiLanguage)
       const { canceled, filePath } = await dialog.showSaveDialog(parentWindow, {
-        title: 'Enregistrer le fichier',
-        defaultPath: suggestedName,
-        filters: ext ? [{ name: 'Fichiers', extensions: [ext.slice(1)] }] : undefined,
+        title: labels.saveTitle,
+        defaultPath: saveDefaultPath(dir, suggestedName),
+        filters: ext ? [{ name: labels.filterName, extensions: [ext.slice(1)] }] : undefined,
       })
       if (canceled || !filePath) return { success: false, reason: 'canceled' }
 
@@ -1324,28 +1358,114 @@ async function setupStorageHandlers(): Promise<void> {
     }
   })
 
+  // Open an attachment in the OS default application. A `blob:` URL from the
+  // renderer cannot be opened externally, so the main process materialises the
+  // blob in a private temp directory first. Executables/scripts are refused:
+  // "open" must not become a one-click launcher for a file received in a chat.
+  ipcMain.handle('file:open', async (_event, blobId: string, suggestedName: string) => {
+    try {
+      const data = await storage.getBlob(blobId)
+      if (!data || data.length === 0) return { success: false, reason: 'not-found' }
+
+      // Pas de regex de caractères de contrôle (règle no-control-regex) : le
+      // nom reçu est découpé et chaque unité interdite devient un « _ ».
+      let safeName = path.basename(String(suggestedName || 'file'))
+        .split('')
+        .map((ch) => (ch.charCodeAt(0) < 0x20 || '<>:"/\\|?*'.includes(ch) ? '_' : ch))
+        .join('')
+      if (!safeName || safeName === '.' || safeName === '..') safeName = 'file'
+      const ext = path.extname(safeName).toLowerCase()
+      if (OPEN_BLOCKED_EXTENSIONS.has(ext)) {
+        console.warn('[file:open] Blocked executable attachment:', safeName)
+        return { success: false, reason: 'blocked' }
+      }
+
+      const dir = await fs.mkdtemp(path.join(app.getPath('temp'), 'asgard-open-'))
+      const filePath = path.join(dir, safeName)
+      await fs.writeFile(filePath, data)
+      const openError = await shell.openPath(filePath)
+      if (openError) {
+        console.error('[file:open] shell.openPath failed:', openError)
+        return { success: false, reason: 'error', message: openError }
+      }
+      return { success: true }
+    } catch (err) {
+      console.error('[file:open] Failed:', err)
+      return { success: false, reason: 'error', message: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  // Sélecteur de dossier pour le réglage storage.downloadPath : le renderer ne
+  // voit pas le système de fichiers, et un chemin tapé à la main n'ouvrirait que
+  // des erreurs au premier enregistrement.
+  ipcMain.handle('dialog:pick-folder', async () => {
+    try {
+      const parentWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+      const { canceled, filePaths } = await dialog.showOpenDialog(parentWindow, {
+        title: dialogLabels(uiLanguage).pickFolderTitle,
+        properties: ['openDirectory', 'createDirectory'],
+      })
+      if (canceled || filePaths.length === 0) return { success: false, reason: 'canceled' }
+      return { success: true, path: filePaths[0] }
+    } catch (err) {
+      console.error('[dialog:pick-folder] Failed:', err)
+      return { success: false, reason: 'error', message: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
   // Cleanup on app quit — APRÈS le réseau (le swarm doit être détruit tant que
   // le corestore est encore ouvert ; cf. registerQuitCleanup en tête de fichier)
   registerQuitCleanup('storage', () => storage.destroy())
 }
 
+
 // ─── Notification Handlers ───────────────────────────────────────────────────
 
 function setupNotificationHandlers(): void {
-  ipcMain.on('notifications:show', (_event, title: string, body: string) => {
-    if (Notification.isSupported()) {
-      new Notification({
-        title,
-        body,
-        silent: false,
-      }).show()
-    }
+  // Une notification non retenue peut être collectée avant d'être cliquée :
+  // garder la référence jusqu'à sa fermeture, sinon le clic se perd.
+  const activeNotifications = new Set<Notification>()
+
+  ipcMain.on('notifications:show', (_event, title: string, body: string, options?: NotificationTarget) => {
+    if (!Notification.isSupported()) return
+    const notification = new Notification({
+      title,
+      body,
+      silent: false,
+    })
+    activeNotifications.add(notification)
+    const release = () => { activeNotifications.delete(notification) }
+    notification.once('close', release)
+    notification.once('failed', release)
+    // Cliquer doit ramener l'app et ouvrir la conversation concernée, pas
+    // seulement constater qu'un message est arrivé pendant que la fenêtre
+    // était réduite ou au second plan.
+    notification.on('click', () => {
+      release()
+      const win = BrowserWindow.getAllWindows()[0]
+      if (!win || win.isDestroyed()) return
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      safeSend(win, 'notifications:click', {
+        conversationId: typeof options?.conversationId === 'string' ? options.conversationId : undefined,
+        groupId: typeof options?.groupId === 'string' ? options.groupId : undefined,
+        channelId: typeof options?.channelId === 'string' ? options.channelId : undefined,
+      } satisfies NotificationTarget)
+    })
+    notification.show()
   })
 
   ipcMain.handle('notifications:requestPermission', () => {
     // Windows always has permission if Notification.isSupported()
     return Notification.isSupported()
   })
+}
+
+interface NotificationTarget {
+  conversationId?: string
+  groupId?: string
+  channelId?: string
 }
 
 // ─── App Handlers ────────────────────────────────────────────────────────────
@@ -1385,56 +1505,123 @@ function decodeHtmlEntities(s: string): string {
     .replace(/&nbsp;/g, ' ')
 }
 
+/**
+ * Un nom d'hôte n'est accepté que si TOUTES ses adresses résolues sont
+ * publiques. Un DNS qui répond 127.0.0.1 ou 10.x est le rebinding classique :
+ * le nom paraît légitime et la connexion reste locale. La résolution précède
+ * la requête (fenêtre de rebinding résiduelle assumée : la parade complète
+ * serait d'épingler l'IP dans le connecteur).
+ */
+async function hostnameResolvesPublic(hostname: string): Promise<boolean> {
+  const bare = hostname.replace(/^\[|\]$/g, '')
+  if (isIpLiteral(bare)) return !isDisallowedIpAddress(bare)
+  try {
+    const records = await dns.lookup(bare, { all: true, verbatim: true })
+    if (records.length === 0) return false
+    return records.every((record) => !isDisallowedIpAddress(record.address))
+  } catch {
+    return false
+  }
+}
+
+const LINK_PREVIEW_TIMEOUT_MS = 5000
+const LINK_PREVIEW_MAX_REDIRECTS = 3
+
+/**
+ * Redirections suivies À LA MAIN : `redirect: 'follow'` laisserait un site
+ * public renvoyer vers http://127.0.0.1/ et contournerait la garde. Le timeout
+ * couvre aussi la lecture du corps — l'appelant doit le libérer.
+ */
+async function fetchPreviewResponse(
+  initial: URL
+): Promise<{ response: Response; timeout: ReturnType<typeof setTimeout> } | null> {
+  let current = initial
+  for (let hop = 0; hop <= LINK_PREVIEW_MAX_REDIRECTS; hop++) {
+    if (!isSafePreviewUrl(current.toString())) return null
+    if (!(await hostnameResolvesPublic(current.hostname))) return null
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), LINK_PREVIEW_TIMEOUT_MS)
+    let response: Response
+    try {
+      response = await fetch(current, {
+        signal: controller.signal,
+        redirect: 'manual',
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Asgard Link Preview)' },
+      })
+    } catch {
+      clearTimeout(timeout)
+      return null
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location')
+      try { await response.body?.cancel() } catch {}
+      clearTimeout(timeout)
+      if (!location || hop === LINK_PREVIEW_MAX_REDIRECTS) return null
+      try {
+        current = new URL(location, current)
+      } catch {
+        return null
+      }
+      continue
+    }
+
+    return { response, timeout }
+  }
+  return null
+}
+
 async function fetchLinkPreview(rawUrl: string): Promise<LinkPreviewResult | null> {
   try {
+    // Cible validée AVANT tout accès réseau : schéma, identifiants, port, hôte.
+    if (!isSafePreviewUrl(rawUrl)) return null
     const url = new URL(rawUrl)
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
 
     const cached = linkPreviewCache.get(rawUrl)
     if (cached) return cached
 
-    // 5s de timeout — un site lent ne doit jamais bloquer le renderer
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Asgard Link Preview)' },
-    })
-    clearTimeout(timeout)
+    const fetched = await fetchPreviewResponse(url)
+    if (!fetched) return null
 
     const preview: LinkPreviewResult = { url: rawUrl, hostname: url.hostname, title: null, description: null }
-    if (res.ok && res.body) {
-      // Lire au plus 64 KB — les balises OG vivent dans le <head>
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let html = ''
-      let received = 0
-      while (received < 65536) {
-        const { done, value } = await reader.read()
-        if (done) break
-        received += value.length
-        html += decoder.decode(value, { stream: true })
-      }
-      try { await reader.cancel() } catch {}
-
-      const pick = (...patterns: RegExp[]): string | null => {
-        for (const p of patterns) {
-          const m = html.match(p)
-          if (m?.[1]) return decodeHtmlEntities(m[1].trim()).slice(0, 200)
+    try {
+      const res = fetched.response
+      if (res.ok && res.body) {
+        // Lire au plus 64 KB — les balises OG vivent dans le <head>
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let html = ''
+        let received = 0
+        while (received < 65536) {
+          const { done, value } = await reader.read()
+          if (done) break
+          received += value.length
+          html += decoder.decode(value, { stream: true })
         }
-        return null
+        try { await reader.cancel() } catch {}
+
+        const pick = (...patterns: RegExp[]): string | null => {
+          for (const p of patterns) {
+            const m = html.match(p)
+            if (m?.[1]) return decodeHtmlEntities(m[1].trim()).slice(0, 200)
+          }
+          return null
+        }
+        preview.title = pick(
+          /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
+          /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i,
+          /<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i,
+          /<title[^>]*>([^<]+)<\/title>/i
+        )
+        preview.description = pick(
+          /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i,
+          /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i,
+          /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i
+        )
       }
-      preview.title = pick(
-        /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
-        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i,
-        /<meta[^>]+name=["']twitter:title["'][^>]+content=["']([^"']+)["']/i,
-        /<title[^>]*>([^<]+)<\/title>/i
-      )
-      preview.description = pick(
-        /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i,
-        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i,
-        /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i
-      )
+    } finally {
+      clearTimeout(fetched.timeout)
     }
 
     if (linkPreviewCache.size >= 50) {
@@ -1458,15 +1645,7 @@ function setupAppHandlers(): void {
   })
 
   ipcMain.on('app:openExternal', (_event, url: string) => {
-    // Validate URL before opening
-    try {
-      const parsed = new URL(url)
-      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-        shell.openExternal(url)
-      }
-    } catch {
-      console.warn('Invalid URL blocked:', url)
-    }
+    openExternalSafe(url)
   })
 
   // PRIVACY SETTINGS (privacy.linkPreviews): récupération des métadonnées OG

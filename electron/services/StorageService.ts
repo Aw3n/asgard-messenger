@@ -120,14 +120,18 @@ export class StorageService {
    */
   async getMessages(
     conversationId: string,
-    options?: { limit?: number; before?: number; after?: number; reverse?: boolean }
+    options?: { limit?: number; before?: number; after?: number; afterId?: string; reverse?: boolean }
   ): Promise<SerializedMessage[]> {
     const bee = await this.getMessagesBee(conversationId)
     const messages: SerializedMessage[] = []
 
     const rangeOpts: Record<string, unknown> = {}
     if (options?.after) {
-      rangeOpts.gt = `${options.after}:\uffff`
+      // Une reprise après une clé précise doit inclure les messages qui
+      // partagent le même milliseconde mais suivent cet identifiant.
+      rangeOpts.gt = options.afterId
+        ? `${options.after}:${options.afterId}`
+        : `${options.after}:\uffff`
     } else if (!options?.before) {
       // No range specified — get all
     }
@@ -211,7 +215,13 @@ export class StorageService {
 
   /**
    * Delete all messages in a conversation efficiently.
-   * OPTIMIZATION: Uses batch delete + Hypercore core.clear() to reclaim storage.
+   *
+   * Le batch Hyperbee suffit. Surtout, NE PAS appeler `core.clear()` sur les
+   * blocs du Bee : Hypercore documente `clear` comme une éviction de cache
+   * locale, pas comme une troncature. Les blocs effacés restent référencés par
+   * l'arbre, donc après redémarrage `bee.get()` lève BLOCK_NOT_AVAILABLE et les
+   * écritures suivantes se bloquent (le cache du processus en cours masque le
+   * problème jusqu'au prochain lancement).
    */
   async clearMessages(conversationId: string): Promise<void> {
     const bee = await this.getMessagesBee(conversationId)
@@ -222,17 +232,6 @@ export class StorageService {
       await batch.del(key)
     }
     await batch.flush()
-
-    // OPTIMIZATION: Reclaim storage at the Hypercore level
-    // core.clear() removes stored blocks, freeing disk space
-    const core = (bee as unknown as { core: HypercoreLike }).core
-    if (core && typeof core.clear === 'function') {
-      try {
-        await core.clear(0, core.length)
-      } catch {
-        // Ignore clear errors — batch del already removed the entries
-      }
-    }
   }
 
   /**

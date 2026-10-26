@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Virtuoso } from 'react-virtuoso'
 import { useContactStore } from '@/stores/contactStore'
+import { useConversationStore } from '@/stores/conversationStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { Avatar } from '@/components/ui/Avatar'
@@ -11,9 +13,11 @@ import { PageTransition } from '@/components/ui/PageTransition'
 import { formatLastSeen } from '@/utils/time'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
+import { useMenuGestures } from '@/hooks/useMenuGestures'
 import { PRESENCE_CHOICES, presenceMeta, fromNetworkStatus, isLivePresence } from '@/utils/presence'
-import { p2pService } from '@/services/P2PService'
-import { cryptoService } from '@/services/CryptoService'
+import { chatService } from '@/services/ChatService'
 import { ContactDetailView } from './components/ContactDetailView'
 import { QRCodeModal } from './components/QRCodeModal'
 import { ContactInviteModal } from './components/ContactInviteModal'
@@ -59,27 +63,66 @@ export const ContactsPage: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
+  const [statusMenuFromKeyboard, setStatusMenuFromKeyboard] = useState(false)
+  const statusMenuRef = React.useRef<HTMLDivElement>(null)
+  const statusTriggerRef = React.useRef<HTMLButtonElement>(null)
   // Notre propre présence vient du profil (identityStore), plus d'un état local
   // lu une seule fois dans le DHT : la liste des contacts, le bandeau et
   // l'avatar montrent donc la même valeur que les Préférences, et elle se met à
   // jour dès qu'elle change ailleurs.
   const identity = useIdentityStore((s) => s.identity)
   const setProfileStatus = useIdentityStore((s) => s.setStatus)
+  const addToast = useUIStore((s) => s.addToast)
   const userStatus: UserStatus = identity?.profile.status ?? 'online'
+
+  // Le même comportement que les cinq menus contextuels : la touche de
+  // fermeture réglée, les flèches, `Home`/`Fin`, `Tab` piégé et le clic
+  // extérieur. Le panneau de statut n'en avait aucun.
+  useMenuGestures({
+    open: showStatusMenu,
+    menuRef: statusMenuRef,
+    triggerRef: statusTriggerRef,
+    onClose: () => {
+      setShowStatusMenu(false)
+      setStatusMenuFromKeyboard(false)
+    },
+    fromKeyboard: statusMenuFromKeyboard,
+  })
 
   const handleStatusChange = (newStatus: UserStatus) => {
     setShowStatusMenu(false)
+    setStatusMenuFromKeyboard(false)
     // identityStore is the single write path: it persists the profile, publishes
     // the privacy-gated status to the DHT, and the ChatService / GroupService
     // subscriptions broadcast it to peers and groups immediately. This handler
     // used to call `network.publishStatus()` on its own — a DHT-only write with
     // no profile change, so the 30 s re-publish loop (which reads the profile)
     // silently reverted it: the menu looked broken.
-    setProfileStatus(newStatus).catch(() => {})
+    void setProfileStatus(newStatus).then((saved) => {
+      if (!saved) {
+        addToast({ type: 'error', title: t('settings.profileSaveFailed') })
+      }
+    })
   }
 
   const { getFilteredContacts, getFavorites, getBlocked, searchQuery, setSearchQuery } =
     useContactStore()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Un résultat de recherche peut viser un contact sans conversation : la page
+  // doit l'ouvrir directement puis consommer l'état, sinon un retour arrière
+  // rouvrirait le panneau.
+  useEffect(() => {
+    const state = location.state as { contactPublicKey?: string } | null
+    const publicKey = state?.contactPublicKey
+    if (!publicKey) return
+    navigate(location.pathname, { replace: true, state: null })
+    const contact = useContactStore.getState().getContact(publicKey)
+    if (!contact) return
+    setTab('all')
+    setSelectedContact(contact)
+  }, [location.state, location.pathname, navigate])
 
   const getContacts = () => {
     const all = getFilteredContacts()
@@ -112,13 +155,30 @@ export const ContactsPage: React.FC = () => {
             {/* Status selector */}
             <div className="relative">
               <button
-                onClick={() => setShowStatusMenu(!showStatusMenu)}
+                ref={statusTriggerRef}
+                type="button"
+                aria-label={`${t('settings.status')}: ${t(presenceMeta(userStatus).labelKey)}`}
+                aria-haspopup="menu"
+                aria-expanded={showStatusMenu}
+                onClick={() => {
+                  setStatusMenuFromKeyboard(false)
+                  setShowStatusMenu(!showStatusMenu)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+                  e.preventDefault()
+                  setStatusMenuFromKeyboard(true)
+                  setShowStatusMenu(true)
+                }}
                 className={`w-3 h-3 rounded-full ${presenceMeta(userStatus).dot} ring-2 ring-asgard-surface hover:ring-asgard-nordic/50 transition-all`}
                 title={t(presenceMeta(userStatus).labelKey)}
               />
               <AnimatePresence>
                 {showStatusMenu && (
                   <motion.div
+                    ref={statusMenuRef}
+                    role="menu"
+                    aria-label={t('settings.status')}
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -127,12 +187,16 @@ export const ContactsPage: React.FC = () => {
                     {PRESENCE_CHOICES.map((choice) => (
                       <button
                         key={choice.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={userStatus === choice.value}
+                        tabIndex={-1}
                         onClick={() => handleStatusChange(choice.value)}
                         className={`w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-asgard-surface-alt transition-colors ${
                           userStatus === choice.value ? 'bg-asgard-nordic/10' : ''
                         }`}
                       >
-                        <span className={`w-3 h-3 rounded-full ${choice.dot}`} />
+                        <span aria-hidden="true" className={`w-3 h-3 rounded-full ${choice.dot}`} />
                         <span className="text-asgard-text-primary">{t(choice.labelKey)}</span>
                       </button>
                     ))}
@@ -153,6 +217,7 @@ export const ContactsPage: React.FC = () => {
                     displayName: string
                     status?: string
                     relation?: string
+                    requestDirection?: 'incoming' | 'outgoing'
                     verified?: boolean
                     addedAt?: number
                     lastSeen?: number
@@ -171,7 +236,8 @@ export const ContactsPage: React.FC = () => {
                           // ('dnd') a pu être persistée jadis dans le store de
                           // contacts par le refresh DHT.
                           status: fromNetworkStatus(c.status),
-                          relation: (c.relation as 'contact' | 'favorite' | 'blocked') || 'contact',
+                          relation: (c.relation as Contact['relation']) || 'contact',
+                          requestDirection: c.requestDirection,
                           verified: c.verified ?? false,
                           addedAt: c.addedAt ?? Date.now(),
                           lastSeen: c.lastSeen,
@@ -180,13 +246,25 @@ export const ContactsPage: React.FC = () => {
                       }
                     }
                     console.log('[ContactsPage] Restored', restored, 'contacts from Hyperbee')
-                    alert(`Found ${storedContacts.length} contacts in Hyperbee, restored ${restored} new ones`)
+                    addToast({
+                      type: 'success',
+                      title: t('contacts.reloadedFromStorage', {
+                        total: storedContacts.length,
+                        restored,
+                      }),
+                      duration: 5000,
+                    })
                   } else {
-                    alert(t('contacts.error.noContactsFound'))
+                    addToast({ type: 'warning', title: t('contacts.error.noContactsFound'), duration: 4000 })
                   }
                 } catch (err) {
                   console.error('[ContactsPage] Failed to reload contacts:', err)
-                  alert(t('contacts.error.failedToReload') + ': ' + err)
+                  addToast({
+                    type: 'error',
+                    title: t('contacts.error.failedToReload'),
+                    message: String(err),
+                    duration: 6000,
+                  })
                 }
               }}
               icon={
@@ -235,6 +313,7 @@ export const ContactsPage: React.FC = () => {
         <div className="px-3 py-2 flex-shrink-0">
           <Input
             placeholder={t('search.placeholder')}
+            aria-label={t('search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onClear={searchQuery ? () => setSearchQuery('') : undefined}
@@ -348,7 +427,14 @@ const ContactItem: React.FC<{ contact: Contact; isSelected: boolean; onClick: ()
       showStatus
     />
     <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium text-asgard-text-primary truncate">{contact.displayName}</p>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <p className="text-sm font-medium text-asgard-text-primary truncate">{contact.displayName}</p>
+        {contact.relation === 'pending' && (
+          <span className="flex-shrink-0 text-xxs px-1.5 py-0.5 rounded-full bg-asgard-away/15 text-asgard-away">
+            {t('contacts.pendingBadge')}
+          </span>
+        )}
+      </div>
       <p className="text-xs text-asgard-text-muted">
         {statusLabel
           ?? (contact.lastSeen
@@ -357,9 +443,14 @@ const ContactItem: React.FC<{ contact: Contact; isSelected: boolean; onClick: ()
       </p>
     </div>
     {contact.relation === 'favorite' && (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-away">
-        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-      </svg>
+      <>
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-away">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+        </svg>
+        {/* L'étoile est visuelle : sans ce mot, la ligne ne dirait pas qu'elle
+            est en favori autrement qu'à l'œil. */}
+        <span className="sr-only">{t('contacts.relationFavorite')}</span>
+      </>
     )}
   </motion.button>
   )
@@ -372,11 +463,17 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [isAdding, setIsAdding] = useState(false)
-  const addContact = useContactStore((s) => s.addContact)
   const getContact = useContactStore((s) => s.getContact)
+  const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
   const addToast = useUIStore((s) => s.addToast)
   const identity = useIdentityStore((s) => s.identity)
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const dialogRef = useDialogBehavior(onClose)
+  // Ce dialogue n'a pas de croix : son « Annuler » est le geste que la touche
+  // réglée fait, donc c'est lui qui la nomme.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
+  const publicKeyFieldId = React.useId()
 
   // UX COPY/PASTE : un lien d'invitation complet (asgard://invite/<key>?name=)
   // collé dans le champ remplit automatiquement la clé ET le nom
@@ -401,7 +498,12 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     try {
       const text = await navigator.clipboard.readText()
       const parsed = parseInviteInput(text)
-      if (!parsed) return
+      // Un contenu qui n'est ni une clé ni un lien d'invitation était ignoré
+      // en silence : le bouton semblait n'avoir rien fait, sans dire pourquoi.
+      if (!parsed) {
+        setError(t('contacts.error.invalidPublicKey'))
+        return
+      }
       setPublicKey(parsed.publicKey)
       if (parsed.name) setDisplayName(parsed.name)
       setError('')
@@ -437,47 +539,24 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       // COHÉRENCE (pattern ModalContainer) : rejet des doublons — impossible
       // d'ajouter deux fois la même personne, quel que soit le format de clé
       // saisi (la normalisation rend les doublons inter-formats détectables).
-      if (getContact(normalizedKey)) {
+      // Une demande encore en attente peut être relancée : le pair ne l'a
+      // peut-être jamais reçue.
+      const existing = getContact(normalizedKey)
+      if (existing && existing.relation !== 'pending') {
         setError(t('modal.error.contactExists'))
         return
       }
 
-      // Add contact to local store — clé TOUJOURS canonique (88 hex DER),
-      // donc les doublons « même personne, deux formats » (hex 64 vs DER 88)
-      // sont désormais détectés par getContact.
-      const contact: Contact = {
-        publicKey: normalizedKey,
-        displayName: displayName.trim() || `User-${normalizedKey.slice(24, 32)}`,
-        status: 'offline',
-        relation: 'contact',
-        verified: false,
-        addedAt: Date.now(),
-      }
-      addContact(contact)
-
-      // COHÉRENCE PERSISTANCE : même double persistance que ModalContainer
-      // (store localStorage via zustand/persist + Hyperbee) — le contact
-      // survit aussi au flux de restauration « reload contacts from Hyperbee ».
-      try {
-        await window.asgard.storage.saveContact(contact)
-      } catch (err) {
-        console.warn('[AddContact] Hyperbee persistence failed (localStorage persist remains):', err)
-      }
-
-      // CRITICAL: Derive and join the Hyperswarm conversation topic
-      // so both peers can discover each other via Hyperswarm DHT.
-      // Once connected, ChatService's peer:connected listener will
-      // automatically send contact:request to the peer.
-      // COHÉRENCE KEET : le topic est dérivé depuis la clé CANONIQUE (DER 88) —
-      // le pair distant dérive depuis la sienne ; une clé hex 64 ou z32 non
-      // normalisée produirait un topic différent et aucune connexion.
-      const topic = await cryptoService.deriveConversationTopic(
-        identity.keyPair.publicKey,
-        normalizedKey
-      )
-      await p2pService.joinTopic(topic)
+      // registerContact : relation « en attente » + conversation + joinTopic +
+      // demande immédiate si le pair est déjà joignable. La clé est TOUJOURS
+      // canonique (88 hex DER), donc les doublons « même personne, deux
+      // formats » (hex 64 vs DER 88) sont détectés par getContact.
+      const convId = await chatService.registerContact(normalizedKey, displayName.trim())
 
       addToast({ type: 'success', title: t('toast.contactAdded'), duration: 3000 })
+      // Ouvrir la conversation : la réponse qui confirme l'ajout s'y écrit.
+      setActiveConversation(convId)
+      navigate(`/conversations/${convId}`)
       onClose()
     } catch (err) {
       console.error('[AddContact] Failed to add contact:', err)
@@ -496,10 +575,15 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('contacts.addContact')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal focus:outline-none"
       >
         <h3 className="text-lg font-semibold text-asgard-text-primary mb-1">{t('contacts.addContact')}</h3>
         <p className="text-sm text-asgard-text-muted mb-5">
@@ -509,7 +593,7 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-sm font-medium text-asgard-text-secondary">
+              <label htmlFor={publicKeyFieldId} className="text-sm font-medium text-asgard-text-secondary">
                 {t('contacts.publicKey')}
               </label>
               <button
@@ -525,6 +609,7 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </button>
             </div>
             <Input
+              id={publicKeyFieldId}
               placeholder={t('contacts.publicKeyPlaceholder')}
               value={publicKey}
               onChange={(e) => handlePublicKeyChange(e.target.value)}
@@ -540,7 +625,15 @@ const AddContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
 
         <div className="flex gap-3 mt-6">
-          <Button variant="ghost" fullWidth onClick={onClose}>{t('common.cancel')}</Button>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={onClose}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+          >
+            {t('common.cancel')}
+          </Button>
           <Button fullWidth onClick={handleAdd} loading={isAdding}>{t('contacts.addContact')}</Button>
         </div>
       </motion.div>

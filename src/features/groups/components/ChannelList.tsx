@@ -1,9 +1,15 @@
 import React from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useGroupStore } from '@/stores/groupStore'
+import { useIdentityStore } from '@/stores/identityStore'
+import { useUIStore } from '@/stores/uiStore'
+import { groupService } from '@/services/GroupService'
 import { cn } from '@/utils/cn'
+import { useMenuGestures } from '@/hooks/useMenuGestures'
 import type { GroupChannel } from '@/types'
 import { useTranslation } from 'react-i18next'
+import { CreateChannelModal } from './CreateChannelModal'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 /**
  * ChannelList — Discord-style channel sidebar within a group.
@@ -15,10 +21,110 @@ export const ChannelList: React.FC = () => {
   const activeChannelId = useGroupStore((s) => s.activeChannelId)
   const setActiveChannel = useGroupStore((s) => s.setActiveChannel)
   const getChannels = useGroupStore((s) => s.getChannels)
+  const identity = useIdentityStore((s) => s.identity)
+  const addToast = useUIStore((s) => s.addToast)
+  // Les canaux se créent et se suppriment côté service, mais seulement pour un
+  // administrateur : l'entrée ne doit pas être proposée à un simple membre.
+  const isAdmin = useGroupStore((s) =>
+    identity && s.activeGroupId ? s.isAdmin(s.activeGroupId, identity.keyPair.publicKey) : false,
+  )
+  const [showCreateChannel, setShowCreateChannel] = React.useState(false)
+  // La frappe vit dans le GroupStore et expire après 5 s sans événement ;
+  // typingTick force la ré-évaluation pour la voir disparaître sans nouveau
+  // message. Même convention que GroupItem et la liste 1:1.
+  const channelTyping = useGroupStore((s) => s.channelTyping)
+  const [typingTick, setTypingTick] = React.useState(0)
+
+  const channels = activeGroup ? getChannels(activeGroup.id) : []
+  const typingChannelIds = React.useMemo(() => {
+    const ids = new Set<string>()
+    if (!activeGroup) return ids
+    const store = useGroupStore.getState()
+    for (const ch of channels) {
+      if (store.getChannelTypingUsers(activeGroup.id, ch.id).length > 0) ids.add(ch.id)
+    }
+    return ids
+  }, [activeGroup, channels, channelTyping, typingTick])
+
+  React.useEffect(() => {
+    if (typingChannelIds.size === 0) return
+    const timer = setTimeout(() => setTypingTick((n) => n + 1), 1000)
+    return () => clearTimeout(timer)
+  }, [typingChannelIds.size, typingTick])
+
+  // Même menu que la liste 1:1 : un canal peut être marqué non lu pour y
+  // revenir, ou lu sans l'ouvrir. Clic droit, Maj+F10 et touche Menu.
+  const [contextMenu, setContextMenu] = React.useState<{
+    channel: GroupChannel
+    x: number
+    y: number
+    fromKeyboard?: boolean
+  } | null>(null)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+  const menuTriggerRef = React.useRef<HTMLElement | null>(null)
+  // Retirer un canal le retire pour tous les membres : la ligne le demande
+  // d'abord, au lieu d'agir sur un clic de menu.
+  const [deleteTarget, setDeleteTarget] = React.useState<GroupChannel | null>(null)
+
+  const handleContextMenu = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>, channel: GroupChannel) => {
+      e.preventDefault()
+      menuTriggerRef.current = e.currentTarget
+      setContextMenu({ channel, x: e.clientX, y: e.clientY })
+    },
+    [],
+  )
+
+  const handleItemKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>, channel: GroupChannel) => {
+      if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return
+      e.preventDefault()
+      const rect = e.currentTarget.getBoundingClientRect()
+      menuTriggerRef.current = e.currentTarget
+      setContextMenu({
+        channel,
+        x: Math.max(8, Math.min(rect.left + 16, window.innerWidth - 200)),
+        y: Math.max(8, Math.min(rect.top + 16, window.innerHeight - 120)),
+        fromKeyboard: true,
+      })
+    },
+    [],
+  )
+
+  // La touche réglée referme et rend le focus à la ligne déclencheuse ; les
+  // flèches, `Home`, `Fin` et `Tab` restent dans le menu, comme ailleurs.
+  useMenuGestures({
+    open: !!contextMenu,
+    menuRef,
+    triggerRef: menuTriggerRef,
+    onClose: () => setContextMenu(null),
+    fromKeyboard: contextMenu?.fromKeyboard,
+  })
+
+  const toggleChannelRead = React.useCallback(() => {
+    if (!contextMenu || !activeGroup) return
+    const store = useGroupStore.getState()
+    if (contextMenu.channel.unreadCount > 0) {
+      store.clearChannelUnread(activeGroup.id, contextMenu.channel.id)
+    } else {
+      store.incrementChannelUnread(activeGroup.id, contextMenu.channel.id)
+    }
+    setContextMenu(null)
+  }, [activeGroup, contextMenu])
+
+  const deleteChannel = React.useCallback(async (channel: GroupChannel) => {
+    if (!activeGroup) return
+    const groupId = activeGroup.id
+    try {
+      await groupService.removeChannel(groupId, channel.id)
+      addToast({ type: 'success', title: t('groups.channelDeleted') })
+    } catch (err) {
+      addToast({ type: 'error', title: t('groups.channelDeleteFailed') })
+      console.error(err)
+    }
+  }, [activeGroup, addToast, t])
 
   if (!activeGroup) return null
-
-  const channels = getChannels(activeGroup.id)
 
   // Group channels by type
   const textChannels = channels.filter((ch) => ch.type === 'text')
@@ -29,13 +135,26 @@ export const ChannelList: React.FC = () => {
   return (
     <div className="w-48 flex-shrink-0 bg-asgard-deep-black/60 border-r border-asgard-border overflow-y-auto">
       {/* Group header */}
-      <div className="px-3 py-3 border-b border-asgard-border">
-        <h3 className="text-sm font-semibold text-asgard-text-primary truncate">
-          {activeGroup.name}
-        </h3>
-        <p className="text-xxs text-asgard-text-muted mt-0.5">
-          {t('groups.memberCount', { count: activeGroup.members.length })}
-        </p>
+      <div className="px-3 py-3 border-b border-asgard-border flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-asgard-text-primary truncate">
+            {activeGroup.name}
+          </h3>
+          <p className="text-xxs text-asgard-text-muted mt-0.5">
+            {t('groups.memberCount', { count: activeGroup.members.length })}
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setShowCreateChannel(true)}
+            aria-label={t('groups.addChannel')}
+            title={t('groups.addChannel')}
+            className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
+          >
+            <PlusIcon />
+          </button>
+        )}
       </div>
 
       <div className="py-2">
@@ -48,6 +167,9 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                onContextMenu={(e) => handleContextMenu(e, ch)}
+                onKeyDown={(e) => handleItemKeyDown(e, ch)}
+                typing={typingChannelIds.has(ch.id)}
                 icon={<HashIcon />}
               />
             ))}
@@ -63,6 +185,9 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                onContextMenu={(e) => handleContextMenu(e, ch)}
+                onKeyDown={(e) => handleItemKeyDown(e, ch)}
+                typing={typingChannelIds.has(ch.id)}
                 icon={<MegaphoneIcon />}
               />
             ))}
@@ -78,6 +203,9 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                onContextMenu={(e) => handleContextMenu(e, ch)}
+                onKeyDown={(e) => handleItemKeyDown(e, ch)}
+                typing={typingChannelIds.has(ch.id)}
                 icon={<LockIcon />}
               />
             ))}
@@ -93,12 +221,89 @@ export const ChannelList: React.FC = () => {
                 channel={ch}
                 isActive={ch.id === activeChannelId}
                 onClick={() => setActiveChannel(ch.id)}
+                onContextMenu={(e) => handleContextMenu(e, ch)}
+                onKeyDown={(e) => handleItemKeyDown(e, ch)}
+                typing={typingChannelIds.has(ch.id)}
                 icon={<SpeakerIcon />}
               />
             ))}
           </ChannelSection>
         )}
       </div>
+
+      {/* Menu contextuel d'un canal */}
+      <AnimatePresence>
+        {contextMenu && (
+          <motion.div
+            ref={menuRef}
+            role="menu"
+            aria-label={contextMenu.channel.name}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            className="fixed z-50 mica-card border border-asgard-border rounded-xl p-1 shadow-modal min-w-[180px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={toggleChannelRead}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left text-asgard-text-secondary hover:bg-asgard-surface-alt hover:text-asgard-text-primary"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+              </svg>
+              {t(contextMenu.channel.unreadCount > 0 ? 'chat.markAsRead' : 'chat.markAsUnread')}
+            </button>
+
+            {/* Le store refuse d'ailleurs de vider le dernier canal : l'entrée
+                n'apparaît que quand la suppression est réellement possible. */}
+            {isAdmin && channels.length > 1 && (
+              <button
+                type="button"
+                role="menuitem"
+                tabIndex={-1}
+                onClick={() => {
+                  setDeleteTarget(contextMenu.channel)
+                  setContextMenu(null)
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left text-red-400 hover:bg-red-500/10"
+              >
+                <TrashIcon />
+                {t('groups.deleteChannel')}
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <ConfirmDialog
+            title="groups.deleteChannel"
+            warning="groups.deleteChannelWarning"
+            confirmLabel="groups.deleteChannel"
+            name={deleteTarget.name}
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={() => {
+              const target = deleteTarget
+              setDeleteTarget(null)
+              if (target) void deleteChannel(target)
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCreateChannel && (
+          <CreateChannelModal
+            groupId={activeGroup.id}
+            onClose={() => setShowCreateChannel(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -122,32 +327,87 @@ interface ChannelItemProps {
   isActive: boolean
   onClick: () => void
   icon: React.ReactNode
+  typing?: boolean
+  onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void
+  onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void
 }
 
-const ChannelItem: React.FC<ChannelItemProps> = ({ channel, isActive, onClick, icon }) => (
-  <motion.button
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className={cn(
-      'w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors',
-      isActive
-        ? 'bg-asgard-nordic/20 text-asgard-glacier'
-        : channel.unreadCount > 0
-        ? 'text-asgard-text-primary hover:bg-asgard-surface-alt'
-        : 'text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-secondary'
-    )}
-  >
-    <span className="flex-shrink-0 opacity-70">{icon}</span>
-    <span className="truncate flex-1 text-left text-xs">{channel.name}</span>
-    {channel.unreadCount > 0 && (
-      <span className="min-w-4 h-4 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0">
-        {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
-      </span>
-    )}
-  </motion.button>
-)
+const ChannelItem: React.FC<ChannelItemProps> = ({
+  channel,
+  isActive,
+  onClick,
+  icon,
+  typing,
+  onContextMenu,
+  onKeyDown,
+}) => {
+  const { t } = useTranslation()
+  return (
+    <motion.button
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={onKeyDown}
+      aria-current={isActive ? 'true' : undefined}
+      aria-haspopup="menu"
+      className={cn(
+        'w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors',
+        isActive
+          ? 'bg-asgard-nordic/20 text-asgard-glacier'
+          : channel.unreadCount > 0
+          ? 'text-asgard-text-primary hover:bg-asgard-surface-alt'
+          : 'text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-secondary'
+      )}
+    >
+      <span className="flex-shrink-0 opacity-70">{icon}</span>
+      <span className="truncate flex-1 text-left text-xs">{channel.name}</span>
+      {typing && (
+        <>
+          <span className="sr-only">{t('chat.typing')}</span>
+          <span
+            className="flex items-end gap-0.5 h-2 flex-shrink-0"
+            aria-hidden="true"
+            title={t('chat.typing')}
+            data-testid={`channel-typing-${channel.id}`}
+          >
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1 h-1 rounded-full bg-asgard-glacier animate-typing"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </span>
+        </>
+      )}
+      {channel.unreadCount > 0 && (
+        <span
+          aria-hidden="true"
+          className="min-w-4 h-4 flex items-center justify-center bg-asgard-glacier text-asgard-deep-black text-xxs font-bold rounded-full px-1 flex-shrink-0"
+        >
+          {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
+        </span>
+      )}
+      {channel.unreadCount > 0 && (
+        <span className="sr-only">{t('nav.unreadCount', { count: channel.unreadCount })}</span>
+      )}
+    </motion.button>
+  )
+}
 
 // ─── Icons ──────────────────────────────────────────────────────────────────────
+
+const PlusIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+  </svg>
+)
+
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M6 19c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+  </svg>
+)
 
 const HashIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

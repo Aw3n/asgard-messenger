@@ -142,7 +142,9 @@ class ActivityMonitor {
     this.autoSetAway = true
 
     // Set status to away
-    useIdentityStore.getState().setStatus('away').catch(console.error)
+    void useIdentityStore.getState().setStatus('away').then((saved) => {
+      if (!saved) console.error('[ActivityMonitor] Failed to persist the away status')
+    })
 
     // Broadcast presence update
     chatService.broadcastPresence().catch(console.error)
@@ -166,7 +168,9 @@ class ActivityMonitor {
     // déclaration prime et ne doit pas être écrasée.
     if (identity.profile.status !== 'away') return
 
-    useIdentityStore.getState().setStatus(this.previousStatus).catch(console.error)
+    void useIdentityStore.getState().setStatus(this.previousStatus).then((saved) => {
+      if (!saved) console.error('[ActivityMonitor] Failed to restore the previous status')
+    })
 
     // Broadcast presence update
     chatService.broadcastPresence().catch(console.error)

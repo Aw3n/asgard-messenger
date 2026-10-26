@@ -5,10 +5,13 @@ import { callService } from '@/services/CallService'
 import { Avatar } from '@/components/ui/Avatar'
 import { Input } from '@/components/ui/Input'
 import { formatPublicKey } from '@/utils/id'
+import { isLivePresence, presenceMeta } from '@/utils/presence'
+import { formatMessageTime } from '@/utils/time'
 import { PageTransition } from '@/components/ui/PageTransition'
-import type { CallRecord } from '@/stores/callStore'
+import type { CallRecord, CallType } from '@/stores/callStore'
 import { useTranslation } from 'react-i18next'
-import { getCurrentLanguage } from '@/i18n/config'
+import { useUIStore } from '@/stores/uiStore'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 /** Grouped call history entry: latest call per contact + count */
 interface GroupedCallEntry {
@@ -27,9 +30,18 @@ interface GroupedCallEntry {
 export const CallsPage: React.FC = () => {
   const history = useCallStore((s) => s.history)
   const clearHistory = useCallStore((s) => s.clearHistory)
-  const contacts = useContactStore((s) => Object.values(s.contacts).filter((c) => c.relation !== 'blocked'))
+  const storedContacts = useContactStore((s) => s.contacts)
+  // Hors du sélecteur : filtrer dans le sélecteur rend une liste neuve à chaque rendu,
+  // et le comptage des contacts connectés ci-dessous la relit comme un changement.
+  const contacts = useMemo(
+    () => Object.values(storedContacts).filter((c) => c.relation === 'contact' || c.relation === 'favorite'),
+    [storedContacts],
+  )
   const [search, setSearch] = useState('')
   const [expandedPeer, setExpandedPeer] = useState<string | null>(null)
+  // L'historique est persisté : un clic sur la corbeille ne doit pas l'effacer
+  // sans que l'utilisateur ait vu ce qu'il perd.
+  const [confirmClear, setConfirmClear] = useState(false)
 
   // Group call history by contact (peerId) — shows unique contacts with call count
   const groupedHistory = useMemo<GroupedCallEntry[]>(() => {
@@ -64,6 +76,7 @@ export const CallsPage: React.FC = () => {
   // INTEGRATION: Corestore group activity
   const [activeGroupTopics, setActiveGroupTopics] = useState<string[]>([])
   const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
 
   // Nombre de CONTACTS réellement connectés (clé Ed25519 identifiée, dédupliquée).
   // Les connexions swarm brutes peuvent inclure des pairs non identifiés ou des
@@ -133,16 +146,6 @@ export const CallsPage: React.FC = () => {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  const formatDate = (timestamp: number): string => {
-    const now = Date.now()
-    const diff = now - timestamp
-    const locale = getCurrentLanguage()
-    if (diff < 86400000) {
-      return new Date(timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-    }
-    return new Date(timestamp).toLocaleDateString(locale)
-  }
-
   const getCallIcon = (call: CallRecord) => {
     if (call.missed) {
       return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-red-400"><path d="M3.27 3L2 4.27l8.73 8.73V21h2v-8l8.73 8.73L22.73 20.27 3.27 3z"/></svg>
@@ -165,10 +168,26 @@ export const CallsPage: React.FC = () => {
   // INTEGRATION: Helper function to refresh server (reconnection)
   const handleRefreshServer = async () => {
     try {
-      await window.asgard.network.refreshServer()
-      console.log('[CallsPage] Server refreshed')
+      const refreshed = await window.asgard.network.refreshServer()
+      if (!refreshed) {
+        addToast({ type: 'error', title: t('calls.refreshServerFailed') })
+        return
+      }
+      addToast({ type: 'success', title: t('calls.serverRefreshed'), duration: 2000 })
     } catch (err) {
       console.error('[CallsPage] Failed to refresh server:', err)
+      addToast({ type: 'error', title: t('calls.refreshServerFailed') })
+    }
+  }
+
+  /** Rappel : relance un appel 1:1, ou reforme le groupe si ses participants
+   *  sont connus (un appel de groupe sans liste ne peut pas être relancé). */
+  const recall = (group: GroupedCallEntry, type: CallType) => {
+    const call = group.latestCall
+    if (call.isGroupCall) {
+      callService.startGroupCall(call.groupId ?? group.peerId, group.peerName, call.participants ?? [], type)
+    } else {
+      callService.startCall(group.peerId, group.peerName, type, group.peerAvatar)
     }
   }
 
@@ -182,7 +201,11 @@ export const CallsPage: React.FC = () => {
             <h2 className="text-base font-semibold text-asgard-text-primary">{t('calls.callHistory')}</h2>
             {/* INTEGRATION: Connection status indicator */}
             {connectingCount > 0 && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-asgard-glacier/20 border border-asgard-glacier/30">
+              <div
+                role="img"
+                aria-label={t('calls.connectingCount', { count: connectingCount })}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-asgard-glacier/20 border border-asgard-glacier/30"
+              >
                 <div className="w-1.5 h-1.5 rounded-full bg-asgard-glacier animate-pulse" />
                 <span className="text-xs text-asgard-glacier">{connectingCount}</span>
               </div>
@@ -190,7 +213,11 @@ export const CallsPage: React.FC = () => {
             {/* INTEGRATION: Connected contacts count — clé Ed25519 identifiée,
                 dédupliquée par contact (cohérent avec la liste ci-dessous) */}
             {connectedContactIds.size > 0 && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-asgard-cyan/20 border border-asgard-cyan/30">
+              <div
+                role="img"
+                aria-label={t('calls.connectedContactCount', { count: connectedContactIds.size })}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-asgard-cyan/20 border border-asgard-cyan/30"
+              >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-cyan">
                   <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
                 </svg>
@@ -205,6 +232,7 @@ export const CallsPage: React.FC = () => {
                 onClick={handleRefreshServer}
                 className="text-xs text-asgard-text-muted hover:text-asgard-glacier transition-colors"
                 title={t('calls.refreshServer')}
+                aria-label={t('calls.refreshServer')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
@@ -213,7 +241,7 @@ export const CallsPage: React.FC = () => {
             )}
             {history.length > 0 && (
               <button
-                onClick={clearHistory}
+                onClick={() => setConfirmClear(true)}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-red-400/80 hover:text-red-400 hover:bg-red-400/10 border border-red-400/20 hover:border-red-400/40 transition-all"
                 title={t('calls.clearHistory')}
               >
@@ -237,7 +265,7 @@ export const CallsPage: React.FC = () => {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
               </svg>
-              <span>{activeGroupTopics.length} active group{activeGroupTopics.length > 1 ? 's' : ''}</span>
+              <span>{t('calls.activeGroupTopics', { total: activeGroupTopics.length })}</span>
             </div>
           </div>
         )}
@@ -246,6 +274,7 @@ export const CallsPage: React.FC = () => {
         <div className="px-3 py-2 flex-shrink-0">
           <Input
             placeholder={t('search.placeholder')}
+            aria-label={t('search.placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onClear={search ? () => setSearch('') : undefined}
@@ -280,12 +309,18 @@ export const CallsPage: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-asgard-text-primary truncate">{contact.displayName}</p>
                   <p className="text-xs text-asgard-text-muted">{formatPublicKey(contact.publicKey)}</p>
+                  {/* La pastille de l'avatar est un point muet : sans ce mot, un
+                      contact joignable se lisait comme un contact hors ligne. */}
+                  {isLivePresence(contact.status) && (
+                    <span className="sr-only">{t(presenceMeta(contact.status).labelKey)}</span>
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => callService.startCall(contact.publicKey, contact.displayName, 'audio', contact.avatar)}
                     className="w-8 h-8 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                     title={t('calls.audioCall')}
+                    aria-label={`${t('calls.audioCall')} — ${contact.displayName}`}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
                       <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
@@ -295,6 +330,7 @@ export const CallsPage: React.FC = () => {
                     onClick={() => callService.startCall(contact.publicKey, contact.displayName, 'video', contact.avatar)}
                     className="w-8 h-8 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                     title={t('calls.videoCall')}
+                    aria-label={`${t('calls.videoCall')} — ${contact.displayName}`}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
                       <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
@@ -326,13 +362,13 @@ export const CallsPage: React.FC = () => {
             </div>
           ) : (
             <div className="divide-y divide-asgard-border">
-              {groupedHistory.map((group) => (
-                <div key={group.peerId}>
-                  {/* Main entry: latest call for this contact */}
-                  <div
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-asgard-surface transition-colors cursor-pointer"
-                    onClick={() => setExpandedPeer(expandedPeer === group.peerId ? null : group.peerId)}
-                  >
+              {groupedHistory.map((group, index) => {
+                // Une rangée d'un seul appel ne déplie rien : elle ne doit ni
+                // se présenter comme cliquable ni avaler le clic.
+                const expandable = group.totalCount > 1
+                const regionId = `call-history-${index}`
+                const rowContent = (
+                  <>
                     <Avatar
                       src={group.peerAvatar}
                       name={group.peerName}
@@ -349,7 +385,7 @@ export const CallsPage: React.FC = () => {
                           {group.latestCall.missed ? t('calls.missedCall') : group.latestCall.direction === 'incoming' ? t('calls.incomingCall') : t('calls.outgoingCall')}
                         </span>
                         <span className="text-xs text-asgard-text-muted">•</span>
-                        <span className="text-xs text-asgard-text-muted capitalize">{group.latestCall.type}</span>
+                        <span className="text-xs text-asgard-text-muted">{t(group.latestCall.type === 'audio' ? 'calls.typeAudio' : 'calls.typeVideo')}</span>
                         {group.latestCall.duration !== undefined && group.latestCall.duration > 0 && (
                           <>
                             <span className="text-xs text-asgard-text-muted">•</span>
@@ -359,34 +395,65 @@ export const CallsPage: React.FC = () => {
                       </div>
                     </div>
                     {/* Call count badge */}
-                    {group.totalCount > 1 && (
+                    {expandable && (
                       <span className="text-xs px-1.5 py-0.5 rounded-full bg-asgard-glacier/15 text-asgard-glacier font-medium">
                         {group.totalCount}
                       </span>
                     )}
-                    <span className="text-xs text-asgard-text-muted">{formatDate(group.latestCall.startedAt)}</span>
+                    <span className="text-xs text-asgard-text-muted">{formatMessageTime(group.latestCall.startedAt)}</span>
                     {/* Expand indicator */}
-                    {group.totalCount > 1 && (
+                    {expandable && (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={`text-asgard-text-muted transition-transform ${expandedPeer === group.peerId ? 'rotate-180' : ''}`}>
                         <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
                       </svg>
                     )}
-                    {/* Quick re-call button */}
-                    {!group.latestCall.missed && !group.latestCall.isGroupCall && (
-                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  </>
+                )
+                return (
+                <div key={group.peerId}>
+                  {/* Main entry: latest call for this contact */}
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${expandable ? 'hover:bg-asgard-surface' : ''}`}>
+                    {expandable ? (
+                      // Un <button> ne peut pas contenir les blocs de la
+                      // rangée (avatar, textes) : rôle explicite + clavier.
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setExpandedPeer(expandedPeer === group.peerId ? null : group.peerId)}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return
+                          e.preventDefault()
+                          setExpandedPeer(expandedPeer === group.peerId ? null : group.peerId)
+                        }}
+                        aria-expanded={expandedPeer === group.peerId}
+                        aria-controls={regionId}
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-asgard-glacier/60"
+                      >
+                        {rowContent}
+                      </div>
+                    ) : (
+                      <div className="flex flex-1 min-w-0 items-center gap-3">{rowContent}</div>
+                    )}
+                    {/* Rappel direct — vaut aussi pour un appel manqué, le cas
+                        le plus fréquent. Un appel de groupe n'est reformable
+                        que si la liste de ses participants est connue. */}
+                    {(!group.latestCall.isGroupCall || (group.latestCall.participants?.length ?? 0) > 0) && (
+                      <div className="flex gap-1">
                         <button
-                          onClick={() => callService.startCall(group.peerId, group.peerName, 'audio', group.peerAvatar)}
+                          onClick={() => recall(group, 'audio')}
                           className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                           title={t('calls.audioCall')}
+                          aria-label={`${t('calls.audioCall')} — ${group.peerName}`}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
                             <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
                           </svg>
                         </button>
                         <button
-                          onClick={() => callService.startCall(group.peerId, group.peerName, 'video', group.peerAvatar)}
+                          onClick={() => recall(group, 'video')}
                           className="w-7 h-7 rounded-lg hover:bg-asgard-nordic/20 flex items-center justify-center transition-colors"
                           title={t('calls.videoCall')}
+                          aria-label={`${t('calls.videoCall')} — ${group.peerName}`}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-muted hover:text-asgard-glacier">
                             <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
@@ -396,8 +463,8 @@ export const CallsPage: React.FC = () => {
                     )}
                   </div>
                   {/* Expanded: show all calls for this contact */}
-                  {expandedPeer === group.peerId && group.totalCount > 1 && (
-                    <div className="bg-asgard-deep-black/30 px-4 pb-2">
+                  {expandedPeer === group.peerId && expandable && (
+                    <div id={regionId} className="bg-asgard-deep-black/30 px-4 pb-2">
                       {group.allCalls.slice(1).map((call) => (
                         <div key={call.id} className="flex items-center gap-3 py-2 border-t border-asgard-border/50">
                           <div className="flex-1 min-w-0">
@@ -407,7 +474,7 @@ export const CallsPage: React.FC = () => {
                                 {call.missed ? t('calls.missedCall') : call.direction === 'incoming' ? t('calls.incomingCall') : t('calls.outgoingCall')}
                               </span>
                               <span className="text-xs text-asgard-text-muted">•</span>
-                              <span className="text-xs text-asgard-text-muted capitalize">{call.type}</span>
+                              <span className="text-xs text-asgard-text-muted">{t(call.type === 'audio' ? 'calls.typeAudio' : 'calls.typeVideo')}</span>
                               {call.duration !== undefined && call.duration > 0 && (
                                 <>
                                   <span className="text-xs text-asgard-text-muted">•</span>
@@ -416,17 +483,31 @@ export const CallsPage: React.FC = () => {
                               )}
                             </div>
                           </div>
-                          <span className="text-xs text-asgard-text-muted">{formatDate(call.startedAt)}</span>
+                          <span className="text-xs text-asgard-text-muted">{formatMessageTime(call.startedAt)}</span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
       </div>
+
+      {confirmClear && (
+        <ConfirmDialog
+          title="calls.clearHistory"
+          warning="calls.clearHistoryWarning"
+          confirmLabel="calls.clearHistory"
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={() => {
+            setConfirmClear(false)
+            clearHistory()
+          }}
+        />
+      )}
     </div>
     </PageTransition>
   )

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Icon } from '@/components/ui/Icon'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
@@ -10,6 +11,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { cryptoService } from '@/services/CryptoService'
 import { chatService } from '@/services/ChatService'
 import { formatPublicKey } from '@/utils/id'
+import { copyToClipboard } from '@/utils/clipboard'
 import { formatLastSeen } from '@/utils/time'
 import { fromNetworkStatus, presenceMeta, isLivePresence } from '@/utils/presence'
 import type { Contact } from '@/types'
@@ -20,6 +22,14 @@ interface ContactDetailViewProps {
   contact: Contact
   onClose?: () => void
 }
+
+/** La relation est un jeton interne : l'écran doit dire le mot de la langue. */
+const RELATION_LABEL = {
+  contact: 'contacts.relationContact',
+  favorite: 'contacts.relationFavorite',
+  blocked: 'contacts.relationBlocked',
+  pending: 'contacts.relationPending',
+} as const satisfies Record<Contact['relation'], string>
 
 /**
  * ContactDetailView — full profile view for a contact.
@@ -33,35 +43,43 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
   const addToast = useUIStore((s) => s.addToast)
   const [showKey, setShowKey] = useState(false)
   const [showActions, setShowActions] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   // DHT Profile state
   const [dhtProfile, setDhtProfile] = useState<{ displayName: string; avatar?: string; timestamp: number; status?: string; statusMessage?: string } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileFetched, setProfileFetched] = useState(false)
+  // Une interrogation qui rejette n'est pas une recherche encore en cours : sans
+  // cet état, le point jaune clignotait indéfiniment après une panne.
+  const [profileError, setProfileError] = useState(false)
 
   const isFavorite = contact.relation === 'favorite'
   const isBlocked = contact.relation === 'blocked'
 
-  // Fetch profile from DHT
+  // Fetch profile from DHT. The contact is re-read from the store at call time
+  // rather than captured: a captured `lastSeen` / `displayName` changed the
+  // callback identity on every presence tick, re-arming the effect and turning
+  // the 60 s refresh into a fetch every few seconds.
   const fetchDHTProfile = useCallback(async () => {
     if (!window.asgard?.network?.fetchProfile) return
     setProfileLoading(true)
+    setProfileError(false)
     try {
       const profile = await window.asgard.network.fetchProfile(contact.publicKey)
+      const current = useContactStore.getState().getContact(contact.publicKey)
       if (profile) {
         setDhtProfile(profile)
         // Update contact with DHT profile info if different
         const updates: Partial<Contact> = {}
-        if (profile.displayName && profile.displayName !== contact.displayName) {
+        if (profile.displayName && profile.displayName !== current?.displayName) {
           updates.remoteName = profile.displayName
         }
         // CRITICAL: Never update contact status from DHT — DHT mutable records
         // have no TTL and can be stale long after a peer has gone offline.
         // Status must only be updated via real-time P2P events (presence:update,
         // peer:identified) which prove the peer is actually connected right now.
-        // if (profile.status && profile.status !== contact.status) {
-        //   updates.status = profile.status
-        // }
-        if (profile.lastSeen && profile.lastSeen !== contact.lastSeen) {
+        // Le classement P2P-prioritaire du statut est centralisé dans
+        // ChatService.applyDhtProfile (appelé par probeContact ci-dessous).
+        if (profile.lastSeen && profile.lastSeen !== current?.lastSeen) {
           updates.lastSeen = profile.lastSeen
         }
         if (Object.keys(updates).length > 0) {
@@ -74,23 +92,24 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
       setProfileFetched(true)
     } catch (err) {
       console.error('[ContactDetailView] Failed to fetch DHT profile:', err)
+      setProfileError(true)
+      setProfileFetched(true)
     } finally {
       setProfileLoading(false)
     }
-  }, [contact.publicKey, contact.displayName, contact.status, contact.lastSeen, updateContact])
+  }, [contact.publicKey, updateContact])
 
-  // Auto-fetch profile on mount and refresh periodically
+  // Auto-fetch profile on mount and refresh periodically. Opening the detail
+  // view is an explicit intent to see that contact: probeContact re-dials the
+  // Noise key and applies a fresh DHT status (throttled) without waiting for
+  // the heartbeat or the 30 s refresh loop.
   useEffect(() => {
     if (isBlocked) return
-    // Small delay to avoid blocking initial render
-    const timer = setTimeout(() => fetchDHTProfile(), 500)
-    // Refresh DHT profile every 60s while the detail view is open
-    const interval = setInterval(() => fetchDHTProfile(), 60000)
-    return () => {
-      clearTimeout(timer)
-      clearInterval(interval)
-    }
-  }, [isBlocked, fetchDHTProfile])
+    chatService.probeContact(contact.publicKey)
+    void fetchDHTProfile()
+    const interval = setInterval(() => { void fetchDHTProfile() }, 60000)
+    return () => clearInterval(interval)
+  }, [isBlocked, contact.publicKey, fetchDHTProfile])
 
   const handleMessage = () => {
     const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
@@ -144,13 +163,29 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
     })
   }
 
-  const handleToggleBlock = () => {
-    if (isBlocked) {
-      unblockContact(contact.publicKey)
-      addToast({ type: 'info', title: t('contacts.unblocked'), duration: 2000 })
-    } else {
+  const handleToggleBlock = async () => {
+    const blocked = !isBlocked
+    // L'état local bascule tout de suite ; le réseau suit, car le blocage
+    // n'est effectif que si le firewall connaît la clé Noise du contact.
+    if (blocked) {
       blockContact(contact.publicKey)
       addToast({ type: 'warning', title: t('contacts.blocked'), duration: 2000 })
+    } else {
+      unblockContact(contact.publicKey)
+      addToast({ type: 'info', title: t('contacts.unblocked'), duration: 2000 })
+    }
+    try {
+      const noiseKey = await window.asgard.network.deriveNoisePublicKey(contact.publicKey)
+      await window.asgard.network.blockPeer(noiseKey, blocked)
+    } catch (err) {
+      console.error('[ContactDetailView] Failed to apply network block:', err)
+      // Le blocage local, lui, a bien pris : les messages entrants sont
+      // filtrés. Mais le pare-feu ignore encore la clé Noise, donc le pair
+      // peut toujours se connecter. Ne pas le taire.
+      addToast({
+        type: 'error',
+        title: t(blocked ? 'contacts.blockNetworkFailed' : 'contacts.unblockNetworkFailed'),
+      })
     }
   }
 
@@ -169,8 +204,11 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
     })
   }
 
-  const handleCopyKey = () => {
-    navigator.clipboard.writeText(contact.publicKey)
+  const handleCopyKey = async () => {
+    if (!(await copyToClipboard(contact.publicKey))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
     addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
   }
 
@@ -257,7 +295,7 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider">{t('common.relation')}</span>
-          <span className="text-sm text-asgard-text-secondary capitalize">{contact.relation}</span>
+          <span className="text-sm text-asgard-text-secondary">{t(RELATION_LABEL[contact.relation])}</span>
         </div>
       </div>
 
@@ -325,10 +363,14 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
           </div>
           )
         })() : (
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${profileFetched ? 'bg-asgard-border' : 'bg-yellow-400 animate-pulse'}`} />
+          <div className="flex items-center gap-2" role="status">
+            <span className={`w-2 h-2 rounded-full ${profileError ? 'bg-asgard-busy' : profileFetched ? 'bg-asgard-border' : 'bg-yellow-400 animate-pulse'}`} />
             <span className="text-xs text-asgard-text-muted">
-              {profileFetched ? t('time.directProfileUnavailable') : t('time.searchingDHT')}
+              {profileError
+                ? t('contacts.dhtProfileFailed')
+                : profileFetched
+                  ? t('time.directProfileUnavailable')
+                  : t('time.searchingDHT')}
             </span>
           </div>
         )}
@@ -371,12 +413,26 @@ export const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, o
             <Button variant="ghost" fullWidth onClick={handleToggleBlock} className={isBlocked ? 'text-green-400' : 'text-orange-400'}>
               {isBlocked ? t('contacts.unblock') : t('contacts.block')}
             </Button>
-            <Button variant="ghost" fullWidth onClick={handleRemove} className="text-red-400">
+            <Button variant="ghost" fullWidth onClick={() => setConfirmRemove(true)} className="text-red-400">
               {t('contacts.removeContact')}
             </Button>
           </div>
         )}
       </div>
+
+      {confirmRemove && (
+        <ConfirmDialog
+          title="contacts.removeContact"
+          warning="contacts.removeContactWarning"
+          confirmLabel="contacts.removeContact"
+          name={contact.displayName}
+          onCancel={() => setConfirmRemove(false)}
+          onConfirm={() => {
+            setConfirmRemove(false)
+            void handleRemove()
+          }}
+        />
+      )}
     </div>
   )
 }

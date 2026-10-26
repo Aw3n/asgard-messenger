@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Avatar } from '@/components/ui/Avatar'
 import { Icon } from '@/components/ui/Icon'
+import { copyToClipboard } from '@/utils/clipboard'
 
 type Step = 'welcome' | 'create' | 'seed' | 'profile' | 'done' | 'restore'
 
@@ -21,6 +22,9 @@ export const OnboardingPage: React.FC = () => {
   const [about, setAbout] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [seedPhrase, setSeedPhrase] = useState<string>('')
+  // L'identité est créée mais sa phrase n'a pas pu être lue : réessayer doit
+  // relire la phrase, jamais regénérer une identité qui écraserait la première.
+  const [identityCreated, setIdentityCreated] = useState(false)
 
   const { createIdentity, updateProfile, identity } = useIdentityStore()
   const addToast = useUIStore((s) => s.addToast)
@@ -29,8 +33,15 @@ export const OnboardingPage: React.FC = () => {
 
   const handleCreateIdentity = async () => {
     setIsCreating(true)
+    // La valeur de l'état ne serait pas encore relue dans le catch : une
+    // variable locale dit ce qui s'est réellement passé dans cet appel.
+    let created = identityCreated
     try {
-      await createIdentity()
+      if (!created) {
+        await createIdentity()
+        created = true
+        setIdentityCreated(true)
+      }
       // COHÉRENCE ARCHI : la seed phrase vient de l'IPC identity:exportSeedPhrase
       // (source de vérité disque, exactement le code inverse de
       // importSeedPhrase → round-trip garanti) plutôt que d'une reconstitution
@@ -39,7 +50,14 @@ export const OnboardingPage: React.FC = () => {
       setSeedPhrase(words.join(' '))
       setStep('seed')
     } catch {
-      addToast({ type: 'error', title: t('onboarding.createFailed'), duration: 4000 })
+      // Une lecture de phrase ratée après coup n'est pas une création ratée :
+      // l'annoncer comme telle poussait à recliquer, et la seconde création
+      // écrasait l'identité dont aucune sauvegarde n'avait été montrée.
+      addToast({
+        type: 'error',
+        title: t(created ? 'settings.recoveryPhraseFailed' : 'onboarding.createFailed'),
+        duration: 4000,
+      })
     } finally {
       setIsCreating(false)
     }
@@ -50,8 +68,26 @@ export const OnboardingPage: React.FC = () => {
       addToast({ type: 'warning', title: t('onboarding.enterDisplayName') })
       return
     }
-    await updateProfile({ displayName: displayName.trim(), about: about.trim() || undefined })
+    const saved = await updateProfile({ displayName: displayName.trim(), about: about.trim() || undefined })
+    if (!saved) {
+      addToast({ type: 'error', title: t('settings.profileSaveFailed') })
+      return
+    }
     setStep('done')
+  }
+
+  const handleAvatarChange = async (avatar: string) => {
+    const saved = await updateProfile({ avatar })
+    if (!saved) {
+      addToast({ type: 'error', title: t('settings.profileSaveFailed') })
+    }
+  }
+
+  const handleAvatarUploadError = (reason: 'tooLarge' | 'readFailed') => {
+    addToast({
+      type: 'error',
+      title: t(reason === 'tooLarge' ? 'settings.fileTooLarge' : 'avatar.failedToLoad'),
+    })
   }
 
   const handleFinish = () => {
@@ -71,7 +107,12 @@ export const OnboardingPage: React.FC = () => {
           <WelcomeStep key="welcome" onNext={() => setStep('create')} onRestore={() => setStep('restore')} />
         )}
         {step === 'create' && (
-          <CreateStep key="create" onCreate={handleCreateIdentity} isCreating={isCreating} />
+          <CreateStep
+            key="create"
+            onCreate={handleCreateIdentity}
+            isCreating={isCreating}
+            seedOnly={identityCreated}
+          />
         )}
         {step === 'seed' && (
           <SeedStep key="seed" seedPhrase={seedPhrase} onNext={() => setStep('profile')} />
@@ -84,6 +125,8 @@ export const OnboardingPage: React.FC = () => {
             identity={identity}
             onDisplayNameChange={setDisplayName}
             onAboutChange={setAbout}
+            onAvatarChange={handleAvatarChange}
+            onAvatarError={handleAvatarUploadError}
             onSave={handleSaveProfile}
           />
         )}
@@ -209,9 +252,10 @@ const WelcomeStep: React.FC<{ onNext: () => void; onRestore: () => void }> = ({ 
   )
 }
 
-const CreateStep: React.FC<{ onCreate: () => void; isCreating: boolean }> = ({
+const CreateStep: React.FC<{ onCreate: () => void; isCreating: boolean; seedOnly: boolean }> = ({
   onCreate,
   isCreating,
+  seedOnly,
 }) => {
   const { t } = useTranslation()
   return (
@@ -256,7 +300,11 @@ const CreateStep: React.FC<{ onCreate: () => void; isCreating: boolean }> = ({
       </div>
 
       <Button size="lg" fullWidth onClick={onCreate} loading={isCreating}>
-        {isCreating ? t('onboarding.generatingKeys') : t('onboarding.createAccount')}
+        {isCreating
+          ? t('onboarding.generatingKeys')
+          : seedOnly
+            ? t('common.retry')
+            : t('onboarding.createAccount')}
       </Button>
     </div>
   </motion.div>
@@ -269,6 +317,8 @@ interface ProfileStepProps {
   identity: import('@/types').LocalIdentity | null
   onDisplayNameChange: (v: string) => void
   onAboutChange: (v: string) => void
+  onAvatarChange: (dataUrl: string) => void
+  onAvatarError: (reason: 'tooLarge' | 'readFailed') => void
   onSave: () => void
 }
 
@@ -278,9 +328,12 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
   identity,
   onDisplayNameChange,
   onAboutChange,
+  onAvatarChange,
+  onAvatarError,
   onSave,
 }) => {
   const { t } = useTranslation()
+  const aboutId = React.useId()
   return (
   <motion.div
     variants={stepVariants}
@@ -295,22 +348,20 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
         {t('onboarding.setUpProfile')}
       </h2>
 
-      {/* Avatar preview */}
+      {/* Avatar preview — l'upload appartient à Avatar, le crayon décoratif
+          qui ne déclenchait rien laissait croire le contraire. */}
       <div className="flex justify-center mb-6">
-        <div className="relative">
-          <Avatar
-            name={displayName || t('onboarding.you')}
-            publicKey={identity?.keyPair.publicKey}
-            size="xl"
-            status="online"
-            showStatus
-          />
-          <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-asgard-nordic border-2 border-asgard-surface flex items-center justify-center hover:bg-asgard-nordic-light transition-colors">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-            </svg>
-          </button>
-        </div>
+        <Avatar
+          src={identity?.profile.avatar}
+          name={displayName || t('onboarding.you')}
+          publicKey={identity?.keyPair.publicKey}
+          size="xl"
+          status="online"
+          showStatus
+          editable
+          onUpload={onAvatarChange}
+          onUploadError={onAvatarError}
+        />
       </div>
 
       <div className="space-y-4 mb-6">
@@ -322,8 +373,9 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
           maxLength={32}
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-asgard-text-secondary">{t('onboarding.about')}</label>
+          <label htmlFor={aboutId} className="text-sm font-medium text-asgard-text-secondary">{t('onboarding.about')}</label>
           <textarea
+            id={aboutId}
             className="asgard-input w-full p-3 text-sm resize-none"
             placeholder={t('onboarding.aboutPlaceholder')}
             value={about}
@@ -346,11 +398,15 @@ const ProfileStep: React.FC<ProfileStepProps> = ({
 
 const SeedStep: React.FC<{ seedPhrase: string; onNext: () => void }> = ({ seedPhrase, onNext }) => {
   const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
   const [copied, setCopied] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(seedPhrase)
+    if (!(await copyToClipboard(seedPhrase))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -553,6 +609,7 @@ const RestoreStep: React.FC<{ onRestored: () => void; onBack: () => void }> = ({
           value={seedInput}
           onChange={(e) => setSeedInput(e.target.value)}
           placeholder={t('onboarding.seedPhrasePlaceholder')}
+          aria-label={t('onboarding.recoveryPhrase')}
           className="w-full h-32 px-4 py-3 rounded-xl bg-asgard-surface border border-asgard-border text-asgard-text-primary placeholder-asgard-text-muted text-sm resize-none focus:outline-none focus:ring-2 focus:ring-asgard-glacier/50"
           disabled={isRestoring}
         />

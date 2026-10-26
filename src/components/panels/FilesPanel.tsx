@@ -1,11 +1,14 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useTranslation } from 'react-i18next'
 import { FileAttachment } from '@/features/chat/components/FileAttachment'
 import { getCurrentLanguage } from '@/i18n/config'
-import type { MessageAttachment } from '@/types'
+import type { Message, MessageAttachment } from '@/types'
+
+/** Référence stable pour une conversation encore vide (évite un rendu par lecture). */
+const NO_MESSAGES: Message[] = []
 
 /**
  * FilesPanel — shows all file attachments shared in the active conversation.
@@ -13,30 +16,36 @@ import type { MessageAttachment } from '@/types'
 export const FilesPanel: React.FC = () => {
   const { t } = useTranslation()
   const activeConversationId = useConversationStore((s) => s.activeConversationId)
-  const getMessages = useMessageStore((s) => s.getMessages)
+  // S'abonner à la LISTE (pas à getMessages, dont la référence ne change jamais) :
+  // sans cela le panneau reste figé aux pièces jointes présentes à l'ouverture.
+  const messages = useMessageStore((s) => (
+    activeConversationId ? s.messages[activeConversationId] ?? NO_MESSAGES : NO_MESSAGES
+  ))
 
-  const messages = activeConversationId ? getMessages(activeConversationId) : []
-  const allAttachments: { attachment: MessageAttachment; timestamp: number }[] = []
-
-  for (const msg of messages) {
-    if (msg.attachments) {
-      for (const att of msg.attachments) {
-        allAttachments.push({ attachment: att, timestamp: msg.timestamp })
+  const allAttachments = useMemo(() => {
+    const list: { attachment: MessageAttachment; timestamp: number }[] = []
+    for (const msg of messages) {
+      if (msg.attachments) {
+        for (const att of msg.attachments) {
+          list.push({ attachment: att, timestamp: msg.timestamp })
+        }
       }
     }
-  }
-
-  // Sort by most recent first
-  allAttachments.sort((a, b) => b.timestamp - a.timestamp)
+    // Sort by most recent first
+    return list.sort((a, b) => b.timestamp - a.timestamp)
+  }, [messages])
 
   // Group by date
-  const locale = getCurrentLanguage()
-  const grouped: Record<string, typeof allAttachments> = {}
-  for (const item of allAttachments) {
-    const date = new Date(item.timestamp).toLocaleDateString(locale)
-    if (!grouped[date]) grouped[date] = []
-    grouped[date].push(item)
-  }
+  const grouped = useMemo(() => {
+    const locale = getCurrentLanguage()
+    const out: Record<string, typeof allAttachments> = {}
+    for (const item of allAttachments) {
+      const date = new Date(item.timestamp).toLocaleDateString(locale)
+      if (!out[date]) out[date] = []
+      out[date].push(item)
+    }
+    return out
+  }, [allAttachments])
 
   return (
     <motion.div

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useId, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
@@ -30,6 +30,9 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
   const { t } = useTranslation()
   const [transfers, setTransfers] = useState<TransferInfo[]>([])
   const [isExpanded, setIsExpanded] = useState(true)
+  // Deux widgets peuvent coexister (fenêtres distinctes) : l'id du panneau doit
+  // rester unique, sinon aria-controls désignerait le panneau de l'autre.
+  const listId = useId()
   const prevProgressRef = useRef<Map<string, { progress: number; timestamp: number }>>(new Map())
 
   useEffect(() => {
@@ -112,12 +115,12 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
       }
     }
 
+    // FileService coalesce déjà ses notifications à 100 ms pendant un
+    // transfert : un intervalle séparé ne faisait que recalculer la même liste.
     const unsubscribe = fileService.subscribeTransfers(updateTransfers)
     updateTransfers()
-    const interval = setInterval(updateTransfers, 400)
     return () => {
       unsubscribe()
-      clearInterval(interval)
       prevProgressRef.current.clear()
     }
   }, [conversationId])
@@ -141,7 +144,10 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
       <div className="mica-card border border-asgard-border/60 rounded-2xl overflow-hidden shadow-lg shadow-black/10">
         {/* Header — always visible */}
         <button
+          type="button"
           onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+          aria-controls={listId}
           className="w-full flex items-center gap-3 px-4 py-3 hover:bg-asgard-surface-alt/50 transition-colors"
         >
           {/* Transfer icon with pulse */}
@@ -196,6 +202,7 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
               </span>
             )}
             <motion.svg
+              aria-hidden="true"
               animate={{ rotate: isExpanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}
               width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
@@ -216,7 +223,7 @@ export const ActiveTransfersWidget: React.FC<{ conversationId?: string }> = ({ c
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="border-t border-asgard-border/30 divide-y divide-asgard-border/20 max-h-64 overflow-y-auto">
+              <div id={listId} className="border-t border-asgard-border/30 divide-y divide-asgard-border/20 max-h-64 overflow-y-auto">
                 {transfers.map((transfer) => (
                   <TransferItem key={transfer.id} transfer={transfer} />
                 ))}
@@ -280,14 +287,23 @@ const TransferItem: React.FC<{ transfer: TransferInfo }> = ({ transfer }) => {
           <p className="text-xs text-asgard-text-primary truncate font-medium">
             {transfer.fileName}
           </p>
-          <span className="text-xxs text-asgard-text-muted flex-shrink-0">
-            {formatBytes(transfer.fileSize)}
+          {/* Transféré / total (pattern Signal) : la seule taille finale ne dit
+              pas où en est le transfert, la barre seule ne dit pas combien. */}
+          <span className="text-xxs text-asgard-text-muted flex-shrink-0 tabular-nums">
+            {formatBytes(transfer.transferredBytes)} / {formatBytes(transfer.fileSize)}
           </span>
         </div>
 
         {/* Progress bar */}
         <div className="mt-1.5 flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-asgard-border/40 rounded-full overflow-hidden">
+          <div
+            role="progressbar"
+            aria-label={transfer.fileName}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(transfer.progress, 100)}
+            className="flex-1 h-1.5 bg-asgard-border/40 rounded-full overflow-hidden"
+          >
             <motion.div
               className={cn(
                 'h-full rounded-full',
@@ -329,6 +345,21 @@ const TransferItem: React.FC<{ transfer: TransferInfo }> = ({ transfer }) => {
           </span>
         </div>
       </div>
+
+      {/* Action par item : annuler le transfert, dans les deux sens. Côté
+          récepteur comme côté émetteur, le pair est prévenu (file:cancel). */}
+      <button
+        onClick={() => fileService.cancelTransfer(transfer.id)}
+        className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-asgard-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+        // Plusieurs rangs peuvent coexister : « Annuler » seul ne dit pas
+        // lequel des fichiers en cours serait abandonné.
+        aria-label={`${t('common.cancel')} — ${transfer.fileName}`}
+        title={t('common.cancel')}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
     </motion.div>
   )
 }

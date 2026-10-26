@@ -1,12 +1,16 @@
 import { storageService } from './StorageService'
 import { p2pService } from './P2PService'
 import { cryptoService } from './CryptoService'
+import { confirmPendingContact } from './contactRequests'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
+import { useGroupStore } from '@/stores/groupStore'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { generateId } from '@/utils/id'
+import { canPostInChannel } from '@/utils/groupPermissions'
+import i18n from '@/i18n/config'
 import type { MessageAttachment, Message } from '@/types'
 import type { ProtocolMessage } from '@/types'
 
@@ -26,6 +30,38 @@ const FILE_TRANSFER_MARKER = 0x04
 // const BLOB_BLOCK_SIZE = 64 * 1024
 /** Transfer speed tracking window (3 seconds) */
 const SPEED_WINDOW_MS = 3000
+
+/**
+ * Fraîcheur de la mesure du stockage local. Le plafond réglé se compare à la
+ * taille réelle, et cette taille coûte un appel IPC : une salve de pièces
+ * jointes entrantes ne doit pas le payer fichier après fichier.
+ */
+const CACHE_SIZE_FRESH_MS = 30_000
+
+/**
+ * Bornes des transferts entrants. Une metadata est une déclaration du pair :
+ * sans plafonds, un `size` ou un `totalChunks` arbitraire faisait accumuler en
+ * RAM tout ce que l'expéditeur voulait bien annoncer. 2 Gio couvre les fichiers
+ * réellement envoyables par l'application (aucune limite UI) tout en gardant
+ * des compteurs et des indices sûrs.
+ */
+const MAX_TRANSFER_BYTES = 2 * 1024 * 1024 * 1024
+const MAX_TRANSFER_CHUNKS = Math.ceil(MAX_TRANSFER_BYTES / CHUNK_SIZE)
+/** Un envoi inline reste sous BINARY_THRESHOLD ; cette borne ne couvre que le décodage. */
+const MAX_INLINE_FILE_CHARS = 8 * 1024 * 1024
+const MAX_THUMBNAIL_CHARS = 512 * 1024
+const MAX_ATTACHMENT_NAME = 255
+const MAX_WAVEFORM_POINTS = 256
+/** Réceptions simultanées : au-delà, la metadata est ignorée (pas de buffer). */
+const MAX_CONCURRENT_RECEIVES = 24
+const MAX_RECEIVES_PER_PEER = 8
+/** Chunks arrivés avant leur metadata : budget mémoire borné par expéditeur. */
+const MAX_ORPHAN_TRANSFERS = 8
+const MAX_ORPHAN_CHUNKS = 32
+const MAX_COMPLETED_TRANSFER_IDS = 512
+const TRANSFER_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/
+const ATTACHMENT_TYPES = new Set<MessageAttachment['type']>(['image', 'video', 'audio', 'document', 'voice'])
+const IMAGE_DATA_URL = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/
 
 /** Plus grand côté d'une miniature d'image, en pixels. */
 export const THUMBNAIL_MAX_SIDE = 192
@@ -209,6 +245,18 @@ export class PeerUnreachableError extends Error {
   }
 }
 
+/**
+ * Transfert interrompu parce que l'utilisateur (ou le pair) l'a annulé.
+ * Distingue une annulation volontaire d'un échec : l'appelant n'affiche pas
+ * de toast d'erreur pour un geste que l'utilisateur vient lui-même de faire.
+ */
+export class TransferCancelledError extends Error {
+  constructor(readonly transferId: string) {
+    super(`Transfer cancelled: ${transferId.slice(0, 8)}`)
+    this.name = 'TransferCancelledError'
+  }
+}
+
 export interface MediaProbe {
   decodable: boolean
   /** Durée en secondes, ou 0 si le conteneur ne la publie pas. */
@@ -305,6 +353,19 @@ class FileService {
   // URL réellement résolvable d'un fantôme et de relire le blob.
   private liveUrls = new Set<string>()
   private urlByBlobKey = new Map<string, string>()
+  // PLAFOND DE CACHE : dernière mesure du stockage local (null = jamais mesuré
+  // ou mesure ratée) et franchissement déjà annoncé ou non.
+  private cacheBytes: number | null = null
+  private cacheMeasuredAt = 0
+  private cacheLimitAnnounced = false
+
+  constructor() {
+    // Favoris et historique survivent au redémarrage : ces deux listes ne sont
+    // alimentées que par des gestes de l'utilisateur, les perdre à chaque
+    // lancement rendrait les panneaux des réglages vides pour toujours.
+    this.restoreFavorites()
+    this.restoreDownloadHistory()
+  }
 
   initialize(): void {
     p2pService.on('message:file:transfer', (msg: ProtocolMessage) => {
@@ -313,6 +374,13 @@ class FileService {
 
     p2pService.on('message:file:complete', (msg: ProtocolMessage) => {
       this.handleFileComplete(msg)
+    })
+
+    // ANNULATION CROISÉE: le pair a annulé un transfert en cours — soit il
+    // refusait notre envoi, soit il abandonne sa réception. Sans ce message,
+    // chaque côté gardait son état fantôme (bulle « réception… », progression).
+    p2pService.on('message:file:cancel', (msg: ProtocolMessage) => {
+      this.handleRemoteCancel(msg)
     })
 
     // HOLEPUNCH PATTERN: Dedicated 'asgard-files' Protomux channel for file transfers.
@@ -350,7 +418,11 @@ class FileService {
     transferId: string,
     totalChunks: number,
     onProgress: (percent: number) => void,
+    cancelKey?: string,
   ): Promise<void> {
+    // Un envoi de groupe forge un transferId par pair : le tombstone posé par
+    // « annuler » porte l'id de groupe, d'où cette clé de garde distincte.
+    const guardKey = cancelKey ?? transferId
     const idBytes = new TextEncoder().encode(transferId)
     const pending = new Set<Promise<void>>()
     let chunksSent = 0
@@ -369,7 +441,10 @@ class FileService {
       pending.add(tracked)
     }
 
-    for (let offset = 0; offset < bytes.length && chunkError === null; offset += CHUNK_SIZE) {
+    // ANNULATION: la condition s'évalue à chaque itération — un transfert
+    // annulé pendant l'émission s'arrête au lot suivant au lieu d'aller
+    // jusqu'au bout du fichier.
+    for (let offset = 0; offset < bytes.length && chunkError === null && !this.isTransferCancelled(guardKey) && !(cancelKey && this.isGroupPeerCancelled(cancelKey, peerId)); offset += CHUNK_SIZE) {
       // subarray, pas slice : une vue sur le fichier plutôt qu'une copie. Le
       // chunk n'est copié qu'une fois, dans `framed`.
       const chunk = bytes.subarray(offset, Math.min(offset + CHUNK_SIZE, bytes.length))
@@ -388,6 +463,10 @@ class FileService {
     }
 
     await Promise.all(pending)
+    // Les lots déjà soumis se terminent, mais un transfert annulé ne doit pas
+    // continuer : sendFile renonce donc à file:complete et signale l'annulation.
+    if (this.isTransferCancelled(guardKey)) throw new TransferCancelledError(guardKey)
+    if (cancelKey && this.isGroupPeerCancelled(cancelKey, peerId)) throw new TransferCancelledError(guardKey)
     if (chunkError !== null) throw chunkError
   }
 
@@ -406,6 +485,10 @@ class FileService {
       if (!dialed) throw new PeerUnreachableError(peerId)
     }
 
+    // Envoyer un fichier est aussi une réponse : une demande entrante est
+    // confirmée dès que le destinataire est joignable.
+    confirmPendingContact(peerId, 'incoming', true)
+
     const transferId = generateId()
     const transfer: FileTransfer = {
       id: transferId,
@@ -415,6 +498,7 @@ class FileService {
       status: 'uploading',
       type: this.getFileType(file.type, file.name),
       conversationId,
+      peerId,
     }
     this.transfers.set(transferId, transfer)
     this.notifyTransfersNow()
@@ -452,6 +536,11 @@ class FileService {
       }
 
       const bytes = new Uint8Array(buffer)
+
+      // Annulation pendant la compression — la phase la plus longue pour une
+      // vidéo : inutile d'émettre la moindre metadata. Le chemin inline n'a pas
+      // de boucle de chunks pour observer le tombstone, d'où ce contrôle ici.
+      if (this.isTransferCancelled(transferId)) throw new TransferCancelledError(transferId)
 
       // NEVER send our local blobKey/localUrl to the peer — they will store the
       // file locally and assign their own blobKey after reception.
@@ -526,6 +615,9 @@ class FileService {
       throw err
     } finally {
       this.transfers.delete(transferId)
+      // La boucle d'émission a déroulé son tombstone (observer puis jeter), ou
+      // le transfert s'est terminé sans annulation : plus rien à retenir.
+      this.clearCancelledTransfer(transferId)
       this.notifyTransfersNow()
     }
   }
@@ -721,6 +813,14 @@ class FileService {
       this.groupTransfers.delete(transferId)
       this.notifyTransfersNow()
     }
+
+    // Annulation pendant l'émission : le message local « échec » serait
+    // trompeur — un geste de l'utilisateur n'est pas un échec.
+    if (this.isTransferCancelled(transferId)) {
+      this.clearCancelledTransfer(transferId)
+      throw new TransferCancelledError(transferId)
+    }
+
     const successCount = results.filter(r => r.success).length
     const failedPeers = results.filter(r => !r.success).map(r => r.peerId)
 
@@ -779,6 +879,13 @@ class FileService {
   ): Promise<void> {
     const transferId = generateId()
 
+    // Annulation du groupe : inutile d'ouvrir un envoi pour un transfert déjà
+    // annulé — ce contrôle couvre aussi le chemin inline, qui n'a pas de boucle
+    // de chunks pour observer le tombstone.
+    if (this.isTransferCancelled(groupTransferId) || this.isGroupPeerCancelled(groupTransferId, peerId)) {
+      throw new TransferCancelledError(groupTransferId)
+    }
+
     // NEVER send our local blobKey/localUrl to the peer.
     const attachmentToSend: MessageAttachment = {
       ...attachment,
@@ -803,7 +910,8 @@ class FileService {
       // Même garantie d'intégrité que sendFile, désormais portée par le chemin
       // par lot partagé : un lot en erreur stoppe l'émission et file:complete
       // n'est pas envoyé, donc aucun pair du groupe n'assemble un fichier tronqué.
-      await this.sendFramedChunks(peerId, bytes, transferId, totalChunks, percent => onProgress?.(percent))
+      // La garde d'annulation porte l'id de groupe, seul connu du widget.
+      await this.sendFramedChunks(peerId, bytes, transferId, totalChunks, percent => onProgress?.(percent), groupTransferId)
       await p2pService.sendMessage(peerId, 'file:complete', { transferId, groupTransferId })
       onProgress?.(100)
     } else {
@@ -1006,26 +1114,130 @@ class FileService {
 
   // ─── Private ───────────────────────────────────────────────────────────────
 
-  private async handleIncomingFile(msg: ProtocolMessage): Promise<void> {
-    const payload = msg.payload as {
-      attachment: MessageAttachment
-      conversationId: string
-      transferId: string
-      binary?: boolean
-      totalChunks?: number
-      fileData?: string
-      groupTransferId?: string
-      senderMessageId?: string
+  /**
+   * Reconstruit une pièce jointe à partir de ce que le pair a déclaré, en ne
+   * gardant que les champs utiles à l'affichage local. Les références de
+   * stockage du pair (`blobKey`, `localUrl`) et les états locaux (`failed`,
+   * `deleted`, progression) n'ont aucune valeur ici : les laisser passer
+   * permettrait de pointer la bulle vers un blob arbitraire ou de la marquer
+   * comme déjà supprimée.
+   */
+  private static sanitizeIncomingAttachment(raw: unknown): MessageAttachment | null {
+    if (!raw || typeof raw !== 'object') return null
+    const declared = raw as Record<string, unknown>
+    // Pas de regex de caractères de contrôle (règle no-control-regex) : les
+    // séparateurs de chemin et les unités de contrôle sont retirés un à un.
+    const name = typeof declared.name === 'string'
+      ? declared.name
+        .split('')
+        .map((ch) => (ch === '/' || ch === '\\' || ch.charCodeAt(0) < 0x20 ? '' : ch))
+        .join('')
+        .trim()
+        .slice(0, MAX_ATTACHMENT_NAME)
+      : ''
+    if (!name) return null
+    if (typeof declared.type !== 'string' || !ATTACHMENT_TYPES.has(declared.type as MessageAttachment['type'])) return null
+    const size = declared.size
+    if (typeof size !== 'number' || !Number.isFinite(size) || size < 0 || size > MAX_TRANSFER_BYTES) return null
+
+    const mimeType = typeof declared.mimeType === 'string'
+      && declared.mimeType.length > 0
+      && declared.mimeType.length <= 128
+      && /^[\x20-\x7e]+$/.test(declared.mimeType)
+      ? declared.mimeType
+      : 'application/octet-stream'
+    const id = typeof declared.id === 'string' && declared.id.length > 0 && declared.id.length <= 128
+      ? declared.id
+      : generateId()
+
+    const attachment: MessageAttachment = {
+      id,
+      type: declared.type as MessageAttachment['type'],
+      name,
+      size,
+      mimeType,
     }
-    const { attachment, transferId, binary, totalChunks, fileData } = payload
-    const groupTransferId = payload.groupTransferId
-    const senderMessageId = payload.senderMessageId
 
-    // DIAGNOSTIC: Log incoming file transfer
-    console.log(`[FileService] 📥 Incoming file: ${attachment.name}, size=${attachment.size}, binary=${binary}, chunks=${totalChunks}, from=${msg.from.slice(0, 16)}, transferId=${transferId.slice(0, 8)}`)
+    if (typeof declared.thumbnail === 'string'
+      && declared.thumbnail.length <= MAX_THUMBNAIL_CHARS
+      && IMAGE_DATA_URL.test(declared.thumbnail)) {
+      attachment.thumbnail = declared.thumbnail
+    }
+    if (typeof declared.duration === 'number' && Number.isFinite(declared.duration) && declared.duration >= 0 && declared.duration <= 86_400) {
+      attachment.duration = declared.duration
+    }
+    if (typeof declared.width === 'number' && Number.isInteger(declared.width) && declared.width > 0 && declared.width <= 16_384) {
+      attachment.width = declared.width
+    }
+    if (typeof declared.height === 'number' && Number.isInteger(declared.height) && declared.height > 0 && declared.height <= 16_384) {
+      attachment.height = declared.height
+    }
+    if (typeof declared.checksum === 'string' && declared.checksum.length <= 128 && /^[0-9a-f]+$/i.test(declared.checksum)) {
+      attachment.checksum = declared.checksum
+    }
+    if (Array.isArray(declared.waveform)) {
+      const points = declared.waveform
+        .slice(0, MAX_WAVEFORM_POINTS)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1)
+      if (points.length > 0) attachment.waveform = points
+    }
+    if (declared.compressed === true) {
+      attachment.compressed = true
+      if (typeof declared.originalSize === 'number' && Number.isFinite(declared.originalSize) && declared.originalSize >= 0 && declared.originalSize <= MAX_TRANSFER_BYTES) {
+        attachment.originalSize = declared.originalSize
+      }
+    }
+    return attachment
+  }
 
-    // DEDUP: Ignore duplicate file:transfer for the same transferId
-    if (this.receiveBuffers.has(transferId) || this.completedTransferIds.has(transferId)) {
+  /**
+   * Un transfert de groupe n'est identifiable que par son canal : la metadata
+   * porte le channelId, pas l'id du groupe. Le retrouver dans le roster local
+   * donne à la fois le vrai groupId (pour l'accusé de réception) et la preuve
+   * que l'expéditeur appartient bien au groupe.
+   */
+  private static findGroupChannel(channelId: unknown, sender: string): { groupId: string } | null {
+    if (typeof channelId !== 'string' || channelId.length === 0 || channelId.length > 128) return null
+    for (const group of Object.values(useGroupStore.getState().groups)) {
+      // Une pièce jointe est une publication : la sourdine du roster et les
+      // rôles que ce canal laisse écrire décident ici comme dans le fil.
+      if (!canPostInChannel(group, channelId, sender)) continue
+      return { groupId: group.id }
+    }
+    return null
+  }
+
+  private markTransferCompleted(transferId: string): void {
+    this.completedTransferIds.add(transferId)
+    if (this.completedTransferIds.size <= MAX_COMPLETED_TRANSFER_IDS) return
+    const oldest = this.completedTransferIds.values().next().value
+    if (oldest !== undefined) this.completedTransferIds.delete(oldest)
+  }
+
+  private async handleIncomingFile(msg: ProtocolMessage): Promise<void> {
+    const payload = msg.payload as Record<string, unknown> | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+
+    const declaredTransferId = payload.transferId
+    if (typeof declaredTransferId !== 'string' || !TRANSFER_ID_PATTERN.test(declaredTransferId)) return
+    const transferId = declaredTransferId
+
+    const binary = payload.binary === true
+    const totalChunks = payload.totalChunks
+    const fileData = payload.fileData
+    if (fileData !== undefined && (typeof fileData !== 'string' || fileData.length > MAX_INLINE_FILE_CHARS)) return
+
+    const groupTransferId = typeof payload.groupTransferId === 'string' && TRANSFER_ID_PATTERN.test(payload.groupTransferId)
+      ? payload.groupTransferId
+      : undefined
+    const senderMessageId = typeof payload.senderMessageId === 'string' && payload.senderMessageId.length > 0 && payload.senderMessageId.length <= 128
+      ? payload.senderMessageId
+      : undefined
+
+    // DEDUP: Ignore duplicate file:transfer for the same transferId.
+    // Un transfert annulé (tombstone) est ignoré comme un doublon : sa metadata
+    // ne doit pas ressusciter un buffer que l'utilisateur vient de retirer.
+    if (this.receiveBuffers.has(transferId) || this.completedTransferIds.has(transferId) || this.isTransferCancelled(transferId)) {
       console.log('[FileService] Ignoring duplicate file:transfer:', transferId)
       return
     }
@@ -1036,16 +1248,48 @@ class FileService {
       return
     }
 
+    const attachment = FileService.sanitizeIncomingAttachment(payload.attachment)
+    if (!attachment) {
+      console.warn('[FileService] Invalid file metadata, ignoring transfer', transferId.slice(0, 8))
+      return
+    }
+
+    // DIAGNOSTIC: Log incoming file transfer
+    console.log(`[FileService] 📥 Incoming file: ${attachment.name}, size=${attachment.size}, binary=${binary}, chunks=${totalChunks}, from=${msg.from.slice(0, 16)}, transferId=${transferId.slice(0, 8)}`)
+
+    // Un transfert de groupe n'est accepté que si le canal existe localement et
+    // que l'expéditeur figure au roster : sinon n'importe quel pair pourrait
+    // déposer un fichier dans un canal qu'il n'a pas le droit de lire.
+    const groupInfo = groupTransferId ? FileService.findGroupChannel(payload.conversationId, msg.from) : null
+    if (groupTransferId && !groupInfo) {
+      console.warn('[FileService] File for unknown group/channel or non-member sender, ignoring')
+      return
+    }
+
     // CRITICAL: For group file transfers, the conversationId IS the channelId.
     // Do NOT override it with a 1:1 derived conversation ID — that would put the
     // file in the wrong conversation and break group file delivery.
     const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-    const rawConvId = payload.conversationId
-    const resolvedId = groupTransferId
+    const rawConvId = typeof payload.conversationId === 'string' && payload.conversationId.length > 0 && payload.conversationId.length <= 128
+      ? payload.conversationId
+      : ''
+    const resolvedId = groupInfo
       ? rawConvId // Group file: use the channelId directly
       : (myPk ? cryptoService.deriveConversationId(myPk, msg.from) : rawConvId)
+    if (!resolvedId) return
 
-    if (binary && totalChunks) {
+    if (binary) {
+      if (typeof totalChunks !== 'number' || !Number.isInteger(totalChunks) || totalChunks < 1 || totalChunks > MAX_TRANSFER_CHUNKS) return
+      // Les chunks ne peuvent pas couvrir moins que la taille annoncée ; la
+      // borne inverse (cumul ≤ size) est tenue chunk par chunk.
+      if (totalChunks * CHUNK_SIZE < attachment.size) return
+      if (this.receiveBuffers.size >= MAX_CONCURRENT_RECEIVES) return
+      let ownReceives = 0
+      for (const existing of this.receiveBuffers.values()) {
+        if (existing.from === msg.from) ownReceives++
+      }
+      if (ownReceives >= MAX_RECEIVES_PER_PEER) return
+
       // ── Binary transfer: set up receive buffer ──
       // Create placeholder message ID so we can update it later
       const placeholderId = generateId()
@@ -1060,9 +1304,11 @@ class FileService {
         conversationId: resolvedId,
         totalChunks,
         receivedChunks: 0,
+        receivedBytes: 0,
         chunks: [],
         placeholderMessageId: placeholderId,
         groupTransferId,
+        groupId: groupInfo?.groupId,
         senderMessageId,
       })
 
@@ -1075,11 +1321,14 @@ class FileService {
         const rbuf = this.receiveBuffers.get(transferId)!
         let replayed = 0
         for (const o of orphans) {
-          if (o.from === msg.from && rbuf.receivedChunks < rbuf.totalChunks) {
-            rbuf.chunks.push(o.data)
-            rbuf.receivedChunks++
-            replayed++
-          }
+          if (o.from !== msg.from) continue
+          if (rbuf.receivedChunks >= rbuf.totalChunks) break
+          if (o.data.length === 0 || o.data.length > CHUNK_SIZE) continue
+          if (rbuf.receivedBytes + o.data.length > rbuf.attachment.size) continue
+          rbuf.chunks.push(o.data)
+          rbuf.receivedChunks++
+          rbuf.receivedBytes += o.data.length
+          replayed++
         }
         console.log(`[FileService] Replayed ${replayed}/${orphans.length} early chunks for transfer ${transferId.slice(0, 8)}`)
       }
@@ -1102,23 +1351,30 @@ class FileService {
     }
 
     // ── Inline transfer (small file): decode base64 immediately ──
-    if (fileData) {
-      try {
-        const binary = atob(fileData)
-        const bytes = new Uint8Array(binary.length)
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-        const blobId = await storageService.putBlob(bytes.buffer as ArrayBuffer)
-        attachment.blobKey = blobId
-        // STORAGE SETTINGS (autoDownload): small inline files resolve inline for
-        // images; other types follow the auto-download toggles.
-        if (this.shouldAutoDownload(attachment.type, bytes.length, !!attachment.thumbnail)) {
-          attachment.localUrl = this.createLocalUrl(bytes, attachment.mimeType, blobId)
-        }
-      } catch (err) {
-        console.warn('[FileService] Failed to store received blob:', err)
+    if (typeof fileData !== 'string' || fileData.length === 0) return
+    let bytes: Uint8Array
+    try {
+      const decoded = atob(fileData)
+      bytes = new Uint8Array(decoded.length)
+      for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i)
+    } catch {
+      console.warn('[FileService] Invalid inline file data, ignoring transfer', transferId.slice(0, 8))
+      return
+    }
+    try {
+      const blobId = await storageService.putBlob(bytes.buffer as ArrayBuffer)
+      attachment.blobKey = blobId
+      this.creditCacheBytes(bytes.length)
+      // STORAGE SETTINGS (autoDownload + cacheSize): les bascules par type et le
+      // plafond mesuré décident ensemble de la matérialisation immédiate.
+      if (await this.willAutoDownload(attachment.type, bytes.length)) {
+        attachment.localUrl = this.createLocalUrl(bytes, attachment.mimeType, blobId)
       }
+    } catch (err) {
+      console.warn('[FileService] Failed to store received blob:', err)
     }
 
+    this.markTransferCompleted(transferId)
     this.createFileMessage(attachment, resolvedId, msg.from)
 
     // GROUP FILE RECEIPT (inline): Send delivery receipt for small group files too.
@@ -1126,11 +1382,13 @@ class FileService {
     // are processed here so the receipt must be sent here.
     // CRITICAL: Use senderMessageId (the sender's actual message ID) so the sender
     // can match the receipt to their file message. Falls back to transferId if absent.
-    if (groupTransferId) {
+    // groupId est le vrai id du groupe : groupTransferId n'est que l'id du
+    // transfert groupé, inconnu du GroupService qui rejette alors l'accusé.
+    if (groupInfo) {
       const identity = useIdentityStore.getState().identity
       if (identity) {
         p2pService.sendMessage(msg.from, 'group:receipt', {
-          groupId: groupTransferId,
+          groupId: groupInfo.groupId,
           channelId: resolvedId,
           messageIds: [senderMessageId ?? transferId],
           status: 'delivered',
@@ -1176,15 +1434,24 @@ class FileService {
     // valide (pairs plus anciens) tombent sur le routing historique par expéditeur.
     const header = FileService.parseTransferChunkHeader(payload)
     if (header) {
+      // Un chunk ne dépasse jamais la taille de bloc du protocole : sans cette
+      // borne, un pair pouvait gonfler un buffer déclaré à 1 octet avec des
+      // payloads arbitraires.
+      if (header.data.length === 0 || header.data.length > CHUNK_SIZE) return
       const buf = this.receiveBuffers.get(header.transferId)
       if (buf && buf.from === ed25519From) {
         this.appendChunkToBuffer(buf, header.transferId, header.data)
         return
       }
+      // Transfert annulé : les lots encore en vol chez l'expéditeur (le
+      // file:cancel n'est pas encore arrivé) ne doivent pas recréer d'orphelins.
+      if (this.isTransferCancelled(header.transferId)) return
       // Metadata pas encore arrivée (ordre inter-canaux Protomux non garanti).
       this.pushOrphanChunk(ed25519From, header.transferId, header.data)
       return
     }
+
+    if (payload.length > CHUNK_SIZE) return
 
     // Legacy: chunks sans header — premier buffer incomplet du sender
     let transferId: string | undefined
@@ -1229,10 +1496,15 @@ class FileService {
   /**
    * COHÉRENCE CHUNKS: ajoute un chunk à un buffer de réception existant.
    */
-  private appendChunkToBuffer(buf: { from: string; attachment: MessageAttachment; conversationId: string; totalChunks: number; receivedChunks: number; chunks: Uint8Array[]; placeholderMessageId?: string; groupTransferId?: string; senderMessageId?: string }, transferId: string, data: Uint8Array): void {
+  private appendChunkToBuffer(buf: ReceiveBuffer, transferId: string, data: Uint8Array): void {
     if (buf.receivedChunks >= buf.totalChunks) return // chunk en trop — transfert déjà complet
+    if (data.length === 0 || data.length > CHUNK_SIZE) return
+    // Le cumul ne peut pas dépasser la taille annoncée : sans ce plafond, une
+    // metadata « 1 octet » acceptait 8192 chunks de 256 Ko, soit 2 Gio en RAM.
+    if (buf.receivedBytes + data.length > buf.attachment.size) return
     buf.chunks.push(new Uint8Array(data))
     buf.receivedChunks++
+    buf.receivedBytes += data.length
 
     // VITESSE : environ 20 points de journalisation par transfert quelle que soit
     // sa taille — « tous les 10 chunks » en produisait 400 pour 100 Mo, chacun
@@ -1253,12 +1525,17 @@ class FileService {
    * 60 s si la metadata n'arrive jamais (transfert abandonné).
    */
   private pushOrphanChunk(from: string, transferId: string, data: Uint8Array): void {
+    if (data.length === 0 || data.length > CHUNK_SIZE) return
     let list = this.orphanChunks.get(transferId)
     if (!list) {
+      // La fenêtre d'orphelins est courte (metadata déjà émise). Un compteur
+      // borné empêche un pair d'ouvrir des milliers de transferts fantômes.
+      if (this.orphanChunks.size >= MAX_ORPHAN_TRANSFERS) return
       list = []
       this.orphanChunks.set(transferId, list)
       setTimeout(() => { this.orphanChunks.delete(transferId) }, 60_000)
     }
+    if (list.length >= MAX_ORPHAN_CHUNKS) return
     list.push({ from, data: new Uint8Array(data), receivedAt: Date.now() })
     if (list.length <= 2) {
       console.log(`[FileService] Chunk arrived before metadata (transferId=${transferId.slice(0, 8)}) — buffered, waiting for file:transfer`)
@@ -1266,14 +1543,16 @@ class FileService {
   }
 
   /**
-   * STORAGE SETTINGS (autoDownload): decide whether a received attachment is
-   * materialized as a local blob URL immediately. Images (and anything with a
-   * thumbnail) always render inline; other types follow the per-type toggles
-   * and the maxSize threshold (MB).
+   * STORAGE SETTINGS (autoDownload): ce que les bascules de l'utilisateur disent
+   * de ce type de pièce jointe, plafond de cache non compris. La bascule
+   * « images » n'était pas lue : les images se matérialisaient toujours, et une
+   * vignette forcée le même sort pour les types refusés. Les seuils par type
+   * décident donc désormais seuls ; `maxSize` reste le plafond des fichiers
+   * lourds, les images y échappent comme avant.
    */
-  private shouldAutoDownload(type: string, size: number, hasThumbnail: boolean): boolean {
-    if (type === 'image' || hasThumbnail) return true
+  private autoDownloadBySetting(type: string, size: number): boolean {
     const autoDl = useUIStore.getState().settings.storage.autoDownload
+    if (type === 'image') return autoDl.images
     const maxBytes = (autoDl.maxSize ?? 50) * 1024 * 1024
     if (size > maxBytes) return false
     if (type === 'video') return autoDl.videos
@@ -1282,12 +1561,84 @@ class FileService {
     return false
   }
 
+  /**
+   * STORAGE SETTINGS (cacheSize): le plafond affiché sous la barre de stockage
+   * doit peser quelque chose. Il se compare à la taille réellement mesurée. Une
+   * mesure qui échoue ne refuse rien : l'utilisateur ne doit pas perdre ses
+   * téléchargements automatiques parce qu'un sondage a raté. Redescendre sous le
+   * plafond réarme l'annonce, sans quoi un plafond relevé puis retraversé
+   * resterait muet.
+   */
+  private async isCacheAtLimit(): Promise<boolean> {
+    const limitMb = useUIStore.getState().settings.storage.cacheSize
+    if (!(limitMb > 0)) return false
+    const now = Date.now()
+    if (this.cacheBytes === null || now - this.cacheMeasuredAt >= CACHE_SIZE_FRESH_MS) {
+      try {
+        this.cacheBytes = await storageService.getSize()
+        this.cacheMeasuredAt = now
+      } catch {
+        this.cacheBytes = null
+        return false
+      }
+    }
+    const atLimit = this.cacheBytes >= limitMb * 1024 * 1024
+    if (!atLimit) this.cacheLimitAnnounced = false
+    return atLimit
+  }
+
+  /**
+   * Une seule annonce par franchissement : trente pièces jointes refusées ne
+   * valent pas trente toasts identiques.
+   */
+  private announceCacheLimit(): void {
+    if (this.cacheLimitAnnounced) return
+    this.cacheLimitAnnounced = true
+    const limitMb = useUIStore.getState().settings.storage.cacheSize
+    useUIStore.getState().addToast({
+      type: 'warning',
+      title: i18n.t('settings.storage'),
+      message: i18n.t('settings.cacheLimitReached', { limit: limitMb }),
+      duration: 8000,
+    })
+  }
+
+  /**
+   * Décision finale, commune aux deux chemins de réception (inline et binaire).
+   * Le plafond refuse : il ne purge rien. Le blob reçu reste sur disque et la
+   * bulle propose de le charger au clic — supprimer du média déjà reçu serait
+   * une décision bien plus lourde qu'un réglage de confort.
+   */
+  private async willAutoDownload(type: string, size: number): Promise<boolean> {
+    if (!this.autoDownloadBySetting(type, size)) return false
+    if (await this.isCacheAtLimit()) {
+      this.announceCacheLimit()
+      return false
+    }
+    return true
+  }
+
+  /**
+   * Le blob qu'on vient d'écrire agrandit la mesure : sans ce crédit, la valeur
+   * en mémoire sous-estimerait le cache pendant toute sa fenêtre de fraîcheur et
+   * une salve de fichiers traverserait le plafond sans le voir.
+   */
+  private creditCacheBytes(size: number): void {
+    if (this.cacheBytes !== null) this.cacheBytes += size
+  }
+
   private async handleFileComplete(msg: ProtocolMessage): Promise<void> {
-    const { transferId } = msg.payload as { transferId: string }
+    const payload = msg.payload as Record<string, unknown> | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const transferId = payload.transferId
+    if (typeof transferId !== 'string' || !TRANSFER_ID_PATTERN.test(transferId)) return
 
     console.log(`[FileService] 📥 file:complete received for transferId=${transferId.slice(0, 8)}`)
 
     const buf = this.receiveBuffers.get(transferId)
+    // Seul l'expéditeur du transfert peut le clôturer : sinon un tiers clôt un
+    // tampon partiel (matérialisation prématurée) ou en consomme le traitement.
+    if (buf && buf.from !== msg.from) return
     if (!buf) {
       console.warn(`[FileService] ❌ No buffer found for completed transfer ${transferId.slice(0, 8)}. Completed transfers: ${this.completedTransferIds.size}, Receive buffers: ${this.receiveBuffers.size}`)
       return
@@ -1305,9 +1656,40 @@ class FileService {
       offset += chunk.length
     }
 
-    // DIAGNOSTIC: Check if all chunks were received
+    // INTÉGRITÉ: des chunks manquants signifient des données tronquées. Le
+    // fichier ne doit jamais être matérialisé ni présenté comme complet —
+    // l'utilisateur l'ouvrirait sans comprendre pourquoi il est corrompu. On
+    // jette le partiel et on marque la réception en échec.
     if (buf.receivedChunks < buf.totalChunks) {
-      console.warn(`[FileService] ⚠️ Incomplete transfer! Received ${buf.receivedChunks}/${buf.totalChunks} chunks. Proceeding with partial data.`)
+      console.error(`[FileService] ❌ Transfert incomplet ${transferId.slice(0, 8)} : ${buf.receivedChunks}/${buf.totalChunks} chunks reçus — données partielles jetées`)
+      this.receiveBuffers.delete(transferId)
+      this.orphanChunks.delete(transferId)
+      this.markTransferCompleted(transferId)
+      buf.attachment.failed = true
+      if (buf.placeholderMessageId) {
+        const store = useMessageStore.getState()
+        store.updateMessageAttachment(buf.placeholderMessageId, buf.conversationId, { status: 'failed' })
+        // Persister l'échec : sans cela la bulle disparaîtrait au redémarrage
+        // alors que l'utilisateur attend encore son fichier.
+        storageService.saveMessage(buf.conversationId, {
+          id: buf.placeholderMessageId,
+          conversationId: buf.conversationId,
+          senderId: buf.from,
+          type: buf.attachment.type === 'image' ? 'image' : 'file',
+          content: buf.attachment.name,
+          timestamp: Date.now(),
+          status: 'failed',
+          attachments: [buf.attachment],
+        } as Message).catch(console.error)
+      }
+      useUIStore.getState().addToast({
+        type: 'error',
+        title: i18n.t('chat.downloadFailed'),
+        message: buf.attachment.name,
+        duration: 8000,
+      })
+      this.notifyTransfersNow()
+      return
     }
 
     // Store as blob
@@ -1315,10 +1697,12 @@ class FileService {
       console.log('[FileService] Storing received blob:', transferId, 'size:', assembled.length)
       const blobId = await storageService.putBlob(assembled.buffer as ArrayBuffer)
       buf.attachment.blobKey = blobId
+      this.creditCacheBytes(assembled.length)
       console.log('[FileService] ✅ Received blob stored:', transferId, 'blobId:', blobId)
-      // STORAGE SETTINGS (autoDownload): materialize the blob URL immediately
-      // for images (always inline) and for types the user auto-downloads.
-      if (this.shouldAutoDownload(buf.attachment.type, assembled.length, !!buf.attachment.thumbnail)) {
+      // STORAGE SETTINGS (autoDownload + cacheSize): matérialisation immédiate
+      // seulement si les bascules le veulent et si le cache n'a pas atteint son
+      // plafond ; sinon la bulle attend un clic.
+      if (await this.willAutoDownload(buf.attachment.type, assembled.length)) {
         buf.attachment.localUrl = this.createLocalUrl(assembled, buf.attachment.mimeType, blobId)
       }
     } catch (err) {
@@ -1330,10 +1714,11 @@ class FileService {
     if (buf.placeholderMessageId) {
       const store = useMessageStore.getState()
       console.log('[FileService] Updating message attachment:', buf.placeholderMessageId, 'blobKey:', buf.attachment.blobKey)
-      store.updateMessageAttachment(buf.placeholderMessageId, buf.conversationId, {
-        ...buf.attachment,
-        status: 'delivered',
-      })
+      // L'attachement de la bulle est le même objet (muté en place pour
+      // blobKey/localUrl) : recopier ses champs ici écrasait l'id du message
+      // par celui de la pièce jointe et faisait diverger l'état mémoire de la
+      // base (la suppression ne retrouvait plus la ligne).
+      store.updateMessageAttachment(buf.placeholderMessageId, buf.conversationId, { status: 'delivered' })
       storageService.saveMessage(buf.conversationId, {
         id: buf.placeholderMessageId,
         conversationId: buf.conversationId,
@@ -1350,18 +1735,19 @@ class FileService {
 
     // Cleanup and mark as completed to prevent duplicate processing
     this.receiveBuffers.delete(transferId)
-    this.completedTransferIds.add(transferId)
+    this.markTransferCompleted(transferId)
 
     // GROUP FILE RECEIPT: Send a delivery receipt to the sender so they know
     // the file was received. This matches the group:receipt protocol for text
     // messages — file transfers should also get delivery confirmation.
     // CRITICAL: Use senderMessageId (the sender's actual message ID) so the sender
     // can match the receipt to their file message and update per-recipient tracking.
-    if (buf.groupTransferId) {
+    // Le groupId envoyé est celui du groupe, pas l'id du transfert groupé.
+    if (buf.groupId) {
       const identity = useIdentityStore.getState().identity
       if (identity) {
         p2pService.sendMessage(buf.from, 'group:receipt', {
-          groupId: buf.groupTransferId,
+          groupId: buf.groupId,
           channelId: buf.conversationId,
           messageIds: [buf.senderMessageId ?? buf.placeholderMessageId ?? transferId],
           status: 'delivered',
@@ -1657,17 +2043,119 @@ class FileService {
   private cancelledTransfers: Set<string> = new Set()
 
   /**
-   * Cancel an ongoing transfer.
+   * Annule un transfert, dans les deux sens.
+   *
+   * Émetteur : la boucle d'émission s'arrête au lot suivant (le tombstone que
+   * `sendFramedChunks` observe) et le destinataire est prévenu par file:cancel —
+   * sans ce message il gardait à vie son buffer partiel et sa bulle
+   * « réception… ». Récepteur : le buffer partiel et la bulle sont retirés, et
+   * l'expéditeur apprend l'annulation par le même message.
    */
   cancelTransfer(transferId: string): void {
-    this.cancelledTransfers.add(transferId)
     const transfer = this.transfers.get(transferId)
     if (transfer) {
-      transfer.status = 'error'
+      this.cancelledTransfers.add(transferId)
       this.transfers.delete(transferId)
+      this.notifyTransfersNow()
+      if (transfer.peerId) {
+        p2pService.sendMessage(transfer.peerId, 'file:cancel', { transferId }).catch((err) => {
+          console.warn('[FileService] Failed to send file:cancel:', err)
+        })
+      } else {
+        // Groupe : chaque pair a reçu un id wire distinct, inconnu d'ici — l'id
+        // de groupe est la seule clé partagée, le destinataire retrouve son
+        // buffer par elle.
+        const groupTransfer = this.groupTransfers.get(transferId)
+        for (const peerId of groupTransfer?.peerProgress.keys() ?? []) {
+          p2pService.sendMessage(peerId, 'file:cancel', { transferId, groupTransferId: transferId }).catch((err) => {
+            console.warn('[FileService] Failed to send file:cancel:', err)
+          })
+        }
+      }
+      return
     }
-    // Also cancel any pending chunks
+
+    const buf = this.receiveBuffers.get(transferId)
+    if (!buf) return
+    this.tombstoneCancelled(transferId)
+    this.dropReceiveBuffer(transferId)
+    p2pService.sendMessage(buf.from, 'file:cancel', { transferId, groupTransferId: buf.groupTransferId }).catch((err) => {
+      console.warn('[FileService] Failed to send file:cancel:', err)
+    })
+  }
+
+  /**
+   * file:cancel reçu : le pair a annulé.
+   * — il refusait notre envoi : arrêter la boucle d'émission (tombstone) ;
+   * — il abandonne sa réception : retirer buffer, orphelins et bulle.
+   */
+  private handleRemoteCancel(msg: ProtocolMessage): void {
+    const payload = msg.payload as Record<string, unknown> | null
+    if (!msg.from || !payload || typeof payload !== 'object') return
+    const transferId = payload.transferId
+    if (typeof transferId !== 'string') return
+    const groupTransferId = typeof payload.groupTransferId === 'string' ? payload.groupTransferId : undefined
+
+    const transfer = this.transfers.get(transferId)
+    if (transfer) {
+      // Un envoi 1:1 n'est annulable que par son destinataire. Les entrées de
+      // groupe (sans peerId) ne sont jamais la cible d'un file:cancel
+      // légitime : le récepteur annule son id de fil, pas celui du groupe.
+      if (!transfer.peerId || transfer.peerId !== msg.from) return
+      this.cancelledTransfers.add(transferId)
+      this.transfers.delete(transferId)
+      this.notifyTransfersNow()
+      return
+    }
+
+    const buf = this.receiveBuffers.get(transferId)
+    if (buf) {
+      // Seul l'expéditeur du fichier peut retirer notre réception.
+      if (buf.from !== msg.from) return
+      this.tombstoneCancelled(transferId)
+      this.dropReceiveBuffer(transferId)
+      return
+    }
+
+    // Groupe : le récepteur annule sous son id de fil, inconnu de l'expéditeur ;
+    // seul groupTransferId est partagé. Retrouver son buffer de réception par
+    // cet id, uniquement chez le pair qui parle, et cesser de lui envoyer des
+    // lots s'il abandonne sa réception.
+    if (groupTransferId) {
+      const groupTransfer = this.groupTransfers.get(groupTransferId)
+      if (groupTransfer?.peerProgress.has(msg.from)) {
+        if (!groupTransfer.cancelledPeers) groupTransfer.cancelledPeers = new Set()
+        groupTransfer.cancelledPeers.add(msg.from)
+      }
+      for (const [id, candidate] of [...this.receiveBuffers]) {
+        if (candidate.groupTransferId === groupTransferId && candidate.from === msg.from) {
+          this.tombstoneCancelled(id)
+          this.dropReceiveBuffer(id)
+        }
+      }
+    }
+  }
+
+  /**
+   * Tombstone d'annulation : les chunks déjà en vol (lots en cours chez
+   * l'expéditeur) ne doivent ni recréer d'orphelins ni ressusciter un buffer
+   * via la metadata. Le délai couvre le round-trip du file:cancel.
+   */
+  private tombstoneCancelled(transferId: string): void {
+    this.cancelledTransfers.add(transferId)
+    setTimeout(() => this.clearCancelledTransfer(transferId), 60_000)
+  }
+
+  /** Retire un buffer de réception partiel, sa bulle « réception… » et ses orphelins. */
+  private dropReceiveBuffer(transferId: string): void {
+    const buf = this.receiveBuffers.get(transferId)
+    if (!buf) return
     this.receiveBuffers.delete(transferId)
+    this.orphanChunks.delete(transferId)
+    if (buf.placeholderMessageId) {
+      useMessageStore.getState().removeMessage(buf.placeholderMessageId)
+    }
+    this.notifyTransfersNow()
   }
 
   /**
@@ -1675,6 +2163,11 @@ class FileService {
    */
   isTransferCancelled(transferId: string): boolean {
     return this.cancelledTransfers.has(transferId)
+  }
+
+  /** Un pair d'un envoi groupé a abandonné sa réception. */
+  private isGroupPeerCancelled(groupTransferId: string, peerId: string): boolean {
+    return this.groupTransfers.get(groupTransferId)?.cancelledPeers?.has(peerId) ?? false
   }
 
   /**
@@ -5154,7 +5647,10 @@ class FileService {
    * Delete a sent file (marks as deleted, moves to trash).
    * The file will no longer be accessible to recipients.
    */
-  async deleteSentFile(blobKey: string): Promise<boolean> {
+  async deleteSentFile(
+    blobKey: string,
+    meta?: { fileName?: string; mimeType?: string; fileSize?: number },
+  ): Promise<boolean> {
     try {
       // Mark as deleted
       this.deletedFiles.add(blobKey)
@@ -5165,9 +5661,15 @@ class FileService {
       // Clear duplicate tracking entries
       this.clearDuplicateCache()
 
+      // Une seconde suppression du même blob ne crée pas une seconde ligne.
+      this.trashBin = this.trashBin.filter((entry) => entry.blobKey !== blobKey)
+
       // Add to trash bin
       this.trashBin.push({
         blobKey,
+        fileName: meta?.fileName,
+        mimeType: meta?.mimeType,
+        fileSize: meta?.fileSize,
         deletedAt: Date.now(),
         expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
       })
@@ -5193,11 +5695,49 @@ class FileService {
   }
 
   /**
-   * Permanently delete a file from trash.
+   * Un blob encore lu par une pièce jointe vivante ne doit pas être effacé :
+   * le même fichier peut avoir été transféré ou épinglé ailleurs, et supprimer
+   * ses octets casserait cette autre copie.
    */
-  permanentDelete(blobKey: string): boolean {
+  private isBlobStillReferenced(blobKey: string): boolean {
+    for (const messages of Object.values(useMessageStore.getState().messages)) {
+      for (const message of messages) {
+        if (message.deleted || message.recalled) continue
+        for (const attachment of message.attachments ?? []) {
+          if (attachment.blobKey === blobKey && !attachment.deleted) return true
+        }
+      }
+    }
+    return false
+  }
+
+  /**
+   * Permanently delete a file from trash, bytes included.
+   *
+   * Rend `false` — et laisse l'entrée en corbeille — quand le stockage refuse
+   * d'effacer : l'utilisateur peut alors réessayer au lieu de croire l'espace
+   * libéré. Un blob encore référencé ailleurs n'est pas effacé, mais son entrée
+   * quitte la corbeille.
+   */
+  async permanentDelete(blobKey: string): Promise<boolean> {
+    if (!this.trashBin.some((e) => e.blobKey === blobKey)) return false
+
+    const legacyId = /^\d+$/.test(blobKey)
+    if (!legacyId && !this.isBlobStillReferenced(blobKey)) {
+      try {
+        await window.asgard.storage.deleteBlob(blobKey)
+      } catch (err) {
+        console.warn('[FileService] Failed to erase blob:', blobKey, err)
+        return false
+      }
+    }
+
+    this.removeFromCache(blobKey)
+    this.clearDuplicateCache()
     this.trashBin = this.trashBin.filter((e) => e.blobKey !== blobKey)
     this.deletedFiles.delete(blobKey)
+    // Un favori qui pointe vers des octets effacés ne vaudrait plus rien.
+    if (this.favorites.delete(blobKey)) this.persistFavorites()
     return true
   }
 
@@ -5225,14 +5765,15 @@ class FileService {
 
   /**
    * Empty the trash bin (permanently delete all trashed files).
+   * Rend le nombre d'entrées réellement retirées : celles dont le stockage a
+   * refusé l'effacement restent, pour ne pas perdre la trace des octets.
    */
-  emptyTrash(): number {
-    const count = this.trashBin.length
-    for (const entry of this.trashBin) {
-      this.deletedFiles.delete(entry.blobKey)
+  async emptyTrash(): Promise<number> {
+    let erased = 0
+    for (const entry of [...this.trashBin]) {
+      if (await this.permanentDelete(entry.blobKey)) erased++
     }
-    this.trashBin = []
-    return count
+    return erased
   }
 
   /**
@@ -5243,7 +5784,9 @@ class FileService {
     const validEntries = this.trashBin.filter((e) => e.expiresAt > now)
     return {
       count: validEntries.length,
-      totalSize: 0, // Size tracking would require additional metadata
+      // Les entrées sans taille (anciennes) comptent pour zéro plutôt que
+      // d'effacer le total des fichiers dont la taille est connue.
+      totalSize: validEntries.reduce((sum, e) => sum + (e.fileSize ?? 0), 0),
       oldestEntry: validEntries.length > 0
         ? Math.min(...validEntries.map((e) => e.deletedAt))
         : 0,
@@ -5283,8 +5826,36 @@ class FileService {
 
   // ─── Download History ──────────────────────────────────────────────────────
 
+  private static readonly DOWNLOAD_HISTORY_KEY = 'asgard.downloadHistory'
   private downloadHistory: DownloadHistoryEntry[] = []
   private maxHistorySize = 500
+
+  private persistDownloadHistory(): void {
+    try {
+      globalThis.localStorage?.setItem(
+        FileService.DOWNLOAD_HISTORY_KEY,
+        JSON.stringify(this.downloadHistory),
+      )
+    } catch { /* quota plein : l'historique reste lisible pour la session */ }
+  }
+
+  private restoreDownloadHistory(): void {
+    try {
+      const raw = globalThis.localStorage?.getItem(FileService.DOWNLOAD_HISTORY_KEY)
+      if (!raw) return
+      const parsed: unknown = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return
+      this.downloadHistory = (parsed as DownloadHistoryEntry[])
+        .filter((entry) =>
+          entry &&
+          typeof entry.id === 'string' &&
+          typeof entry.blobKey === 'string' &&
+          typeof entry.fileName === 'string' &&
+          typeof entry.downloadedAt === 'number',
+        )
+        .slice(0, this.maxHistorySize)
+    } catch { /* un stockage illisible ne doit pas empêcher l'app de démarrer */ }
+  }
 
   /**
    * Record a file download in history.
@@ -5302,6 +5873,7 @@ class FileService {
     if (this.downloadHistory.length > this.maxHistorySize) {
       this.downloadHistory = this.downloadHistory.slice(0, this.maxHistorySize)
     }
+    this.persistDownloadHistory()
   }
 
   /**
@@ -5316,6 +5888,7 @@ class FileService {
    */
   clearDownloadHistory(): void {
     this.downloadHistory = []
+    this.persistDownloadHistory()
   }
 
   /**
@@ -5456,20 +6029,58 @@ class FileService {
 
   // ─── Favorite Files ───────────────────────────────────────────────────────
 
+  private static readonly FAVORITES_KEY = 'asgard.fileFavorites'
   private favorites: Map<string, FavoriteFile> = new Map()
+
+  private persistFavorites(): void {
+    try {
+      globalThis.localStorage?.setItem(
+        FileService.FAVORITES_KEY,
+        JSON.stringify(Array.from(this.favorites.values())),
+      )
+    } catch { /* quota plein : les favoris restent valables pour la session */ }
+  }
+
+  private restoreFavorites(): void {
+    try {
+      const raw = globalThis.localStorage?.getItem(FileService.FAVORITES_KEY)
+      if (!raw) return
+      const parsed: unknown = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return
+      for (const entry of parsed as FavoriteFile[]) {
+        if (!entry || typeof entry.blobKey !== 'string' || typeof entry.fileName !== 'string') continue
+        this.favorites.set(entry.blobKey, {
+          blobKey: entry.blobKey,
+          fileName: entry.fileName,
+          conversationId: typeof entry.conversationId === 'string' ? entry.conversationId : '',
+          mimeType: typeof entry.mimeType === 'string' ? entry.mimeType : '',
+          fileSize: typeof entry.fileSize === 'number' ? entry.fileSize : undefined,
+          addedAt: typeof entry.addedAt === 'number' ? entry.addedAt : Date.now(),
+        })
+      }
+    } catch { /* un stockage illisible ne doit pas empêcher l'app de démarrer */ }
+  }
 
   /**
    * Add a file to favorites.
    */
-  addFavorite(blobKey: string, fileName: string, conversationId: string, mimeType: string): void {
+  addFavorite(
+    blobKey: string,
+    fileName: string,
+    conversationId: string,
+    mimeType: string,
+    fileSize?: number,
+  ): void {
     const favorite: FavoriteFile = {
       blobKey,
       fileName,
       conversationId,
       mimeType,
+      fileSize,
       addedAt: Date.now(),
     }
     this.favorites.set(blobKey, favorite)
+    this.persistFavorites()
   }
 
   /**
@@ -5477,6 +6088,7 @@ class FileService {
    */
   removeFavorite(blobKey: string): void {
     this.favorites.delete(blobKey)
+    this.persistFavorites()
   }
 
   /**
@@ -5507,6 +6119,7 @@ class FileService {
    */
   clearFavorites(): void {
     this.favorites.clear()
+    this.persistFavorites()
   }
 
   /**
@@ -6390,6 +7003,9 @@ interface FileTransfer {
   // Conversation d'origine : le widget est monté par conversation, sans ce
   // champ un envoi vers B s'affichait aussi dans la fenêtre de C.
   conversationId: string
+  // Destinataire d'un envoi 1:1, absent d'un envoi de groupe (fan-out) :
+  // « annuler » s'en sert pour prévenir le pair par file:cancel.
+  peerId?: string
 }
 
 interface ReceiveBuffer {
@@ -6398,9 +7014,13 @@ interface ReceiveBuffer {
   conversationId: string
   totalChunks: number
   receivedChunks: number
+  /** Octets cumulés : plafonne la mémoire réelle au `size` annoncé. */
+  receivedBytes: number
   chunks: Uint8Array[]
   placeholderMessageId?: string
   groupTransferId?: string
+  /** Vrai id du groupe, retrouvé par le canal : nécessaire au group:receipt. */
+  groupId?: string
   /** Sender's message ID — used in group:receipt for per-recipient delivery tracking */
   senderMessageId?: string
 }
@@ -6412,6 +7032,8 @@ interface GroupTransfer {
   attachment: MessageAttachment
   peerProgress: Map<string, number> // peerId -> progress (0-100)
   totalPeers: number
+  /** Pairs qui ont annulé leur réception : ne plus leur envoyer de lots. */
+  cancelledPeers?: Set<string>
   /** Sender's local message ID — included in metadata so receivers can reference it in receipts */
   fileMessageId?: string
 }
@@ -6617,6 +7239,10 @@ interface VoiceSegment {
 
 interface TrashEntry {
   blobKey: string
+  /** Ce que l'utilisateur reconnaît du fichier ; absent pour un appel sans métadonnées. */
+  fileName?: string
+  mimeType?: string
+  fileSize?: number
   deletedAt: number
   expiresAt: number
 }
@@ -6654,6 +7280,8 @@ interface FavoriteFile {
   fileName: string
   conversationId: string
   mimeType: string
+  /** Taille au moment de l'ajout : le panneau l'affiche sans relire le blob. */
+  fileSize?: number
   addedAt: number
 }
 

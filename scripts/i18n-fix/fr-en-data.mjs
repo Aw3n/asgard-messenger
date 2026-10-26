@@ -197,17 +197,25 @@ export const ALLOW_SAME = [
   'calls.excellent',
   'calls.openChat',
   'calls.participantCount',
-  'calls.participantCount_plural',
+  'calls.participantCount_other',
   'calls.qualityHigh',
+  // « Audio » est le mot français du type d'appel, comme dans « appel audio ».
+  'calls.typeAudio',
   // « Pause » s'écrit identiquement en français.
   'chat.pauseAudio',
   'common.admin',
   'common.invisible',
   'common.note',
   'common.relation',
+  // « Contact » s'écrit identiquement en français, en néerlandais et en roumain.
+  'contacts.relationContact',
   'contacts.title',
   'groups.admins',
   'groups.description',
+  // « Image » désigne la même chose dans les deux langues.
+  'lightbox.image',
+  // « Photo » s'écrit identiquement en français.
+  'lightbox.thumbnail',
   'messageInput.emoji',
   'nav.contacts',
   'nav.messages',

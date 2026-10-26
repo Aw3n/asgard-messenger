@@ -1,10 +1,14 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react'
+import React, { useMemo, useState, useEffect, useRef, type RefObject } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
+import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { fileService } from '@/services/FileService'
 import { useMessageStore } from '@/stores/messageStore'
 import { useUIStore } from '@/stores/uiStore'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
+import { useMenuGestures } from '@/hooks/useMenuGestures'
 import type { MessageAttachment } from '@/types'
 import { ImageLightbox, type LightboxItem } from './ImageLightbox'
 
@@ -36,8 +40,14 @@ function toLightboxItem(att: MessageAttachment): LightboxItem {
     id: att.id,
     src: live ?? att.thumbnail ?? '',
     alt: att.name,
-    // A thumbnail alone cannot be zoomed usefully — the original is still missing.
+    // La bande de vignettes de la visionneuse réutilise la miniature du
+    // message telle quelle : pas de re-téléchargement pour un aperçu 44 px.
+    thumb: att.thumbnail,
+    // Un thumbnail seul ne se zoome pas utilement — l'original manque encore.
     preview: !live,
+    // Avec la clé, le bouton Télécharger de la visionneuse passe par le pont
+    // natif : même dossier réglé, mêmes retours que les autres pièces.
+    blobKey: att.blobKey,
     loadFull: async () => {
       if (live) return live
       if (!att.blobKey) return null
@@ -46,6 +56,68 @@ function toLightboxItem(att: MessageAttachment): LightboxItem {
       return await fileService.downloadFile(att)
     },
   }
+}
+
+/**
+ * DeleteAttachmentConfirm — la croix rouge ne supprime rien toute seule : elle
+ * pose cette demande. Le fond recouvre toute la fenêtre, donc la touche réglée
+ * doit la refermer ici comme dans les autres dialogues, le focus y entrer et en
+ * sortir, et le bouton qui fait le même geste le dire.
+ */
+const DeleteAttachmentConfirm: React.FC<{ onCancel: () => void; onConfirm: () => void }> = ({
+  onCancel,
+  onConfirm,
+}) => {
+  const { t } = useTranslation()
+  const dialogRef = useDialogBehavior<HTMLDivElement>(onCancel)
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
+  const titleId = React.useId()
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onCancel()}
+    >
+      <motion.div
+        ref={dialogRef}
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="mica-card border border-asgard-border rounded-2xl p-6 max-w-sm mx-4 focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id={titleId} className="text-lg font-semibold text-asgard-text-primary mb-2">
+          {t('chat.deleteFileConfirm')}
+        </h3>
+        <p className="text-sm text-asgard-text-secondary mb-4">
+          {t('chat.deleteFileWarning')}
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+            className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+          >
+            {t('common.delete')}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
 }
 
 /**
@@ -65,11 +137,15 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
    * notifiable — la liste des fichiers rend des pièces jointes hors conversation.
    */
   const [resolvedVersion, setResolvedVersion] = useState(0)
-  const progressInterval = useRef<ReturnType<typeof setInterval>>()
 
   const deleteFileAttachment = useMessageStore((s) => s.deleteFileAttachment)
   const setAttachmentLocalUrl = useMessageStore((s) => s.setAttachmentLocalUrl)
   const addToast = useUIStore((s) => s.addToast)
+  // Le panneau « Fichiers favoris » des réglages n'avait aucun producteur :
+  // cette entrée de menu est le geste qui le remplit.
+  const [isFavorite, setIsFavorite] = useState(
+    () => Boolean(attachment.blobKey) && fileService.isFavorite(attachment.blobKey as string),
+  )
 
   // GUÉRISON DES URL MORTES: `localUrl` est une URL `blob:` liée à la session
   // qui a reçu le fichier, mais elle est persistée avec le message. Au
@@ -95,10 +171,29 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
     return () => { cancelled = true }
   }, [attachment.id, attachment.type, attachment.blobKey, attachment.localUrl, attachment.deleted, messageId, conversationId, setAttachmentLocalUrl])
 
-  // Poll transfer progress for both send and receive
+  // Progress is pulled from FileService when it changes, not polled: the
+  // service already coalesces its notifications, so one subscription per
+  // bubble replaces a 300 ms timer that kept ticking for history attachments
+  // long after their transfer was over. A settled file — a stored blob or a
+  // live URL — has nothing to watch and subscribes to nothing.
   // CRITICAL: all hooks must run before any early return.
   useEffect(() => {
-    const checkProgress = () => {
+    // Réception abandonnée (fichier incomplet jeté) : ni barre ni « Réception… ».
+    if (attachment.failed || attachment.deleted) {
+      setProgress(null)
+      return
+    }
+
+    const receivesPending = !attachment.localUrl && !attachment.blobKey && Boolean(conversationId)
+    const uploading = attachment.transferId
+      ? fileService.getTransfer(attachment.transferId)?.status === 'uploading'
+      : false
+    if (!receivesPending && !uploading) {
+      setProgress(null)
+      return
+    }
+
+    const updateProgress = () => {
       // Match by transfer ID, never by file name: two distinct files can share
       // a name, and name matching made every older bubble with that name
       // mirror the current transfer's progress.
@@ -108,11 +203,10 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         return
       }
 
-      // Check receive progress via active receive buffer
-      if (!attachment.localUrl && !attachment.blobKey && conversationId) {
+      if (receivesPending) {
         const receiveProgress = attachment.transferId
           ? fileService.getReceiveProgressByTransfer(attachment.transferId)
-          : fileService.getReceiveProgress(conversationId)
+          : fileService.getReceiveProgress(conversationId as string)
         if (receiveProgress && (!attachment.transferId || receiveProgress.fileName === attachment.name)) {
           setProgress(receiveProgress.progress)
         } else {
@@ -122,19 +216,31 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         return
       }
 
-      // If we had progress before but now it's gone, clear it. Functional
-      // update: the interval closure captures the `progress` of the render
-      // that mounted it, so reading it directly here never sees the value
-      // published by a later tick and the bar would stay stuck mid-transfer.
-      if (!transfer) {
-        setProgress((current) => (current === null ? current : null))
-      }
+      // The upload ended while this bubble was watching: drop the bar.
+      setProgress((current) => (current === null ? current : null))
     }
 
-    checkProgress()
-    progressInterval.current = setInterval(checkProgress, 300)
-    return () => clearInterval(progressInterval.current)
-  }, [attachment.transferId, attachment.name, attachment.localUrl, attachment.blobKey, conversationId])
+    updateProgress()
+    return fileService.subscribeTransfers(updateProgress)
+  }, [attachment.transferId, attachment.name, attachment.localUrl, attachment.blobKey, attachment.failed, attachment.deleted, conversationId])
+
+  /**
+   * Ouvre la pièce jointe dans l'application système. `window.open('blob:…')`
+   * est refusé par la liste blanche des fenêtres Electron (et n'aurait de toute
+   * façon aucun lecteur externe) : le blob est matérialisé côté main puis
+   * confié à `shell.openPath`.
+   */
+  const openExternally = async (): Promise<boolean> => {
+    if (!attachment.blobKey) return false
+    const result = await window.asgard.file.open(attachment.blobKey, attachment.name)
+    if (!result.success) {
+      console.warn('[FileAttachment] open failed:', result.reason, result.message)
+      if (result.reason === 'blocked') {
+        addToast({ type: 'error', title: t('chat.fileTypeBlocked') })
+      }
+    }
+    return result.success
+  }
 
   const handleClick = async () => {
     const live = fileService.isLiveUrl(attachment.localUrl) ? (attachment.localUrl as string) : null
@@ -144,13 +250,14 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
       setLightboxOpen(true)
       return
     }
-    if (live) {
-      window.open(live, '_blank')
-      return
-    }
 
     setLoading(true)
     try {
+      if (attachment.blobKey) {
+        if (!(await openExternally())) setError(true)
+        return
+      }
+
       const url = await fileService.resolveLocalUrl(attachment)
       if (url) {
         // Publier dans le store (bulle, galerie, visionneuse) et, à défaut de
@@ -164,15 +271,15 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         // se perdrait dans une visionneuse vide.
         if (url || attachment.thumbnail) setLightboxOpen(true)
         else setError(true)
-      } else if (url) {
-        window.open(url, '_blank')
       } else {
+        // Pas de blob stocké : rien d'ouvrable hors de cette session.
         setError(true)
       }
     } catch {
       setError(true)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   // Every photo of this conversation, oldest first: the lightbox uses that for
@@ -198,31 +305,24 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
 
   const handleSaveAs = async (e?: React.MouseEvent) => {
     e?.stopPropagation()
-    if (!attachment.blobKey) {
-      addToast({ type: 'error', title: t('chat.downloadUnavailable'), message: t('chat.fileNotYetAvailable') })
-      return
-    }
-    console.log('[FileAttachment] saveAs blobKey:', attachment.blobKey, 'name:', attachment.name)
-    const result = await window.asgard.file.saveAs(attachment.blobKey, attachment.name)
-    if (!result.success) {
-      console.warn('[FileAttachment] Save failed:', result.reason, result.message)
-      try {
-        window.asgard.debugLog(`[FileAttachment] Save failed: ${result.reason}${result.message ? ' - ' + result.message : ''}`)
-      } catch {}
-      if (result.reason === 'canceled') return
-      const isLegacyBlobId = /^\d+$/.test(attachment.blobKey)
-      addToast({
-        type: 'error',
-        title: t('chat.downloadFailed'),
-        message: result.reason === 'not-found'
-          ? (isLegacyBlobId
-              ? t('chat.legacyFileNotDownloadable')
-              : t('chat.fileNotFoundLocally'))
-          : (result.message ?? t('chat.saveError')),
-      })
+    await saveAttachmentToDisk(attachment, t, conversationId)
+  }
+
+  const handleToggleFavorite = () => {
+    const blobKey = attachment.blobKey
+    if (!blobKey) return
+    const next = !fileService.isFavorite(blobKey)
+    if (next) {
+      fileService.addFavorite(blobKey, attachment.name, conversationId ?? '', attachment.mimeType, attachment.size)
     } else {
-      addToast({ type: 'success', title: t('chat.fileSaved'), message: result.filePath, duration: 3000 })
+      fileService.removeFavorite(blobKey)
     }
+    setIsFavorite(next)
+    addToast({
+      type: 'success',
+      title: next ? t('chat.addedToFavorites') : t('chat.removedFromFavorites'),
+      duration: 2000,
+    })
   }
 
   /**
@@ -253,20 +353,45 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         setShowDeleteConfirm(false)
       } else {
         console.warn('[FileAttachment] deleteFileAttachment returned false')
+        addToast({ type: 'error', title: t('chat.deleteFileFailed') })
       }
     } catch (err) {
       console.error('[FileAttachment] Failed to delete attachment:', err)
+      addToast({ type: 'error', title: t('chat.deleteFileFailed') })
     }
   }
 
   // Context menu state for attachment-level actions
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    fromKeyboard?: boolean
+  } | null>(null)
   const attachmentRef = useRef<HTMLDivElement>(null)
+
+  // Le favori peut être retiré depuis les réglages pendant que la bulle reste
+  // montée : relire le service à chaque ouverture évite d'afficher « Retirer
+  // des favoris » pour un fichier qui n'en est plus un — et de faire l'inverse
+  // du geste annoncé.
+  const syncFavoriteFromService = () => {
+    setIsFavorite(attachment.blobKey ? fileService.isFavorite(attachment.blobKey) : false)
+  }
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    syncFavoriteFromService()
     setContextMenu({ x: e.clientX, y: e.clientY })
+  }
+
+  const openContextMenuFromKeyboard = () => {
+    const rect = attachmentRef.current?.getBoundingClientRect()
+    syncFavoriteFromService()
+    setContextMenu({
+      x: (rect?.left ?? 0) + 16,
+      y: (rect?.top ?? 0) + 16,
+      fromKeyboard: true,
+    })
   }
 
   const closeContextMenu = () => setContextMenu(null)
@@ -320,42 +445,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   ) : null
 
   const deleteConfirmDialog = showDeleteConfirm ? (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={() => setShowDeleteConfirm(false)}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="mica-card border border-asgard-border rounded-2xl p-6 max-w-sm mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-semibold text-asgard-text-primary mb-2">
-          {t('chat.deleteFileConfirm')}
-        </h3>
-        <p className="text-sm text-asgard-text-secondary mb-4">
-          {t('chat.deleteFileWarning')}
-        </p>
-        <div className="flex gap-3 justify-end">
-          <button
-            onClick={() => setShowDeleteConfirm(false)}
-            className="px-4 py-2 text-sm text-asgard-text-secondary hover:text-asgard-text-primary transition-colors rounded-lg"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={handleDelete}
-            className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-          >
-            {t('common.delete')}
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+    <DeleteAttachmentConfirm onCancel={() => setShowDeleteConfirm(false)} onConfirm={handleDelete} />
   ) : null
 
   const renderAttachment = () => {
@@ -375,8 +465,16 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
   return (
     <div
       ref={attachmentRef}
+      tabIndex={-1}
       className="relative inline-block"
       onContextMenu={handleContextMenu}
+      onKeyDown={(e) => {
+        // Menu et Maj+F10 : le menu d'une pièce jointe n'était pas atteignable
+        // sans souris, alors que celui du message qui le porte l'est.
+        if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return
+        e.preventDefault()
+        openContextMenuFromKeyboard()
+      }}
     >
       {deleteButton}
       {renderAttachment()}
@@ -385,9 +483,14 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({ attachment, isOw
         <AttachmentContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          fromKeyboard={contextMenu.fromKeyboard}
+          triggerRef={attachmentRef}
           onClose={closeContextMenu}
           onDownload={handleSaveAs}
           canDownload={!!attachment.blobKey}
+          canFavorite={!!attachment.blobKey}
+          isFavorite={isFavorite}
+          onToggleFavorite={handleToggleFavorite}
           fileName={attachment.name}
         />
       )}
@@ -443,19 +546,28 @@ const AttachmentContextMenu: React.FC<{
   onClose: () => void
   onDownload: () => void
   canDownload: boolean
+  canFavorite: boolean
+  isFavorite: boolean
+  onToggleFavorite: () => void
   fileName?: string
-}> = ({ x, y, onClose, onDownload, canDownload, fileName }) => {
+  fromKeyboard?: boolean
+  triggerRef: RefObject<HTMLDivElement | null>
+}> = ({ x, y, onClose, onDownload, canDownload, canFavorite, isFavorite, onToggleFavorite, fileName, fromKeyboard, triggerRef }) => {
   const { t } = useTranslation()
-  useEffect(() => {
-    const handler = () => onClose()
-    window.addEventListener('click', handler, { once: true })
-    return () => window.removeEventListener('click', handler)
-  }, [onClose])
+  const menuRef = useRef<HTMLDivElement>(null)
+  // Le menu de la pièce jointe n'avait aucun geste clavier : seule une souris
+  // pouvait le refermer. Il suit désormais la touche réglée, comme les quatre
+  // autres menus, et se parcourt aux flèches.
+  useMenuGestures({ open: true, menuRef, triggerRef, onClose, fromKeyboard })
 
   const label = fileName ? t('chat.downloadNamedFile', { name: fileName }) : t('chat.downloadFile')
+  const favoriteLabel = isFavorite ? t('chat.removeFromFavorites') : t('chat.addToFavorites')
 
   return (
     <motion.div
+      ref={menuRef}
+      role="menu"
+      aria-label={label}
       initial={{ opacity: 0, scale: 0.95, y: -4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -466,6 +578,7 @@ const AttachmentContextMenu: React.FC<{
       style={{ left: x, top: y }}
     >
       <button
+        role="menuitem"
         onClick={() => {
           onDownload()
           onClose()
@@ -480,6 +593,18 @@ const AttachmentContextMenu: React.FC<{
       >
         {canDownload ? label : t('chat.fileNotAvailable')}
       </button>
+      {canFavorite && (
+        <button
+          role="menuitem"
+          onClick={() => {
+            onToggleFavorite()
+            onClose()
+          }}
+          className="text-left px-3 py-2 text-sm rounded-lg text-asgard-text-primary hover:bg-asgard-surface-alt transition-colors"
+        >
+          {favoriteLabel}
+        </button>
+      )}
     </motion.div>
   )
 }
@@ -634,14 +759,34 @@ const VideoAttachment: React.FC<{
   const { t } = useTranslation()
   // MEDIA SETTINGS: native controls, autoplay and default mute for videos.
   // Note: browsers only honor autoplay when the video starts muted — with
-  // muteByDefault off the user simply presses play (controls are shown).
+  // muteByDefault off the user simply presses play.
   const mediaSettings = useUIStore((s) => s.settings.media)
+  // Sans la barre native, le bouton central est le seul geste de lecture. Il
+  // faut donc le garder même quand l'autoplay est actif : un navigateur refuse
+  // la lecture d'une piste non muette, et une pause ne se reprend pas autrement.
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const hideControls = !mediaSettings.showVideoControls
+  const togglePlayback = (): void => {
+    const el = videoRef.current
+    if (!el) return
+    // L'état vient de l'élément (événements play/pause), pas de `paused` : il
+    // pilote déjà l'étiquette du bouton et reste juste sous jsdom.
+    if (playing) {
+      el.pause()
+    } else {
+      el.play().catch(() => setPlaying(false))
+    }
+  }
   // Le classement « video » suit le conteneur, pas les codecs : un .avi ou un
   // .wmv reçu intact reste indécodable pour Chromium. Sans repli, la bulle
   // affichait un lecteur cassé ; la carte fichier propose alors de l'ouvrir
   // avec le lecteur du système (le clic passe par l'URL locale).
   const [undecodable, setUndecodable] = useState(false)
-  useEffect(() => { setUndecodable(false) }, [attachment.localUrl])
+  useEffect(() => {
+    setUndecodable(false)
+    setPlaying(false)
+  }, [attachment.localUrl])
   if (undecodable || !fileService.isLiveUrl(attachment.localUrl)) {
     // Lecteur vidéo jamais monté sur une URL morte (message restauré après un
     // redémarrage) : on garde la vignette « charger », l'effet de guérison du
@@ -658,8 +803,15 @@ const VideoAttachment: React.FC<{
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-asgard-text-primary truncate">{attachment.name}</p>
-          <p className="text-xs text-asgard-text-muted">{formatSize(attachment.size)}</p>
+          <p className={cn('text-xs', attachment.failed ? 'text-asgard-busy' : 'text-asgard-text-muted')}>
+            {attachment.failed ? t('chat.downloadFailed') : formatSize(attachment.size)}
+          </p>
         </div>
+        {attachment.failed && (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy flex-shrink-0">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+        )}
         {loading && <div className="w-4 h-4 border-2 border-asgard-glacier border-t-transparent rounded-full animate-spin" />}
       </button>
     )
@@ -668,6 +820,7 @@ const VideoAttachment: React.FC<{
   return (
     <div className="rounded-xl overflow-hidden max-w-[320px] group relative">
       <video
+        ref={videoRef}
         src={attachment.localUrl}
         // MEDIA SETTINGS: controls / autoplay / default mute
         controls={mediaSettings.showVideoControls}
@@ -675,9 +828,38 @@ const VideoAttachment: React.FC<{
         muted={mediaSettings.muteByDefault}
         className="max-w-full rounded-xl"
         style={{ maxHeight: '240px' }}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
         onError={() => setUndecodable(true)}
         onContextMenu={(e) => e.preventDefault()}
       />
+      {hideControls && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={togglePlayback}
+            aria-label={playing ? t('chat.pauseVideo') : t('chat.playVideo')}
+            title={playing ? t('chat.pauseVideo') : t('chat.playVideo')}
+            className={cn(
+              'pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full',
+              'bg-black/55 text-white shadow-lg backdrop-blur-sm transition-opacity',
+              'hover:bg-black/70 focus-visible:opacity-100',
+              playing && 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            )}
+          >
+            {playing ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M6 5h4v14H6zM14 5h4v14h-4z"/>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5" aria-hidden="true">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
       {progress !== null && progress < 100 && (
         <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/40">
           <ProgressBar progress={progress} />
@@ -887,21 +1069,29 @@ const DocumentAttachment: React.FC<{
   const ext = attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'
   const isTransferring = progress !== null && progress !== 100
   const isIndeterminate = progress !== null && progress < 0
+  const showSave = Boolean(attachment.blobKey) && !loading && !isTransferring
 
   return (
-    <div className="flex flex-col gap-1.5 max-w-[280px]">
+    // Le bouton d'enregistrement est un frère, pas un descendant : un <button>
+    // dans un <button> est invalide et le clic sur l'un déclenche l'autre.
+    <div className="relative flex flex-col gap-1.5 max-w-[280px]">
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={onClick}
-        className="flex items-center gap-3 bg-asgard-surface-alt rounded-xl px-3 py-2.5 hover:bg-asgard-surface-alt transition-colors"
+        className={cn(
+          'flex items-center gap-3 bg-asgard-surface-alt rounded-xl px-3 py-2.5 hover:bg-asgard-surface-alt transition-colors',
+          showSave && 'pr-12'
+        )}
       >
         <div className="w-10 h-10 rounded-lg bg-asgard-nordic/20 flex items-center justify-center flex-shrink-0">
           <span className="text-xs font-bold text-asgard-glacier">{ext}</span>
         </div>
         <div className="flex-1 min-w-0 text-left">
           <p className="text-sm text-asgard-text-primary truncate">{attachment.name}</p>
-          <p className="text-xs text-asgard-text-muted">
-            {isIndeterminate
+          <p className={cn('text-xs', attachment.failed ? 'text-asgard-busy' : 'text-asgard-text-muted')}>
+            {attachment.failed
+              ? t('chat.downloadFailed')
+              : isIndeterminate
               ? `${formatSize(attachment.size)} — ${t('chat.receiving')}`
               : isTransferring
               ? `${formatSize(attachment.size)} — ${progress}%`
@@ -914,15 +1104,22 @@ const DocumentAttachment: React.FC<{
           )}
         </div>
         {loading && <div className="w-4 h-4 border-2 border-asgard-glacier border-t-transparent rounded-full animate-spin flex-shrink-0" />}
+        {attachment.failed && (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy flex-shrink-0">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+        )}
         {error && (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy flex-shrink-0">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
           </svg>
         )}
-        {attachment.blobKey && !loading && !isTransferring && (
-          <SaveButton onClick={onSave} />
-        )}
       </motion.button>
+      {showSave && (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <SaveButton onClick={onSave} />
+        </div>
+      )}
     </div>
   )
 }

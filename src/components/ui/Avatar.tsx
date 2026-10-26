@@ -20,6 +20,9 @@ interface AvatarProps {
   className?: string
   onClick?: () => void
   onUpload?: (dataUrl: string) => void
+  /** Pourquoi la photo choisie n'a pas pu être lue — sans destinataire,
+   *  l'utilisateur voyait son clic ne rien faire. */
+  onUploadError?: (reason: 'tooLarge' | 'readFailed') => void
   editable?: boolean
   lazy?: boolean
   /** Ring around avatar (like Instagram stories) */
@@ -146,6 +149,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   className,
   onClick,
   onUpload,
+  onUploadError,
   editable = false,
   lazy = true,
   ring,
@@ -183,7 +187,10 @@ export const Avatar: React.FC<AvatarProps> = ({
     input.onchange = async (ev) => {
       const file = (ev.target as HTMLInputElement).files?.[0]
       if (!file) return
-      if (file.size > 10 * 1024 * 1024) return // 10MB max
+      if (file.size > 10 * 1024 * 1024) {
+        onUploadError?.('tooLarge')
+        return
+      }
       try {
         // OPTIMIZATION: Compress to WebP for efficient P2P transmission
         const compressed = await compressAvatarToWebP(file)
@@ -193,7 +200,9 @@ export const Avatar: React.FC<AvatarProps> = ({
         const reader = new FileReader()
         reader.onload = () => {
           if (typeof reader.result === 'string') onUpload(reader.result)
+          else onUploadError?.('readFailed')
         }
+        reader.onerror = () => onUploadError?.('readFailed')
         reader.readAsDataURL(file)
       }
     }
@@ -226,7 +235,9 @@ export const Avatar: React.FC<AvatarProps> = ({
         {showImage ? (
           <img
             src={src}
-            alt={name ?? 'Avatar'}
+            // Sans nom, l'image ne porte aucune information : un texte de repli
+            // anglais (« Avatar ») n'aidait personne et restait non traduit.
+            alt={name ?? ''}
             className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
@@ -267,7 +278,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       {editable && (
         <button
           onClick={handleUploadClick}
-          className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-full"
+          className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded-full"
           aria-label={t('avatar.uploadPhoto')}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
@@ -357,6 +368,9 @@ export const AvatarCropDialog: React.FC<AvatarCropDialogProps> = ({
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [imgSize, setImgSize] = useState({ width: 0, height: 0 })
+  // Le curseur de taille se règle à la souris et au clavier : sans liaison avec
+  // son <label>, un lecteur d'écran n'annonce qu'une glissière sans nom.
+  const sliderId = React.useId()
 
   useEffect(() => {
     const img = new Image()
@@ -471,10 +485,11 @@ export const AvatarCropDialog: React.FC<AvatarCropDialogProps> = ({
 
         {/* Size slider */}
         <div className="mb-4">
-          <label className="text-sm text-asgard-text-secondary block mb-2">
+          <label htmlFor={sliderId} className="text-sm text-asgard-text-secondary block mb-2">
             {t('avatar.size')}
           </label>
           <input
+            id={sliderId}
             type="range"
             min={50}
             max={Math.min(imgSize.width, imgSize.height)}
@@ -526,6 +541,7 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
   memberAvatars = [],
   className,
 }) => {
+  const { t } = useTranslation()
   const sizeConfig = sizes[size]
   const initials = getInitials(name)
   const seed = name ?? 'group'
@@ -543,7 +559,9 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
         >
           <img
             src={src}
-            alt={name ?? 'Group'}
+            // Le repli d'un groupe sans nom est déjà traduit pour la recherche :
+            // même intention, même catalogue.
+            alt={name ?? t('search.groupFallback')}
             className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
@@ -582,7 +600,7 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
                 {member.src ? (
                   <img
                     src={member.src}
-                    alt={member.name ?? 'Member'}
+                    alt={member.name ?? t('common.member')}
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />

@@ -4,6 +4,8 @@ import { useUIStore } from '@/stores/uiStore'
 import { groupService } from '@/services/GroupService'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 import { useTranslation } from 'react-i18next'
 
 interface CreateGroupModalProps {
@@ -21,6 +23,12 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
   const [isPublic, setIsPublic] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const addToast = useUIStore((s) => s.addToast)
+  const dialogRef = useDialogBehavior(onClose)
+  // La touche réglée referme ce dialogue comme celui des autres : le bouton qui
+  // fait le même geste le dit.
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
+  const descriptionId = React.useId()
+  const publicGroupLabelId = React.useId()
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -54,10 +62,15 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('groups.createGroup')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal focus:outline-none"
       >
         <h3 className="text-lg font-semibold text-asgard-text-primary mb-1">{t('groups.createGroup')}</h3>
         <p className="text-sm text-asgard-text-muted mb-5">
@@ -74,10 +87,11 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
             autoFocus
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-asgard-text-secondary">
+            <label htmlFor={descriptionId} className="text-sm font-medium text-asgard-text-secondary">
               {t('groups.descriptionOptional')}
             </label>
             <textarea
+              id={descriptionId}
               className="asgard-input w-full p-3 text-sm resize-none"
               placeholder={t('groups.descriptionPlaceholder')}
               value={description}
@@ -90,7 +104,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
           {/* Privacy toggle */}
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium text-asgard-text-primary">{t('groups.publicGroup')}</p>
+              <p id={publicGroupLabelId} className="text-sm font-medium text-asgard-text-primary">{t('groups.publicGroup')}</p>
               <p className="text-xs text-asgard-text-muted">
                 {t('groups.publicGroupHint')}
               </p>
@@ -98,6 +112,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
             <button
               role="switch"
               aria-checked={isPublic}
+              aria-labelledby={publicGroupLabelId}
               onClick={() => setIsPublic(!isPublic)}
               className={`relative w-11 h-6 rounded-full transition-colors ${
                 isPublic ? 'bg-asgard-glacier' : 'bg-asgard-surface-alt'
@@ -113,7 +128,13 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose }) =
         </div>
 
         <div className="flex gap-3 mt-6">
-          <Button variant="ghost" fullWidth onClick={onClose}>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={onClose}
+            title={cancelGesture.title}
+            aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
+          >
             {t('common.cancel')}
           </Button>
           <Button fullWidth onClick={handleCreate} disabled={!name.trim()} loading={isCreating}>

@@ -1,21 +1,17 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { getCurrentLanguage } from '@/i18n/config'
+import { trimUrlEnd } from '@/utils/url'
+import type { Message } from '@/types'
 
-/**
- * LinksPanel — shows all links shared in the active conversation.
- */
-export const LinksPanel: React.FC = () => {
-  const { t } = useTranslation()
-  const activeConversationId = useConversationStore((s) => s.activeConversationId)
-  const getMessages = useMessageStore((s) => s.getMessages)
+/** Référence stable pour une conversation encore vide (évite un rendu par lecture). */
+const NO_MESSAGES: Message[] = []
 
-  const messages = activeConversationId ? getMessages(activeConversationId) : []
-
-  // Extract URLs from messages
+/** Extract URLs from messages, most recent first, deduplicated. */
+const collectLinks = (messages: Message[]) => {
   const urlRegex = /https?:\/\/[^\s<]+/g
   const links: { url: string; timestamp: number; senderId: string }[] = []
 
@@ -23,22 +19,35 @@ export const LinksPanel: React.FC = () => {
     if (msg.deleted) continue
     const matches = msg.content.match(urlRegex)
     if (matches) {
-      for (const url of matches) {
-        links.push({ url, timestamp: msg.timestamp, senderId: msg.senderId })
+      for (const match of matches) {
+        const url = trimUrlEnd(match)
+        if (url) links.push({ url, timestamp: msg.timestamp, senderId: msg.senderId })
       }
     }
   }
 
-  // Sort by most recent first
   links.sort((a, b) => b.timestamp - a.timestamp)
 
-  // Deduplicate URLs
   const seen = new Set<string>()
-  const uniqueLinks = links.filter((l) => {
+  return links.filter((l) => {
     if (seen.has(l.url)) return false
     seen.add(l.url)
     return true
   })
+}
+
+/**
+ * LinksPanel — shows all links shared in the active conversation.
+ */
+export const LinksPanel: React.FC = () => {
+  const { t } = useTranslation()
+  const activeConversationId = useConversationStore((s) => s.activeConversationId)
+  // S'abonner à la LISTE (pas à getMessages, dont la référence ne change jamais) :
+  // sans cela le panneau reste figé aux liens présents à l'ouverture.
+  const messages = useMessageStore((s) => (
+    activeConversationId ? s.messages[activeConversationId] ?? NO_MESSAGES : NO_MESSAGES
+  ))
+  const uniqueLinks = useMemo(() => collectLinks(messages), [messages])
 
   return (
     <motion.div

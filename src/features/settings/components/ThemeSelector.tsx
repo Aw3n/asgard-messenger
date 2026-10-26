@@ -18,6 +18,7 @@ export const ThemeSelector: React.FC = () => {
   const presets = getThemePresets()
   const customTheme = settings.customTheme
   const [showCustomEditor, setShowCustomEditor] = useState(false)
+  const borderRadiusId = React.useId()
 
   const handleSelect = (preset: ThemePreset) => {
     applyThemePreset(preset)
@@ -28,6 +29,15 @@ export const ThemeSelector: React.FC = () => {
       customTheme: {
         ...customTheme,
         enabled: !customTheme.enabled,
+      },
+    })
+  }
+
+  const handleToggleGradient = () => {
+    updateSettings({
+      customTheme: {
+        ...customTheme,
+        useGradient: !customTheme.useGradient,
       },
     })
   }
@@ -126,6 +136,9 @@ export const ThemeSelector: React.FC = () => {
           </div>
           <button
             onClick={handleToggleCustom}
+            role="switch"
+            aria-checked={customTheme.enabled}
+            aria-label={t('settings.customColors')}
             className={cn(
               'relative w-12 h-6 rounded-full transition-colors',
               customTheme.enabled ? 'bg-asgard-glacier' : 'bg-asgard-border'
@@ -133,6 +146,34 @@ export const ThemeSelector: React.FC = () => {
           >
             <motion.div
               animate={{ x: customTheme.enabled ? 24 : 2 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className="absolute top-1 w-4 h-4 rounded-full bg-white"
+            />
+          </button>
+        </div>
+
+        {/* Gradient switch — hors du bloc « couleurs personnalisées » : il décide
+            du remplissage des bulles et des boutons primaires dans TOUS les
+            thèmes, preset compris. */}
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className="text-sm font-medium text-asgard-text-primary">{t('settings.useGradient')}</p>
+            <p className="text-xs text-asgard-text-muted">
+              {t('settings.useGradientDesc')}
+            </p>
+          </div>
+          <button
+            onClick={handleToggleGradient}
+            role="switch"
+            aria-checked={customTheme.useGradient}
+            aria-label={t('settings.useGradient')}
+            className={cn(
+              'relative w-12 h-6 rounded-full transition-colors',
+              customTheme.useGradient ? 'bg-asgard-glacier' : 'bg-asgard-border'
+            )}
+          >
+            <motion.div
+              animate={{ x: customTheme.useGradient ? 24 : 2 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               className="absolute top-1 w-4 h-4 rounded-full bg-white"
             />
@@ -201,10 +242,11 @@ export const ThemeSelector: React.FC = () => {
 
                 {/* Border Radius */}
                 <div>
-                  <label className="text-xs font-medium text-asgard-text-secondary block mb-2">
+                  <label htmlFor={borderRadiusId} className="text-xs font-medium text-asgard-text-secondary block mb-2">
                     {t('settings.borderRadius')}: {customTheme.borderRadius}px
                   </label>
                   <input
+                    id={borderRadiusId}
                     type="range"
                     min="0"
                     max="24"
@@ -230,7 +272,7 @@ export const ThemeSelector: React.FC = () => {
                 : "M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"
               }/>
             </svg>
-             {showCustomEditor ? t('common.hide') : t('common.show')} {t('settings.colorEditor').toLowerCase()}
+             {t(showCustomEditor ? 'settings.hideColorEditor' : 'settings.showColorEditor')}
           </button>
         )}
       </div>
@@ -247,18 +289,25 @@ interface ColorPickerProps {
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange }) => {
+  // Deux contrôles pour une seule valeur — le pastil et le code tapé. Un
+  // htmlFor ne peut en désigner qu'un : le titre nomme le groupe, chacun des
+  // deux champs reprend le même libellé pour rester annoncé seul.
+  const groupLabelId = React.useId()
+
   return (
     <div className="flex items-center justify-between">
-      <label className="text-xs font-medium text-asgard-text-secondary">{label}</label>
-      <div className="flex items-center gap-2">
+      <p id={groupLabelId} className="text-xs font-medium text-asgard-text-secondary">{label}</p>
+      <div role="group" aria-labelledby={groupLabelId} className="flex items-center gap-2">
         <input
           type="color"
+          aria-label={label}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-8 h-8 rounded-lg border border-asgard-border cursor-pointer"
         />
         <input
           type="text"
+          aria-label={label}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-20 px-2 py-1 text-xs bg-asgard-surface border border-asgard-border rounded text-asgard-text-primary"

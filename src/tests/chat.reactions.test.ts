@@ -17,7 +17,7 @@
  * Comme pour `chat.presence.routes.test.ts`, on passe par le bus réel
  * (`p2pService.emit`) et par le `initialize()` de production.
  */
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
 import { p2pService } from '@/services/P2PService'
 import { chatService } from '@/services/ChatService'
 import { cryptoService } from '@/services/CryptoService'
@@ -64,6 +64,12 @@ beforeAll(() => {
   chatService.initialize()
 })
 
+// findDmMessage() dérive la conversation à partir de mon identité : sans elle,
+// aucune réaction entrante ne peut être rattachée à un message.
+beforeEach(() => {
+  useIdentityStore.setState({ identity: fakeIdentity })
+})
+
 afterEach(() => {
   useMessageStore.setState({ messages: {}, loading: {}, hasMore: {}, pending: {} })
   useIdentityStore.setState({ identity: null })
@@ -99,9 +105,8 @@ describe('réaction reçue du pair', () => {
   })
 
   it('ne fait rien sur un message inconnu, sans lever', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     dispatch('chat:reaction', { messageId: 'msg-inconnu', conversationId: 'x', emoji: '👍', action: 'add' }, PEER_PK)
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('chat:reaction'))
+    expect(useMessageStore.getState().messages).toEqual({})
   })
 })
 

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useIdentityStore } from '@/stores/identityStore'
@@ -6,12 +7,16 @@ import { useUIStore } from '@/stores/uiStore'
 import { useNetworkStore } from '@/stores/networkStore'
 import { Avatar, compressAvatarToWebP } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { QRCodeModal } from '@/features/contacts/components/QRCodeModal'
 import { mediaDeviceService, type MediaDeviceInfo } from '@/services/MediaDeviceService'
 import { SUPPORTED_LANGUAGES, changeLanguage, getCurrentLanguage } from '@/i18n/config'
 import { PRESENCE_CHOICES, presenceMeta } from '@/utils/presence'
+import { isQuietNow } from '@/utils/quietHours'
+import { copyToClipboard } from '@/utils/clipboard'
 import { TrashManager } from './components/TrashManager'
+import { ShortcutsManager } from './components/ShortcutsManager'
 import { ThemeSelector } from './components/ThemeSelector'
 import { DownloadHistory } from './components/DownloadHistory'
 import { ShareLinksManager } from './components/ShareLinksManager'
@@ -20,13 +25,30 @@ import { BlockedPeersManager } from './components/BlockedPeersManager'
 import { PageTransition } from '@/components/ui/PageTransition'
 import type { Theme, UserStatus } from '@/types'
 
-type SettingsSection = 'profile' | 'appearance' | 'language' | 'notifications' | 'privacy' | 'security' | 'network' | 'devices' | 'storage' | 'chat' | 'media' | 'accessibility' | 'about'
+type SettingsSection = 'profile' | 'appearance' | 'language' | 'notifications' | 'privacy' | 'security' | 'network' | 'devices' | 'storage' | 'chat' | 'media' | 'accessibility' | 'shortcuts' | 'about'
+
+const SECTION_IDS = [
+  'profile', 'appearance', 'language', 'chat', 'media', 'notifications', 'privacy',
+  'security', 'accessibility', 'shortcuts', 'network', 'devices', 'storage', 'about',
+] as const satisfies readonly SettingsSection[]
+
+/** La section demandée par l'URL, `profile` sinon — une valeur inconnue ne doit pas rendre une page vide. */
+function sectionFromParam(raw: string | null): SettingsSection {
+  return (SECTION_IDS as readonly string[]).includes(raw ?? '') ? (raw as SettingsSection) : 'profile'
+}
 
 /**
  * SettingsPage — full settings panel with multiple sections.
+ *
+ * La section ouverte est portée par l'URL (`/settings?section=notifications`) :
+ * un lien de réglages est donc atteignable depuis l'extérieur, et le raccourci
+ * `openProfile` peut viser sa propre section au lieu de retomber toujours sur
+ * la première.
  */
 export const SettingsPage: React.FC = () => {
-  const [section, setSection] = useState<SettingsSection>('profile')
+  const [params, setParams] = useSearchParams()
+  const section = sectionFromParam(params.get('section'))
+  const setSection = (next: SettingsSection) => setParams({ section: next }, { replace: true })
   const { t } = useTranslation()
 
   const sections: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
@@ -39,6 +61,7 @@ export const SettingsPage: React.FC = () => {
     { id: 'privacy', label: t('settings.privacy'), icon: <PrivacyIcon /> },
     { id: 'security', label: t('settings.security'), icon: <SecurityIcon /> },
     { id: 'accessibility', label: t('settings.accessibility'), icon: <AccessibilityIcon /> },
+    { id: 'shortcuts', label: t('settings.shortcuts'), icon: <ShortcutsIcon /> },
     { id: 'network', label: t('settings.network'), icon: <NetworkIcon /> },
     { id: 'devices', label: t('settings.devices'), icon: <DevicesIcon /> },
     { id: 'storage', label: t('settings.storage'), icon: <StorageIcon /> },
@@ -58,6 +81,7 @@ export const SettingsPage: React.FC = () => {
             <button
               key={s.id}
               onClick={() => setSection(s.id)}
+              aria-current={section === s.id ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
                 section === s.id
                   ? 'bg-asgard-nordic/30 text-asgard-glacier'
@@ -91,6 +115,7 @@ export const SettingsPage: React.FC = () => {
             {section === 'privacy' && <PrivacySection />}
             {section === 'security' && <SecuritySection />}
             {section === 'accessibility' && <AccessibilitySection />}
+            {section === 'shortcuts' && <ShortcutsSection />}
             {section === 'network' && <NetworkSection />}
             {section === 'devices' && <DevicesSection />}
             {section === 'storage' && <StorageSection />}
@@ -115,19 +140,29 @@ const ProfileSection: React.FC = () => {
   // Status from store (live, not local state)
   const currentStatus = identity?.profile.status ?? 'online'
   const [showQR, setShowQR] = useState(false)
+  const statusGroupId = React.useId()
+  const customStatusId = React.useId()
+  const aboutId = React.useId()
 
   const handleSave = async () => {
-    await updateProfile({ 
+    const saved = await updateProfile({ 
       displayName: name.trim(), 
       about: about.trim() || undefined,
       customStatus: customStatus.trim() || undefined,
     })
-    addToast({ type: 'success', title: t('settings.profileSaved') })
+    addToast({
+      type: saved ? 'success' : 'error',
+      title: saved ? t('settings.profileSaved') : t('settings.profileSaveFailed'),
+    })
   }
 
   // CRITICAL FIX: Status change is instant — no need to click Save
   const handleStatusChange = async (newStatus: UserStatus) => {
-    await storeSetStatus(newStatus)
+    const saved = await storeSetStatus(newStatus)
+    if (!saved) {
+      addToast({ type: 'error', title: t('settings.profileSaveFailed') })
+      return
+    }
     addToast({
       type: 'success',
       title: `${t('settings.status')}: ${t(presenceMeta(newStatus).labelKey)}`,
@@ -150,8 +185,11 @@ const ProfileSection: React.FC = () => {
       try {
         // OPTIMIZATION: Compress to WebP for ~30% smaller P2P transmission
         const compressedDataUrl = await compressAvatarToWebP(file)
-        await updateProfile({ avatar: compressedDataUrl })
-        addToast({ type: 'success', title: t('settings.avatarUpdated') })
+        const saved = await updateProfile({ avatar: compressedDataUrl })
+        addToast({
+          type: saved ? 'success' : 'error',
+          title: saved ? t('settings.avatarUpdated') : t('settings.profileSaveFailed'),
+        })
       } catch {
         addToast({ type: 'error', title: t('settings.uploadFailed'), message: t('settings.couldNotProcess') })
       }
@@ -160,8 +198,20 @@ const ProfileSection: React.FC = () => {
   }
 
   const handleAvatarRemove = async () => {
-    await updateProfile({ avatar: undefined })
-    addToast({ type: 'success', title: t('settings.avatarRemoved') })
+    const saved = await updateProfile({ avatar: undefined })
+    addToast({
+      type: saved ? 'success' : 'error',
+      title: saved ? t('settings.avatarRemoved') : t('settings.profileSaveFailed'),
+    })
+  }
+
+  const handleCopyPublicKey = async () => {
+    if (!identity?.keyPair.publicKey) return
+    if (!(await copyToClipboard(identity.keyPair.publicKey))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
+    addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
   }
 
   // Les quatre choix viennent de src/utils/presence.ts : la page Contacts propose
@@ -194,12 +244,15 @@ const ProfileSection: React.FC = () => {
 
         {/* Status selector */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.status')}</label>
-          <div className="flex gap-2 flex-wrap">
+          {/* Un <label> détaché d'un champ ne nomme rien : le titre d'un groupe
+              de boutons se porte par aria-labelledby sur le groupe. */}
+          <p id={statusGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.status')}</p>
+          <div role="group" aria-labelledby={statusGroupId} className="flex gap-2 flex-wrap">
             {statusOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => handleStatusChange(opt.value)}
+                aria-pressed={currentStatus === opt.value}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition-colors ${
                   currentStatus === opt.value
                     ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -216,8 +269,9 @@ const ProfileSection: React.FC = () => {
 
         {/* Custom status message */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-1.5">{t('settings.customStatus')}</label>
+          <label htmlFor={customStatusId} className="text-sm font-medium text-asgard-text-secondary block mb-1.5">{t('settings.customStatus')}</label>
           <input
+            id={customStatusId}
             type="text"
             className="asgard-input w-full p-3 text-sm"
             value={customStatus}
@@ -236,8 +290,9 @@ const ProfileSection: React.FC = () => {
         />
 
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-1.5">{t('settings.about')}</label>
+          <label htmlFor={aboutId} className="text-sm font-medium text-asgard-text-secondary block mb-1.5">{t('settings.about')}</label>
           <textarea
+            id={aboutId}
             className="asgard-input w-full p-3 text-sm resize-none"
             value={about}
             onChange={(e) => setAbout(e.target.value)}
@@ -257,9 +312,7 @@ const ProfileSection: React.FC = () => {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(identity?.keyPair.publicKey ?? '')
-              }}
+              onClick={handleCopyPublicKey}
             >
               {t('common.copy')}
             </Button>
@@ -284,8 +337,13 @@ const LanguageSection: React.FC = () => {
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage())
   const addToast = useUIStore((s) => s.addToast)
 
-  const handleLanguageChange = (lang: string) => {
-    changeLanguage(lang)
+  const handleLanguageChange = async (lang: string) => {
+    // Un catalogue qui n'arrive pas laissait pourtant « Langue modifiée » à
+    // l'écran alors que rien n'avait bougé.
+    if (!(await changeLanguage(lang))) {
+      addToast({ type: 'error', title: t('settings.languageChangeFailed') })
+      return
+    }
     setCurrentLang(lang)
     addToast({ type: 'success', title: t('settings.languageChanged'), duration: 2000 })
   }
@@ -351,6 +409,8 @@ const FONT_SIZE_CHOICES = [
 const AppearanceSection: React.FC = () => {
   const { theme, setTheme, settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
+  const themeGroupId = React.useId()
+  const fontSizeGroupId = React.useId()
 
   return (
     <div>
@@ -358,12 +418,13 @@ const AppearanceSection: React.FC = () => {
       <div className="space-y-6">
         {/* Theme */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.theme')}</label>
-          <div className="flex gap-3">
+          <p id={themeGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.theme')}</p>
+          <div role="group" aria-labelledby={themeGroupId} className="flex gap-3">
             {THEME_CHOICES.map(({ id, labelKey }) => (
               <button
                 key={id}
                 onClick={() => setTheme(id)}
+                aria-pressed={theme === id}
                 className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${
                   theme === id
                     ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -381,12 +442,13 @@ const AppearanceSection: React.FC = () => {
 
         {/* Font size */}
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.fontSize')}</label>
-          <div className="flex gap-3">
+          <p id={fontSizeGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">{t('settings.fontSize')}</p>
+          <div role="group" aria-labelledby={fontSizeGroupId} className="flex gap-3">
             {FONT_SIZE_CHOICES.map(({ id, labelKey }) => (
               <button
                 key={id}
                 onClick={() => updateSettings({ fontSize: id })}
+                aria-pressed={settings.fontSize === id}
                 className={`flex-1 py-2 rounded-xl border text-sm transition-colors ${
                   settings.fontSize === id
                     ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -409,6 +471,8 @@ const NotificationsSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
   const notif = settings.notifications
+  const quietFromId = React.useId()
+  const quietToId = React.useId()
 
 return (
       <div>
@@ -446,6 +510,46 @@ return (
             checked={notif.dndMode}
             onChange={(v) => updateSettings({ notifications: { ...notif, dndMode: v } })}
           />
+          <ToggleRow
+            label={t('settings.scheduledDnd')}
+            description={t('settings.scheduledDndDesc')}
+            checked={notif.scheduledDnd ?? false}
+            onChange={(v) => updateSettings({ notifications: { ...notif, scheduledDnd: v } })}
+            disabled={!notif.enabled}
+          />
+          <div className="flex flex-wrap items-end gap-4 pl-0.5">
+            <div>
+              <label htmlFor={quietFromId} className="text-xs text-asgard-text-secondary block mb-1">
+                {t('settings.scheduledDndFrom')}
+              </label>
+              <input
+                id={quietFromId}
+                type="time"
+                value={notif.dndFrom ?? ''}
+                disabled={!notif.enabled || !(notif.scheduledDnd ?? false)}
+                onChange={(e) => updateSettings({ notifications: { ...notif, dndFrom: e.target.value } })}
+                className="rounded-lg border border-asgard-border bg-asgard-surface px-2 py-1 text-sm text-asgard-text-primary disabled:opacity-50"
+              />
+            </div>
+            <div>
+              <label htmlFor={quietToId} className="text-xs text-asgard-text-secondary block mb-1">
+                {t('settings.scheduledDndTo')}
+              </label>
+              <input
+                id={quietToId}
+                type="time"
+                value={notif.dndTo ?? ''}
+                disabled={!notif.enabled || !(notif.scheduledDnd ?? false)}
+                onChange={(e) => updateSettings({ notifications: { ...notif, dndTo: e.target.value } })}
+                className="rounded-lg border border-asgard-border bg-asgard-surface px-2 py-1 text-sm text-asgard-text-primary disabled:opacity-50"
+              />
+            </div>
+            {/* Le calendrier doit se lire avant d'attendre une nuit muette :
+                « réglé » et « en cours » sont deux états différents. */}
+            <p className="text-xs text-asgard-text-muted">
+              {isQuietNow(notif) ? t('settings.scheduledDndActive') : t('settings.scheduledDndInactive')}
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -500,6 +604,7 @@ return (
 const SecuritySection: React.FC = () => {
   const identity = useIdentityStore((s) => s.identity)
   const { t } = useTranslation()
+  const addToast = useUIStore((s) => s.addToast)
   const [showSeed, setShowSeed] = useState(false)
   const [copied, setCopied] = useState(false)
   const [seedPhrase, setSeedPhrase] = useState<string>('')
@@ -514,12 +619,16 @@ const SecuritySection: React.FC = () => {
       setSeedPhrase(words.join(' '))
       setShowSeed(true)
     } catch (err) {
-      console.error('Failed to generate seed phrase:', err)
+      console.error('[SecuritySection] Failed to generate seed phrase:', err)
+      addToast({ type: 'error', title: t('settings.recoveryPhraseFailed') })
     }
   }
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(seedPhrase)
+    if (!(await copyToClipboard(seedPhrase))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 3000 })
+      return
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -624,6 +733,7 @@ const ChatSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
   const chat = settings.chat
+  const densityGroupId = React.useId()
 
 return (
       <div>
@@ -674,14 +784,18 @@ return (
           />
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+            <p id={densityGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">
               {t('settings.messageDensity')}
-            </label>
-            <div className="flex gap-3">
-              {(['comfortable', 'compact', 'cozy'] as const).map((d) => (
+            </p>
+            <div role="group" aria-labelledby={densityGroupId} className="flex gap-3">
+              {/* Ordre du plus aéré au plus serré : MessageBubble donne 1,5 / 1 / 0,5
+                  de marge verticale. Placer « compact » avant « cozy » faisait
+                  croire que le troisième choix était le plus dense. */}
+              {(['comfortable', 'cozy', 'compact'] as const).map((d) => (
                 <button
                   key={d}
                   onClick={() => updateSettings({ chat: { ...chat, density: d } })}
+                  aria-pressed={chat.density === d}
                   className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
                     chat.density === d
                       ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -704,6 +818,8 @@ const MediaSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
   const media = settings.media
+  const videoQualityGroupId = React.useId()
+  const audioQualityGroupId = React.useId()
 
 return (
       <div>
@@ -747,14 +863,15 @@ return (
           />
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+            <p id={videoQualityGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">
               {t('settings.defaultVideoQuality')}
-            </label>
-            <div className="flex gap-3">
+            </p>
+            <div role="group" aria-labelledby={videoQualityGroupId} className="flex gap-3">
               {(['auto', 'low', 'medium', 'high'] as const).map((q) => (
                 <button
                   key={q}
                   onClick={() => updateSettings({ media: { ...media, videoQuality: q } })}
+                  aria-pressed={media.videoQuality === q}
                   className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
                     media.videoQuality === q
                       ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -768,14 +885,15 @@ return (
           </div>
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-3">
+            <p id={audioQualityGroupId} className="text-sm font-medium text-asgard-text-secondary block mb-3">
               {t('settings.defaultAudioQuality')}
-            </label>
-            <div className="flex gap-3">
+            </p>
+            <div role="group" aria-labelledby={audioQualityGroupId} className="flex gap-3">
               {(['low', 'medium', 'high'] as const).map((q) => (
                 <button
                   key={q}
                   onClick={() => updateSettings({ media: { ...media, audioQuality: q } })}
+                  aria-pressed={media.audioQuality === q}
                   className={`flex-1 py-2 rounded-xl border text-sm capitalize transition-colors ${
                     media.audioQuality === q
                       ? 'border-asgard-glacier bg-asgard-nordic/20 text-asgard-glacier'
@@ -844,6 +962,19 @@ return (
     )
 }
 
+// ─── Shortcuts Section ────────────────────────────────────────────────────────
+
+/** Les gestes réglés, groupés par endroit où ils se jouent. */
+const ShortcutsSection: React.FC = () => {
+  const { t } = useTranslation()
+  return (
+    <div>
+      <SectionHeader title={t('settings.shortcuts')} subtitle={t('settings.shortcutsSubtitle')} />
+      <ShortcutsManager />
+    </div>
+  )
+}
+
 // ─── Network Section ──────────────────────────────────────────────────────────
 
 const NetworkSection: React.FC = () => {
@@ -851,18 +982,26 @@ const NetworkSection: React.FC = () => {
   const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
   const net = settings.network
+  const maxPeersId = React.useId()
   const [isSuspending, setIsSuspending] = useState(false)
   const swarmSuspended = useNetworkStore((s) => s.swarmSuspended)
   const setSwarmSuspended = useNetworkStore((s) => s.setSwarmSuspended)
   const status = useNetworkStore((s) => s.status)
   const [peerScores, setPeerScores] = useState<Record<string, { latency: number; score: number }>>({})
-  const [firewallStatus, setFirewallStatus] = useState<'configured' | 'needs-admin' | 'not-configured' | 'checking'>('checking')
+  const [peerScoresUnavailable, setPeerScoresUnavailable] = useState(false)
+  const [firewallStatus, setFirewallStatus] = useState<'configured' | 'needs-admin' | 'not-configured' | 'checking' | 'unavailable'>('checking')
   const [isConfiguringFirewall, setIsConfiguringFirewall] = useState(false)
+
+  // Une lecture en panne ne prouve pas que le pare-feu bloque : elle ne dit
+  // rien. L'annoncer « non configuré » ferait croire à un état mesuré.
+  const readFirewallStatus = useCallback(() => {
+    window.asgard.firewall.getStatus().then(setFirewallStatus).catch(() => setFirewallStatus('unavailable'))
+  }, [])
 
   // Check firewall status on mount
   useEffect(() => {
-    window.asgard.firewall.getStatus().then(setFirewallStatus).catch(() => setFirewallStatus('not-configured'))
-  }, [])
+    readFirewallStatus()
+  }, [readFirewallStatus])
 
   const handleConfigureFirewall = async () => {
     setIsConfiguringFirewall(true)
@@ -890,7 +1029,14 @@ const NetworkSection: React.FC = () => {
   // Fetch peer scores periodically
   useEffect(() => {
     const fetchScores = () => {
-      window.asgard.network.getPeerScores().then(setPeerScores).catch(() => {})
+      window.asgard.network
+        .getPeerScores()
+        .then((scores) => {
+          setPeerScores(scores)
+          setPeerScoresUnavailable(false)
+        })
+        // Sans cet état, une lecture en panne ressemblait à « aucun pair ».
+        .catch(() => setPeerScoresUnavailable(true))
     }
     fetchScores()
     const interval = setInterval(fetchScores, 10000)
@@ -901,12 +1047,6 @@ const NetworkSection: React.FC = () => {
     updateSettings({ network: { ...net, maxPeers: value } })
     // Apply to the running Hyperswarm instance
     window.asgard.network.updateConfig({ maxPeers: value }).catch(console.error)
-  }
-
-  const handleRelayToggle = (value: boolean) => {
-    updateSettings({ network: { ...net, relayEnabled: value } })
-    // Apply to the running Hyperswarm instance
-    window.asgard.network.updateConfig({ relayEnabled: value }).catch(console.error)
   }
 
   const handleSuspendToggle = async () => {
@@ -921,6 +1061,7 @@ const NetworkSection: React.FC = () => {
       }
     } catch (err) {
       console.error('[NetworkSection] Failed to toggle swarm:', err)
+      addToast({ type: 'error', title: t('settings.swarmToggleFailed') })
     }
     setIsSuspending(false)
   }
@@ -928,8 +1069,10 @@ const NetworkSection: React.FC = () => {
   const handleFlush = async () => {
     try {
       await window.asgard.network.flush()
+      addToast({ type: 'success', title: t('settings.dhtFlushed'), duration: 2000 })
     } catch (err) {
       console.error('[NetworkSection] Failed to flush:', err)
+      addToast({ type: 'error', title: t('settings.flushFailed') })
     }
   }
 
@@ -961,20 +1104,29 @@ return (
                       ? t('settings.firewallConfigured')
                       : firewallStatus === 'checking'
                       ? t('settings.firewallChecking')
+                      : firewallStatus === 'unavailable'
+                      ? t('settings.firewallUnavailable')
                       : t('settings.firewallNotConfigured')}
                   </p>
                 </div>
               </div>
-              {firewallStatus !== 'configured' && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleConfigureFirewall}
-                  disabled={isConfiguringFirewall}
-                >
-                  {isConfiguringFirewall ? t('settings.firewallConfiguring') : t('settings.firewallConfigure')}
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {firewallStatus === 'unavailable' && (
+                  <Button variant="ghost" size="sm" onClick={readFirewallStatus}>
+                    {t('settings.firewallRecheck')}
+                  </Button>
+                )}
+                {firewallStatus !== 'configured' && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleConfigureFirewall}
+                    disabled={isConfiguringFirewall}
+                  >
+                    {isConfiguringFirewall ? t('settings.firewallConfiguring') : t('settings.firewallConfigure')}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1027,6 +1179,11 @@ return (
                 </div>
               </div>
             )}
+            {peerScoresUnavailable && (
+              <p className="mt-3 text-xs text-yellow-400" role="status">
+                {t('settings.peerScoresUnavailable')}
+              </p>
+            )}
             {Object.keys(peerScores).length > 0 && (
               <div className="mt-3">
                 <p className="text-xs text-asgard-text-muted mb-1">{t('settings.peerQuality')}</p>
@@ -1069,15 +1226,10 @@ return (
             </div>
           </div>
 
-          <ToggleRow
-            label={t('settings.enableRelay')}
-            description={t('settings.enableRelayDesc')}
-            checked={net.relayEnabled}
-            onChange={handleRelayToggle}
-          />
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.maxPeers')}</label>
+            <label htmlFor={maxPeersId} className="text-sm font-medium text-asgard-text-secondary block mb-2">{t('settings.maxPeers')}</label>
             <input
+              id={maxPeersId}
               type="range"
               min={4}
               max={128}
@@ -1103,20 +1255,29 @@ const StorageSection: React.FC = () => {
   const { settings, updateSettings } = useUIStore()
   const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
+  const cacheLimitId = React.useId()
+  const maxSizeId = React.useId()
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [realStorageSize, setRealStorageSize] = useState<number | null>(null)
+  const [storageSizeError, setStorageSizeError] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
   const [showShareLinks, setShowShareLinks] = useState(false)
   const [showDownloads, setShowDownloads] = useState(false)
   const [showFavorites, setShowFavorites] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   // Fetch real storage size on mount
-  useEffect(() => {
+  const loadStorageSize = useCallback(() => {
     window.asgard.storage.getSize().then((size) => {
       setRealStorageSize(size)
-    }).catch(() => {})
+      setStorageSizeError(false)
+    }).catch(() => setStorageSizeError(true))
   }, [])
+
+  useEffect(() => {
+    loadStorageSize()
+  }, [loadStorageSize])
 
   const formatBytes = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`
@@ -1167,13 +1328,36 @@ const StorageSection: React.FC = () => {
     input.click()
   }
 
-  const handleClearCache = async () => {
+  // `storage.clearAll` n'est pas un cache : c'est une remise à zéro du dossier
+  // de données (identité, contacts, groupes, messages). Le libellé et la
+  // confirmation doivent le dire, et le redémarrage qui suit aussi.
+  const handleResetAllData = async () => {
     try {
       await window.asgard.storage.clearAll()
-      addToast({ type: 'success', title: t('toast.cacheCleared') })
+      addToast({ type: 'success', title: t('toast.dataReset') })
+      // La mesure datait d'avant l'effacement : sans cette relecture, la barre
+      // restait pleine et « réinitialiser » semblait sans effet.
+      loadStorageSize()
     } catch {
-      addToast({ type: 'error', title: t('toast.failedToClearCache') })
+      addToast({ type: 'error', title: t('toast.dataResetFailed') })
     }
+  }
+
+  // Le chemin est choisi par le système, jamais tapé : un réglage inventé ne
+  // produirait qu'un échec d'écriture au premier « enregistrer ».
+  const handlePickFolder = async () => {
+    const picked = await window.asgard.dialog.pickFolder()
+    if (!picked.success) {
+      if (picked.reason === 'error') {
+        addToast({ type: 'error', title: t('settings.downloadFolder'), message: picked.message })
+      }
+      return
+    }
+    updateSettings({ storage: { ...settings.storage, downloadPath: picked.path } })
+  }
+
+  const handleResetDownloadFolder = () => {
+    updateSettings({ storage: { ...settings.storage, downloadPath: '' } })
   }
 
 return (
@@ -1194,8 +1378,52 @@ return (
               />
             </div>
             <p className="text-xs text-asgard-text-muted">
-              {realStorageSize !== null ? formatBytes(usedBytes) : '...'} {t('settings.usedOf')} {settings.storage.cacheSize} MB ({usedPercent}%)
+              {realStorageSize !== null
+                ? `${formatBytes(usedBytes)} ${t('settings.usedOf')} ${settings.storage.cacheSize} MB (${usedPercent}%)`
+                : storageSizeError
+                  ? t('settings.storageSizeUnavailable')
+                  : '...'}
             </p>
+            {storageSizeError && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStorageSizeError(false)
+                  loadStorageSize()
+                }}
+                className="mt-1 text-xs text-asgard-glacier hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-asgard-glacier/60 rounded"
+              >
+                {t('common.retry')}
+              </button>
+            )}
+            <div className="mt-4">
+              <label htmlFor={cacheLimitId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
+                {t('settings.cacheLimitLabel')}
+              </label>
+              <input
+                id={cacheLimitId}
+                type="range"
+                min={100}
+                max={5000}
+                step={100}
+                value={settings.storage.cacheSize}
+                onChange={(e) =>
+                  updateSettings({
+                    storage: { ...settings.storage, cacheSize: parseInt(e.target.value) },
+                  })
+                }
+                className="w-full accent-asgard-glacier"
+              />
+              <div className="flex justify-between text-xs text-asgard-text-muted mt-1">
+                <span>100</span>
+                <span className="text-asgard-glacier font-medium">{settings.storage.cacheSize} {t('settings.mbLimit')}</span>
+                <span>5000</span>
+              </div>
+              <p className="text-xs text-asgard-text-muted mt-2">{t('settings.cacheLimitDesc')}</p>
+              {usedPercent >= 100 && (
+                <p className="text-xs text-asgard-busy mt-2">{t('settings.cacheLimitReached', { limit: settings.storage.cacheSize })}</p>
+              )}
+            </div>
           </div>
 
           <div>
@@ -1240,6 +1468,69 @@ return (
                   })
                 }
               />
+              <ToggleRow
+                label={t('settings.documents')}
+                description={t('settings.autoDownloadDocumentsDesc')}
+                checked={settings.storage.autoDownload.documents}
+                onChange={(v) =>
+                  updateSettings({
+                    storage: {
+                      ...settings.storage,
+                      autoDownload: { ...settings.storage.autoDownload, documents: v },
+                    },
+                  })
+                }
+              />
+            </div>
+            <div className="mt-4">
+              <label htmlFor={maxSizeId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
+                {t('settings.autoDownloadMaxLabel')}
+              </label>
+              <input
+                id={maxSizeId}
+                type="range"
+                min={5}
+                max={500}
+                step={5}
+                value={settings.storage.autoDownload.maxSize ?? 50}
+                onChange={(e) =>
+                  updateSettings({
+                    storage: {
+                      ...settings.storage,
+                      autoDownload: { ...settings.storage.autoDownload, maxSize: parseInt(e.target.value) },
+                    },
+                  })
+                }
+                className="w-full accent-asgard-glacier"
+              />
+              <div className="flex justify-between text-xs text-asgard-text-muted mt-1">
+                <span>5</span>
+                <span className="text-asgard-glacier font-medium">
+                  {settings.storage.autoDownload.maxSize ?? 50} {t('settings.mbLimit')}
+                </span>
+                <span>500</span>
+              </div>
+              <p className="text-xs text-asgard-text-muted mt-2">{t('settings.autoDownloadMaxDesc')}</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-asgard-text-primary mb-2">{t('settings.downloadFolder')}</p>
+            <p
+              className={`text-xs break-all ${settings.storage.downloadPath ? 'text-asgard-text-secondary' : 'text-asgard-text-muted italic'}`}
+            >
+              {settings.storage.downloadPath || t('settings.downloadFolderNone')}
+            </p>
+            <p className="text-xs text-asgard-text-muted mt-2">{t('settings.downloadFolderDesc')}</p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Button variant="secondary" size="sm" onClick={handlePickFolder}>
+                {t('settings.downloadFolderChoose')}
+              </Button>
+              {settings.storage.downloadPath && (
+                <Button variant="ghost" size="sm" onClick={handleResetDownloadFolder}>
+                  {t('settings.downloadFolderReset')}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1309,10 +1600,10 @@ return (
             <Button
               variant="danger"
               size="sm"
-              onClick={handleClearCache}
+              onClick={() => setConfirmReset(true)}
               className="w-full"
             >
-              {t('settings.clearCache')}
+              {t('settings.resetAllData')}
             </Button>
           </div>
         </div>
@@ -1348,6 +1639,19 @@ return (
             </div>
           </div>
         )}
+
+        {confirmReset && (
+          <ConfirmDialog
+            title="settings.resetAllData"
+            warning="settings.resetAllDataWarning"
+            confirmLabel="settings.resetAllData"
+            onCancel={() => setConfirmReset(false)}
+            onConfirm={() => {
+              setConfirmReset(false)
+              void handleResetAllData()
+            }}
+          />
+        )}
       </div>
     )
 }
@@ -1364,7 +1668,13 @@ const DevicesSection: React.FC = () => {
   const [selectedCam, setSelectedCam] = useState<string>('')
   const [selectedSpeaker, setSelectedSpeaker] = useState<string>('')
   const [hasPermission, setHasPermission] = useState(false)
+  const [devicesUnavailable, setDevicesUnavailable] = useState(false)
   const [micLevel, setMicLevel] = useState(0)
+  const [micTesting, setMicTesting] = useState(false)
+  const [cameraTesting, setCameraTesting] = useState(false)
+  const micId = React.useId()
+  const camId = React.useId()
+  const speakerId = React.useId()
   const micTestRef = useRef<(() => void) | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const cameraTestRef = useRef<(() => void) | null>(null)
@@ -1378,14 +1688,19 @@ const DevicesSection: React.FC = () => {
     setSelectedCam(prefs.videoInput ?? '')
     setSelectedSpeaker(prefs.audioOutput ?? '')
     setHasPermission(mediaDeviceService.hasPermission())
+    // Une énumération ratée rend une liste vide : sans cette lecture, elle
+    // passait pour une machine sans micro ni caméra.
+    setDevicesUnavailable(mediaDeviceService.getDevicesError() !== null)
   }
 
   useEffect(() => {
     refreshDeviceList()
     // Listen for device changes
     mediaDeviceService.on('devices:changed', refreshDeviceList)
+    mediaDeviceService.on('devices:error', refreshDeviceList)
     return () => {
       mediaDeviceService.off('devices:changed', refreshDeviceList)
+      mediaDeviceService.off('devices:error', refreshDeviceList)
       // Stop any active tests
       micTestRef.current?.()
       cameraTestRef.current?.()
@@ -1406,16 +1721,36 @@ const DevicesSection: React.FC = () => {
     setSelectedMic(deviceId)
     mediaDeviceService.setPreferredDevice('audioinput', deviceId)
     addToast({ type: 'success', title: t('toast.microphoneUpdated') })
-    // Restart mic test with new device
-    micTestRef.current?.()
-    const stop = await mediaDeviceService.testMicrophone(deviceId, setMicLevel).catch(() => null)
-    micTestRef.current = stop ?? null
+    // Choisir un micro ne l'allume pas : seule une mesure déjà lancée suit le
+    // nouveau périphérique (l'ancien flux restait sinon actif, invisible).
+    if (!micTestRef.current) return
+    micTestRef.current()
+    micTestRef.current = null
+    setMicLevel(0)
+    try {
+      micTestRef.current = await mediaDeviceService.testMicrophone(deviceId, setMicLevel)
+    } catch {
+      setMicTesting(false)
+      addToast({ type: 'error', title: t('settings.microphoneTestFailed') })
+    }
   }
-
   const handleCamChange = async (deviceId: string) => {
     setSelectedCam(deviceId)
     mediaDeviceService.setPreferredDevice('videoinput', deviceId)
     addToast({ type: 'success', title: t('toast.cameraUpdated') })
+    // Même règle que le micro : l'aperçu ouvert suit le nouveau choix.
+    if (!cameraTestRef.current) return
+    cameraTestRef.current()
+    cameraTestRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+    try {
+      const { stream, stop } = await mediaDeviceService.testCamera(deviceId)
+      if (videoRef.current) videoRef.current.srcObject = stream
+      cameraTestRef.current = stop
+    } catch {
+      setCameraTesting(false)
+      addToast({ type: 'error', title: t('toast.cameraTestFailed') })
+    }
   }
 
   const handleSpeakerChange = (deviceId: string) => {
@@ -1429,11 +1764,16 @@ const DevicesSection: React.FC = () => {
       micTestRef.current()
       micTestRef.current = null
       setMicLevel(0)
+      setMicTesting(false)
       return
     }
     if (!selectedMic) return
-    const stop = await mediaDeviceService.testMicrophone(selectedMic, setMicLevel).catch(() => null)
-    micTestRef.current = stop ?? null
+    try {
+      micTestRef.current = await mediaDeviceService.testMicrophone(selectedMic, setMicLevel)
+      setMicTesting(true)
+    } catch {
+      addToast({ type: 'error', title: t('settings.microphoneTestFailed') })
+    }
   }
 
   const handleTestCamera = async () => {
@@ -1441,6 +1781,7 @@ const DevicesSection: React.FC = () => {
       cameraTestRef.current()
       cameraTestRef.current = null
       if (videoRef.current) videoRef.current.srcObject = null
+      setCameraTesting(false)
       return
     }
     if (!selectedCam) return
@@ -1448,6 +1789,8 @@ const DevicesSection: React.FC = () => {
       const { stream, stop } = await mediaDeviceService.testCamera(selectedCam)
       if (videoRef.current) videoRef.current.srcObject = stream
       cameraTestRef.current = stop
+      // L'aperçu était piloté par une ref : aucun rendu ne le montrait jamais.
+      setCameraTesting(true)
     } catch {
       addToast({ type: 'error', title: t('toast.cameraTestFailed') })
     }
@@ -1469,8 +1812,14 @@ return (
             </div>
           )}
 
+          {devicesUnavailable && (
+            <p className="text-xs text-yellow-400" role="status">
+              {t('settings.devicesUnavailable')}
+            </p>
+          )}
+
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+            <label htmlFor={micId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
               <span className="flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
                   <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
@@ -1479,6 +1828,7 @@ return (
               </span>
             </label>
             <select
+              id={micId}
               value={selectedMic}
               onChange={(e) => handleMicChange(e.target.value)}
               className="asgard-input w-full text-sm"
@@ -1495,7 +1845,7 @@ return (
                   onClick={handleTestMic}
                   className="text-xs text-asgard-glacier hover:underline"
                 >
-                  {micTestRef.current ? t('settings.stopTest') : t('settings.testMic')}
+                  {micTesting ? t('settings.stopTest') : t('settings.testMic')}
                 </button>
                 <div className="flex-1 h-2 bg-asgard-surface-alt rounded-full overflow-hidden">
                   <div
@@ -1511,7 +1861,7 @@ return (
           </div>
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+            <label htmlFor={camId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
               <span className="flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
                   <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
@@ -1520,6 +1870,7 @@ return (
               </span>
             </label>
             <select
+              id={camId}
               value={selectedCam}
               onChange={(e) => handleCamChange(e.target.value)}
               className="asgard-input w-full text-sm"
@@ -1536,7 +1887,7 @@ return (
                   onClick={handleTestCamera}
                   className="text-xs text-asgard-glacier hover:underline mb-2"
                 >
-                  {cameraTestRef.current ? t('settings.stopPreview') : t('settings.testCamera')}
+                  {cameraTesting ? t('settings.stopPreview') : t('settings.testCamera')}
                 </button>
                 <video
                   ref={videoRef}
@@ -1544,14 +1895,14 @@ return (
                   playsInline
                   muted
                   className="w-full max-w-xs rounded-xl border border-asgard-border bg-black"
-                  style={{ display: cameraTestRef.current ? 'block' : 'none' }}
+                  style={{ display: cameraTesting ? 'block' : 'none' }}
                 />
               </div>
             )}
           </div>
 
           <div>
-            <label className="text-sm font-medium text-asgard-text-secondary block mb-2">
+            <label htmlFor={speakerId} className="text-sm font-medium text-asgard-text-secondary block mb-2">
               <span className="flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
                   <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v8H7V4zm0 14v-4h10v4H7z"/>
@@ -1560,6 +1911,7 @@ return (
               </span>
             </label>
             <select
+              id={speakerId}
               value={selectedSpeaker}
               onChange={(e) => handleSpeakerChange(e.target.value)}
               className="asgard-input w-full text-sm"
@@ -1605,7 +1957,7 @@ const XELIS_ADDRESS = 'xel:fzete660pp676sez3cvfpjmma00xe3q5lz4f8wcm9z5kf2p6guvsq
 const AboutSection: React.FC = () => {
   const { t } = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
-  const [appVersion, setAppVersion] = useState('1.0.1')
+  const [appVersion, setAppVersion] = useState<string | null>(null)
 
   useEffect(() => {
     window.asgard?.app?.getVersion?.().then((v: string) => {
@@ -1641,7 +1993,7 @@ return (
               </div>
               <div>
                 <p className="font-semibold text-asgard-text-primary">{t('settings.appName')}</p>
-                <p className="text-sm text-asgard-text-muted">{t('settings.appVersion', { version: appVersion })}</p>
+                <p className="text-sm text-asgard-text-muted">{t('settings.appVersion', { version: appVersion ?? t('common.unknown') })}</p>
               </div>
             </div>
             <p className="text-xs text-asgard-text-muted leading-relaxed mb-4">
@@ -1688,7 +2040,7 @@ return (
           </div>
           <div className="space-y-2 text-xs text-asgard-text-muted">
             <p>{t('settings.builtWith')}</p>
-            <p>© 2026 Asgard. {t('settings.openSourceLicense')} MIT License.</p>
+            <p>© 2026 Asgard. {t('settings.openSourceLicense')}</p>
           </div>
         </div>
       </div>
@@ -1721,6 +2073,9 @@ const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, checked, onCh
     </div>
     <button
       role="switch"
+      // Le titre est un <p> côte à côte, pas un <label> : sans nom, chaque
+      // interrupteur de la page s'annonçait « commutateur » tout seul.
+      aria-label={label}
       aria-checked={checked}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
@@ -1750,4 +2105,5 @@ const AboutIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="cu
 const ChatIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
 const MediaIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
 const AccessibilityIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 6c-2.61.7-5.67 1-8.5 1s-5.89-.3-8.5-1L3 8c1.86.5 4 .83 6 1v13h2v-6h2v6h2V9c2-.17 4.14-.5 6-1l-.5-2zM12 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
+const ShortcutsIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg>
 const LanguageIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/></svg>

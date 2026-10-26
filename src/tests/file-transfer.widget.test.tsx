@@ -2,9 +2,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActiveTransfersWidget } from '@/features/chat/components/ActiveTransfersWidget'
 import { FileAttachment } from '@/features/chat/components/FileAttachment'
-import { fileService, PeerUnreachableError, SEND_DIAL_TIMEOUT_MS } from '@/services/FileService'
+import { fileService, PeerUnreachableError, SEND_DIAL_TIMEOUT_MS, TransferCancelledError } from '@/services/FileService'
 import { p2pService } from '@/services/P2PService'
 import { storageService } from '@/services/StorageService'
+import { useMessageStore } from '@/stores/messageStore'
+import { useUIStore } from '@/stores/uiStore'
+import { translations } from '@/i18n/translations'
 import type { MessageAttachment } from '@/types'
 import type { ProtocolMessage } from '@/types/network'
 
@@ -31,9 +34,17 @@ beforeEach(() => {
   vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
   vi.spyOn(fileService, 'compressForNetwork').mockImplementation(async file => file)
   vi.spyOn(storageService, 'putBlob').mockResolvedValue('test-blob')
+  vi.spyOn(storageService, 'saveMessage').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'sendMessage').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'sendFileDataBatch').mockResolvedValue(undefined)
   vi.spyOn(p2pService, 'isPeerConnected').mockReturnValue(true)
+  // initialize() est appelé par plusieurs cas et empile ses handlers sur le
+  // singleton eventemitter3 : sans purge, un chunk émis serait traité N fois et
+  // le buffer se complèterait à tort. En production p2pService.destroy() purge
+  // tout au changement d'identité — on rétablit le même état ici.
+  for (const event of ['message:file:transfer', 'message:file:complete', 'message:file:cancel', 'file:data', 'media:data']) {
+    p2pService.removeAllListeners(event)
+  }
 })
 
 afterEach(() => {
@@ -58,6 +69,10 @@ describe('widget de transfert vidéo', () => {
     expect(screen.getByText('video.mp4')).toBeInTheDocument()
     expect(screen.getByText('chat.sendingFile')).toBeInTheDocument()
     expect(fileService.getTransfers()[0].progress).toBe(0)
+    // La barre porte la valeur pour un lecteur d'écran, pas seulement sa largeur.
+    const bar = screen.getByRole('progressbar', { name: 'video.mp4' })
+    expect(bar).toHaveAttribute('aria-valuenow', '0')
+    expect(bar).toHaveAttribute('aria-valuemax', '100')
     expect(p2pService.sendFileDataBatch).not.toHaveBeenCalled()
 
     await act(async () => { compression.resolve(video('video.webm')) })
@@ -68,6 +83,7 @@ describe('widget de transfert vidéo', () => {
     await act(async () => { chunk.resolve() })
     expect(screen.getByText('video.webm')).toBeInTheDocument()
     expect(fileService.getTransfers()[0]).toMatchObject({ progress: 99, status: 'uploading' })
+    await waitFor(() => expect(screen.getByRole('progressbar', { name: 'video.webm' })).toHaveAttribute('aria-valuenow', '99'))
     await act(async () => { completion.resolve(); await sending })
     expect(screen.queryByText('chat.sendingFile')).not.toBeInTheDocument()
     expect(fileService.getTransfers()).toEqual([])
@@ -114,6 +130,9 @@ describe('widget de transfert vidéo', () => {
     })
     expect(screen.getByText('premiere.mp4')).toBeInTheDocument()
     expect(screen.getByText('seconde.mp4')).toBeInTheDocument()
+    // Deux rangs actifs : chaque bouton Annuler nomme son propre fichier.
+    expect(screen.getByRole('button', { name: 'common.cancel — premiere.mp4' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'common.cancel — seconde.mp4' })).toBeInTheDocument()
     const failed = expect(a).rejects.toThrow('déconnecté')
     await act(async () => { first.reject(new Error('déconnecté')); await failed })
     expect(screen.queryByText('premiere.mp4')).not.toBeInTheDocument()
@@ -204,10 +223,25 @@ describe('widget de transfert vidéo', () => {
     render(<ActiveTransfersWidget />)
     expect(screen.getByText('chat.receivingFile')).toBeInTheDocument()
     expect(screen.getByText('recue.mp4')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button'))
+    // Le premier bouton reste l'en-tête repliable (le rang porte désormais
+    // sa propre action Annuler).
+    const header = screen.getAllByRole('button')[0]
+    // Sans cet état, un lecteur d'écran annonçait un simple bouton et laissait
+    // ignorer que la liste pouvait être masquée.
+    expect(header).toHaveAttribute('aria-expanded', 'true')
+    const listId = header.getAttribute('aria-controls')
+    expect(listId).toBeTruthy()
+    expect(document.getElementById(listId as string)).toHaveTextContent('recue.mp4')
+    // Le chevron ne porte aucune information : son sens est déjà dans l'état.
+    expect(header.querySelector('svg[aria-hidden="true"]')).not.toBeNull()
+    fireEvent.click(header)
     await waitFor(() => expect(screen.queryByText('recue.mp4')).not.toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button'))
+    expect(header).toHaveAttribute('aria-expanded', 'false')
+    expect(document.getElementById(listId as string)).toBeNull()
+    fireEvent.click(header)
     expect(screen.getByText('recue.mp4')).toBeInTheDocument()
+    expect(header).toHaveAttribute('aria-expanded', 'true')
+    expect(document.getElementById(listId as string)).not.toBeNull()
   })
 
   it('borne la fenêtre des envois groupés sur le même chemin par lot', async () => {
@@ -373,5 +407,239 @@ describe('coalescence des notifications de transfert', () => {
     // La notification est différée d'au plus l'intervalle de coalescence.
     await waitFor(() => expect(listener).toHaveBeenCalled(), { timeout: 1000 })
     unsubscribe()
+  })
+})
+
+describe('annulation des transferts', () => {
+  it('annule un envoi 1:1 : la boucle s’arrête, le pair est prévenu, aucun file:complete', async () => {
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation(() => {
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
+    })
+    const sending = fileService.sendFile(video('annulee.mp4', 9), 'conversation', 'peer')
+    await waitFor(() => expect(batches).toHaveLength(2))
+    const id = fileService.getTransfers()[0].id
+
+    const cancelled = expect(sending).rejects.toBeInstanceOf(TransferCancelledError)
+    fileService.cancelTransfer(id)
+    // Le rang disparaît immédiatement, avant même que les lots en vol retombent.
+    expect(fileService.getTransfers()).toEqual([])
+    expect(p2pService.sendMessage).toHaveBeenCalledWith('peer', 'file:cancel', { transferId: id })
+
+    await act(async () => {
+      batches[0].resolve()
+      batches[1].resolve()
+    })
+    await cancelled
+
+    // Le troisième lot n'a jamais été cadré et le pair n'a jamais vu arriver
+    // file:complete pour un fichier tronqué.
+    expect(p2pService.sendFileDataBatch).toHaveBeenCalledTimes(2)
+    expect(p2pService.sendMessage).not.toHaveBeenCalledWith('peer', 'file:complete', expect.anything())
+    // Le tombstone est levé une fois la boucle déroulée.
+    expect(fileService.isTransferCancelled(id)).toBe(false)
+  })
+
+  it('file:cancel reçu pendant l’émission arrête les lots en cours', async () => {
+    fileService.initialize()
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation(() => {
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
+    })
+    const sending = fileService.sendFile(video('refusee.mp4', 9), 'conversation', 'peer')
+    await waitFor(() => expect(batches).toHaveLength(2))
+    const id = fileService.getTransfers()[0].id
+
+    const cancelled = expect(sending).rejects.toBeInstanceOf(TransferCancelledError)
+    p2pService.emit('message:file:cancel', {
+      id: 'cancel-1', from: 'peer', to: 'self', type: 'file:cancel', timestamp: Date.now(),
+      payload: { transferId: id },
+    } as unknown as ProtocolMessage)
+
+    expect(fileService.getTransfers()).toEqual([])
+    await act(async () => {
+      batches[0].resolve()
+      batches[1].resolve()
+    })
+    await cancelled
+
+    expect(p2pService.sendFileDataBatch).toHaveBeenCalledTimes(2)
+    expect(p2pService.sendMessage).not.toHaveBeenCalledWith('peer', 'file:complete', expect.anything())
+  })
+
+  it('annuler une réception retire la bulle « réception… » et prévient l’expéditeur', async () => {
+    fileService.initialize()
+    const from = 'pair-refus'
+    const transferId = 'recu-annule'
+    // Ciblé par ids : les tests précédents du fichier laissent des buffers et
+    // des bulles derrière eux, un comptage global mesurerait leur résidu.
+    const hasReceive = () => fileService.getActiveReceives().some((recv) => recv.transferId === transferId)
+    const countIn = () => useMessageStore.getState().messages['conversation']?.length ?? 0
+    const before = countIn()
+
+    p2pService.emit('message:file:transfer', {
+      id: 'm-refus', from, to: 'self', type: 'file:transfer', timestamp: Date.now(),
+      payload: {
+        attachment: { id: 'att-refus', type: 'video', name: 'refusee.mp4', size: 512, mimeType: 'video/mp4' },
+        conversationId: 'conversation', transferId, binary: true, totalChunks: 2,
+      },
+    } as unknown as ProtocolMessage)
+    await waitFor(() => expect(hasReceive()).toBe(true))
+    expect(countIn()).toBe(before + 1)
+
+    fileService.cancelTransfer(transferId)
+
+    expect(hasReceive()).toBe(false)
+    expect(countIn()).toBe(before)
+    expect(p2pService.sendMessage).toHaveBeenCalledWith(from, 'file:cancel', expect.objectContaining({ transferId }))
+    // Tombstone posé : les lots encore en vol ne recréeront rien.
+    expect(fileService.isTransferCancelled(transferId)).toBe(true)
+    // La metadata rejouée ne ressuscite pas de buffer non plus.
+    p2pService.emit('message:file:transfer', {
+      id: 'm-refus-2', from, to: 'self', type: 'file:transfer', timestamp: Date.now(),
+      payload: {
+        attachment: { id: 'att-refus', type: 'video', name: 'refusee.mp4', size: 512, mimeType: 'video/mp4' },
+        conversationId: 'conversation', transferId, binary: true, totalChunks: 2,
+      },
+    } as unknown as ProtocolMessage)
+    expect(hasReceive()).toBe(false)
+    expect(countIn()).toBe(before)
+  })
+
+  it('annule un envoi de groupe : chaque pair reçoit file:cancel portant l’id de groupe', () => {
+    const service = fileService as unknown as {
+      transfers: Map<string, unknown>
+      groupTransfers: Map<string, unknown>
+    }
+    service.transfers.set('groupe-annule', {
+      id: 'groupe-annule', fileName: 'vers-groupe.mp4', fileSize: 256, progress: 0,
+      status: 'uploading', type: 'video', conversationId: 'canal',
+    })
+    service.groupTransfers.set('groupe-annule', {
+      peerProgress: new Map([['pair-a', 0], ['pair-b', 0]]),
+    })
+
+    fileService.cancelTransfer('groupe-annule')
+
+    expect(fileService.getTransfers()).toEqual([])
+    expect(p2pService.sendMessage).toHaveBeenCalledWith('pair-a', 'file:cancel', { transferId: 'groupe-annule', groupTransferId: 'groupe-annule' })
+    expect(p2pService.sendMessage).toHaveBeenCalledWith('pair-b', 'file:cancel', { transferId: 'groupe-annule', groupTransferId: 'groupe-annule' })
+  })
+
+  it('le widget propose Annuler par rang et affiche transféré / total', async () => {
+    const batches: ReturnType<typeof deferred<void>>[] = []
+    vi.mocked(p2pService.sendFileDataBatch).mockImplementation(() => {
+      const batch = deferred<void>()
+      batches.push(batch)
+      return batch.promise
+    })
+    // Conversation dédiée : le widget ne montre que ce rang, hors du résidu des
+    // tests précédents du fichier.
+    render(<ActiveTransfersWidget conversationId="annulation-ui" />)
+    let sending!: ReturnType<typeof fileService.sendFile>
+    act(() => { sending = fileService.sendFile(video('a-annuler.mp4', 1), 'annulation-ui', 'peer') })
+    await waitFor(() => expect(batches).toHaveLength(1))
+    const id = fileService.getTransfers()[0].id
+
+    expect(screen.getByText('a-annuler.mp4')).toBeInTheDocument()
+    // 256 Ko d'un seul chunk, rien de transféré : le rang détaille les deux bornes.
+    expect(screen.getByText('0 B / 256.0 KB')).toBeInTheDocument()
+
+    const cancelled = expect(sending).rejects.toBeInstanceOf(TransferCancelledError)
+    fireEvent.click(screen.getByRole('button', { name: 'common.cancel — a-annuler.mp4' }))
+    await waitFor(() => expect(screen.queryByText('a-annuler.mp4')).not.toBeInTheDocument())
+    expect(p2pService.sendMessage).toHaveBeenCalledWith('peer', 'file:cancel', { transferId: id })
+
+    await act(async () => { batches[0].resolve() })
+    await cancelled
+  })
+})
+
+describe('réception incomplète', () => {
+  const from = 'pair-tronque'
+  const conversationId = 'conversation'
+
+  function frameFor(transferId: string, payload: Uint8Array): Uint8Array {
+    const idBytes = new TextEncoder().encode(transferId)
+    const out = new Uint8Array(1 + idBytes.length + payload.length)
+    out[0] = idBytes.length
+    out.set(idBytes, 1)
+    out.set(payload, 1 + idBytes.length)
+    return out
+  }
+
+  function announce(transferId: string, name: string, totalChunks: number) {
+    p2pService.emit('message:file:transfer', {
+      id: `m-${transferId}`, from, to: 'self', type: 'file:transfer', timestamp: Date.now(),
+      payload: {
+        attachment: { id: `att-${transferId}`, type: 'document', name, size: totalChunks * 256 * 1024, mimeType: 'application/octet-stream' },
+        conversationId, transferId, binary: true, totalChunks,
+      },
+    } as unknown as ProtocolMessage)
+  }
+
+  function complete(transferId: string) {
+    p2pService.emit('message:file:complete', {
+      id: `c-${transferId}`, from, to: 'self', type: 'file:complete', timestamp: Date.now(),
+      payload: { transferId },
+    } as unknown as ProtocolMessage)
+  }
+
+  const messageNamed = (name: string) =>
+    useMessageStore.getState().messages[conversationId]?.find((m) => m.attachments?.some((a) => a.name === name))
+
+  it('jette les données tronquées et marque la bulle en échec au lieu de livrer un fichier corrompu', async () => {
+    fileService.initialize()
+    const name = 'tronquee.bin'
+    const transferId = 'recu-incomplet'
+    const hasReceive = () => fileService.getActiveReceives().some((recv) => recv.transferId === transferId)
+
+    announce(transferId, name, 2)
+    await waitFor(() => expect(hasReceive()).toBe(true))
+
+    // Un seul des deux chunks arrive : le tampon restera incomplet.
+    p2pService.emit('file:data', { from, data: frameFor(transferId, new Uint8Array(256)) })
+    await waitFor(() => expect(fileService.getActiveReceives().find((r) => r.transferId === transferId)?.progress).toBe(50))
+
+    complete(transferId)
+
+    await waitFor(() => expect(hasReceive()).toBe(false))
+    // Aucun blob : le partiel n'est jamais matérialisé.
+    expect(storageService.putBlob).not.toHaveBeenCalled()
+    const message = messageNamed(name)
+    expect(message?.status).toBe('failed')
+    expect(message?.attachments?.[0]?.failed).toBe(true)
+    expect(message?.attachments?.[0]?.blobKey).toBeUndefined()
+    // L'utilisateur est prévenu avec la chaîne traduite, pas la clé brute.
+    const toasts = useUIStore.getState().toasts
+    expect(toasts.some((toast) => toast.title === translations.fr.translation['chat.downloadFailed'])).toBe(true)
+    expect(toasts.some((toast) => toast.title === 'chat.downloadFailed')).toBe(false)
+  })
+
+  it('livre le fichier quand tous les chunks sont arrivés, sans écraser l’id de la bulle', async () => {
+    fileService.initialize()
+    const name = 'intacte.bin'
+    const transferId = 'recu-complet'
+    const hasReceive = () => fileService.getActiveReceives().some((recv) => recv.transferId === transferId)
+
+    announce(transferId, name, 2)
+    await waitFor(() => expect(hasReceive()).toBe(true))
+    const placeholderId = messageNamed(name)?.id
+    expect(placeholderId).toBeDefined()
+
+    p2pService.emit('file:data', { from, data: frameFor(transferId, new Uint8Array(256)) })
+    p2pService.emit('file:data', { from, data: frameFor(transferId, new Uint8Array(256)) })
+    complete(transferId)
+
+    await waitFor(() => expect(messageNamed(name)?.status).toBe('delivered'))
+    // L'id du message reste celui de la bulle : la suppression s'appuie dessus
+    // pour retrouver la ligne en base (l'id de la pièce jointe l'écrasait).
+    const delivered = useMessageStore.getState().messages[conversationId]?.find((m) => m.id === placeholderId)
+    expect(delivered?.attachments?.[0]?.blobKey).toBe('test-blob')
+    expect(delivered?.attachments?.[0]?.failed).toBeUndefined()
   })
 })

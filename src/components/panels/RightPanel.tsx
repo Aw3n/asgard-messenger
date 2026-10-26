@@ -2,7 +2,6 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUIStore } from '@/stores/uiStore'
 import { ConversationInfoPanel } from './ConversationInfoPanel'
-import { MembersPanel } from './MembersPanel'
 import { FilesPanel } from './FilesPanel'
 import { LinksPanel } from './LinksPanel'
 import { useTranslation } from 'react-i18next'
@@ -10,7 +9,7 @@ import type { RightPanelView } from '@/types'
 
 /**
  * RightPanel — context-aware right sidebar with tabbed panels.
- * Shows info, members, files, or links depending on the active view.
+ * Shows info, files, or links for the active one-to-one conversation.
  */
 export const RightPanel: React.FC = () => {
   const { t } = useTranslation()
@@ -26,15 +25,6 @@ export const RightPanel: React.FC = () => {
       icon: (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-        </svg>
-      ),
-    },
-    {
-      view: 'members',
-      label: t('chat.members'),
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
         </svg>
       ),
     },
@@ -72,6 +62,8 @@ export const RightPanel: React.FC = () => {
           <button
             key={tab.view}
             onClick={() => setRightPanelView(tab.view)}
+            aria-label={tab.label}
+            aria-pressed={rightPanelView === tab.view}
             className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-colors border-b-2 ${
               rightPanelView === tab.view
                 ? 'text-asgard-glacier border-asgard-glacier'
@@ -85,6 +77,7 @@ export const RightPanel: React.FC = () => {
         {/* Close button */}
         <button
           onClick={() => setRightPanelView(rightPanelView)}
+          aria-label={t('common.close')}
           className="px-3 py-3 text-asgard-text-muted hover:text-asgard-text-primary transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -97,7 +90,6 @@ export const RightPanel: React.FC = () => {
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
           {rightPanelView === 'info' && <ConversationInfoPanel key="info" />}
-          {rightPanelView === 'members' && <MembersPanel key="members" />}
           {rightPanelView === 'files' && <FilesPanel key="files" />}
           {rightPanelView === 'links' && <LinksPanel key="links" />}
         </AnimatePresence>

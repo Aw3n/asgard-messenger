@@ -45,6 +45,15 @@ export class NetworkService extends EventEmitter {
   private bandwidthWindow: { up: number[]; down: number[]; timestamps: number[] } = { up: [], down: [], timestamps: [] }
   private static readonly BANDWIDTH_WINDOW_MS = 3000 // 3s sliding window
   private initialized = false
+  // DÉMARRAGE NON BLOQUANT : `setSeed()` rend la main dès que le swarm est
+  // construit et câblé. Le bootstrap DHT (~6 s mesurées) et `swarm.listen()`
+  // continuent en tâche de fond ; les dials émis entre-temps sont traités par
+  // hyperdht, mais un lookup sans nœud échoue aussitôt, donc ils sont rejoués
+  // une fois le réseau utilisable. Les topics, eux, attendent cette porte : un
+  // premier refresh qui échoue n'est reprogrammé qu'après 10 min.
+  private dhtReady = false
+  private networkReadyPromise: Promise<void> | null = null
+  private earlyDials: Map<string, boolean> = new Map() // Noise pk hex → priorité demandée
   // FERMETURE : true dès que destroy() est appelé. Les timers périodiques ne
   // doivent plus rien pousser vers l'UI : la BrowserWindow est déjà détruite à
   // ce moment-là, et un `webContents.send` sur un objet détruit lève une
@@ -94,12 +103,51 @@ export class NetworkService extends EventEmitter {
   private static readonly SWARM_DRAIN_ATTEMPTS = 4
   private lastDisplayName = ''
   private profileCache: Map<string, { data: DHTProfile; timestamp: number }> = new Map()
-  private static readonly PROFILE_CACHE_TTL_MS = 60_000 // 1 minute cache
+  // Deux boucles peuvent demander le même contact au même instant (démarrage,
+  // ouverture de conversation, refresh périodique) : un seul aller DHT partagé.
+  private profileFetchInFlight: Map<string, Promise<DHTProfile | null>> = new Map()
+  // 20 s : plus court que la boucle de refresh de 30 s, sinon chaque cycle
+  // retombait sur le cache et la présence n'était réellement relue que toutes
+  // les deux minutes.
+  private static readonly PROFILE_CACHE_TTL_MS = 20_000
+  // Un contact sans enregistrement DHT coûte 3 tentatives espacées de 1,5 s et
+  // 3 s (4,5 s d'aller-retours) à CHAQUE interrogation. Sans cache négatif, un
+  // focus de fenêtre, une ouverture de conversation et la boucle de 30 s
+  // rejouaient ces 4,5 s pour le même pair absent. 10 s : on absorbe les
+  // rafales sans retarder de plus de 10 s l'apparition d'un enregistrement
+  // fraîchement publié (le P2P, lui, reste la voie primaire).
+  private profileMissAt: Map<string, number> = new Map()
+  private static readonly PROFILE_MISS_TTL_MS = 10_000
+  // ABSENCE DE RECORD : les trois tentatives servent à laisser à un
+  // enregistrement EXISTANT le temps de se propager (pair transfrontalier).
+  // Un contact qui n'a rien publié répond `null` à chaque fois : insister ne
+  // le fait pas apparaître et coûte 4,5 s de backoff à chaque interrogation
+  // (boucle de 30 s, focus de fenêtre, retour réseau). Après deux cycles
+  // vides consécutifs — le délai de propagation est passé — une seule
+  // tentative suffit ; toute lecture réussie remet le compteur à zéro.
+  private profileMissStreak: Map<string, number> = new Map()
+  private static readonly PROFILE_MISS_RETRY_CYCLES = 2
+  // Ed25519 → Noise public key, pure dérivation : la même valeur revient à
+  // chaque reconnexion et à chaque démarrage.
+  private derivedNoiseKeys: Map<string, string> = new Map()
   // STATUS: Current user online status — extended to support all UserStatus values
   private currentStatus: 'online' | 'away' | 'offline' | 'dnd' = 'online'
   private currentStatusMessage: string | undefined
+  // DHT mutable record: dernier `seq` vérifié chez les nœuds et dernier
+  // `lastSeen` publié. Les publications périodiques les réutilisent pour
+  // écrire sans relire le record (un aller-retour DHT en moins chacune). Au
+  // shutdown, ils permettent l'écriture « offline » en UN seul mutablePut :
+  // le chemin lecture + écriture + relecture (~1,35 s mesuré) dépassait le
+  // budget de fermeture de 1,5 s et était tué par swarm.destroy() — le record
+  // restait « online » (log 21:47:31 : mutablePut « Node destroyed », seq=1
+  // car la lecture initiale avait elle aussi échoué).
+  private lastLandedSeq: number | undefined
+  private lastSeenAt: number | undefined
   // CONNECTIVITY: Network status monitoring
   private isOnline = true
+  // Une suspension demandée par l'utilisateur survit à une coupure réseau
+  // passagère : handleNetworkChange ne la défait pas dans son dos.
+  private suspendedByUser = false
   private lastNetworkChange = 0
   private reconnectAttempts: Map<string, number> = new Map() // peerId -> attempt count
   private static readonly MAX_RECONNECT_ATTEMPTS = 5
@@ -168,8 +216,16 @@ export class NetworkService extends EventEmitter {
     if (this.initialized) return
     if (this.initPromise) return this.initPromise
 
-    this.initPromise = this._doInitialize()
-    return this.initPromise
+    const attempt = this._doInitialize()
+    this.initPromise = attempt
+    try {
+      await attempt
+    } catch (err) {
+      // Un échec ne doit pas être mémorisé : sinon tout appel suivant reçoit
+      // la même promesse rejetée et le réseau reste mort jusqu'au redémarrage.
+      if (this.initPromise === attempt) this.initPromise = null
+      throw err
+    }
   }
 
   private async _doInitialize(): Promise<void> {
@@ -195,7 +251,6 @@ export class NetworkService extends EventEmitter {
         port?: number
         connectionKeepAlive?: number
         randomPunchInterval?: number
-        ephemeral?: boolean
       } = {}
 
       // Use default Pear bootstrap nodes (public DHT)
@@ -214,13 +269,12 @@ export class NetworkService extends EventEmitter {
       // Default is 20000ms. Lower value = faster hole-punch retries for cross-border.
       dhtOpts.randomPunchInterval = 5000
 
-      // NON-EPHEMERAL: Announce ourselves to the DHT as reachable servers.
-      // Per dht-rpc docs: "Nodes per default use adaptive mode to decide whether or not
-      // they want to join other nodes' routing table. Adaptive mode is conservative,
-      // so it might take ~20-30 mins for the node to turn persistent."
-      // Setting ephemeral: false bypasses adaptive mode and becomes persistent immediately
-      // (assuming open NAT). This is critical for contacts to discover us.
-      dhtOpts.ephemeral = false
+      // PAS d'`ephemeral: false`. dht-rpc documente ce drapeau pour les réseaux
+      // de test / bootstrap : « For the vast majority of use-cases you should
+      // always use adaptive mode » (le défaut). Forcer le mode persistant
+      // annonce la machine comme serveur public sans connaître son NAT et
+      // pollue les tables de routage; le passage en persistant se fait de
+      // lui-même, et l'événement 'persistent' republie déjà profil et statut.
 
       // CRITICAL: Generate deterministic keyPair from seed using HyperDHT.keyPair().
       // Per HyperDHT docs: "keyPair = DHT.keyPair([seed]) — Use this method to generate
@@ -237,15 +291,22 @@ export class NetworkService extends EventEmitter {
       }
 
       const dht = new HyperDHT(dhtOpts)
-      logMain(`[NetworkService] 🔧 HyperDHT created | bootstrap=${dhtOpts.bootstrap?.join(', ')} | ephemeral=${dhtOpts.ephemeral} | keepAlive=${dhtOpts.connectionKeepAlive}ms | punchInterval=${dhtOpts.randomPunchInterval}ms`)
+      logMain(`[NetworkService] 🔧 HyperDHT created | bootstrap=${dhtOpts.bootstrap?.join(', ')} | ephemeral=adaptive | keepAlive=${dhtOpts.connectionKeepAlive}ms | punchInterval=${dhtOpts.randomPunchInterval}ms`)
 
       const swarmOpts: {
         maxPeers: number
+        maxParallel: number
         firewall: (remotePublicKey: Buffer, remoteHandshakePayload?: unknown) => boolean
         dht: HyperDHTInstance
         keyPair?: { publicKey: Buffer; secretKey: Buffer }
       } = {
         maxPeers: 100,
+        // Hyperswarm plafonne à 3 les tentatives de connexion simultanées
+        // (maxParallel). Le démarrage lance un joinPeer par contact : au-delà de
+        // trois, la découverte attend la fin des essais précédents, y compris
+        // ceux qui échouent. 8 garde la rafale bornée tout en laissant la
+        // découverte de plusieurs contacts progresser réellement en parallèle.
+        maxParallel: 8,
         // CRITICAL FIX: Pass the deterministic DHT keyPair to Hyperswarm.
         // Per Hyperswarm source (index.js constructor): `keyPair = DHT.keyPair(seed)`
         // defaults to a RANDOM keypair when neither `keyPair` nor `seed` is passed —
@@ -326,27 +387,6 @@ export class NetworkService extends EventEmitter {
         configuredDht.on('network-change', handleNetworkChange)
       }
 
-      // CRITICAL: Wait for DHT to be fully bootstrapped before proceeding.
-      // Per dht-rpc docs: "await node.fullyBootstrapped() — Wait for the node to be fully bootstrapped etc."
-      // This ensures the routing table is populated before we try to publish/fetch.
-      logMain('[NetworkService] ⏳ Waiting for DHT to fully bootstrap...')
-      try {
-        await dht.fullyBootstrapped()
-        logMain(`[NetworkService] ✅ DHT FULLY BOOTSTRAPPED | host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'} | firewalled=${dht.firewalled ?? 'unknown'} | ephemeral=${dht.ephemeral ?? 'unknown'} | nodes=${dht.toArray?.()?.length ?? '?'}`)
-      } catch (bootstrapErr) {
-        logMain(`[NetworkService] ❌ DHT BOOTSTRAP FAILED: ${bootstrapErr instanceof Error ? bootstrapErr.message : String(bootstrapErr)}`)
-      }
-
-      // CRITICAL: Start the DHT server before any topic joins.
-      // Hyperswarm auto-calls listen() when the first topic is joined as
-      // server, but explicit ensures inbound connections are ready early.
-      try {
-        await (this.swarm as unknown as { listen: () => Promise<void> }).listen()
-        logMain(`[NetworkService] ✅ Swarm listening | DHT host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'}`)
-      } catch (err) {
-        logMain(`[NetworkService] ❌ swarm.listen() failed: ${err instanceof Error ? err.message : String(err)}`)
-      }
-
       // Handle new peer connections
       this.swarm.on('connection', (conn: PeerSocket, info: PeerInfo) => {
         const peerId = info.publicKey.toString('hex')
@@ -390,9 +430,92 @@ export class NetworkService extends EventEmitter {
       this.scoreUpdateInterval = setInterval(() => {
         this.updatePeerScores()
       }, NetworkService.SCORE_UPDATE_INTERVAL_MS)
+
+      // Bootstrap + listen hors du chemin de setSeed() : le renderer peut
+      // dialer immédiatement au lieu d'attendre ~7 s.
+      this.startNetworkReadiness(dht, this.swarm)
     } catch (err) {
       console.error('[NetworkService] Failed to initialize:', err)
+      // Une tentative ratée peut avoir créé un swarm partiel : on le referme
+      // sans passer par destroy() (qui poserait shuttingDown et interdirait
+      // toute nouvelle tentative).
+      const partial = this.swarm
+      this.swarm = null
+      if (partial) {
+        try {
+          await NetworkService.bounded(
+            partial.destroy({ force: true }),
+            NetworkService.SWARM_DESTROY_TIMEOUT_MS,
+          )
+        } catch {
+          // Instance déjà morte : rien à récupérer.
+        }
+      }
+      throw err
     }
+  }
+
+  /**
+   * Poursuit bootstrap + listen hors du chemin de `setSeed()`. Les échecs
+   * restent non fatals comme avant (loggés) ; la porte est toujours franchie
+   * pour ne pas immobiliser `join()` indéfiniment.
+   */
+  private startNetworkReadiness(dht: HyperDHTInstance, swarm: HyperswarmInstance): void {
+    const ready = (async () => {
+      // ÉCOUTE ET BOOTSTRAP EN PARALLÈLE : listen() ne dépend pas de la table
+      // de routage (l'annonceur du serveur réessaie en boucle). Mesuré sur le
+      // vrai DHT : prêt en ~3,1 s en parallèle contre ~4,6 s en série, et les
+      // topics rejoignent ensuite ~1 s plus tôt.
+      const listen = (async () => {
+        try {
+          await (swarm as unknown as { listen: () => Promise<void> }).listen()
+          logMain(`[NetworkService] ✅ Swarm listening | DHT host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'}`)
+        } catch (err) {
+          logMain(`[NetworkService] ❌ swarm.listen() failed: ${err instanceof Error ? err.message : String(err)}`)
+        }
+      })()
+
+      // CRITICAL: Wait for DHT to be fully bootstrapped before announcing topics.
+      // Per dht-rpc docs: "await node.fullyBootstrapped() — Wait for the node to be fully bootstrapped etc."
+      logMain('[NetworkService] ⏳ Waiting for DHT to fully bootstrap...')
+      try {
+        await dht.fullyBootstrapped()
+        logMain(`[NetworkService] ✅ DHT FULLY BOOTSTRAPPED | host=${dht.host ?? 'unknown'} | port=${dht.port ?? 'unknown'} | firewalled=${dht.firewalled ?? 'unknown'} | ephemeral=${dht.ephemeral ?? 'unknown'} | nodes=${dht.toArray?.()?.length ?? '?'}`)
+      } catch (bootstrapErr) {
+        logMain(`[NetworkService] ❌ DHT BOOTSTRAP FAILED: ${bootstrapErr instanceof Error ? bootstrapErr.message : String(bootstrapErr)}`)
+      }
+
+      await listen
+      this.dhtReady = true
+      if (this.swarm === swarm && !this.shuttingDown) this.replayEarlyDials()
+    })()
+    // Aucun rejet ne doit échapper : la promesse est aussi attendue par join().
+    this.networkReadyPromise = ready.catch((err: unknown) => {
+      logMain(`[NetworkService] ❌ network readiness failed: ${err instanceof Error ? err.message : String(err)}`)
+      this.dhtReady = true
+    })
+  }
+
+  private waitForNetworkReady(): Promise<void> {
+    return this.networkReadyPromise ?? Promise.resolve()
+  }
+
+  /**
+   * Les dials émis pendant le bootstrap ont pu échouer faute de nœuds dans la
+   * table de routage. Hyperswarm plafonne à 5 tentatives par pair : on les
+   * rejoue une fois le réseau utilisable, priorité conservée.
+   */
+  private replayEarlyDials(): void {
+    if (this.earlyDials.size === 0) return
+    const dials = this.earlyDials
+    this.earlyDials = new Map()
+    let replayed = 0
+    for (const [noiseKey, prioritized] of dials) {
+      if (!this.swarm) break
+      this.connectToContact(noiseKey, prioritized)
+      replayed++
+    }
+    console.log(`[NetworkService] 🔁 Replayed ${replayed} early dial(s) after DHT readiness`)
   }
 
   /**
@@ -452,10 +575,10 @@ export class NetworkService extends EventEmitter {
         // Truncate displayName to fit
         const trimmed = { displayName: displayName.slice(0, 50), timestamp: Date.now(), version: 2, status: this.currentStatus, statusMessage: this.currentStatusMessage, identityPk: this.localPublicKey || undefined }
         const trimmedValue = Buffer.from(JSON.stringify(trimmed))
-        return this.mutablePutLatest(dht, keyPair, trimmedValue)
+        return this.mutablePutLatest(dht, keyPair, trimmedValue, this.lastLandedSeq)
       }
 
-      const landed = await this.mutablePutLatest(dht, keyPair, value)
+      const landed = await this.mutablePutLatest(dht, keyPair, value, this.lastLandedSeq)
       console.log('[NetworkService] ' + (landed ? '✅' : '⚠️') + ' Profile ' + (landed ? 'published' : 'NOT published (rejeté par les nœuds DHT)') + ' to DHT:', displayName,
         '| DHT key:', keyPair.publicKey.toString('hex').slice(0, 16),
         '| status:', this.currentStatus)
@@ -492,55 +615,92 @@ export class NetworkService extends EventEmitter {
       const dht = this.getDHT()
       if (!dht) return false
 
-      // Ensure the DHT is bootstrapped before publishing status.
-      await dht.fullyBootstrapped().catch(() => {})
-
-      // First fetch existing profile to preserve displayName
       const keyPair = (this.swarm as unknown as { keyPair?: { publicKey: Buffer; secretKey: Buffer } }).keyPair
       if (!keyPair) return false
 
+      // SHUTDOWN: le budget de fermeture (1,5 s) ne finance pas lecture +
+      // écriture + relecture. Le seq étant mémorisé, un seul mutablePut suffit
+      // pour que l'état final parte avant swarm.destroy(). Non vérifié par
+      // construction — c'est la dernière chance, pas un état durable.
+      if (this.shuttingDown && this.lastLandedSeq !== undefined) {
+        const profile = this.buildDhtProfile(status, statusMessage, {})
+        const value = this.encodeProfile(profile, statusMessage)
+        const seq = this.lastLandedSeq + 1
+        logMain(`[NetworkService] 📡 DHT PUBLISH (shutdown) | status=${status} | seq=${seq} | size=${value.length} | dhtKey=${keyPair.publicKey.toString('hex').slice(0, 16)}`)
+        try {
+          await dht.mutablePut(keyPair, value, { seq })
+          this.lastLandedSeq = seq
+          if (profile.lastSeen !== undefined) this.lastSeenAt = profile.lastSeen
+          logMain(`[NetworkService] 📴 DHT PUBLISH SENT (shutdown, non vérifié) | status=${status} | seq=${seq} | size=${value.length}`)
+          return true
+        } catch (err) {
+          logMain(`[NetworkService] ❌ DHT PUBLISH FAILED (shutdown) | status=${status} | seq=${seq} | err=${err instanceof Error ? err.message : String(err)}`)
+          return false
+        }
+      }
+
+      // Ensure the DHT is bootstrapped before publishing status.
+      await dht.fullyBootstrapped().catch(() => {})
+
+      // Relit le record seulement tant qu'aucune écriture vérifiée ne nous a
+      // donné son seq : ensuite, le relire toutes les 30 s ne servait qu'à
+      // récupérer un numéro déjà connu (et un aller-retour DHT de plus).
+      let knownSeq = this.lastLandedSeq
       let existingProfile: Partial<DHTProfile> = {}
-      let existingSeq: number | undefined
-      try {
-        const existing = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { value?: Buffer; seq?: number } | null
-        if (existing?.value) {
-          existingProfile = JSON.parse(existing.value.toString())
-        }
-        if (existing && typeof existing.seq === 'number') {
-          existingSeq = existing.seq
-        }
-      } catch {}
-
-      const profile: DHTProfile = {
-        // CRITICAL FIX: Use lastDisplayName (set by publishProfile) instead of
-        // defaulting to 'Unknown'. This prevents the displayName from being
-        // overwritten to 'Unknown' when publishStatus is called before publishProfile.
-        displayName: existingProfile.displayName || this.lastDisplayName || 'Unknown',
-        timestamp: Date.now(),
-        version: 2,
-        status,
-        statusMessage,
-        lastSeen: status === 'offline' ? Date.now() : existingProfile.lastSeen,
-        identityPk: this.localPublicKey || existingProfile.identityPk || undefined,
+      if (knownSeq === undefined) {
+        try {
+          const existing = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { value?: Buffer; seq?: number } | null
+          if (existing?.value) {
+            existingProfile = JSON.parse(existing.value.toString())
+          }
+          if (existing && typeof existing.seq === 'number') {
+            knownSeq = existing.seq
+          }
+          if (typeof existingProfile.lastSeen === 'number') {
+            this.lastSeenAt = existingProfile.lastSeen
+          }
+        } catch {}
       }
 
-      const value = Buffer.from(JSON.stringify(profile))
+      const profile = this.buildDhtProfile(status, statusMessage, existingProfile)
+      const value = this.encodeProfile(profile, statusMessage)
       logMain(`[NetworkService] 📡 DHT PUBLISH | name=${profile.displayName} | status=${status} | valueSize=${value.length} | dhtKey=${keyPair.publicKey.toString('hex').slice(0, 16)}`)
-      let landed: boolean
-      if (value.length > 1000) {
-        // Truncate statusMessage to fit
-        profile.statusMessage = statusMessage?.slice(0, 100)
-        const trimmedValue = Buffer.from(JSON.stringify(profile))
-        landed = await this.mutablePutLatest(dht, keyPair, trimmedValue, existingSeq)
-      } else {
-        landed = await this.mutablePutLatest(dht, keyPair, value, existingSeq)
-      }
+      const landed = await this.mutablePutLatest(dht, keyPair, value, knownSeq)
+      if (landed && profile.lastSeen !== undefined) this.lastSeenAt = profile.lastSeen
       logMain(`[NetworkService] ${landed ? '✅ DHT PUBLISH SUCCESS' : '❌ DHT PUBLISH REJECTED (record non atterri sur le réseau)'} | status=${status} | size=${value.length}`)
       return landed
     } catch (err) {
       console.error('[NetworkService] Failed to publish status:', err)
       return false
     }
+  }
+
+  /** Enregistrement mutable publié, reconstruit sans lecture DHT quand elle n'est pas nécessaire. */
+  private buildDhtProfile(
+    status: 'online' | 'away' | 'offline' | 'dnd',
+    statusMessage: string | undefined,
+    fallback: Partial<DHTProfile>,
+  ): DHTProfile {
+    return {
+      // CRITICAL FIX: Use lastDisplayName (set by publishProfile) instead of
+      // defaulting to 'Unknown'. This prevents the displayName from being
+      // overwritten to 'Unknown' when publishStatus is called before publishProfile.
+      displayName: this.lastDisplayName || fallback.displayName || 'Unknown',
+      timestamp: Date.now(),
+      version: 2,
+      status,
+      statusMessage,
+      lastSeen: status === 'offline' ? Date.now() : (this.lastSeenAt ?? fallback.lastSeen),
+      identityPk: this.localPublicKey || fallback.identityPk || undefined,
+    }
+  }
+
+  /** Sérialise le record en respectant la limite d'environ 1000 octets de hyperdht. */
+  private encodeProfile(profile: DHTProfile, statusMessage?: string): Buffer {
+    const value = Buffer.from(JSON.stringify(profile))
+    if (value.length <= 1000) return value
+    profile.statusMessage = statusMessage?.slice(0, 100)
+    return Buffer.from(JSON.stringify(profile))
   }
 
   /**
@@ -599,6 +759,7 @@ export class NetworkService extends EventEmitter {
       try {
         const after = await dht.mutableGet(keyPair.publicKey, { latest: true }) as { seq?: number; value?: Uint8Array } | null
         if (after?.value && Buffer.compare(Buffer.from(after.value), value) === 0) {
+          this.lastLandedSeq = sentSeq
           if (attempt > 1) logMain(`[NetworkService] ✅ DHT mutable record landed on attempt ${attempt} | seq=${sentSeq}`)
           return true
         }
@@ -682,6 +843,16 @@ export class NetworkService extends EventEmitter {
    * Uses a local cache to avoid excessive DHT queries.
    */
   async fetchProfile(publicKeyHex: string): Promise<DHTProfile | null> {
+    const pending = this.profileFetchInFlight.get(publicKeyHex)
+    if (pending) return pending
+    const lookup = this.doFetchProfile(publicKeyHex).finally(() => {
+      this.profileFetchInFlight.delete(publicKeyHex)
+    })
+    this.profileFetchInFlight.set(publicKeyHex, lookup)
+    return lookup
+  }
+
+  private async doFetchProfile(publicKeyHex: string): Promise<DHTProfile | null> {
     if (!this.swarm) return null
 
     // Check cache first
@@ -689,6 +860,14 @@ export class NetworkService extends EventEmitter {
     if (cached && Date.now() - cached.timestamp < NetworkService.PROFILE_CACHE_TTL_MS) {
       console.log('[NetworkService] Profile cache hit for:', publicKeyHex.slice(0, 16), '| age:', Math.round((Date.now() - cached.timestamp) / 1000) + 's')
       return cached.data
+    }
+    // Negative cache: a known miss collapses the next 4,5 s retry burst into an
+    // immediate null. Read after the positive cache so a record that landed in
+    // between still wins.
+    const missedAt = this.profileMissAt.get(publicKeyHex)
+    if (missedAt !== undefined && Date.now() - missedAt < NetworkService.PROFILE_MISS_TTL_MS) {
+      console.log('[NetworkService] Profile negative-cache hit for:', publicKeyHex.slice(0, 16), '| age:', Math.round((Date.now() - missedAt) / 1000) + 's')
+      return null
     }
 
     try {
@@ -718,8 +897,12 @@ export class NetworkService extends EventEmitter {
 
       // Try up to 3 times — DHT lookups can fail due to propagation delays,
       // especially for cross-border connections (e.g. Belgium ↔ France).
+      // Un contact absent de longue date a déjà épuisé ces cycles : une seule
+      // requête, sans backoff, évite de rejouer 4,5 s pour un `null` certain.
+      const missStreak = this.profileMissStreak.get(publicKeyHex) ?? 0
+      const maxAttempts = missStreak >= NetworkService.PROFILE_MISS_RETRY_CYCLES ? 1 : 3
       let result: { value?: Buffer } | null = null
-      for (let attempt = 0; attempt < 3; attempt++) {
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
           result = await dht.mutableGet(publicKey, { latest: true }) as { value?: Buffer } | null
           if (result?.value) {
@@ -728,15 +911,17 @@ export class NetworkService extends EventEmitter {
           }
           logMain(`[NetworkService] ⚠️ DHT FETCH NOT FOUND on attempt ${attempt + 1} | peer=${publicKeyHex.slice(0, 16)}`)
           // Wait before retry — increasing backoff: 1.5s, 3s
-          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+          if (attempt < maxAttempts - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
         } catch (err) {
           logMain(`[NetworkService] ❌ DHT FETCH ERROR on attempt ${attempt + 1}: ${err instanceof Error ? err.message : String(err)}`)
-          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+          if (attempt < maxAttempts - 1) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
         }
       }
 
       if (!result || !result.value) {
-        logMain(`[NetworkService] ⚠️ DHT FETCH FAILED after 3 attempts | peer=${publicKeyHex.slice(0, 16)}`)
+        logMain(`[NetworkService] ⚠️ DHT FETCH FAILED after ${maxAttempts} attempt(s) | peer=${publicKeyHex.slice(0, 16)}`)
+        this.profileMissAt.set(publicKeyHex, Date.now())
+        this.profileMissStreak.set(publicKeyHex, missStreak + 1)
         return null
       }
 
@@ -745,6 +930,8 @@ export class NetworkService extends EventEmitter {
 
       // Cache the result
       this.profileCache.set(publicKeyHex, { data: profile, timestamp: Date.now() })
+      this.profileMissAt.delete(publicKeyHex)
+      this.profileMissStreak.delete(publicKeyHex)
 
       logMain(`[NetworkService] ✅ DHT PROFILE | peer=${publicKeyHex.slice(0, 16)} | name=${profile.displayName} | status=${profile.status || 'none'} | age=${ageSeconds}s`)
       return profile
@@ -760,8 +947,12 @@ export class NetworkService extends EventEmitter {
   clearProfileCache(publicKeyHex?: string): void {
     if (publicKeyHex) {
       this.profileCache.delete(publicKeyHex)
+      this.profileMissAt.delete(publicKeyHex)
+      this.profileMissStreak.delete(publicKeyHex)
     } else {
       this.profileCache.clear()
+      this.profileMissAt.clear()
+      this.profileMissStreak.clear()
     }
   }
 
@@ -774,27 +965,28 @@ export class NetworkService extends EventEmitter {
       await this.waitForInit()
     }
     if (!this.swarm) throw new Error('Swarm not initialized')
+    // Le bootstrap tourne en tâche de fond depuis le démarrage non bloquant.
+    // Rejoindre un topic avant qu'il soit terminé ferait échouer sa première
+    // annonce, et PeerDiscovery ne reprogramme un refresh qu'après 10 min.
+    await this.waitForNetworkReady()
+    if (!this.swarm) throw new Error('Swarm not initialized')
 
     if (this.topics.has(topicHex)) return
 
     const topicBuffer = Buffer.from(topicHex, 'hex')
     const discovery = this.swarm.join(topicBuffer, { client: true, server: true })
 
-    // PERFORMANCE: Signal to corestore that we're finding peers.
-    // This allows core.update() to properly wait for replication data
-    // instead of returning immediately with stale data.
-    if (this.corestore) {
+    // CONFORMITÉ HOLEPUNCH: c'est le STORE qui expose findingPeers(), pas les
+    // cores (Corestore v7 — `store.getCores()` n'existe pas). L'appel ouvre une
+    // session de découverte : tant qu'elle court, `core.update()` attend
+    // réellement des pairs au lieu de rendre des données périmées. La fonction
+    // rendue referme la session une fois l'annonce terminée.
+    if (this.corestore?.findingPeers) {
       try {
-        const cores = (this.corestore as unknown as { getCores?: () => HypercoreLike[] }).getCores?.() ?? []
-        for (const core of cores) {
-          if (typeof (core as unknown as { findingPeers?: () => () => void }).findingPeers === 'function') {
-            const done = (core as unknown as { findingPeers: () => () => void }).findingPeers()
-            // Call done after discovery flushes
-            discovery.flushed().then(() => done()).catch(() => done())
-          }
-        }
+        const done = this.corestore.findingPeers()
+        discovery.flushed().then(done, done)
       } catch {
-        // Ignore findingPeers errors — not critical
+        // La découverte reste fonctionnelle sans cette optimisation.
       }
     }
 
@@ -852,11 +1044,16 @@ export class NetworkService extends EventEmitter {
    *   noisePublicKey = noiseKeyPair.publicKey
    */
   async deriveNoisePublicKey(ed25519PublicKeyHex: string): Promise<string> {
+    // Derivation is pure: re-running an Ed25519 keygen on every redial/startup
+    // for the same contact only burns CPU on the main process.
+    const cached = this.derivedNoiseKeys.get(ed25519PublicKeyHex)
+    if (cached) return cached
     const crypto = await import('crypto')
     const seed = crypto.createHash('sha256').update(ed25519PublicKeyHex).digest()
     const HyperDHT = await import('hyperdht')
     const keyPair = HyperDHT.default.keyPair(seed)
     const noisePublicKeyHex = keyPair.publicKey.toString('hex')
+    this.derivedNoiseKeys.set(ed25519PublicKeyHex, noisePublicKeyHex)
     console.log('[NetworkService] deriveNoisePublicKey:', ed25519PublicKeyHex.slice(0, 16), '→', noisePublicKeyHex.slice(0, 16))
     return noisePublicKeyHex
   }
@@ -873,6 +1070,12 @@ export class NetworkService extends EventEmitter {
     if (!this.swarm) {
       console.warn('[NetworkService] joinPeer: swarm not initialized')
       return
+    }
+    if (!this.dhtReady) {
+      this.earlyDials.set(
+        noisePublicKeyHex,
+        this.earlyDials.get(noisePublicKeyHex) ?? false,
+      )
     }
     const keyBuffer = Buffer.from(noisePublicKeyHex, 'hex')
     console.log('[NetworkService] joinPeer: calling swarm.joinPeer for', noisePublicKeyHex.slice(0, 16) + '...')
@@ -896,6 +1099,12 @@ export class NetworkService extends EventEmitter {
    */
   connectToContact(noisePublicKeyHex: string, prioritized: boolean = false): void {
     if (!this.swarm) return
+    if (!this.dhtReady) {
+      this.earlyDials.set(
+        noisePublicKeyHex,
+        prioritized || (this.earlyDials.get(noisePublicKeyHex) ?? false),
+      )
+    }
     const keyBuffer = Buffer.from(noisePublicKeyHex, 'hex')
 
     // Reset reconnect attempts for this peer
@@ -947,15 +1156,25 @@ export class NetworkService extends EventEmitter {
   async suspend(): Promise<void> {
     if (!this.swarm) return
     await (this.swarm as unknown as { suspend: () => Promise<void> }).suspend()
+    this.suspendedByUser = true
     console.log('[NetworkService] Swarm suspended')
   }
 
   /**
-   * Resume a suspended swarm, reannouncing to DHT and reconnecting to peers.
+   * Resume a suspended swarm, reannouncing and re-publishing presence.
+   *
+   * Pendant une suspension longue, les enregistrements DHT (profil, statut)
+   * expirent : sans republication l'app se reconnecte mais reste introuvable
+   * par les contacts qui la cherchent par le DHT.
    */
   async resume(): Promise<void> {
     if (!this.swarm) return
     await (this.swarm as unknown as { resume: () => Promise<void> }).resume()
+    this.suspendedByUser = false
+    this.reannounceTopics()
+    if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
+    this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
+    this.flush().catch(() => {})
     console.log('[NetworkService] Swarm resumed')
   }
 
@@ -1387,17 +1606,13 @@ export class NetworkService extends EventEmitter {
 
   /**
    * Update network configuration at runtime.
-   * Applies maxPeers and relay settings to the active Hyperswarm instance.
+   * Applies maxPeers to the active Hyperswarm instance.
    */
-  updateConfig(config: { maxPeers?: number; relayEnabled?: boolean }): void {
+  updateConfig(config: { maxPeers?: number }): void {
     if (config.maxPeers !== undefined && this.swarm) {
       // Hyperswarm stores maxPeers as a mutable property
       (this.swarm as unknown as { maxPeers: number }).maxPeers = config.maxPeers
       console.log('[NetworkService] maxPeers updated to', config.maxPeers)
-    }
-    if (config.relayEnabled !== undefined) {
-      // Relay toggle is noted; full effect requires swarm re-init on next connection
-      console.log('[NetworkService] relayEnabled set to', config.relayEnabled)
     }
   }
 
@@ -1537,93 +1752,6 @@ export class NetworkService extends EventEmitter {
   }
 
   /**
-   * Suspend the swarm for power management.
-   * OPTIMIZATION: Uses Hyperswarm suspend() to pause networking.
-   * Useful when app is backgrounded or device is idle.
-   */
-  async suspendSwarm(): Promise<boolean> {
-    if (!this.swarm) return false
-
-    const suspendFn = (this.swarm as unknown as { suspend?: (opts?: { log?: () => void }) => Promise<void> }).suspend
-
-    if (typeof suspendFn === 'function') {
-      try {
-        await suspendFn.call(this.swarm)
-        console.log('[NetworkService] Swarm suspended')
-        return true
-      } catch (err) {
-        console.error('[NetworkService] Failed to suspend swarm:', err)
-        return false
-      }
-    }
-
-    return false
-  }
-
-  /**
-   * Resume a suspended swarm.
-   * OPTIMIZATION: Uses Hyperswarm resume() to restore networking.
-   * Useful when app returns to foreground.
-   */
-  async resumeSwarm(): Promise<boolean> {
-    if (!this.swarm) return false
-
-    const resumeFn = (this.swarm as unknown as { resume?: (opts?: { log?: () => void }) => Promise<void> }).resume
-
-    if (typeof resumeFn === 'function') {
-      try {
-        await resumeFn.call(this.swarm)
-        console.log('[NetworkService] Swarm resumed')
-
-        // CONNECTIVITY: After resume, re-announce all topics to refresh DHT entries.
-        // During suspend, DHT records may have expired or been garbage-collected.
-        // Without re-announce, peers cannot discover us after waking from sleep.
-        this.reannounceTopics()
-
-        // CONNECTIVITY: Re-publish profile and status to DHT.
-        // The previous DHT records may be stale after suspend.
-        if (this.lastDisplayName) this.publishProfile(this.lastDisplayName).catch(() => {})
-        this.publishStatus(this.currentStatus, this.currentStatusMessage).catch(() => {})
-
-        // CONNECTIVITY: Flush to ensure DHT entries are fully propagated.
-        // Critical for cross-border connections where peers need to discover
-        // us through the DHT before they can connect.
-        this.flush().catch(() => {})
-
-        return true
-      } catch (err) {
-        console.error('[NetworkService] Failed to resume swarm:', err)
-        return false
-      }
-    }
-
-    return false
-  }
-
-  /**
-   * Wait for all pending DHT announces to complete.
-   * OPTIMIZATION: Uses Hyperswarm flush() to ensure all announces are processed.
-   * Useful before app shutdown or critical operations.
-   */
-  async flushSwarm(): Promise<boolean> {
-    if (!this.swarm) return false
-
-    const flushFn = (this.swarm as unknown as { flush?: () => Promise<void> }).flush
-
-    if (typeof flushFn === 'function') {
-      try {
-        await flushFn.call(this.swarm)
-        return true
-      } catch (err) {
-        console.error('[NetworkService] Failed to flush swarm:', err)
-        return false
-      }
-    }
-
-    return false
-  }
-
-  /**
    * Perform a direct DHT lookup for a topic.
    * OPTIMIZATION: Uses HyperDHT lookup() for direct peer discovery.
    * Returns discovered peers without going through Hyperswarm.
@@ -1738,16 +1866,18 @@ export class NetworkService extends EventEmitter {
 
       return await new Promise<boolean>((resolve) => {
         let settled = false
-        let timer: ReturnType<typeof setTimeout> | undefined
         const finish = (ok: boolean) => {
           if (settled) return
           settled = true
-          if (timer) clearTimeout(timer)
+          clearTimeout(timer)
           // Même garde que R5 : un socket DHT qui n'a pas abouti doit être détruit,
           // sinon il fuit et un ECONNRESET tardif remonte en 'error' sans auditeur.
           if (!ok) socket.destroy()
           resolve(ok)
         }
+        // Le délai court avant l'enregistrement des gestes : 10 s, donc jamais
+        // avant que 'open'/'error' ne puisse être écouté.
+        const timer = setTimeout(() => finish(false), 10000)
         socket.on('open', () => {
           console.log('[NetworkService] Direct peer connection established')
           finish(true)
@@ -1757,8 +1887,6 @@ export class NetworkService extends EventEmitter {
           finish(false)
         })
         socket.on('close', () => finish(false))
-        // Timeout after 10 seconds
-        timer = setTimeout(() => finish(false), 10000)
       })
     } catch (err) {
       console.error('[NetworkService] Direct peer connection failed:', err)
@@ -1816,17 +1944,30 @@ export class NetworkService extends EventEmitter {
    * Blocked peers are immediately rejected on connection attempts.
    */
   blockPeer(noisePublicKeyHex: string, blocked: boolean): void {
+    const info = this.peerInfos.get(noisePublicKeyHex)
     if (blocked) {
       this.blockedPeers.add(noisePublicKeyHex)
       // Also ban via Hyperswarm if connected
-      const info = this.peerInfos.get(noisePublicKeyHex)
       if (info?.ban) {
         info.ban(true)
+      }
+      /*
+        Hyperswarm documente que `ban()` n'agit que sur les nouvelles
+        tentatives : « banning a peer will not close any existing connections ».
+        Sans cette coupure, un pair bloqué pendant une session continuait
+        d'envoyer messages, médias et fichiers jusqu'à la déconnexion.
+      */
+      const peer = this.peers.get(noisePublicKeyHex)
+      if (peer?.socket && !peer.socket.destroyed) {
+        try {
+          peer.socket.destroy?.()
+        } catch {
+          // Socket déjà en cours de fermeture.
+        }
       }
       console.log('[NetworkService] Peer blocked:', noisePublicKeyHex.slice(0, 16))
     } else {
       this.blockedPeers.delete(noisePublicKeyHex)
-      const info = this.peerInfos.get(noisePublicKeyHex)
       if (info?.ban) {
         info.ban(false)
       }
@@ -2083,7 +2224,14 @@ export class NetworkService extends EventEmitter {
     }
     this.peers.clear()
     this.topics.clear()
+    this.dhtReady = false
+    this.networkReadyPromise = null
+    this.earlyDials.clear()
+    this.lastLandedSeq = undefined
+    this.lastSeenAt = undefined
     this.profileCache.clear()
+    this.profileMissAt.clear()
+    this.profileMissStreak.clear()
     this.reconnectAttempts.clear()
     this.peerPublicKeyMap.clear()
     this.peerLatency.clear()
@@ -2798,9 +2946,13 @@ export class NetworkService extends EventEmitter {
       // Clear reconnect attempts when going offline
       this.reconnectAttempts.clear()
     } else if (!wasOnline && online) {
+      if (this.suspendedByUser) {
+        console.log('[NetworkService] Network online — swarm kept suspended by user request')
+        return
+      }
       console.log('[NetworkService] Network online — triggering reconnection')
       // Resume swarm and reannounce when coming back online
-      this.resumeSwarm().catch(() => {})
+      this.resume().catch(() => {})
       this.refreshServer()
     }
   }
@@ -3123,11 +3275,7 @@ interface ProtomuxMessage {
 
 interface CorestoreLike {
   replicate: (stream: unknown) => unknown
-  getCores?: () => HypercoreLike[]
-}
-
-interface HypercoreLike {
-  ready: () => Promise<void>
+  /** Corestore v7 : ouvre une session de découverte, rendue par la fonction retournée. */
   findingPeers?: () => () => void
 }
 

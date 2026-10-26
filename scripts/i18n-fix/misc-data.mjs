@@ -453,9 +453,13 @@ export const SAME = {
     'settings.status', 'settings.transferStatus',
     'settings.transfer_downloading', 'settings.transfer_uploading',
     'settings.trashItems', 'settings.trashItemsCount',
-    'settings.trashItemsCount_plural', 'settings.totalDownloads',
-    'settings.totalDownloads_plural', 'settings.chatDensity_compact',
+    'settings.trashItemsCount_other', 'settings.totalDownloads',
+    'settings.totalDownloads_other', 'settings.chatDensity_compact',
     'settings.firewall', 'settings.peers', 'settings.camera',
+    // « Contact » est le mot néerlandais de la relation.
+    'contacts.relationContact',
+    // « Audio » et « Video » sont les termes néerlandais du type d'appel.
+    'calls.typeAudio', 'calls.typeVideo',
   ],
   de: [
     'calls.openChat', 'chat.links', 'panels.links', 'common.admin',
@@ -470,6 +474,8 @@ export const SAME = {
     'settings.peers',
     // « Pause » est aussi le mot allemand d'un lecteur média.
     'chat.pauseAudio',
+    // « Audio » et « Video » sont les termes allemands du type d'appel.
+    'calls.typeAudio', 'calls.typeVideo',
   ],
   it: [
     'calls.openChat', 'calls.camera', 'calls.cameraLoading',
@@ -477,12 +483,16 @@ export const SAME = {
     'panels.info', 'settings.audio', 'settings.chat',
     'settings.fileType_audio', 'settings.media', 'settings.peer',
     'settings.totalDownloads', 'settings.firewall',
+    // « Audio » et « Video » sont les termes italiens du type d'appel.
+    'calls.typeAudio', 'calls.typeVideo',
   ],
   es: [
     'calls.openChat', 'common.admin', 'common.error', 'common.invisible',
     'groups.general', 'panels.info', 'settings.audio', 'settings.chat',
     'settings.fileType_audio', 'settings.total',
     'settings.transferStatus_error',
+    // « Audio » est le mot espagnol du type d'appel.
+    'calls.typeAudio',
   ],
   pt: [
     'calls.openChat', 'common.admin', 'common.offline', 'common.online',
@@ -498,7 +508,7 @@ export const SAME = {
     'groups.online', 'groups.onlineMembers', 'panels.info', 'panels.links',
     'settings.chat', 'settings.downloads', 'settings.filter',
     'settings.peer', 'settings.status', 'settings.system',
-    'settings.totalDownloads', 'settings.totalDownloads_plural',
+    'settings.totalDownloads', 'settings.totalDownloads_other',
     'settings.transferStatus', 'settings.transfer_downloading',
     'settings.transfer_uploading', 'settings.appVersion',
     'settings.audioQuality_medium', 'settings.videoQuality_medium',
@@ -506,31 +516,37 @@ export const SAME = {
     // Deux termes que le danois écrit tels quels : « Pause » (lecteur média)
     // et « Download » (le substantif d'un téléchargement).
     'chat.pauseAudio', 'lightbox.download',
+    // « Video » est le mot danois du type d'appel.
+    'calls.typeVideo',
   ],
-  fi: ['calls.openChat', 'settings.media'],
+  fi: ['calls.openChat', 'settings.media', 'calls.typeVideo'],
   sv: [
     'common.admin', 'common.moderator', 'common.offline', 'common.online',
     'common.onlineCount', 'common.relation', 'groups.online',
     'groups.onlineMembers', 'panels.info', 'settings.filter',
     'settings.media', 'settings.peer', 'settings.peers', 'settings.status',
     'settings.system', 'settings.transferStatus', 'settings.appVersion',
+    // « Video » est le mot suédois du type d'appel.
+    'calls.typeVideo',
   ],
   hr: [
     'calls.openChat', 'common.admin', 'common.moderator', 'panels.info',
     'settings.filter', 'settings.peer', 'settings.status',
     'settings.transferStatus', 'settings.onlineStatus',
+    // « Audio » et « Video » sont les termes croates du type d'appel.
+    'calls.typeAudio', 'calls.typeVideo',
   ],
-  et: ['common.admin', 'settings.filter'],
+  et: ['common.admin', 'settings.filter', 'calls.typeVideo'],
   hu: ['common.admin', 'panels.info', 'settings.peer'],
   // « Keet / Pear ID » : deux noms de marques et un sigle qui s'écrit ID ici.
-  lv: ['common.admin', 'panels.info', 'settings.audio', 'settings.fileType_audio', 'contacts.keetId'],
+  lv: ['common.admin', 'panels.info', 'settings.audio', 'settings.fileType_audio', 'contacts.keetId', 'calls.typeAudio', 'calls.typeVideo'],
   lt: ['panels.info', 'contacts.keetId'],
   mt: [
     'calls.openChat', 'chat.links', 'common.admin', 'common.offline',
     'common.online', 'common.onlineCount', 'common.progress',
     'groups.online', 'groups.onlineMembers', 'panels.info', 'panels.links',
     'settings.chat', 'settings.peer', 'settings.status', 'settings.total',
-    'settings.totalDownloads', 'settings.totalDownloads_plural',
+    'settings.totalDownloads', 'settings.totalDownloads_other',
     'settings.transferStatus', 'settings.transfer_downloading',
     'settings.transfer_uploading', 'settings.firewall', 'settings.peers',
   ],
@@ -547,10 +563,14 @@ export const SAME = {
     'panels.info', 'settings.filter', 'settings.firewall',
     // Terme technique employé tel quel dans les panneaux d'appel.
     'calls.statsBufferDepth',
+    // « Video » est le mot slovaque du type d'appel.
+    'calls.typeVideo',
   ],
   sl: [
     'common.moderator', 'panels.info', 'settings.filter',
     'settings.status', 'settings.transferStatus',
+    // « Video » est le mot slovène du type d'appel.
+    'calls.typeVideo',
   ],
   cs: [
     'calls.openChat', 'common.offline', 'common.online',
@@ -558,6 +578,8 @@ export const SAME = {
     'panels.info', 'settings.chat', 'settings.peer', 'settings.firewall',
     // Comme en slovaque : le terme technique passe tel quel.
     'calls.statsBufferDepth',
+    // « Video » est le mot tchèque du type d'appel.
+    'calls.typeVideo',
   ],
   ro: [
     'calls.participantCount', 'common.moderator', 'common.offline',
@@ -567,5 +589,9 @@ export const SAME = {
     'settings.peer', 'settings.status', 'settings.total',
     'settings.totalTransfers', 'settings.transferStatus',
     'settings.chatDensity_compact', 'settings.firewall',
+    // « Contact » est aussi le mot roumain de la relation.
+    'contacts.relationContact',
+    // « Audio » et « Video » sont les termes roumains du type d'appel.
+    'calls.typeAudio', 'calls.typeVideo',
   ],
 }

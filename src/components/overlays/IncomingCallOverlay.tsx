@@ -1,8 +1,11 @@
-import React from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCallStore } from '@/stores/callStore'
+import { useUIStore } from '@/stores/uiStore'
 import { callService } from '@/services/CallService'
 import { Avatar } from '@/components/ui/Avatar'
+import { useGestureHint } from '@/hooks/useGestureHint'
+import { comboMatches } from '@/utils/shortcuts'
 import { useTranslation } from 'react-i18next'
 
 /**
@@ -18,22 +21,110 @@ export const IncomingCallOverlay: React.FC = () => {
   const { t } = useTranslation()
   const incomingCall = useCallStore((s) => s.incomingCall)
 
-  const handleAccept = async () => {
+  const acceptGesture = useGestureHint('acceptCall', t('calls.answer'))
+  const declineGesture = useGestureHint('declineCall', t('calls.decline'))
+
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const ringing = !!incomingCall
+  const callKindLabel = incomingCall
+    ? incomingCall.type === 'video'
+      ? t('calls.incomingVideoCall')
+      : t('calls.incomingAudioCall')
+    : ''
+
+  const handleAccept = useCallback(async () => {
     await callService.acceptCall()
+  }, [])
+
+  const handleReject = useCallback(async () => {
+    await callService.rejectCall()
+  }, [])
+
+  /**
+   * La sonnerie couvre l'application : c'est un dialogue à part entière.
+   * Le focus entre dans la fenêtre — sur elle, pas sur « Répondre », pour
+   * qu'une touche Entrée restée dans le composeur ne décroche pas — et
+   * revient là où l'utilisateur écrivait quand l'appel cesse.
+   */
+  useEffect(() => {
+    if (!ringing) return
+    const active = document.activeElement
+    const alreadyInside = active instanceof HTMLElement && !!overlayRef.current?.contains(active)
+    if (!alreadyInside) {
+      previousFocusRef.current = active instanceof HTMLElement ? active : null
+    }
+    const timer = setTimeout(() => overlayRef.current?.focus(), 0)
+    return () => {
+      clearTimeout(timer)
+      const previous = previousFocusRef.current
+      previousFocusRef.current = null
+      if (previous?.isConnected) previous.focus()
+    }
+  }, [ringing])
+
+  // Tab ne sort pas de la sonnerie : sinon le curseur repart dans le rail ou
+  // le composeur, derrière une fenêtre que l'on ne peut plus atteindre à la
+  // souris.
+  const trapTab = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return
+    const root = overlayRef.current
+    if (!root) return
+    const focusables = Array.from(
+      root.querySelectorAll<HTMLElement>('button:not([disabled])'),
+    )
+    if (focusables.length === 0) return
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    if (document.activeElement === root) {
+      e.preventDefault()
+      ;(e.shiftKey ? last : first).focus()
+    } else if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
   }
 
-  const handleReject = async () => {
-    await callService.rejectCall()
-  }
+  /**
+   * Répondre et refuser se règlent à l'écran « Raccourcis ». La frappe est
+   * confrontée au magasin au moment où elle part : une combinaison changée
+   * pendant la sonnerie vaut pour la touche suivante, et une combinaison
+   * effacée ne déclenche plus rien — les boutons restent seuls à répondre.
+   */
+  useEffect(() => {
+    if (!incomingCall) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return
+      const { acceptCall, declineCall } = useUIStore.getState().settings.keyboardShortcuts
+      if (comboMatches(acceptCall, e)) {
+        e.preventDefault()
+        void handleAccept()
+      } else if (comboMatches(declineCall, e)) {
+        e.preventDefault()
+        void handleReject()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [incomingCall, handleAccept, handleReject])
 
   return (
     <AnimatePresence>
       {incomingCall && (
         <motion.div
+          ref={overlayRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${callKindLabel} — ${incomingCall.peerName}`}
+          tabIndex={-1}
+          onKeyDown={trapTab}
           className="fixed inset-0 z-[100] flex items-center justify-center"
           style={{ background: 'linear-gradient(180deg, #06060c 0%, #0a0a16 40%, #080812 100%)' }}
         >
@@ -155,6 +246,8 @@ export const IncomingCallOverlay: React.FC = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleReject}
+                  title={declineGesture.title}
+                  aria-keyshortcuts={declineGesture.ariaKeyShortcuts}
                   className="w-16 h-16 rounded-full flex items-center justify-center transition-colors"
                   style={{
                     background: 'rgba(239,68,68,0.08)',
@@ -175,6 +268,8 @@ export const IncomingCallOverlay: React.FC = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleAccept}
+                  title={acceptGesture.title}
+                  aria-keyshortcuts={acceptGesture.ariaKeyShortcuts}
                   className="w-16 h-16 rounded-full flex items-center justify-center transition-colors"
                   style={{
                     background: 'rgba(34,197,94,0.08)',

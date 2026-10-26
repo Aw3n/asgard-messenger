@@ -3,9 +3,39 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import type { Conversation, ConversationFilter } from '@/types'
 
+// Une sourdine temporisée doit se lever même sans interaction. Les échéances
+// sont reprogrammées au démarrage à partir de `mutedUntil` (persisté).
+const muteTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function clearMuteTimer(id: string) {
+  const timer = muteTimers.get(id)
+  if (timer) clearTimeout(timer)
+  muteTimers.delete(id)
+}
+
+function scheduleMuteExpiry(id: string, until: number, onExpire: (id: string) => void) {
+  clearMuteTimer(id)
+  const timer = setTimeout(() => {
+    muteTimers.delete(id)
+    onExpire(id)
+  }, Math.max(0, until - Date.now()))
+  muteTimers.set(id, timer)
+}
+
 interface ConversationState {
   conversations: Record<string, Conversation>
+  /**
+   * Unsent composer text, keyed by conversation id. Channels are not entries
+   * of `conversations`, so their drafts need their own map.
+   */
+  drafts: Record<string, string>
   activeConversationId: string | null
+  /**
+   * True only while a ChatView is mounted. `activeConversationId` survives
+   * navigation and restarts, so it alone cannot tell that the user has left
+   * the conversation; unread accounting must not trust it.
+   */
+  chatViewVisible: boolean
   filter: ConversationFilter
 
   // Actions
@@ -13,12 +43,17 @@ interface ConversationState {
   updateConversation: (id: string, updates: Partial<Conversation>) => void
   removeConversation: (id: string) => void
   setActiveConversation: (id: string | null) => void
+  setChatViewVisible: (visible: boolean) => void
   incrementUnread: (id: string) => void
   clearUnread: (id: string) => void
+  markAllConversationsRead: () => void
   pinConversation: (id: string, pinned: boolean) => void
-  muteConversation: (id: string, muted: boolean) => void
+  muteConversation: (id: string, muted: boolean, durationMs?: number) => void
+  /** Reprogramme les sourdines temporisées persistées et solde les expirées. */
+  resumeMuteTimers: () => void
   archiveConversation: (id: string, archived: boolean) => void
   setDraft: (id: string, draft: string) => void
+  getDraft: (id: string) => string
   setFilter: (filter: Partial<ConversationFilter>) => void
   setBroadcastMode: (id: string, enabled: boolean, broadcasterKey?: string) => void
   getFilteredConversations: () => Conversation[]
@@ -34,7 +69,9 @@ export const useConversationStore = create<ConversationState>()(
   persist(
     immer((set, get) => ({
       conversations: {},
+      drafts: {},
       activeConversationId: null,
+      chatViewVisible: false,
       filter: {},
 
       addConversation: (conv) => {
@@ -55,6 +92,7 @@ export const useConversationStore = create<ConversationState>()(
       },
 
       removeConversation: (id) => {
+        clearMuteTimer(id)
         set((state) => {
           delete state.conversations[id]
           if (state.activeConversationId === id) {
@@ -73,11 +111,17 @@ export const useConversationStore = create<ConversationState>()(
         })
       },
 
+      setChatViewVisible: (visible) => {
+        set((state) => {
+          state.chatViewVisible = visible
+        })
+      },
+
       incrementUnread: (id) => {
         set((state) => {
           if (!state.conversations[id]) return
-          // Don't increment if this is the active conversation
-          if (state.activeConversationId === id) return
+          // Don't increment while the conversation is actually on screen
+          if (state.chatViewVisible && state.activeConversationId === id) return
           state.conversations[id].unreadCount += 1
         })
       },
@@ -90,6 +134,14 @@ export const useConversationStore = create<ConversationState>()(
         })
       },
 
+      markAllConversationsRead: () => {
+        set((state) => {
+          for (const conv of Object.values(state.conversations)) {
+            conv.unreadCount = 0
+          }
+        })
+      },
+
       pinConversation: (id, pinned) => {
         set((state) => {
           if (state.conversations[id]) {
@@ -98,12 +150,42 @@ export const useConversationStore = create<ConversationState>()(
         })
       },
 
-      muteConversation: (id, muted) => {
+      muteConversation: (id, muted, durationMs) => {
+        clearMuteTimer(id)
+        const until = muted && durationMs && durationMs > 0 ? Date.now() + durationMs : undefined
         set((state) => {
-          if (state.conversations[id]) {
-            state.conversations[id].muted = muted
-          }
+          const conv = state.conversations[id]
+          if (!conv) return
+          conv.muted = muted
+          if (until) conv.mutedUntil = until
+          else delete conv.mutedUntil
         })
+        if (until) {
+          scheduleMuteExpiry(id, until, (conversationId) => {
+            set((state) => {
+              const conv = state.conversations[conversationId]
+              if (!conv) return
+              conv.muted = false
+              delete conv.mutedUntil
+            })
+          })
+        }
+      },
+
+      resumeMuteTimers: () => {
+        const unmute = (id: string) => {
+          set((state) => {
+            const conv = state.conversations[id]
+            if (!conv) return
+            conv.muted = false
+            delete conv.mutedUntil
+          })
+        }
+        for (const [id, conv] of Object.entries(get().conversations)) {
+          if (!conv.muted || conv.mutedUntil == null) continue
+          if (conv.mutedUntil <= Date.now()) unmute(id)
+          else scheduleMuteExpiry(id, conv.mutedUntil, unmute)
+        }
       },
 
       archiveConversation: (id, archived) => {
@@ -116,11 +198,12 @@ export const useConversationStore = create<ConversationState>()(
 
       setDraft: (id, draft) => {
         set((state) => {
-          if (state.conversations[id]) {
-            state.conversations[id].draft = draft
-          }
+          if (draft) state.drafts[id] = draft
+          else delete state.drafts[id]
         })
       },
+
+      getDraft: (id) => get().drafts[id] ?? '',
 
       setFilter: (filter) => {
         set((state) => {
@@ -189,6 +272,15 @@ export const useConversationStore = create<ConversationState>()(
     {
       name: 'asgard-conversations',
       storage: createJSONStorage(() => localStorage),
+      // La visibilité d'une vue n'est pas une donnée : une session relancée
+      // après une fermeture pendant un chat ne doit pas croire qu'il est
+      // encore à l'écran et cesser de compter ses non-lus.
+      partialize: (state) => ({
+        conversations: state.conversations,
+        drafts: state.drafts,
+        activeConversationId: state.activeConversationId,
+        filter: state.filter,
+      }),
     }
   )
 )

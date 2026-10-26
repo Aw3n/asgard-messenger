@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/cn'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 
 interface FileTransfer {
   id: string
@@ -20,11 +22,16 @@ export const FileTransferManager: React.FC<{ onClose?: () => void }> = ({ onClos
   const { t } = useTranslation()
   const [transfers, setTransfers] = useState<FileTransfer[]>([])
   const [filter, setFilter] = useState<'all' | 'uploading' | 'downloading' | 'complete' | 'error'>('all')
+  // La croix ne fait que redire ce que la touche réglée fait déjà : ce
+  // panneau-là l'ignorait encore, il la reçoit comme les autres dialogues.
+  const dialogRef = useDialogBehavior(onClose)
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
 
   useEffect(() => {
+    // FileService notifie déjà les changements (coalescés à 100 ms) : cet
+    // intervalle de 500 ms ne faisait que relire le même état.
     loadTransfers()
-    const interval = setInterval(loadTransfers, 500)
-    return () => clearInterval(interval)
+    return fileService.subscribeTransfers(loadTransfers)
   }, [])
 
   const loadTransfers = () => {
@@ -106,7 +113,14 @@ export const FileTransferManager: React.FC<{ onClose?: () => void }> = ({ onClos
   }
 
   return (
-    <div className="flex flex-col h-full bg-asgard-surface">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('settings.fileTransfers')}
+      tabIndex={-1}
+      className="flex flex-col h-full bg-asgard-surface focus:outline-none"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-asgard-border">
         <div className="flex items-center gap-3">
@@ -125,6 +139,9 @@ export const FileTransferManager: React.FC<{ onClose?: () => void }> = ({ onClos
         {onClose && (
           <button
             onClick={onClose}
+            aria-label={t('common.close')}
+            title={closeGesture.title}
+            aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-asgard-surface-alt transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-secondary">

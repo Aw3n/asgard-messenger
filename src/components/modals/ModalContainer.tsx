@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { useUIStore } from '@/stores/uiStore'
+import { useUIStore, restoreModalTriggerFocus } from '@/stores/uiStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useConversationStore } from '@/stores/conversationStore'
-import { useIdentityStore } from '@/stores/identityStore'
-import { cryptoService } from '@/services/CryptoService'
-import { p2pService } from '@/services/P2PService'
+import { chatService } from '@/services/ChatService'
 import { parseInviteInput, normalizeAsgardPublicKey } from '@/utils/invite'
-import type { Contact } from '@/types'
+import { DIALOG_FOCUSABLE, isCloseKeypress } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
 
 /**
  * ModalContainer — renders modals based on uiStore modal state.
@@ -63,28 +62,72 @@ export const ModalContainer: React.FC = () => {
 const ModalOverlay: React.FC<{ onClose: () => void; children: React.ReactNode }> = ({
   onClose,
   children,
-}) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.15 }}
-    className="fixed inset-0 z-50 flex items-center justify-center bg-asgard-deep-black/70 backdrop-blur-sm"
-    onClick={(e) => {
-      if (e.target === e.currentTarget) onClose()
-    }}
-  >
+}) => {
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    return () => {
+      // StrictMode rejoue ce nettoyage juste après le montage : tant que la
+      // modale est ouverte, le focus doit rester dans le dialogue.
+      if (!useUIStore.getState().modal.type) restoreModalTriggerFocus()
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Échap qui annule une composition IME reste au champ ; le fermer
+      // couperait la saisie en cours.
+      if (e.isComposing || e.keyCode === 229) return
+      if (isCloseKeypress(e)) {
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab') return
+
+      // Un dialogue modal ne laisse pas Tab filer vers la page derrière lui :
+      // au dernier contrôle on revient au premier, et inversement.
+      const root = dialogRef.current
+      if (!root) return
+      const focusable = Array.from(root.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE))
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: 10 }}
-      transition={{ duration: 0.2 }}
-      className="w-full max-w-md mx-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-asgard-deep-black/70 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
-      {children}
+      <motion.div
+        ref={dialogRef}
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-md mx-4"
+      >
+        {children}
+      </motion.div>
     </motion.div>
-  </motion.div>
-)
+  )
+}
 
 // ─── Add Contact Modal ────────────────────────────────────────────────────────
 
@@ -98,10 +141,12 @@ const AddContactModal: React.FC<{
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  // La croix ferme ce que la touche réglée ferme : elle doit la nommer. Le
+  // bouton « Annuler » du pied fait exactement le même geste.
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
+  const cancelGesture = useGestureHint('closeModal', t('common.cancel'))
 
-  const addContact = useContactStore((s) => s.addContact)
   const getContact = useContactStore((s) => s.getContact)
-  const addConversation = useConversationStore((s) => s.addConversation)
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
 
   // UX COPY/PASTE : un lien d'invitation complet (asgard://invite/<key>?name=)
@@ -127,7 +172,12 @@ const AddContactModal: React.FC<{
     try {
       const text = await navigator.clipboard.readText()
       const parsed = parseInviteInput(text)
-      if (!parsed) return
+      // Même règle que la page Contacts : un contenu qui n'est ni une clé ni un
+      // lien d'invitation ne doit pas laisser le bouton sans effet visible.
+      if (!parsed) {
+        setError(t('modal.error.invalidPublicKey'))
+        return
+      }
       setPublicKey(parsed.publicKey)
       if (parsed.name) setDisplayName(parsed.name)
       setError('')
@@ -152,84 +202,41 @@ const AddContactModal: React.FC<{
       return
     }
 
-    // Check if contact already exists — la clé étant canonique, les doublons
-    // inter-formats (hex 64 vs DER 88) sont désormais détectés.
-    if (getContact(normalizedKey)) {
+    // Une demande encore en attente peut être relancée (le pair ne l'a peut-être
+    // jamais reçue) ; un contact déjà confirmé reste un doublon.
+    const existing = getContact(normalizedKey)
+    if (existing && existing.relation !== 'pending') {
       setError(t('modal.error.contactExists'))
       return
     }
 
-    // COHÉRENCE : User-<8 chars de la clé BRUTE> — les 8 premiers chars du DER
-    // sont le préfixe SPKI constant (302a3005) : tous les contacts par défaut
-    // s'appelaient identiquement. slice(24,32) prend la partie variable.
-    const name = displayName.trim() || `User-${normalizedKey.slice(24, 32)}`
-
-    // Create contact
-    const contact: Contact = {
-      publicKey: normalizedKey,
-      displayName: name,
-      status: 'offline',
-      relation: 'contact',
-      verified: false,
-      addedAt: Date.now(),
-    }
-    addContact(contact)
-
-    // CRITICAL: Persist contact to Hyperbee storage for durability
     try {
-      console.log('[ModalContainer] Saving contact to Hyperbee:', contact.publicKey.slice(0, 16) + '...')
-      await window.asgard.storage.saveContact(contact)
-      console.log('[ModalContainer] Contact saved successfully to Hyperbee')
-      
-      // Verify contact was saved
-      const savedContact = await window.asgard.storage.getContact(contact.publicKey)
-      if (savedContact) {
-        console.log('[ModalContainer] Verified: contact found in Hyperbee')
-      } else {
-        console.warn('[ModalContainer] WARNING: contact NOT found in Hyperbee after save!')
-      }
+      const convId = await chatService.registerContact(normalizedKey, displayName.trim())
+      // Ouvrir la conversation : c'est là que la demande se confirme (réponse).
+      setActiveConversation(convId)
+      navigate(`/conversations/${convId}`)
+      onClose()
     } catch (err) {
-      console.error('[ModalContainer] Failed to save contact to Hyperbee:', err)
+      console.error('[ModalContainer] Failed to add contact:', err)
+      setError(t('toast.failedToAddContact'))
     }
-
-    // CRITICAL: Use deterministic conversationId so both peers compute the same ID
-    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-    if (!myPk) return
-    const convId = cryptoService.deriveConversationId(myPk, normalizedKey)
-
-    addConversation({
-      id: convId,
-      type: 'direct',
-      participantId: normalizedKey,
-      unreadCount: 0,
-      muted: false,
-      pinned: false,
-      archived: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    })
-
-    // CRITICAL: Join Hyperswarm topic for peer discovery
-    try {
-      const topic = await cryptoService.deriveConversationTopic(myPk, normalizedKey)
-      await p2pService.joinTopic(topic)
-    } catch (err) {
-      console.warn('[ModalContainer] Failed to join topic for new contact:', err)
-    }
-
-    // Navigate to conversation
-    setActiveConversation(convId)
-    navigate(`/conversations/${convId}`)
-    onClose()
   }
 
   return (
-    <div className="bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-contact-title"
+      className="bg-asgard-surface border border-asgard-border rounded-2xl overflow-hidden"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-asgard-border">
-        <h3 className="text-base font-semibold text-asgard-text-primary">{t('modal.addContact')}</h3>
+        <h3 id="add-contact-title" className="text-base font-semibold text-asgard-text-primary">{t('modal.addContact')}</h3>
         <button
           onClick={onClose}
+          aria-label={t('common.close')}
+          title={closeGesture.title}
+          aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
           className="w-8 h-8 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -242,7 +249,7 @@ const AddContactModal: React.FC<{
       <div className="p-5 space-y-4">
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-sm font-medium text-asgard-text-secondary">
+            <label htmlFor="add-contact-public-key" className="text-sm font-medium text-asgard-text-secondary">
               {t('modal.publicKey')}
             </label>
             <button
@@ -258,31 +265,41 @@ const AddContactModal: React.FC<{
             </button>
           </div>
           <input
+            id="add-contact-public-key"
+            aria-describedby={error ? 'add-contact-error' : undefined}
+            aria-invalid={error ? true : undefined}
             className="asgard-input w-full px-3 py-2.5 text-sm rounded-lg"
             placeholder={t('modal.publicKeyPlaceholder')}
             value={publicKey}
             onChange={(e) => handlePublicKeyChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing || e.keyCode === 229) return
+              if (e.key === 'Enter') handleSubmit()
+            }}
             autoFocus
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-asgard-text-secondary block mb-1.5">
+          <label htmlFor="add-contact-display-name" className="text-sm font-medium text-asgard-text-secondary block mb-1.5">
             {t('modal.displayName')}
           </label>
           <input
+            id="add-contact-display-name"
             className="asgard-input w-full px-3 py-2.5 text-sm rounded-lg"
             placeholder={t('modal.displayNamePlaceholder')}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing || e.keyCode === 229) return
+              if (e.key === 'Enter') handleSubmit()
+            }}
             maxLength={32}
           />
         </div>
 
         {error && (
-          <p className="text-xs text-asgard-busy">{error}</p>
+          <p id="add-contact-error" role="alert" className="text-xs text-asgard-busy">{error}</p>
         )}
 
         <p className="text-xs text-asgard-text-muted leading-relaxed">
@@ -294,6 +311,8 @@ const AddContactModal: React.FC<{
       <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-asgard-border bg-asgard-surface-alt">
         <button
           onClick={onClose}
+          title={cancelGesture.title}
+          aria-keyshortcuts={cancelGesture.ariaKeyShortcuts}
           className="btn-ghost px-4 py-2 text-sm rounded-lg"
         >
           {t('common.cancel')}

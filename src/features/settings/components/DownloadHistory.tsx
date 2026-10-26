@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { fileService } from '@/services/FileService'
+import { saveAttachmentToDisk } from '@/utils/attachmentSave'
 import { getCurrentLanguage } from '@/i18n/config'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface DownloadHistoryEntry {
   id: string
@@ -22,6 +26,13 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
   const { t } = useTranslation()
   const [history, setHistory] = useState<DownloadHistoryEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  // Vider l'historique est irréversible : le bouton ouvre le dialogue commun,
+  // la liste ne disparaît qu'après l'acquiescement.
+  const [confirmClear, setConfirmClear] = useState(false)
+  // La croix ne fait que redire ce que la touche réglée fait déjà : ce
+  // panneau-là l'ignorait encore, il la reçoit comme les autres dialogues.
+  const dialogRef = useDialogBehavior(onClose)
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
   const [stats, setStats] = useState({
     total: 0,
     totalSize: 0,
@@ -48,6 +59,7 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
   }
 
   const handleClear = () => {
+    setConfirmClear(false)
     fileService.clearDownloadHistory()
     loadData()
   }
@@ -55,7 +67,19 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
   const formatBytes = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+  }
+
+  /**
+   * Le badge affichait le sous-type MIME brut : pour un document Office, il
+   * imposait à la rangée « VND.OPENPYTHONFOR… ». L'extension du nom est ce que
+   * l'utilisateur reconnaît, et elle est bornée par construction.
+   */
+  const formatTypeBadge = (entry: DownloadHistoryEntry): string => {
+    const extension = entry.fileName.match(/\.([a-z0-9]{1,8})$/i)?.[1]
+    const subtype = entry.mimeType.split('/')[1]?.split(';')[0]
+    return (extension ?? subtype ?? 'file').toUpperCase().slice(0, 12)
   }
 
   const formatDate = (timestamp: number): string => {
@@ -103,7 +127,14 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
   }
 
   return (
-    <div className="flex flex-col h-full bg-asgard-surface">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('settings.downloadHistory')}
+      tabIndex={-1}
+      className="flex flex-col h-full bg-asgard-surface focus:outline-none"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-asgard-border">
         <div className="flex items-center gap-3">
@@ -115,14 +146,14 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
           <div>
             <h2 className="text-lg font-semibold text-asgard-text-primary">{t('settings.downloadHistory')}</h2>
             <p className="text-xs text-asgard-text-muted">
-              {stats.total} {t('settings.files')} · {formatBytes(stats.totalSize)} · {stats.recentCount} {t('chat.today').toLowerCase()}
+              {t('settings.totalDownloads', { count: stats.total })} · {formatBytes(stats.totalSize)} · {t('chat.today')} ({t('settings.totalDownloads', { count: stats.recentCount })})
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {history.length > 0 && (
             <button
-              onClick={handleClear}
+              onClick={() => setConfirmClear(true)}
               className="px-3 py-1.5 text-xs text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
             >
               {t('calls.clearHistory')}
@@ -131,6 +162,9 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
           {onClose && (
             <button
               onClick={onClose}
+              aria-label={t('common.close')}
+              title={closeGesture.title}
+              aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-asgard-surface-alt transition-colors"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-text-secondary">
@@ -155,6 +189,7 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
           </svg>
           <input
             type="text"
+            aria-label={t('settings.searchDownloads')}
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder={t('settings.searchDownloads')}
@@ -214,9 +249,34 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
                     </div>
                   </div>
 
+                  {/* Re-save: l'entrée garde de quoi retrouver le blob. */}
+                  <button
+                    onClick={() => {
+                      void saveAttachmentToDisk(
+                        {
+                          blobKey: entry.blobKey,
+                          name: entry.fileName,
+                          size: entry.fileSize,
+                          mimeType: entry.mimeType,
+                        },
+                        t,
+                        entry.conversationId,
+                      )
+                    }}
+                    aria-label={t('chat.saveAs')}
+                    title={t('chat.saveAs')}
+                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+
                   {/* MIME type badge */}
-                  <div className="text-xs text-asgard-text-muted bg-asgard-surface-alt px-2 py-1 rounded-md">
-                    {entry.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
+                  <div className="flex-shrink-0 text-xs text-asgard-text-muted bg-asgard-surface-alt px-2 py-1 rounded-md">
+                    {formatTypeBadge(entry)}
                   </div>
                 </motion.div>
               ))}
@@ -233,6 +293,16 @@ export const DownloadHistory: React.FC<{ onClose?: () => void }> = ({ onClose })
             <span>{t('settings.totalSize', { size: formatBytes(stats.totalSize) })}</span>
           </div>
         </div>
+      )}
+
+      {confirmClear && (
+        <ConfirmDialog
+          title="calls.clearHistory"
+          warning="settings.clearDownloadHistoryWarning"
+          confirmLabel="calls.clearHistory"
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={handleClear}
+        />
       )}
     </div>
   )

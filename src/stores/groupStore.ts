@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import type { Group, GroupMember, GroupChannel, MemberRole, ChannelType, GroupActivity } from '@/types'
 import { generateId } from '@/utils/id'
+import { channelPermissionsFor, normalizeChannelName } from '@/utils/groupPermissions'
 import { GROUP_PRESENCE_TIMEOUT, isLivePresence } from '@/utils/presence'
 
 interface GroupState {
@@ -12,6 +13,11 @@ interface GroupState {
   activeGroupId: string | null
   /** Currently active channel within the active group */
   activeChannelId: string | null
+  /**
+   * True only while a GroupView is mounted. The selected group/channel survive
+   * navigation, so the unread guard must not assume they are still on screen.
+   */
+  groupViewVisible: boolean
   /** Search query for filtering groups */
   searchQuery: string
   /** Group member presence: groupId -> publicKey -> status */
@@ -50,6 +56,9 @@ interface GroupState {
   /** Remove a member from a group */
   removeMember: (groupId: string, publicKey: string) => void
 
+  /** Remove a member and remember the exclusion so it cannot rejoin alone */
+  markMemberKicked: (groupId: string, publicKey: string) => void
+
   /** Update a member's role or properties */
   updateMember: (groupId: string, publicKey: string, updates: Partial<GroupMember>) => void
 
@@ -80,11 +89,17 @@ interface GroupState {
   /** Set the active channel within the active group */
   setActiveChannel: (channelId: string | null) => void
 
+  /** Track whether the group view is actually mounted */
+  setGroupViewVisible: (visible: boolean) => void
+
   /** Update channel unread count */
   incrementChannelUnread: (groupId: string, channelId: string) => void
 
   /** Clear channel unread count */
   clearChannelUnread: (groupId: string, channelId: string) => void
+
+  /** Clear unread counts on every channel of every group */
+  clearAllChannelUnread: () => void
 
   /** Pin a message in a channel */
   pinChannelMessage: (groupId: string, channelId: string, messageId: string) => void
@@ -154,6 +169,7 @@ export const useGroupStore = create<GroupState>()(
       groups: {},
       activeGroupId: null,
       activeChannelId: null,
+      groupViewVisible: false,
       searchQuery: '',
       groupPresence: {},
       channelTyping: {},
@@ -277,6 +293,20 @@ export const useGroupStore = create<GroupState>()(
         })
       },
 
+      markMemberKicked: (groupId, publicKey) => {
+        set((state) => {
+          const group = state.groups[groupId]
+          if (!group) return
+          if (group.ownerId === publicKey) return // Can't remove owner
+          if (!group.kickedMembers?.includes(publicKey)) {
+            // Bornée : une liste d'exclusions ne doit pas croître sans fin.
+            group.kickedMembers = [...(group.kickedMembers ?? []), publicKey].slice(-256)
+          }
+          group.members = group.members.filter((m) => m.publicKey !== publicKey)
+          group.updatedAt = Date.now()
+        })
+      },
+
       updateMember: (groupId, publicKey, updates) => {
         set((state) => {
           const group = state.groups[groupId]
@@ -336,15 +366,13 @@ export const useGroupStore = create<GroupState>()(
           newChannel = {
             id: channelId,
             groupId,
-            name: params.name.toLowerCase().replace(/\s+/g, '-'),
+            name: normalizeChannelName(params.name),
             description: params.description,
             type: params.type,
             position: maxPosition + 1,
-            permissions: params.permissions ?? {
-              send: ['owner', 'admin', 'moderator', 'member'],
-              read: ['owner', 'admin', 'moderator', 'member', 'guest'],
-              manage: ['owner', 'admin'],
-            },
+            // Le type doit fermer l'écriture dès la création : sinon « annonce »
+            // et « lecture seule » ne sont que des libellés.
+            permissions: params.permissions ?? channelPermissionsFor(params.type),
             unreadCount: 0,
           }
 
@@ -395,14 +423,20 @@ export const useGroupStore = create<GroupState>()(
         })
       },
 
+      setGroupViewVisible: (visible) => {
+        set((state) => {
+          state.groupViewVisible = visible
+        })
+      },
+
       incrementChannelUnread: (groupId, channelId) => {
         set((state) => {
           const group = state.groups[groupId]
           if (!group) return
           const channel = group.channels.find((ch) => ch.id === channelId)
           if (!channel) return
-          // Don't increment if this is the active channel
-          if (state.activeGroupId === groupId && state.activeChannelId === channelId) return
+          // Don't increment while the channel is actually on screen
+          if (state.groupViewVisible && state.activeGroupId === groupId && state.activeChannelId === channelId) return
           channel.unreadCount += 1
           channel.lastActivity = Date.now()
         })
@@ -418,6 +452,16 @@ export const useGroupStore = create<GroupState>()(
         })
       },
 
+      clearAllChannelUnread: () => {
+        set((state) => {
+          for (const group of Object.values(state.groups)) {
+            for (const channel of group.channels) {
+              channel.unreadCount = 0
+            }
+          }
+        })
+      },
+
       pinChannelMessage: (groupId, channelId, messageId) => {
         set((state) => {
           const group = state.groups[groupId]
@@ -429,6 +473,10 @@ export const useGroupStore = create<GroupState>()(
           }
           if (!channel.pinnedMessageIds.includes(messageId)) {
             channel.pinnedMessageIds.push(messageId)
+            // Une épingle est un état borné, pas un journal qui grossit sans fin.
+            if (channel.pinnedMessageIds.length > 100) {
+              channel.pinnedMessageIds = channel.pinnedMessageIds.slice(-100)
+            }
           }
         })
       },
@@ -656,6 +704,17 @@ export const useGroupStore = create<GroupState>()(
     {
       name: 'asgard-groups',
       storage: createJSONStorage(() => localStorage),
+      // La visibilité de la vue n'est pas persistée : une session relancée ne
+      // doit pas croire qu'un canal est encore affiché et taire ses non-lus.
+      partialize: (state) => ({
+        groups: state.groups,
+        activeGroupId: state.activeGroupId,
+        activeChannelId: state.activeChannelId,
+        searchQuery: state.searchQuery,
+        groupPresence: state.groupPresence,
+        // channelTyping est éphémère : une frappe de la session précédente ne
+        // doit pas être réaffichée après un redémarrage.
+      }),
     }
   )
 )

@@ -19,6 +19,7 @@ export interface AsgardElectronAPI {
     close: () => void
     isMaximized: () => Promise<boolean>
     onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
+    setUnreadCount: (count: number) => void
   }
   identity: {
     create: () => Promise<IdentityAPIResult>
@@ -49,7 +50,7 @@ export interface AsgardElectronAPI {
     suspend: () => Promise<void>
     resume: () => Promise<void>
     flush: () => Promise<void>
-    updateConfig: (config: { maxPeers?: number; relayEnabled?: boolean }) => Promise<void>
+    updateConfig: (config: { maxPeers?: number }) => Promise<void>
     blockPeer: (noisePublicKeyHex: string, blocked: boolean) => Promise<void>
     getPeerScores: () => Promise<Record<string, { latency: number; score: number }>>
     publishProfile: (displayName: string, avatar?: string) => Promise<boolean>
@@ -75,9 +76,6 @@ export interface AsgardElectronAPI {
     setFirewall: (firewallFn: (remotePublicKey: string, remoteHandshakePayload: unknown) => boolean) => Promise<boolean>
     getServerAddress: () => Promise<{ host: string; port: number; publicKey: string } | null>
     refreshServer: () => Promise<boolean>
-    suspendSwarm: () => Promise<boolean>
-    resumeSwarm: () => Promise<boolean>
-    flushSwarm: () => Promise<boolean>
     dhtLookup: (topicHex: string) => Promise<Array<{ publicKey: string; nodes: Array<{ host: string; port: number }> }>>
     dhtAnnounce: (topicHex: string) => Promise<boolean>
     dhtUnannounce: (topicHex: string) => Promise<boolean>
@@ -112,7 +110,7 @@ export interface AsgardElectronAPI {
     getSize: () => Promise<number>
     saveMessage: (conversationId: string, message: unknown) => Promise<void>
     saveMessages: (conversationId: string, messages: unknown[]) => Promise<void>
-    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; reverse?: boolean }) => Promise<unknown[]>
+    getMessages: (conversationId: string, options?: { limit?: number; before?: number; after?: number; afterId?: string; reverse?: boolean }) => Promise<unknown[]>
     getLastMessages: (conversationId: string, count?: number) => Promise<unknown[]>
     getLatestMessage: (conversationId: string) => Promise<unknown | null>
     clearMessages: (conversationId: string) => Promise<void>
@@ -214,11 +212,23 @@ export interface AsgardElectronAPI {
   notifications: {
     show: (title: string, body: string, options?: NotificationAPIOptions) => void
     requestPermission: () => Promise<boolean>
+    onClick: (callback: (target: NotificationClickTarget) => void) => () => void
   }
   file: {
-    saveAs: (blobId: string, suggestedName: string) => Promise<
+    saveAs: (blobId: string, suggestedName: string, downloadDir?: string) => Promise<
       | { success: true; filePath: string }
       | { success: false; reason: 'not-found' | 'canceled' | 'error'; message?: string }
+    >
+    open: (blobId: string, suggestedName: string) => Promise<
+      | { success: true }
+      | { success: false; reason: 'not-found' | 'blocked' | 'error'; message?: string }
+    >
+  }
+  // Boîtes de dialogue natives (dossier de destination du réglage storage.downloadPath)
+  dialog: {
+    pickFolder: () => Promise<
+      | { success: true; path: string }
+      | { success: false; reason: 'canceled' | 'error'; message?: string }
     >
   }
   app: {
@@ -231,6 +241,9 @@ export interface AsgardElectronAPI {
     getPendingDeepLink: () => Promise<string | null>
     // DEEP LINK: liens reçus pendant que l'app tourne
     onDeepLink: (callback: (url: string) => void) => () => void
+    // APPEL ENTRANT: fait clignoter l'icône de la barre des tâches (le verrou
+    // de remise à zéro est posé côté renderer, au moment de la réponse).
+    flashFrame: (flag: boolean) => void
     // PRIVACY SETTINGS (privacy.linkPreviews): métadonnées OG récupérées côté main
     fetchLinkPreview: (url: string) => Promise<{
       url: string
@@ -287,7 +300,16 @@ interface NetworkAPIStatus {
 interface NotificationAPIOptions {
   icon?: string
   silent?: boolean
+  /** Destination ouverte au clic : fil 1:1, ou canal d'un groupe. */
+  conversationId?: string
+  groupId?: string
+  channelId?: string
 }
+
+type NotificationClickTarget = Pick<
+  NotificationAPIOptions,
+  'conversationId' | 'groupId' | 'channelId'
+>
 
 interface DHTProfileData {
   displayName: string

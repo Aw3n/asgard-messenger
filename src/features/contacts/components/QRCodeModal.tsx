@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useIdentityStore } from '@/stores/identityStore'
 import { useContactStore } from '@/stores/contactStore'
@@ -6,10 +7,11 @@ import { useConversationStore } from '@/stores/conversationStore'
 import { useUIStore } from '@/stores/uiStore'
 import { formatPublicKey } from '@/utils/id'
 import { parseInviteInput } from '@/utils/invite'
-import { cryptoService } from '@/services/CryptoService'
-import { p2pService } from '@/services/P2PService'
+import { copyToClipboard } from '@/utils/clipboard'
+import { useDialogBehavior } from '@/hooks/useDialogBehavior'
+import { useGestureHint } from '@/hooks/useGestureHint'
+import { chatService } from '@/services/ChatService'
 import { useTranslation } from 'react-i18next'
-import type { Contact } from '@/types'
 
 interface QRCodeModalProps {
   onClose: () => void
@@ -26,6 +28,15 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [mode, setMode] = useState<'show' | 'scan'>('show')
   const [pasteKey, setPasteKey] = useState('')
+  // Une génération ratée laissait un carré vide : impossible de distinguer une
+  // clé refusée d'un simple échec du générateur.
+  const [qrFailed, setQrFailed] = useState(false)
+  const navigate = useNavigate()
+  const setActiveConversation = useConversationStore((s) => s.setActiveConversation)
+  const dialogRef = useDialogBehavior(onClose)
+  // Le bouton « Fermer » fait ce que fait la touche réglée : il doit la nommer.
+  const closeGesture = useGestureHint('closeModal', t('common.close'))
+  const pasteKeyId = React.useId()
 
   // Generate QR code on mount
   useEffect(() => {
@@ -42,19 +53,23 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
             light: '#0A0A0F',
           },
         })
+        setQrFailed(false)
       } catch (err) {
         console.error('QR generation failed:', err)
+        setQrFailed(true)
       }
     }
 
     generateQR()
   }, [identity?.keyPair.publicKey])
 
-  const handleCopyKey = () => {
-    if (identity?.keyPair.publicKey) {
-      navigator.clipboard.writeText(identity.keyPair.publicKey)
-      addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
+  const handleCopyKey = async () => {
+    if (!identity?.keyPair.publicKey) return
+    if (!(await copyToClipboard(identity.keyPair.publicKey))) {
+      addToast({ type: 'error', title: t('common.copyFailed'), duration: 2000 })
+      return
     }
+    addToast({ type: 'success', title: t('contacts.publicKeyCopied'), duration: 2000 })
   }
 
   const handlePaste = () => {
@@ -79,59 +94,30 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
     }
     const key = parsed.publicKey
 
-    const { getContact, addContact } = useContactStore.getState()
-    if (getContact(key)) {
+    // Une demande en attente peut être relancée ; un contact confirmé est un doublon.
+    const existing = useContactStore.getState().getContact(key)
+    if (existing && existing.relation !== 'pending') {
       addToast({ type: 'error', title: t('modal.error.contactExists'), duration: 3000 })
       return
     }
 
-    const myPk = useIdentityStore.getState().identity?.keyPair.publicKey
-    if (!myPk) {
+    if (!useIdentityStore.getState().identity) {
       addToast({ type: 'error', title: t('contacts.error.noIdentity'), duration: 3000 })
       return
     }
 
-    const contact: Contact = {
-      publicKey: key,
-      displayName: parsed.name || `User-${key.slice(24, 32)}`,
-      status: 'offline',
-      relation: 'contact',
-      verified: false,
-      addedAt: Date.now(),
-    }
-    addContact(contact)
-
     try {
-      await window.asgard.storage.saveContact(contact)
+      // Relation en attente + conversation + joinTopic + demande immédiate.
+      const convId = await chatService.registerContact(key, parsed.name ?? '')
+      addToast({ type: 'success', title: t('toast.contactAdded'), duration: 3000 })
+      onClose()
+      // La réponse qui confirme l'ajout se fait dans la conversation.
+      setActiveConversation(convId)
+      navigate(`/conversations/${convId}`)
     } catch (err) {
-      console.warn('[QRCodeModal] Hyperbee persistence failed (localStorage persist remains):', err)
+      console.error('[QRCodeModal] Failed to add contact:', err)
+      addToast({ type: 'error', title: t('toast.failedToAddContact'), duration: 4000 })
     }
-
-    // Conversation déterministe + discovery Hyperswarm (pattern ModalContainer)
-    try {
-      const convId = cryptoService.deriveConversationId(myPk, key)
-      const { addConversation } = useConversationStore.getState()
-      if (!useConversationStore.getState().conversations[convId]) {
-        addConversation({
-          id: convId,
-          type: 'direct',
-          participantId: key,
-          unreadCount: 0,
-          muted: false,
-          pinned: false,
-          archived: false,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        })
-      }
-      const topic = await cryptoService.deriveConversationTopic(myPk, key)
-      await p2pService.joinTopic(topic)
-    } catch (err) {
-      console.warn('[QRCodeModal] Failed to setup conversation/topic for new contact:', err)
-    }
-
-    addToast({ type: 'success', title: t('toast.contactAdded'), duration: 3000 })
-    onClose()
   }
 
   return (
@@ -143,10 +129,15 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'show' ? t('contacts.myQRCode') : t('contacts.addFromKey')}
+        tabIndex={-1}
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal"
+        className="mica-card border border-asgard-border rounded-3xl p-6 w-full max-w-md mx-4 shadow-modal focus:outline-none"
       >
         {/* Tabs */}
         <div className="flex gap-2 mb-5">
@@ -180,6 +171,11 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
               <p className="text-xs text-asgard-text-muted mt-1 font-mono">
                 {identity?.keyPair.publicKey ? formatPublicKey(identity.keyPair.publicKey) : t('contacts.noIdentity')}
               </p>
+              {qrFailed && (
+                <p className="mt-3 text-xs text-yellow-400 text-center" role="status">
+                  {t('contacts.qrFailed')}
+                </p>
+              )}
             </div>
             <button
               onClick={handleCopyKey}
@@ -191,10 +187,11 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
+              <label htmlFor={pasteKeyId} className="text-xs font-medium text-asgard-text-muted uppercase tracking-wider mb-2 block">
                 {t('contacts.pastePublicKey')}
               </label>
               <textarea
+                id={pasteKeyId}
                 value={pasteKey}
                 onChange={(e) => setPasteKey(e.target.value)}
                 placeholder={t('contacts.pastePlaceholder')}
@@ -225,6 +222,8 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
         <button
           onClick={onClose}
           className="w-full mt-3 py-2 text-sm text-asgard-text-muted hover:text-asgard-text-secondary transition-colors"
+          title={closeGesture.title}
+          aria-keyshortcuts={closeGesture.ariaKeyShortcuts}
         >
           {t('common.close')}
         </button>

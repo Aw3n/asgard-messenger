@@ -2,7 +2,26 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Theme, RightPanelView, ModalState, Toast, AppSettings, ThemePreset } from '@/types'
 import { generateId } from '@/utils/id'
+import { DEFAULT_KEYBOARD_SHORTCUTS } from '@/utils/shortcuts'
 import { hexToCssRgb, lightenColor, darkenColor, isColorDark, invertColorForLight } from '@/utils/color'
+
+interface ToastTimer {
+  handle: ReturnType<typeof setTimeout>
+  remaining: number
+  startedAt: number
+}
+
+const toastTimers = new Map<string, ToastTimer>()
+
+// Déclencheur de la modale : sans ce rappel, le focus retombe sur <body> à la
+// fermeture et l'utilisateur clavier perd sa place dans la page.
+let modalTrigger: HTMLElement | null = null
+
+export function restoreModalTriggerFocus() {
+  const trigger = modalTrigger
+  modalTrigger = null
+  if (trigger && document.contains(trigger)) trigger.focus()
+}
 
 interface UIState {
   theme: Theme
@@ -23,6 +42,8 @@ interface UIState {
   closeModal: () => void
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
+  pauseToast: (id: string) => void
+  resumeToast: (id: string) => void
   updateSettings: (updates: Partial<AppSettings>) => void
   setMaximized: (maximized: boolean) => void
   toggleSearch: () => void
@@ -36,13 +57,12 @@ interface UIState {
 
 const defaultSettings: AppSettings = {
   theme: 'dark',
-  language: 'en',
   fontSize: 'medium',
-  compactMode: 'comfortable',
   notifications: {
     enabled: true,
     sound: true,
     dndMode: false,
+    scheduledDnd: false,
     showPreview: true,
     mentionsOnly: false,
   },
@@ -67,7 +87,6 @@ const defaultSettings: AppSettings = {
     cacheSize: 500,
   },
   network: {
-    relayEnabled: true,
     maxPeers: 64,
   },
   accessibility: {
@@ -95,27 +114,12 @@ const defaultSettings: AppSettings = {
     audioQuality: 'medium',
     muteByDefault: true,
     showVideoControls: true,
-    imageZoom: 1,
     compressVideos: true,
     compressImages: true,
   },
-  keyboardShortcuts: {
-    sendMessage: 'Enter',
-    newLine: 'Shift+Enter',
-    openSearch: 'Ctrl+K',
-    closeModal: 'Escape',
-    toggleSidebar: 'Ctrl+B',
-    nextConversation: 'Ctrl+ArrowDown',
-    prevConversation: 'Ctrl+ArrowUp',
-    openSettings: 'Ctrl+,',
-    openProfile: 'Ctrl+P',
-    focusInput: 'Ctrl+I',
-    deleteMessage: 'Delete',
-    editLastMessage: 'Ctrl+E',
-    replyToMessage: 'Ctrl+R',
-    forwardMessage: 'Ctrl+F',
-    copyMessage: 'Ctrl+C',
-  },
+  // Une copie : la table du module reste intacte quoi que devienne l'état du
+  // magasin, et l'éditeur de réglages compare ses valeurs aux siennes.
+  keyboardShortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS },
   customTheme: {
     enabled: false,
     accentColor: '#4A90E2',
@@ -128,11 +132,40 @@ const defaultSettings: AppSettings = {
     useGradient: true,
     borderRadius: 12,
   },
-  appearance: {
-    theme: 'dark',
-    fontSize: 'medium',
-    compactMode: 'comfortable',
-  },
+}
+
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] }
+export type StoredSettings = DeepPartial<AppSettings>
+
+/**
+ * Fusionne un état persisté avec les valeurs par défaut.
+ *
+ * Chaque section garde les choix de l'utilisateur mais récupère les clés
+ * ajoutées depuis. `storage` est fusionné en profondeur : un état antérieur
+ * peut ne pas avoir le bloc du tout (l'écran Stockage lisait alors
+ * `settings.storage.cacheSize` sur `undefined`).
+ */
+export function mergeStoredSettings(stored?: StoredSettings): AppSettings {
+  return {
+    ...defaultSettings,
+    ...stored,
+    notifications: { ...defaultSettings.notifications, ...stored?.notifications },
+    privacy: { ...defaultSettings.privacy, ...stored?.privacy },
+    storage: {
+      ...defaultSettings.storage,
+      ...stored?.storage,
+      autoDownload: {
+        ...defaultSettings.storage.autoDownload,
+        ...stored?.storage?.autoDownload,
+      },
+    },
+    network: { ...defaultSettings.network, ...stored?.network },
+    accessibility: { ...defaultSettings.accessibility, ...stored?.accessibility },
+    chat: { ...defaultSettings.chat, ...stored?.chat },
+    media: { ...defaultSettings.media, ...stored?.media },
+    keyboardShortcuts: { ...defaultSettings.keyboardShortcuts, ...stored?.keyboardShortcuts },
+    customTheme: { ...defaultSettings.customTheme, ...stored?.customTheme },
+  }
 }
 
 // ─── Predefined Theme Presets ────────────────────────────────────────────────
@@ -300,6 +333,9 @@ function applyCustomThemeToCSS(customTheme: AppSettings['customTheme']) {
   // Dark mode variables - match globals.css hierarchy:
   // deep-black(5) < black(10) < surface(15) < surface-alt(20)
   const darkBg = customTheme.backgroundColor || '#1a1b23'
+  // « Surface Color » est une pipette à l'écran : elle doit peindre les surfaces,
+  // pas rester muette pendant que backgroundColor les déduit du fond.
+  const darkSurface = customTheme.surfaceColor || '#252630'
   const darkVars = `
     --asgard-accent: ${toRgb(customTheme.accentColor, '#4FC3F7')};
     --asgard-glacier: ${toRgb(customTheme.accentColor, '#4FC3F7')};
@@ -313,8 +349,8 @@ function applyCustomThemeToCSS(customTheme: AppSettings['customTheme']) {
     --asgard-cyan-glow: ${toRgb(lightenColor(customTheme.secondaryColor || '#7B68EE', 20), '#9B8BFF')};
     --asgard-deep-black: ${toRgb(darkenColor(darkBg, 10), '#0a0a0f')};
     --asgard-black: ${toRgb(darkenColor(darkBg, 5), '#0f1015')};
-    --asgard-surface: ${toRgb(darkBg, '#1a1b23')};
-    --asgard-surface-alt: ${toRgb(lightenColor(darkBg, 5), '#252630')};
+    --asgard-surface: ${toRgb(darkSurface, '#252630')};
+    --asgard-surface-alt: ${toRgb(lightenColor(darkSurface, 5), '#2e2f3a')};
     --asgard-text-primary: ${toRgb(customTheme.textPrimaryColor, '#ffffff')};
     --asgard-text-secondary: ${toRgb(customTheme.textSecondaryColor, '#a0a0a0')};
     --asgard-text-muted: ${toRgb(darkenColor(customTheme.textSecondaryColor || '#a0a0a0', 20), '#707070')};
@@ -337,6 +373,9 @@ function applyCustomThemeToCSS(customTheme: AppSettings['customTheme']) {
   const lightBg = isDarkTheme 
     ? invertColorForLight(customTheme.backgroundColor || '#1a1b23')
     : (customTheme.backgroundColor || '#f5f9ff')
+  const lightSurface = isDarkTheme
+    ? invertColorForLight(customTheme.surfaceColor || '#252630')
+    : (customTheme.surfaceColor || '#ffffff')
   const lightTextPrimary = isDarkTheme 
     ? darkenColor(customTheme.textPrimaryColor || '#ffffff', 85)
     : (customTheme.textPrimaryColor || '#1a237e')
@@ -360,8 +399,8 @@ function applyCustomThemeToCSS(customTheme: AppSettings['customTheme']) {
     --asgard-cyan-glow: ${toRgb(lightenColor(lightSecondary, 20), '#4FC3F7')};
     --asgard-deep-black: ${toRgb(darkenColor(lightBg, 8), '#e8f0f8')};
     --asgard-black: ${toRgb(lightBg, '#f5f9ff')};
-    --asgard-surface-alt: ${toRgb(lightenColor(lightBg, 2), '#f8f9fc')};
-    --asgard-surface: ${toRgb(lightenColor(lightBg, 5), '#ffffff')};
+    --asgard-surface-alt: ${toRgb(darkenColor(lightSurface, 2), '#f0f4f9')};
+    --asgard-surface: ${toRgb(lightSurface, '#ffffff')};
     --asgard-text-primary: ${toRgb(lightTextPrimary, '#1a237e')};
     --asgard-text-secondary: ${toRgb(lightTextSecondary, '#5c6bc0')};
     --asgard-text-muted: ${toRgb(lightenColor(lightTextSecondary, 25), '#9fa8da')};
@@ -436,7 +475,15 @@ export const useUIStore = create<UIState>()(
         set({ rightPanelView: current === view ? null : view })
       },
 
-      openModal: (type, props) => set({ modal: { type, props } }),
+      openModal: (type, props) => {
+        // Capturé au clic, avant le montage du dialogue : quand l'effet
+        // arriverait, autoFocus a déjà déplacé le focus dans le champ.
+        if (!get().modal.type) {
+          const active = document.activeElement
+          modalTrigger = active instanceof HTMLElement ? active : null
+        }
+        set({ modal: { type, props } })
+      },
 
       closeModal: () => set({ modal: { type: null } }),
 
@@ -448,12 +495,34 @@ export const useUIStore = create<UIState>()(
         // Auto-remove after duration
         const duration = toast.duration ?? 4000
         if (duration > 0) {
-          setTimeout(() => get().removeToast(id), duration)
+          const handle = setTimeout(() => get().removeToast(id), duration)
+          toastTimers.set(id, { handle, remaining: duration, startedAt: Date.now() })
         }
       },
 
       removeToast: (id) => {
+        const timer = toastTimers.get(id)
+        if (timer) {
+          clearTimeout(timer.handle)
+          toastTimers.delete(id)
+        }
         set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
+      },
+
+      // Un toast survolé ou exploré au clavier ne doit pas s'évanouir sous les
+      // yeux de son lecteur : le temps restant est mis en attente puis repris.
+      pauseToast: (id) => {
+        const timer = toastTimers.get(id)
+        if (!timer) return
+        clearTimeout(timer.handle)
+        timer.remaining -= Date.now() - timer.startedAt
+      },
+
+      resumeToast: (id) => {
+        const timer = toastTimers.get(id)
+        if (!timer) return
+        timer.startedAt = Date.now()
+        timer.handle = setTimeout(() => get().removeToast(id), Math.max(timer.remaining, 0))
       },
 
       updateSettings: (updates) => {
@@ -528,20 +597,7 @@ export const useUIStore = create<UIState>()(
       onRehydrateStorage: () => {
         return (state) => {
           if (state) {
-            // Migrate settings: merge with defaults to ensure all properties exist
-            state.settings = {
-              ...defaultSettings,
-              ...state.settings,
-              chat: { ...defaultSettings.chat, ...state.settings.chat },
-              media: { ...defaultSettings.media, ...state.settings.media },
-              accessibility: { ...defaultSettings.accessibility, ...state.settings.accessibility },
-              notifications: { ...defaultSettings.notifications, ...state.settings.notifications },
-              privacy: { ...defaultSettings.privacy, ...state.settings.privacy },
-              appearance: { ...defaultSettings.appearance, ...state.settings.appearance },
-              network: { ...defaultSettings.network, ...state.settings.network },
-              keyboardShortcuts: { ...defaultSettings.keyboardShortcuts, ...state.settings.keyboardShortcuts },
-              customTheme: { ...defaultSettings.customTheme, ...state.settings.customTheme },
-            }
+            state.settings = mergeStoredSettings(state.settings)
           }
           if (state?.settings?.customTheme?.enabled) {
             // Apply custom theme after hydration

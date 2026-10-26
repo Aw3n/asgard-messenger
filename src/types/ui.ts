@@ -3,15 +3,11 @@
  */
 
 export type Theme = 'dark' | 'light' | 'system'
-export type Language = 'en' | 'fr' | 'de' | 'es' | 'ja' | 'zh'
 export type FontSize = 'small' | 'medium' | 'large'
-export type CompactMode = 'comfortable' | 'compact' | 'cozy'
 
 export interface AppSettings {
   theme: Theme
-  language: Language
   fontSize: FontSize
-  compactMode: CompactMode
   notifications: NotificationSettings
   privacy: PrivacySettings
   storage: StorageSettings
@@ -21,19 +17,14 @@ export interface AppSettings {
   media: MediaSettings
   keyboardShortcuts: KeyboardShortcuts
   customTheme: CustomThemeSettings
-  /** Appearance sub-section (mirrors theme + fontSize for hydration compat) */
-  appearance: {
-    theme: Theme
-    fontSize: FontSize
-    compactMode: CompactMode
-    accentColor?: string
-  }
 }
 
 export interface NotificationSettings {
   enabled: boolean
   sound: boolean
   dndMode: boolean
+  /** Silence programmé : n'utilise la fenêtre dndFrom → dndTo que s'il est levé. */
+  scheduledDnd: boolean
   dndFrom?: string // HH:MM
   dndTo?: string   // HH:MM
   showPreview: boolean
@@ -61,9 +52,7 @@ export interface StorageSettings {
 }
 
 export interface NetworkSettings {
-  relayEnabled: boolean
   maxPeers: number
-  bandwidthLimit?: number // KB/s
 }
 
 export interface AccessibilitySettings {
@@ -113,8 +102,6 @@ export interface MediaSettings {
   muteByDefault: boolean
   /** Show video controls */
   showVideoControls: boolean
-  /** Image zoom level */
-  imageZoom: number
   /** Enable video compression before sending */
   compressVideos: boolean
   /** Enable image compression before sending */
@@ -152,6 +139,10 @@ export interface KeyboardShortcuts {
   forwardMessage: string
   /** Copy message */
   copyMessage: string
+  /** Answer an incoming call */
+  acceptCall: string
+  /** Decline an incoming call */
+  declineCall: string
 }
 
 export interface CustomThemeSettings {
@@ -198,7 +189,7 @@ export interface ThemePreset {
 }
 
 /** Panel displayed in the right sidebar */
-export type RightPanelView = 'info' | 'members' | 'files' | 'links' | 'search' | null
+export type RightPanelView = 'info' | 'files' | 'links' | 'search' | null
 
 /** Modal types */
 export type ModalType =

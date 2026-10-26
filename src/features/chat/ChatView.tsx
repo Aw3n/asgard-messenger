@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useMessageStore } from '@/stores/messageStore'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { NO_MESSAGES, useMessageStore } from '@/stores/messageStore'
 import { useConversationStore } from '@/stores/conversationStore'
 import { useContactStore } from '@/stores/contactStore'
 import { useIdentityStore } from '@/stores/identityStore'
@@ -11,17 +11,40 @@ import { useNetworkStore } from '@/stores/networkStore'
 import { useUIStore } from '@/stores/uiStore'
 import { MessageBubble } from './components/MessageBubble'
 import { MessageInput } from './components/MessageInput'
+import { PendingContactBanner } from './components/PendingContactBanner'
 import { ForwardModal } from './components/ForwardModal'
+import { MessageDeleteConfirm } from './components/MessageDeleteConfirm'
+import { ConversationConfirm } from './components/ConversationConfirm'
 import { ActiveTransfersWidget } from './components/ActiveTransfersWidget'
 import { Avatar } from '@/components/ui/Avatar'
+import { MuteButton } from '@/components/ui/MuteButton'
+import { UnreadDivider } from '@/components/ui/UnreadDivider'
+import { HistoryFailureNotice } from '@/components/ui/HistoryFailureNotice'
 import { chatService } from '@/services/ChatService'
 import { p2pService } from '@/services/P2PService'
 import { cryptoService } from '@/services/CryptoService'
 import { callService } from '@/services/CallService'
-import { fileService, PeerUnreachableError } from '@/services/FileService'
+import { fileService, PeerUnreachableError, TransferCancelledError } from '@/services/FileService'
 import { RightPanel } from '@/components/panels/RightPanel'
 import { presenceMeta, isLivePresence } from '@/utils/presence'
+import { watchWindowVisibility } from '@/utils/windowVisibility'
+import { countIncomingAfter } from '@/utils/incomingAfter'
+import { findFirstUnreadMessageId } from '@/utils/unreadDivider'
+import { parseMessageJump } from '@/utils/messageJump'
+import type { MessageCursor } from '@/utils/messageGap'
+import { useMessageJump } from '@/hooks/useMessageJump'
+import { useMessageActionShortcuts } from '@/hooks/useMessageActionShortcuts'
+import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
+import { useNewerMessages } from '@/hooks/useNewerMessages'
+import { useHistoryErrorNotice } from '@/hooks/useHistoryErrorNotice'
+import { useGestureHint } from '@/hooks/useGestureHint'
+import { formatLastSeen } from '@/utils/time'
 import type { Message } from '@/types'
+
+const HISTORY_PAGE_SIZE = 50
+// Index de départ arbitrairement haut : Virtuoso s'en sert pour ancrer le
+// viewport quand des messages plus anciens sont insérés devant la liste.
+const FIRST_ITEM_INDEX = 100_000
 
 /**
  * ChatView — main conversation view.
@@ -31,13 +54,25 @@ export const ChatView: React.FC = () => {
   const { t } = useTranslation()
   const { conversationId } = useParams<{ conversationId: string }>()
   const [replyTo, setReplyTo] = useState<Message | undefined>()
+  const [editingMessage, setEditingMessage] = useState<Message | undefined>()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [forwardMessage, setForwardMessage] = useState<Message | undefined>()
+  // Suivi du bas du fil : une lecture remontée doit s'annoncer quand un
+  // message arrive en dessous, et un envoi doit ramener à sa propre bulle.
+  const [atBottom, setAtBottom] = useState(true)
+  const [newBelowCount, setNewBelowCount] = useState(0)
+  // Premier message non lu ancré à l'ouverture : le compteur est remis à zéro
+  // juste après, donc l'ancre doit être posée avant, une seule fois par fil.
+  const [firstUnreadId, setFirstUnreadId] = useState<string | undefined>(undefined)
+  const lastSeenMessageIdRef = useRef<string | undefined>(undefined)
+  const followOwnSendRef = useRef(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const navigate = useNavigate()
+  const location = useLocation()
 
   const identity = useIdentityStore((s) => s.identity)
   const getConversation = useConversationStore((s) => s.getConversation)
+  const chatViewVisible = useConversationStore((s) => s.chatViewVisible)
   // CRITICAL: Subscribe to the contacts OBJECT (not the getContact function).
   // This ensures ChatView re-renders when a contact's status changes,
   // keeping the header status indicator in sync with the conversation list.
@@ -46,6 +81,9 @@ export const ChatView: React.FC = () => {
   const setRightPanelView = useUIStore((s) => s.setRightPanelView)
   const rightPanelView = useUIStore((s) => s.rightPanelView)
   const setSearchOpen = useUIStore((s) => s.setSearchOpen)
+  // L'icône de recherche du fil ouvre la même fenêtre que le geste global : elle
+  // en porte la combinaison réglée, à l'œil et au lecteur d'écran.
+  const searchGesture = useGestureHint('openSearch', t('chat.searchMessages'))
   // CHAT/PRIVACY/A11Y SETTINGS: collapse grouping, read receipts, screen reader
   const collapseMessages = useUIStore((s) => s.settings.chat.collapseMessages)
   const sendReadReceipts = useUIStore((s) => s.settings.privacy.readReceipts)
@@ -70,25 +108,279 @@ export const ChatView: React.FC = () => {
   // Using getMessages(dataId) would select the FUNCTION reference (stable),
   // not the data. The component would never re-render when new messages arrive.
   // By selecting state.messages[dataId] directly, Zustand subscribes to changes.
-  const messages = useMessageStore((s) => dataId ? (s.messages[dataId] ?? []) : [])
-  const pinnedMessages = useMessageStore((s) => dataId ? s.getPinnedMessages(dataId) : [])
+  const messages = useMessageStore((s) => (dataId ? s.messages[dataId] : undefined) ?? NO_MESSAGES)
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : undefined
+
+  // Changer de fil remet le suivi du bas à zéro : la pastille d'un ancien fil
+  // ne doit pas survivre à la navigation.
+  useEffect(() => {
+    setAtBottom(true)
+    setNewBelowCount(0)
+    setFirstUnreadId(undefined)
+    lastSeenMessageIdRef.current = undefined
+  }, [conversationId])
+
+  // Un message qui s'ajoute sous une lecture remontée doit s'annoncer : sans
+  // pastille, son arrivée ne produisait aucun signe visible.
+  useEffect(() => {
+    const previousId = lastSeenMessageIdRef.current
+    lastSeenMessageIdRef.current = lastMessageId
+    if (atBottom) {
+      setNewBelowCount(0)
+      return
+    }
+    if (previousId === undefined || previousId === lastMessageId) return
+    const added = countIncomingAfter(messages, previousId, identity?.keyPair.publicKey)
+    if (added > 0) setNewBelowCount((count) => count + added)
+  }, [lastMessageId, atBottom, messages, identity?.keyPair.publicKey])
+
+  // Envoyer depuis une position remontée ramène au bas : la bulle qu'on vient
+  // d'écrire ne doit pas rester hors écran.
+  useEffect(() => {
+    if (!followOwnSendRef.current || messages.length === 0) return
+    followOwnSendRef.current = false
+    virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
+  }, [messages.length])
+  const [pagination, setPagination] = useState({
+    dataId,
+    firstItemIndex: FIRST_ITEM_INDEX,
+    exhausted: false,
+  })
+  // La conversation peut changer sans démonter la vue : l'état d'ancrage
+  // d'anciens messages ne doit pas suivre le nouveau fil.
+  const paginationState = pagination.dataId === dataId
+    ? pagination
+    : { dataId, firstItemIndex: FIRST_ITEM_INDEX, exhausted: false }
+  const loadingOlderRef = useRef(false)
+  const dataIdRef = useRef(dataId)
+  dataIdRef.current = dataId
+  // Dérivé de la liste déjà abonée : le sélecteur de store construit un tableau
+  // neuf à chaque rendu, ce qui relance la vue sans raison.
+  const pinnedMessages = useMemo(() => messages.filter((message) => message.pinned), [messages])
   const contact = conversation?.participantId ? contacts[conversation.participantId] : undefined
+  // Un fil 1:1 n'a que deux auteurs : une citation n'a pas à montrer une clé
+  // publique tronquée quand le nom est connu. Sans nom, la clé reste le repli.
+  const senderNameFor = (publicKey: string): string | undefined => {
+    const name = publicKey === identity?.keyPair.publicKey
+      ? identity?.profile.displayName
+      : contact?.displayName
+    return name || undefined
+  }
   const typingUsers = dataId ? getTypingUsers(dataId) : []
 
   // BROADCAST MODE: Check if user is read-only (not the broadcaster)
   const isBroadcastReadOnly = useConversationStore((s) =>
     dataId && identity ? s.isBroadcastReadOnly(dataId, identity.keyPair.publicKey) : false
   )
+  // Parité avec l'en-tête de groupe : la sourdine du fil 1:1 était réglable
+  // uniquement par le clic droit de la liste.
+  const conversationMuted = useConversationStore((s) =>
+    dataId ? s.conversations[dataId]?.muted ?? false : false
+  )
+  const conversationMutedUntil = useConversationStore((s) =>
+    dataId ? s.conversations[dataId]?.mutedUntil : undefined
+  )
+
+  // Changer de conversation abandonne une réponse ou une édition en cours :
+  // le composer ne doit pas modifier un message qui n'est plus à l'écran.
+  useEffect(() => {
+    setEditingMessage(undefined)
+    setReplyTo(undefined)
+  }, [conversationId])
+
+  // Un fil ouvert par l'URL (résultat de recherche, clic de notification,
+  // retour arrière) doit aussi devenir la conversation sélectionnée : sinon
+  // un message entrant reste compté non lu et notifié alors qu'il s'affiche.
+  useEffect(() => {
+    if (conversationId) {
+      useConversationStore.getState().setActiveConversation(conversationId)
+    }
+  }, [conversationId])
+
+  // Seul un ChatView monté prouve que le fil est visible : l'identifiant de
+  // conversation, lui, reste sélectionné après un passage sur une autre page.
+  // Une fenêtre réduite ou sans focus ne rend rien à l'écran : elle doit donc
+  // compter les messages comme non lus et laisser passer les notifications.
+  useEffect(() => {
+    const stopWatching = watchWindowVisibility((visible) => {
+      useConversationStore.getState().setChatViewVisible(visible)
+    })
+    return () => {
+      stopWatching()
+      useConversationStore.getState().setChatViewVisible(false)
+    }
+  }, [])
 
   // Load message history from Hyperbee storage when conversation opens
+  const initialHistoryLoadRef = useRef<Promise<unknown>>(Promise.resolve())
+  const { noticeHistoryError, historyLoaded, historyFailed, retryHistory, historyRetry } =
+    useHistoryErrorNotice(dataId)
   useEffect(() => {
     if (!resolvedId) return
-    chatService.loadMessages(resolvedId).catch(console.error)
-  }, [resolvedId])
+    initialHistoryLoadRef.current = chatService
+      .loadMessages(resolvedId)
+      .then((page) => {
+        // Une page vide est un fil vide ; `null` est une panne, et elle doit se
+        // voir : sans message à l'écran comme dans la console, rien ne la distinguait.
+        if (page === null) noticeHistoryError()
+        else historyLoaded()
+      })
+      .catch(console.error)
+  }, [resolvedId, noticeHistoryError, historyLoaded, historyRetry])
+
+  // Un résultat de recherche profond peut viser un message plus ancien que la
+  // page de démarrage : charger son contexte, puis le centrer.
+  const jumpRequest = React.useMemo(
+    () => parseMessageJump(location.state, conversationId),
+    [location.state, conversationId]
+  )
+  const waitForInitialHistory = useCallback(() => initialHistoryLoadRef.current, [])
+  const loadJumpContext = useCallback(async (timestamp: number) => {
+    if (!resolvedId) return
+    const page = await chatService.loadMessageContext(resolvedId, timestamp)
+    // Le saut abandonne sans rien montrer si la page de contexte n'arrive pas :
+    // l'échec doit être annoncé, pas seulement journalisé.
+    if (page === null) noticeHistoryError()
+    else historyLoaded()
+    return page
+  }, [resolvedId, noticeHistoryError, historyLoaded])
+  // La page de contexte s'arrête bien avant la fenêtre récente : charger la
+  // suite seulement quand la vue s'en approche évite un trou définitif.
+  const loadNewerGapMessages = useCallback(async (cursor: MessageCursor, limit: number) => {
+    if (!resolvedId) return []
+    const page = await chatService.loadNewerMessages(resolvedId, cursor.timestamp, cursor.id, limit)
+    if (page === null) noticeHistoryError()
+    else historyLoaded()
+    return page
+  }, [resolvedId, noticeHistoryError, historyLoaded])
+  const { gapArmed, armGap, onRangeChanged } = useNewerMessages({
+    dataId,
+    messages,
+    firstItemIndex: paginationState.firstItemIndex,
+    pageSize: HISTORY_PAGE_SIZE,
+    loadNewer: loadNewerGapMessages,
+  })
+  const handleJumpPrepended = useCallback((added: number) => {
+    setPagination((state) => {
+      const base = state.dataId === dataId ? state.firstItemIndex : FIRST_ITEM_INDEX
+      return {
+        dataId,
+        firstItemIndex: Math.max(0, base - added),
+        exhausted: state.dataId === dataId ? state.exhausted : false,
+      }
+    })
+  }, [dataId])
+  const handleJumpStart = useCallback(() => setAtBottom(false), [])
+  const highlightedMessageId = useMessageJump({
+    request: jumpRequest,
+    dataId,
+    messages,
+    firstItemIndex: paginationState.firstItemIndex,
+    virtuosoRef,
+    waitForInitialHistory,
+    loadContext: loadJumpContext,
+    onPrependedMessages: handleJumpPrepended,
+    onNewerGap: armGap,
+    onJumpStart: handleJumpStart,
+  })
+
+  // Les trois gestes de message ont une seule implémentation : le clic du menu
+  // et la frappe réglée doivent passer par le même chemin.
+  const handleReply = useCallback((message: Message) => {
+    setEditingMessage(undefined)
+    setReplyTo(message)
+  }, [])
+  const handleEdit = useCallback((message: Message) => {
+    setReplyTo(undefined)
+    setEditingMessage(message)
+  }, [])
+  const handleForward = useCallback((message: Message) => setForwardMessage(message), [])
+
+  // SUPPRESSION D'UN MESSAGE : menu et touche réglée demandent, le dialogue
+  // acquiesce. Dans un fil 1:1 deux gestes sont réels : la mention « Supprimé »
+  // reste chez le contact pour l'un, et rien ne subsiste pour l'autre.
+  const {
+    pending: pendingDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+  } = useDeleteConfirmation((message, mode) => {
+    if (mode === 'forEveryone') {
+      if (!conversation?.participantId || !dataId) return
+      chatService.deleteMessage(message.id, dataId, conversation.participantId).catch((err) => {
+        console.error('[ChatView] deleteMessage failed:', err)
+        try { window.asgard.debugLog('[ChatView] deleteMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+        // La copie locale est déjà retirée ; seul le contact n'a pas reçu l'avis.
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.deleteForEveryoneFailed') })
+      })
+      return
+    }
+    if (!dataId) return
+    chatService.deleteMessagePermanently(message.id, dataId, conversation?.participantId ?? undefined).catch((err) => {
+      console.error('[ChatView] deleteMessagePermanently failed:', err)
+      try { window.asgard.debugLog('[ChatView] deleteMessagePermanently failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+      useUIStore.getState().addToast({ type: 'error', title: t('chat.deleteForEveryoneFailed') })
+    })
+  })
+
+  // GESTES CLAVIER DU FIL : copie, réponse, transfert, édition du dernier
+  // message et demande de suppression, lus dans `settings.keyboardShortcuts` à
+  // la frappe.
+  useMessageActionShortcuts({
+    messages,
+    ownSenderId: identity?.keyPair.publicKey,
+    highlightedMessageId,
+    handlers: {
+      onReply: handleReply,
+      onEdit: handleEdit,
+      onForward: handleForward,
+      onDelete: (message) => requestDelete(message, 'forEveryone'),
+    },
+  })
+
+  // PAGINATION: l'ouverture ne charge que les derniers messages ; remonter en
+  // haut du fil doit aller chercher la suite au lieu de laisser un trou.
+  const loadOlderMessages = useCallback(async () => {
+    if (!resolvedId || loadingOlderRef.current || paginationState.exhausted) return
+    const current = useMessageStore.getState().messages[resolvedId] ?? []
+    if (current.length === 0) return
+    loadingOlderRef.current = true
+    try {
+      // +1 ms inclut les messages qui partagent l'horodatage du plus ancien.
+      const older = await chatService.loadOlderMessages(
+        resolvedId,
+        current[0].timestamp + 1,
+        HISTORY_PAGE_SIZE,
+      )
+      if (dataIdRef.current !== dataId) return
+      // `null` = lecture échouée : ne pas épuiser la pagination laisse
+      // `startReached` retenter la même page au prochain bord haut.
+      if (older === null) {
+        noticeHistoryError()
+        return
+      }
+      historyLoaded()
+      const after = useMessageStore.getState().messages[resolvedId]?.length ?? current.length
+      const added = after - current.length
+      setPagination((state) => {
+        const base = state.dataId === dataId ? state.firstItemIndex : FIRST_ITEM_INDEX
+        return {
+          dataId,
+          firstItemIndex: Math.max(0, base - added),
+          // Une page incomplète, ou une page qui n'a rien ajouté (doublons),
+          // signifie qu'il n'y a plus rien à remonter : ne pas boucler.
+          exhausted: older.length < HISTORY_PAGE_SIZE || added === 0,
+        }
+      })
+    } finally {
+      loadingOlderRef.current = false
+    }
+  }, [resolvedId, dataId, paginationState.exhausted, noticeHistoryError, historyLoaded])
 
   // READ RECEIPTS: When the user opens a conversation, send read receipts for
   // all messages from the peer that aren't marked as 'read' yet.
   useEffect(() => {
+    if (!chatViewVisible) return
     if (!resolvedId || !conversation?.participantId || !identity || messages.length === 0) return
 
     const myPk = identity.keyPair.publicKey
@@ -98,6 +390,13 @@ export const ChatView: React.FC = () => {
     if (unreadFromPeer.length === 0) return
 
     const unreadIds = unreadFromPeer.map((m) => m.id)
+    // L'ancre « Nouveaux messages » se pose AVANT la remise à zéro : après,
+    // le total non lu ne dit plus où la lecture s'était arrêtée.
+    const unreadTotal = useConversationStore.getState().conversations[resolvedId]?.unreadCount ?? 0
+    if (unreadTotal > 0) {
+      const anchor = findFirstUnreadMessageId(messages, unreadTotal, myPk)
+      if (anchor) setFirstUnreadId(anchor)
+    }
     // Mark them as read locally immediately (optimistic UI)
     useMessageStore.getState().markAllAsRead(resolvedId)
     useConversationStore.getState().clearUnread(resolvedId)
@@ -107,7 +406,7 @@ export const ChatView: React.FC = () => {
     if (sendReadReceipts) {
       chatService.sendReadReceipt(resolvedId, conversation.participantId, unreadIds).catch(() => {})
     }
-  }, [resolvedId, conversation?.participantId, identity, messages.length, sendReadReceipts])
+  }, [resolvedId, conversation?.participantId, identity, messages.length, sendReadReceipts, chatViewVisible])
 
   // Join the Hyperswarm discovery topic for this conversation
   useEffect(() => {
@@ -139,20 +438,20 @@ export const ChatView: React.FC = () => {
     }
   }, [resolvedId, conversation?.participantId, identity])
 
-  // Scroll to bottom on new messages
+  // DÉCOUVERTE IMMÉDIATE : ouvrir une conversation compose le contact tout de
+  // suite (adresse Noise directe) et rafraîchit son profil DHT, au lieu
+  // d'attendre le heartbeat (5 s) ou la boucle de présence (30 s).
   useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
-        virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'smooth' })
-      }, 50)
-    }
-  }, [messages.length])
+    if (!conversation?.participantId) return
+    chatService.probeContact(conversation.participantId)
+  }, [conversation?.participantId])
 
   const handleSend = useCallback(
-    async (content: string) => {
-      if (!dataId || !conversation?.participantId) return
+    async (content: string): Promise<boolean> => {
+      if (!dataId || !conversation?.participantId) return false
       try {
-        await chatService.sendMessage(
+        followOwnSendRef.current = true
+        const outcome = await chatService.sendMessage(
           { conversationId: dataId, type: 'text', content, replyTo: replyTo?.id },
           dataId,
           conversation.participantId
@@ -160,12 +459,58 @@ export const ChatView: React.FC = () => {
         // Ensure typing indicator is cleared on the peer after sending
         chatService.sendTyping(dataId, conversation.participantId, false).catch(() => {})
         setReplyTo(undefined)
+        if (outcome === 'queued') {
+          useUIStore.getState().addToast({
+            type: 'warning',
+            title: t('chat.messageQueued'),
+            duration: 5000,
+          })
+        }
+        return true
       } catch (err) {
+        followOwnSendRef.current = false
         console.error('[ChatView] handleSend error:', err)
         try { window.asgard.debugLog('[ChatView] handleSend error: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+        // Le composeur restaure la phrase ; ce toast dit pourquoi elle est revenue.
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.messageNotDelivered') })
+        return false
       }
     },
-    [dataId, conversation, replyTo]
+    [dataId, conversation, replyTo, t]
+  )
+
+  const handleEditSubmit = useCallback(
+    async (content: string) => {
+      const target = editingMessage
+      if (!target || !dataId || !conversation?.participantId) return
+      const peerId = conversation.participantId
+      setEditingMessage(undefined)
+      setReplyTo(undefined)
+      try {
+        await chatService.editMessage(target.id, dataId, content, peerId)
+      } catch (err) {
+        console.error('[ChatView] editMessage failed:', err)
+        try { window.asgard.debugLog('[ChatView] editMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.editForPeerFailed') })
+      }
+    },
+    [editingMessage, dataId, conversation, t]
+  )
+
+  const handleRetry = useCallback(
+    async (message: Message) => {
+      if (!dataId || !conversation?.participantId) return
+      try {
+        const outcome = await chatService.retryMessage(message.id, dataId, conversation.participantId)
+        if (outcome === 'queued') {
+          useUIStore.getState().addToast({ type: 'warning', title: t('chat.messageQueued'), duration: 5000 })
+        }
+      } catch (err) {
+        console.error('[ChatView] retryMessage failed:', err)
+        useUIStore.getState().addToast({ type: 'error', title: t('chat.messageNotDelivered') })
+      }
+    },
+    [dataId, conversation, t]
   )
 
   const handleTyping = useCallback(
@@ -182,6 +527,9 @@ export const ChatView: React.FC = () => {
       try {
         await fileService.sendFiles(files, dataId, conversation.participantId)
       } catch (err) {
+        // Annulation volontaire : un toast « échec » pour un geste que
+        // l'utilisateur vient de faire serait trompeur.
+        if (err instanceof TransferCancelledError) return
         console.error('[ChatView] Failed to send files:', err)
         useUIStore.getState().addToast({
           type: 'error',
@@ -229,7 +577,7 @@ export const ChatView: React.FC = () => {
                 : contact && isLivePresence(contact.status)
                 ? t(presenceMeta(contact.status).labelKey)
                 : contact?.lastSeen
-                ? t('chat.lastSeen')
+                ? formatLastSeen(contact.lastSeen)
                 : t('common.offline')}
             </p>
           </div>
@@ -239,8 +587,9 @@ export const ChatView: React.FC = () => {
         <div className="flex items-center gap-1">
           <HeaderButton
             aria-label={t('calls.audioCall')}
+            disabled={contact?.relation === 'pending'}
             onClick={() => {
-              if (contact) {
+              if (contact && contact.relation !== 'pending') {
                 callService.startCall(contact.publicKey, contact.displayName, 'audio', contact.avatar)
               }
             }}
@@ -251,8 +600,9 @@ export const ChatView: React.FC = () => {
           </HeaderButton>
           <HeaderButton
             aria-label={t('calls.videoCall')}
+            disabled={contact?.relation === 'pending'}
             onClick={() => {
-              if (contact) {
+              if (contact && contact.relation !== 'pending') {
                 callService.startCall(contact.publicKey, contact.displayName, 'video', contact.avatar)
               }
             }}
@@ -261,8 +611,17 @@ export const ChatView: React.FC = () => {
               <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
             </svg>
           </HeaderButton>
+          <MuteButton
+            muted={conversationMuted}
+            mutedUntil={conversationMutedUntil}
+            onToggle={() =>
+              useConversationStore.getState().muteConversation(conversation.id, !conversationMuted)
+            }
+          />
           <HeaderButton
             aria-label={t('chat.searchMessages')}
+            title={searchGesture.title}
+            aria-keyshortcuts={searchGesture.ariaKeyShortcuts}
             onClick={() => setSearchOpen(true)}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -291,7 +650,7 @@ export const ChatView: React.FC = () => {
       </div>
 
       {/* Message list */}
-      <div className="flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden">
         {/* Pinned messages bar */}
         {pinnedMessages.length > 0 && (
           <div className="px-4 py-2 bg-asgard-glacier/10 border-b border-asgard-border flex items-center gap-2">
@@ -299,7 +658,7 @@ export const ChatView: React.FC = () => {
               <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v1h1.6v-1H18v-2l-2-2z"/>
             </svg>
             <span className="text-xs text-asgard-glacier font-medium">
-              {pinnedMessages.length} message{pinnedMessages.length > 1 ? 's' : ''} épinglé{pinnedMessages.length > 1 ? 's' : ''}
+              {t('chat.pinnedMessages')} · {pinnedMessages.length}
             </span>
             <span className="text-xs text-asgard-text-muted truncate flex-1">
               {pinnedMessages[pinnedMessages.length - 1]?.content?.slice(0, 50)}
@@ -307,7 +666,11 @@ export const ChatView: React.FC = () => {
           </div>
         )}
         {messages.length === 0 ? (
-          <ConversationStart name={displayName} />
+          historyFailed ? (
+            <HistoryFailureNotice onRetry={retryHistory} />
+          ) : (
+            <ConversationStart name={displayName} />
+          )
         ) : (
           <div
             className="h-full"
@@ -318,53 +681,58 @@ export const ChatView: React.FC = () => {
           <Virtuoso
             ref={virtuosoRef}
             data={messages}
-            followOutput="smooth"
+            firstItemIndex={paginationState.firstItemIndex}
+            startReached={() => { void loadOlderMessages() }}
+            rangeChanged={onRangeChanged}
+            // Ne suit le bas que si l'utilisateur y est déjà : remonter pour
+            // relire l'historique ne doit pas être annulé par chaque arrivée.
+            // Pendant un comblement de couture, l'ajout de page ne doit pas
+            // non plus tirer la vue vers le bas.
+            followOutput={(atBottom) => (atBottom && !gapArmed ? 'smooth' : false)}
+            atBottomStateChange={setAtBottom}
             className="h-full virtual-list"
             initialTopMostItemIndex={messages.length - 1}
             itemContent={(index, message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                isOwn={message.senderId === identity?.keyPair.publicKey}
-                senderName={contact?.displayName}
-                // CHAT SETTINGS (collapseMessages): group consecutive messages from
-                // the same sender within 5 minutes — only the last one shows its
-                // timestamp, the others render in compact mode.
-                compact={
-                  collapseMessages &&
-                  index > 0 &&
-                  messages[index - 1].senderId === message.senderId &&
-                  message.timestamp - messages[index - 1].timestamp < 300_000
-                }
-                onReply={setReplyTo}
-                onDelete={(msg) => {
-                  if (!conversation.participantId || !dataId) return
-                  chatService.deleteMessage(msg.id, dataId, conversation.participantId).catch((err) => {
-                    console.error('[ChatView] deleteMessage failed:', err)
-                    try { window.asgard.debugLog('[ChatView] deleteMessage failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
-                  })
-                }}
-                onDeletePermanently={(msg) => {
-                  if (!dataId) return
-                  chatService.deleteMessagePermanently(msg.id, dataId, conversation.participantId ?? undefined).catch((err) => {
-                    console.error('[ChatView] deleteMessagePermanently failed:', err)
-                    try { window.asgard.debugLog('[ChatView] deleteMessagePermanently failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
-                  })
-                }}
-                onReaction={(msg, emoji) => {
-                  if (conversation.participantId && dataId) {
-                    chatService.toggleReaction(msg.id, dataId, emoji, conversation.participantId).catch((err) => {
-                      console.warn('[ChatView] toggleReaction failed:', err)
-                    })
-                  } else {
-                    console.warn('[ChatView] Reaction ignored: conversation has no participantId')
+              <React.Fragment key={message.id}>
+                {message.id === firstUnreadId && (
+                  <UnreadDivider label={t('chat.newMessages')} />
+                )}
+                <MessageBubble
+                  message={message}
+                  isOwn={message.senderId === identity?.keyPair.publicKey}
+                  ownSenderId={identity?.keyPair.publicKey}
+                  senderName={contact?.displayName}
+                  senderNameFor={senderNameFor}
+                  highlighted={message.id === highlightedMessageId}
+                  // CHAT SETTINGS (collapseMessages): group consecutive messages from
+                  // the same sender within 5 minutes — only the last one shows its
+                  // timestamp, the others render in compact mode.
+                  compact={
+                    collapseMessages &&
+                    index > 0 &&
+                    messages[index - 1].senderId === message.senderId &&
+                    message.timestamp - messages[index - 1].timestamp < 300_000
                   }
-                }}
-                onForward={(msg) => setForwardMessage(msg)}
-                onPin={(msg) => {
-                  if (dataId) chatService.togglePinMessage(msg.id, dataId)
-                }}
-              />
+                  onReply={handleReply}
+                  onEdit={handleEdit}
+                  onRetry={handleRetry}
+                  onDelete={requestDelete}
+                  deleteModes={['forEveryone', 'permanently']}
+                  onReaction={(msg, emoji) => {
+                    if (conversation.participantId && dataId) {
+                      chatService.toggleReaction(msg.id, dataId, emoji, conversation.participantId).catch((err) => {
+                        console.warn('[ChatView] toggleReaction failed:', err)
+                      })
+                    } else {
+                      console.warn('[ChatView] Reaction ignored: conversation has no participantId')
+                    }
+                  }}
+                  onForward={handleForward}
+                  onPin={(msg) => {
+                    if (dataId) chatService.togglePinMessage(msg.id, dataId)
+                  }}
+                />
+              </React.Fragment>
             )}
             components={{
               Header: () => <div className="h-4" />,
@@ -375,6 +743,39 @@ export const ChatView: React.FC = () => {
           />
           </div>
         )}
+
+        {/* Retour au bas du fil : visible uniquement quand l'utilisateur lit
+            plus haut, avec le nombre de messages reçus en dessous. */}
+        {!atBottom && messages.length > 0 && (
+          <button
+            type="button"
+            // La pastille est masquée au lecteur d'écran : sans ce compteur,
+            // il annonce le bouton sans dire combien de messages attendent.
+            aria-label={
+              newBelowCount > 0
+                ? `${t('chat.scrollToLatest')}, ${t('nav.unreadCount', { count: newBelowCount })}`
+                : t('chat.scrollToLatest')
+            }
+            title={t('chat.scrollToLatest')}
+            onClick={() => {
+              virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' })
+            }}
+            className="absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-asgard-border bg-asgard-surface text-asgard-glacier shadow-lg transition-colors hover:bg-asgard-nordic/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-asgard-glacier"
+          >
+            {newBelowCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute -right-1 -top-1 min-w-[18px] rounded-full px-1 text-center text-[10px] font-bold leading-[18px]"
+                style={{ background: '#4FC3F7', color: '#0B0E1A' }}
+              >
+                {newBelowCount > 99 ? '99+' : newBelowCount}
+              </span>
+            )}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Active file transfers widget */}
@@ -382,11 +783,20 @@ export const ChatView: React.FC = () => {
         <ActiveTransfersWidget conversationId={dataId} />
       </AnimatePresence>
 
+      {/* Demande de contact en attente — réponse = confirmation */}
+      <AnimatePresence>
+        {contact?.relation === 'pending' && <PendingContactBanner contact={contact} />}
+      </AnimatePresence>
+
       {/* Message input */}
       <MessageInput
         conversationId={conversationId}
         replyTo={replyTo}
+        replyToName={replyTo ? senderNameFor(replyTo.senderId) : undefined}
+        editingMessage={editingMessage}
         onSend={handleSend}
+        onEditSubmit={handleEditSubmit}
+        onCancelEdit={() => setEditingMessage(undefined)}
         onFiles={handleFiles}
         onCancelReply={() => setReplyTo(undefined)}
         onTyping={handleTyping}
@@ -402,7 +812,8 @@ export const ChatView: React.FC = () => {
       {/* Delete conversation confirmation modal */}
       <AnimatePresence>
         {showDeleteConfirm && (
-          <DeleteConfirmModal
+          <ConversationConfirm
+            variant="delete"
             name={displayName}
             onCancel={() => setShowDeleteConfirm(false)}
             onConfirm={async () => {
@@ -414,6 +825,7 @@ export const ChatView: React.FC = () => {
               } catch (err) {
                 console.error('[ChatView] deleteConversation failed:', err)
                 try { window.asgard.debugLog('[ChatView] deleteConversation failed: ' + (err instanceof Error ? err.message : String(err))) } catch {}
+                useUIStore.getState().addToast({ type: 'error', title: t('chat.deleteConversationFailed') })
               }
             }}
           />
@@ -426,6 +838,18 @@ export const ChatView: React.FC = () => {
           <ForwardModal
             message={forwardMessage}
             onClose={() => setForwardMessage(undefined)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Le message ne part qu'après acquiescement : annuler laisse la bulle en
+          place et rend le focus à la rangée qui avait demandé. */}
+      <AnimatePresence>
+        {pendingDelete && (
+          <MessageDeleteConfirm
+            mode={pendingDelete.mode}
+            onCancel={cancelDelete}
+            onConfirm={confirmDelete}
           />
         )}
       </AnimatePresence>
@@ -476,7 +900,9 @@ const ChatEmptyState: React.FC = () => {
   )
 }
 
-const ConversationStart: React.FC<{ name: string }> = ({ name }) => (
+const ConversationStart: React.FC<{ name: string }> = ({ name }) => {
+  const { t } = useTranslation()
+  return (
   <div className="flex flex-col items-center justify-center h-full text-center px-8">
     <div className="mb-3 opacity-50">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-glacier">
@@ -484,12 +910,13 @@ const ConversationStart: React.FC<{ name: string }> = ({ name }) => (
       </svg>
     </div>
     <p className="text-sm text-asgard-text-muted">
-      This conversation is end-to-end encrypted.
+      {t('panels.endToEndEncrypted')}.
       <br />
-      Send a message to start talking with <strong className="text-asgard-text-secondary">{name}</strong>.
+      {t('chat.sendToStart', { name })}
     </p>
   </div>
-)
+  )
+}
 
 const TypingIndicator: React.FC<{ users: string[]; contact?: string }> = ({ users, contact }) => {
   const { t } = useTranslation()
@@ -519,66 +946,9 @@ const TypingIndicator: React.FC<{ users: string[]; contact?: string }> = ({ user
 const HeaderButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ children, ...props }) => (
   <motion.button
     whileTap={{ scale: 0.9 }}
-    className="w-9 h-9 flex items-center justify-center rounded-xl text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors"
+    className="w-9 h-9 flex items-center justify-center rounded-xl text-asgard-text-muted hover:bg-asgard-surface-alt hover:text-asgard-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
     {...(props as any)}
   >
     {children}
   </motion.button>
 )
-
-// ─── Delete Confirm Modal ─────────────────────────────────────────────────────
-
-const DeleteConfirmModal: React.FC<{
-  name: string
-  onCancel: () => void
-  onConfirm: () => void
-}> = ({ name, onCancel, onConfirm }) => {
-  const { t } = useTranslation()
-  return (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-    onClick={onCancel}
-  >
-    <motion.div
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.95, opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className="mica-card border border-asgard-border rounded-2xl p-6 shadow-modal max-w-sm mx-4"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center flex-shrink-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-asgard-busy">
-            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-          </svg>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-asgard-text-primary">{t('chat.deleteConversation')}</h3>
-          <p className="text-xs text-asgard-text-muted">{t('chat.cannotUndo')}</p>
-        </div>
-      </div>
-      <p className="text-sm text-asgard-text-secondary mb-5">
-        {t('chat.deleteWarning', { name })}
-      </p>
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 text-sm rounded-lg text-asgard-text-secondary hover:bg-asgard-surface-alt transition-colors"
-        >
-          {t('common.cancel')}
-        </button>
-        <button
-          onClick={onConfirm}
-          className="px-4 py-2 text-sm rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors font-medium"
-        >
-          {t('chat.deletePermanently')}
-        </button>
-      </div>
-    </motion.div>
-  </motion.div>
-  )
-}

@@ -77,12 +77,20 @@ interface CallState {
   isMuted: boolean
   isCameraOff: boolean
   isScreenSharing: boolean
+  /** Attente demandée ici : plus aucun son ni image ne part, les boutons gardent le choix de l'utilisateur */
+  isOnHold: boolean
+  /** Pairs qui se sont déclarés en attente — aucun média n'arrive d'eux */
+  holdingPeers: string[]
   /** Private mode — hides chat content during call */
   isPrivateMode: boolean
   /** Local video fullscreen mode (PiP expanded) */
   isLocalVideoFullscreen: boolean
   /** Peer video fullscreen mode */
   isPeerVideoFullscreen: boolean
+  /** Appel réduit : le plein écran disparaît, l'appel continue en carte flottante */
+  isCallMinimized: boolean
+  /** Groupe : pair dont la vidéo occupe l'écran (null = grille) */
+  peerVideoFullscreenId: string | null
   /** Manual video quality override */
   videoQuality: VideoQuality
   /** In-call chat messages */
@@ -108,9 +116,13 @@ interface CallState {
   toggleMute: () => void
   toggleCamera: () => void
   toggleScreenShare: () => void
+  setOnHold: (onHold: boolean) => void
+  setPeerHolding: (peerId: string, held: boolean) => void
   togglePrivateMode: () => void
   toggleLocalVideoFullscreen: () => void
   togglePeerVideoFullscreen: () => void
+  setCallMinimized: (minimized: boolean) => void
+  setPeerVideoFullscreenId: (peerId: string | null) => void
   setVideoQuality: (quality: VideoQuality) => void
   /** In-call chat */
   addCallChatMessage: (message: CallChatMessage) => void
@@ -135,9 +147,13 @@ export const useCallStore = create<CallState>()(
     isMuted: false,
     isCameraOff: false,
     isScreenSharing: false,
+    isOnHold: false,
+    holdingPeers: [],
     isPrivateMode: false,
     isLocalVideoFullscreen: false,
     isPeerVideoFullscreen: false,
+    isCallMinimized: false,
+    peerVideoFullscreenId: null,
     videoQuality: 'auto' as VideoQuality,
     callChatMessages: [],
     callReactions: [],
@@ -226,10 +242,14 @@ export const useCallStore = create<CallState>()(
         s.isMuted = false
         s.isCameraOff = false
         s.isScreenSharing = false
+        s.isOnHold = false
+        s.holdingPeers = []
         s.callChatMessages = []
         s.callReactions = []
         s.showCallChat = false
         s.isPeerVideoFullscreen = false
+        s.isCallMinimized = false
+        s.peerVideoFullscreenId = null
       })
     },
 
@@ -273,6 +293,7 @@ export const useCallStore = create<CallState>()(
         if (s.activeCall) {
           s.activeCall.participants = remaining
         }
+        s.holdingPeers = s.holdingPeers.filter((id) => id !== peerId)
       })
 
       console.log(`[CallStore] Participant removed: ${peerId.slice(0, 16)} | remaining: ${remaining.length}`)
@@ -309,9 +330,18 @@ export const useCallStore = create<CallState>()(
     toggleMute: () => set((s) => { s.isMuted = !s.isMuted }),
     toggleCamera: () => set((s) => { s.isCameraOff = !s.isCameraOff }),
     toggleScreenShare: () => set((s) => { s.isScreenSharing = !s.isScreenSharing }),
+    setOnHold: (onHold) => set((s) => { s.isOnHold = onHold }),
+    /** Attente signalisée par un pair : sa clé reste dans la liste tant qu'il est en attente. */
+    setPeerHolding: (peerId, held) => set((s) => {
+      const at = s.holdingPeers.indexOf(peerId)
+      if (held && at === -1) s.holdingPeers.push(peerId)
+      else if (!held && at >= 0) s.holdingPeers.splice(at, 1)
+    }),
     togglePrivateMode: () => set((s) => { s.isPrivateMode = !s.isPrivateMode }),
     toggleLocalVideoFullscreen: () => set((s) => { s.isLocalVideoFullscreen = !s.isLocalVideoFullscreen }),
     togglePeerVideoFullscreen: () => set((s) => { s.isPeerVideoFullscreen = !s.isPeerVideoFullscreen }),
+    setCallMinimized: (minimized) => set((s) => { s.isCallMinimized = minimized }),
+    setPeerVideoFullscreenId: (peerId) => set((s) => { s.peerVideoFullscreenId = peerId }),
     setVideoQuality: (quality) => set((s) => { s.videoQuality = quality }),
 
     addCallChatMessage: (message) => set((s) => {

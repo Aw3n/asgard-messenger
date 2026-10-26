@@ -1,9 +1,10 @@
-import { app, BrowserWindow, Menu, shell, globalShortcut, dialog } from 'electron'
+import { app, BrowserWindow, Menu, globalShortcut, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { setupIpcHandlers, setPendingDeepLink } from './ipc/handlers'
 import { AsgardTray } from './tray'
 import { configureFirewall } from './services/FirewallService'
+import { openExternalSafe } from './utils/openExternal'
 
 const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev')
 
@@ -228,7 +229,7 @@ async function createWindow(): Promise<void> {
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    openExternalSafe(url)
     return { action: 'deny' }
   })
 
@@ -246,7 +247,7 @@ async function createWindow(): Promise<void> {
 
   // Handle minimize to tray
   mainWindow.on('close', (event) => {
-    if (tray && !app.isQuitting) {
+    if (tray?.available && !app.isQuitting) {
       event.preventDefault()
       mainWindow?.hide()
     }

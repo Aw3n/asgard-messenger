@@ -20,6 +20,8 @@ export interface Conversation {
   unreadCount: number
   /** Whether this conversation is muted */
   muted: boolean
+  /** Fin d'une sourdine temporisée (ms). Absent = sourdine sans échéance. */
+  mutedUntil?: number
   /** Whether this conversation is pinned */
   pinned: boolean
   /** Whether this conversation is archived */
@@ -28,8 +30,6 @@ export interface Conversation {
   createdAt: number
   /** Last activity timestamp */
   updatedAt: number
-  /** Draft message that hasn't been sent */
-  draft?: string
   /** BROADCAST MODE: When true, only admins can post, others can only react */
   broadcastMode?: boolean
   /** For broadcast: public key of the admin/broadcaster */

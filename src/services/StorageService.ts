@@ -33,7 +33,7 @@ class StorageServiceClient {
 
   async getMessages(
     conversationId: string,
-    options?: { limit?: number; before?: number; after?: number; reverse?: boolean }
+    options?: { limit?: number; before?: number; after?: number; afterId?: string; reverse?: boolean }
   ): Promise<Message[]> {
     if (!this.api) throw new Error('Storage API not available')
     const messages = await this.api.getMessages(conversationId, options)
